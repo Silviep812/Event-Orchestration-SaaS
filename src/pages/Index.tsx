@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Menu, X, Calendar, Users, BarChart3, Bell } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const Index = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -87,8 +88,8 @@ const Index = () => {
             Create, manage, and track events while collaborating seamlessly with your team.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" className="text-lg px-8 py-3">
-              Start Free Trial
+            <Button size="lg" className="text-lg px-8 py-3" asChild>
+              <Link to="/dashboard">Start Free Trial</Link>
             </Button>
             <Button variant="outline" size="lg" className="text-lg px-8 py-3">
               Watch Demo
@@ -132,8 +133,8 @@ const Index = () => {
           <p className="text-lg sm:text-xl text-muted-foreground mb-8">
             Join thousands of event professionals who trust IEP for their event management needs.
           </p>
-          <Button size="lg" className="text-lg px-8 py-3">
-            Start Your Free Trial Today
+          <Button size="lg" className="text-lg px-8 py-3" asChild>
+            <Link to="/dashboard">Start Your Free Trial Today</Link>
           </Button>
         </div>
       </section>
