@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Menu, X, Calendar, Users, BarChart3, Bell } from "lucide-react";
 import { Link } from "react-router-dom";
+import iepLogo from "@/assets/iep-logo.svg";
 
 const Index = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -38,7 +39,7 @@ const Index = () => {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <Link to="/" className="flex items-center gap-3" aria-label="IEP">
-                <img src="/placeholder.svg" alt="IEP logo" className="h-8 w-8" />
+                <img src={iepLogo} alt="IEP logo" className="h-8 w-8" />
                 <span className="text-xl sm:text-2xl font-bold text-primary">IEP</span>
               </Link>
             </div>
