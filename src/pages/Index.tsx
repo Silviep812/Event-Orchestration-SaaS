@@ -37,8 +37,9 @@ const Index = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <Link to="/" className="flex items-center gap-2" aria-label="IEP">
+              <Link to="/" className="flex items-center gap-3" aria-label="IEP">
                 <img src="/placeholder.svg" alt="IEP logo" className="h-8 w-8" />
+                <span className="text-xl sm:text-2xl font-bold text-primary">IEP</span>
               </Link>
             </div>
             
