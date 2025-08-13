@@ -12,7 +12,7 @@ const Index = () => {
     {
       icon: Calendar,
       title: "Event Creation",
-      description: "Create and manage events with ease"
+      description: "Create Event with drop and drag"
     },
     {
       icon: Users,
