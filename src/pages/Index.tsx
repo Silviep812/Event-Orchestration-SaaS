@@ -15,6 +15,11 @@ const Index = () => {
       description: "Create Event with drop and drag"
     },
     {
+      icon: Calendar,
+      title: "Manage Events",
+      description: "With ease"
+    },
+    {
       icon: Users,
       title: "Team Collaboration",
       description: "Work together with your team members"
