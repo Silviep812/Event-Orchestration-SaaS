@@ -8,7 +8,8 @@ import {
   FileText,
   MessageSquare,
   TrendingUp,
-  Plus
+  Plus,
+  Bell
 } from "lucide-react";
 
 import {
@@ -53,6 +54,11 @@ const menuItems = [
     title: "Generate Reports",
     url: "/dashboard/reports",
     icon: FileText,
+  },
+  {
+    title: "Notification",
+    url: "/dashboard/notification",
+    icon: Bell,
   },
   {
     title: "Comments",

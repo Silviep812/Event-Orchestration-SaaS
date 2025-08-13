@@ -30,6 +30,7 @@ const App = () => (
               <Route path="track-progress" element={<div>Track Progress Page</div>} />
               <Route path="analytics" element={<div>Analytics Page</div>} />
               <Route path="reports" element={<div>Reports Page</div>} />
+              <Route path="notification" element={<div>Notification Page</div>} />
               <Route path="comments" element={<div>Comments Page</div>} />
             </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
