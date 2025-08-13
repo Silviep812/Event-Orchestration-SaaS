@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { 
@@ -9,11 +9,65 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { Home, LogOut, Settings, User, Bell } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Home, LogOut, Settings, User, Bell, Calendar } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
 export function DashboardHeader() {
-  const [user] = useState({ name: "John Doe", email: "john@example.com" });
+  const { user, signOut } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const [currentDate, setCurrentDate] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentDate(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const handleSignOut = async () => {
+    const { error } = await signOut();
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Sign out failed",
+        description: error.message,
+      });
+    } else {
+      toast({
+        title: "Signed out",
+        description: "You have been signed out successfully.",
+      });
+      navigate('/');
+    }
+  };
+
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const getUserDisplayName = () => {
+    if (user?.user_metadata?.full_name) return user.user_metadata.full_name;
+    if (user?.email) return user.email.split('@')[0];
+    return 'User';
+  };
+
+  const getUserInitials = () => {
+    const name = getUserDisplayName();
+    return name.split(' ').map(n => n[0]).join('').toUpperCase();
+  };
 
   return (
     <header className="h-16 border-b bg-card flex items-center justify-between px-4 lg:px-6">
@@ -43,10 +97,20 @@ export function DashboardHeader() {
       </div>
 
       <div className="flex items-center gap-2 lg:gap-4">
+        {/* Date and time */}
+        <div className="hidden xl:flex items-center gap-2 text-sm text-muted-foreground">
+          <Calendar className="h-4 w-4" />
+          <div className="flex flex-col items-end">
+            <span className="font-medium">{formatDate(currentDate)}</span>
+            <span className="text-xs">{formatTime(currentDate)}</span>
+          </div>
+        </div>
+        
         {/* Welcome message */}
-        <span className="hidden lg:block text-sm text-muted-foreground">
-          Welcome to Ida Event Partners
-        </span>
+        <div className="hidden lg:block text-sm">
+          <div className="text-muted-foreground">Welcome back,</div>
+          <div className="font-medium text-foreground">{getUserDisplayName()}</div>
+        </div>
         
         {/* Notifications */}
         <Button variant="ghost" size="icon" className="relative">
@@ -60,11 +124,11 @@ export function DashboardHeader() {
             <Button variant="ghost" className="flex items-center gap-2 h-10">
               <Avatar className="h-8 w-8">
                 <AvatarImage src="" />
-                <AvatarFallback className="text-xs">
-                  {user.name.split(' ').map(n => n[0]).join('')}
+                <AvatarFallback className="text-xs bg-primary text-primary-foreground">
+                  {getUserInitials()}
                 </AvatarFallback>
               </Avatar>
-              <span className="hidden md:block text-sm font-medium">{user.name}</span>
+              <span className="hidden md:block text-sm font-medium">{getUserDisplayName()}</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
@@ -77,7 +141,7 @@ export function DashboardHeader() {
               Settings
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={handleSignOut}>
               <LogOut className="mr-2 h-4 w-4" />
               Sign Out
             </DropdownMenuItem>

@@ -53,8 +53,12 @@ const Index = () => {
               <Button variant="ghost">Features</Button>
               <Button variant="ghost">Pricing</Button>
               <Button variant="ghost">Contact</Button>
-              <Button variant="outline">Sign In</Button>
-              <Button>Start Trial</Button>
+              <Button variant="outline" asChild>
+                <Link to="/auth">Sign In</Link>
+              </Button>
+              <Button asChild>
+                <Link to="/auth">Start Trial</Link>
+              </Button>
             </div>
 
             {/* Mobile menu button */}
@@ -76,8 +80,12 @@ const Index = () => {
                 <Button variant="ghost" className="w-full justify-start">Features</Button>
                 <Button variant="ghost" className="w-full justify-start">Pricing</Button>
                 <Button variant="ghost" className="w-full justify-start">Contact</Button>
-                <Button variant="outline" className="w-full">Sign In</Button>
-                <Button className="w-full">Start Trial</Button>
+                <Button variant="outline" className="w-full" asChild>
+                  <Link to="/auth">Sign In</Link>
+                </Button>
+                <Button className="w-full" asChild>
+                  <Link to="/auth">Start Trial</Link>
+                </Button>
               </div>
             </div>
           )}
@@ -96,7 +104,7 @@ const Index = () => {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" className="text-lg px-8 py-3" asChild>
-              <Link to="/dashboard">Start Free Trial</Link>
+              <Link to="/auth">Start Free Trial</Link>
             </Button>
             <Button variant="outline" size="lg" className="text-lg px-8 py-3">
               Watch Demo
@@ -141,7 +149,7 @@ const Index = () => {
             Join thousands of event professionals who trust IEP for their event management needs.
           </p>
           <Button size="lg" className="text-lg px-8 py-3" asChild>
-            <Link to="/dashboard">Start Your Free Trial Today</Link>
+            <Link to="/auth">Start Your Free Trial Today</Link>
           </Button>
         </div>
       </section>
