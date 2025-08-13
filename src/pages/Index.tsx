@@ -53,12 +53,12 @@ const Index = () => {
               <Button variant="ghost">Features</Button>
               <Button variant="ghost">Pricing</Button>
               <Button variant="ghost">Contact</Button>
-              <Button variant="outline" asChild>
-                <Link to="/auth">Sign In</Link>
-              </Button>
-              <Button asChild>
-                <Link to="/auth">Start Trial</Link>
-              </Button>
+              <Link to="/auth">
+                <Button variant="outline">Sign In</Button>
+              </Link>
+              <Link to="/auth">
+                <Button>Start Trial</Button>
+              </Link>
             </div>
 
             {/* Mobile menu button */}
@@ -80,12 +80,12 @@ const Index = () => {
                 <Button variant="ghost" className="w-full justify-start">Features</Button>
                 <Button variant="ghost" className="w-full justify-start">Pricing</Button>
                 <Button variant="ghost" className="w-full justify-start">Contact</Button>
-                <Button variant="outline" className="w-full" asChild>
-                  <Link to="/auth">Sign In</Link>
-                </Button>
-                <Button className="w-full" asChild>
-                  <Link to="/auth">Start Trial</Link>
-                </Button>
+                <Link to="/auth">
+                  <Button variant="outline" className="w-full">Sign In</Button>
+                </Link>
+                <Link to="/auth">
+                  <Button className="w-full">Start Trial</Button>
+                </Link>
               </div>
             </div>
           )}
@@ -103,9 +103,9 @@ const Index = () => {
             Create, manage, and track events while collaborating seamlessly with your team.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" className="text-lg px-8 py-3" asChild>
-              <Link to="/auth">Start Free Trial</Link>
-            </Button>
+            <Link to="/auth">
+              <Button size="lg" className="text-lg px-8 py-3">Start Free Trial</Button>
+            </Link>
             <Button variant="outline" size="lg" className="text-lg px-8 py-3">
               Watch Demo
             </Button>
@@ -148,9 +148,9 @@ const Index = () => {
           <p className="text-lg sm:text-xl text-muted-foreground mb-8">
             Join thousands of event professionals who trust IEP for their event management needs.
           </p>
-          <Button size="lg" className="text-lg px-8 py-3" asChild>
-            <Link to="/auth">Start Your Free Trial Today</Link>
-          </Button>
+          <Link to="/auth">
+            <Button size="lg" className="text-lg px-8 py-3">Start Your Free Trial Today</Button>
+          </Link>
         </div>
       </section>
     </div>
