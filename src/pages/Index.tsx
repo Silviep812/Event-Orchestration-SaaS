@@ -12,27 +12,37 @@ const Index = () => {
     {
       icon: Calendar,
       title: "Event Creation",
-      description: "Create Event with drop and drag"
+      description: "Create Event with drop and drag",
+      color: "from-purple-500 to-pink-500",
+      bgColor: "bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/20"
     },
     {
       icon: Calendar,
       title: "Manage Events",
-      description: "With ease"
+      description: "With ease",
+      color: "from-blue-500 to-cyan-500",
+      bgColor: "bg-gradient-to-br from-blue-100 to-cyan-100 dark:from-blue-900/20 dark:to-cyan-900/20"
     },
     {
       icon: Users,
       title: "Team Collaboration",
-      description: "Work together with your team members"
+      description: "Work together with your team members",
+      color: "from-green-500 to-emerald-500",
+      bgColor: "bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/20 dark:to-emerald-900/20"
     },
     {
       icon: BarChart3,
       title: "Analytics & Reports",
-      description: "Track progress and generate insights"
+      description: "Track progress and generate insights",
+      color: "from-orange-500 to-red-500",
+      bgColor: "bg-gradient-to-br from-orange-100 to-red-100 dark:from-orange-900/20 dark:to-red-900/20"
     },
     {
       icon: Bell,
       title: "Notifications",
-      description: "Stay updated with real-time alerts"
+      description: "Stay updated with real-time alerts",
+      color: "from-indigo-500 to-purple-500",
+      bgColor: "bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/20 dark:to-purple-900/20"
     }
   ];
 
@@ -121,15 +131,17 @@ const Index = () => {
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {features.map((feature, index) => (
-              <Card key={index} className="text-center h-full">
+              <Card key={index} className={`text-center h-full border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 ${feature.bgColor}`}>
                 <CardHeader>
-                  <div className="mx-auto mb-4 p-3 bg-primary/10 rounded-full w-fit">
-                    <feature.icon className="h-8 w-8 text-primary" />
+                  <div className={`mx-auto mb-4 p-4 bg-gradient-to-br ${feature.color} rounded-full w-fit shadow-lg`}>
+                    <feature.icon className="h-8 w-8 text-white" />
                   </div>
-                  <CardTitle className="text-xl">{feature.title}</CardTitle>
+                  <CardTitle className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-200 bg-clip-text text-transparent">
+                    {feature.title}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <CardDescription className="text-base">
+                  <CardDescription className="text-base text-gray-700 dark:text-gray-300">
                     {feature.description}
                   </CardDescription>
                 </CardContent>
