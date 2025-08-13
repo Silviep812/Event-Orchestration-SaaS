@@ -39,7 +39,7 @@ const Index = () => {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <Link to="/" className="flex items-center" aria-label="IEP">
-                <img src="/lovable-uploads/e8e18250-fa27-4ae4-a4bc-867e063bcfd1.png" alt="IEP logo" className="h-10 w-10" />
+                <img src="/lovable-uploads/e8e18250-fa27-4ae4-a4bc-867e063bcfd1.png" alt="IEP logo" className="h-15 w-15" />
               </Link>
             </div>
             
