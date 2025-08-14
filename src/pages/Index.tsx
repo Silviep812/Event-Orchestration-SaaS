@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Menu, X, Calendar, Users, BarChart3, Bell } from "lucide-react";
+import { Menu, X, Calendar, Users, BarChart3, Bell, MapPin } from "lucide-react";
 import { Link } from "react-router-dom";
 
 
@@ -22,6 +22,13 @@ const Index = () => {
       description: "Changes and Updates With ease",
       color: "from-blue-500 to-cyan-500",
       bgColor: "bg-gradient-to-br from-blue-100 to-cyan-100 dark:from-blue-900/20 dark:to-cyan-900/20"
+    },
+    {
+      icon: MapPin,
+      title: "Directories",
+      description: "Find Venue Hospitality Vendors Entertainment",
+      color: "from-yellow-500 to-orange-500",
+      bgColor: "bg-gradient-to-br from-yellow-100 to-orange-100 dark:from-yellow-900/20 dark:to-orange-900/20"
     },
     {
       icon: Users,
