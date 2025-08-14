@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 
 
 const Index = () => {
+  console.log('Index component is rendering');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const features = [
