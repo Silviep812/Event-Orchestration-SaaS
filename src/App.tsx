@@ -14,6 +14,7 @@ import ProjectManagement from "./pages/ProjectManagement";
 import PlanningAssets from "./components/PlanningAssets";
 import Analytics from "./components/Analytics";
 import EventCalendar from "./components/EventCalendar";
+import ManageEventPage from "./pages/ManageEvent";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,7 +38,7 @@ const App = () => (
               <Route path="analytics" element={<Analytics />} />
               <Route path="calendar" element={<EventCalendar />} />
               <Route path="create-event" element={<div>Create Event Page</div>} />
-              <Route path="manage-event" element={<div>Manage Event Page</div>} />
+              <Route path="manage-event" element={<ManageEventPage />} />
               <Route path="collaborate" element={<div>Collaborate Page</div>} />
               <Route path="track-progress" element={<div>Track Progress Page</div>} />
               <Route path="reports" element={<div>Reports Page</div>} />

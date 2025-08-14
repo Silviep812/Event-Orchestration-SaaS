@@ -122,6 +122,45 @@ export type Database = {
         }
         Relationships: []
       }
+      change_logs: {
+        Row: {
+          action: string
+          change_description: string | null
+          changed_by: string
+          created_at: string
+          entity_id: string
+          entity_type: string
+          field_name: string | null
+          id: string
+          new_value: string | null
+          old_value: string | null
+        }
+        Insert: {
+          action: string
+          change_description?: string | null
+          changed_by: string
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          field_name?: string | null
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+        }
+        Update: {
+          action?: string
+          change_description?: string | null
+          changed_by?: string
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          field_name?: string | null
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+        }
+        Relationships: []
+      }
       Collaborators: {
         Row: {
           collab_type: string
@@ -695,6 +734,45 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          is_read: boolean
+          message: string
+          recipient_id: string
+          sender_id: string | null
+          title: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          is_read?: boolean
+          message: string
+          recipient_id: string
+          sender_id?: string | null
+          title: string
+          type: string
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          is_read?: boolean
+          message?: string
+          recipient_id?: string
+          sender_id?: string | null
+          title?: string
+          type?: string
+        }
+        Relationships: []
+      }
       "Service Rental Directory": {
         Row: {
           audio_visual_equip: string | null
@@ -1164,6 +1242,28 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      log_change: {
+        Args: {
+          p_action: string
+          p_description?: string
+          p_entity_id: string
+          p_entity_type: string
+          p_field_name?: string
+          p_new_value?: string
+          p_old_value?: string
+        }
+        Returns: string
+      }
+      notify_coordinators: {
+        Args: {
+          p_entity_id?: string
+          p_entity_type?: string
+          p_message: string
+          p_title: string
+          p_type: string
+        }
+        Returns: undefined
       }
     }
     Enums: {
