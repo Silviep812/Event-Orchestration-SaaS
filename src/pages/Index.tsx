@@ -19,7 +19,7 @@ const Index = () => {
     {
       icon: Calendar,
       title: "Manage Events",
-      description: "With ease",
+      description: "Changes and Updates With ease",
       color: "from-blue-500 to-cyan-500",
       bgColor: "bg-gradient-to-br from-blue-100 to-cyan-100 dark:from-blue-900/20 dark:to-cyan-900/20"
     },
