@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.12 (cd3cf9e)"
@@ -68,6 +68,57 @@ export type Database = {
           registry?: string[] | null
           reservation?: boolean | null
           rsvp?: boolean | null
+        }
+        Relationships: []
+      }
+      budget_items: {
+        Row: {
+          actual_cost: number | null
+          category: Database["public"]["Enums"]["budget_category"]
+          created_at: string
+          created_by: string
+          description: string | null
+          estimated_cost: number | null
+          event_id: string | null
+          id: string
+          item_name: string
+          payment_due_date: string | null
+          payment_status: string | null
+          updated_at: string
+          vendor_contact: string | null
+          vendor_name: string | null
+        }
+        Insert: {
+          actual_cost?: number | null
+          category: Database["public"]["Enums"]["budget_category"]
+          created_at?: string
+          created_by: string
+          description?: string | null
+          estimated_cost?: number | null
+          event_id?: string | null
+          id?: string
+          item_name: string
+          payment_due_date?: string | null
+          payment_status?: string | null
+          updated_at?: string
+          vendor_contact?: string | null
+          vendor_name?: string | null
+        }
+        Update: {
+          actual_cost?: number | null
+          category?: Database["public"]["Enums"]["budget_category"]
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          estimated_cost?: number | null
+          event_id?: string | null
+          id?: string
+          item_name?: string
+          payment_due_date?: string | null
+          payment_status?: string | null
+          updated_at?: string
+          vendor_contact?: string | null
+          vendor_name?: string | null
         }
         Relationships: []
       }
@@ -770,6 +821,57 @@ export type Database = {
         }
         Relationships: []
       }
+      tasks: {
+        Row: {
+          actual_hours: number | null
+          assigned_role: Database["public"]["Enums"]["app_role"] | null
+          assigned_to: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          due_date: string | null
+          estimated_hours: number | null
+          event_id: string | null
+          id: string
+          priority: Database["public"]["Enums"]["task_priority"]
+          status: Database["public"]["Enums"]["task_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          actual_hours?: number | null
+          assigned_role?: Database["public"]["Enums"]["app_role"] | null
+          assigned_to?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          due_date?: string | null
+          estimated_hours?: number | null
+          event_id?: string | null
+          id?: string
+          priority?: Database["public"]["Enums"]["task_priority"]
+          status?: Database["public"]["Enums"]["task_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          actual_hours?: number | null
+          assigned_role?: Database["public"]["Enums"]["app_role"] | null
+          assigned_to?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          due_date?: string | null
+          estimated_hours?: number | null
+          event_id?: string | null
+          id?: string
+          priority?: Database["public"]["Enums"]["task_priority"]
+          status?: Database["public"]["Enums"]["task_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       "Themes Directory": {
         Row: {
           baby_shower: string
@@ -970,6 +1072,27 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       "Vendor Directory": {
         Row: {
           created_at: string
@@ -1035,10 +1158,39 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role:
+        | "admin"
+        | "event_manager"
+        | "vendor_coordinator"
+        | "budget_manager"
+        | "task_coordinator"
+        | "client"
+      budget_category:
+        | "venue"
+        | "catering"
+        | "entertainment"
+        | "decorations"
+        | "transportation"
+        | "marketing"
+        | "supplies"
+        | "services"
+        | "other"
+      task_priority: "low" | "medium" | "high" | "urgent"
+      task_status:
+        | "not_started"
+        | "in_progress"
+        | "completed"
+        | "on_hold"
+        | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1165,6 +1317,34 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: [
+        "admin",
+        "event_manager",
+        "vendor_coordinator",
+        "budget_manager",
+        "task_coordinator",
+        "client",
+      ],
+      budget_category: [
+        "venue",
+        "catering",
+        "entertainment",
+        "decorations",
+        "transportation",
+        "marketing",
+        "supplies",
+        "services",
+        "other",
+      ],
+      task_priority: ["low", "medium", "high", "urgent"],
+      task_status: [
+        "not_started",
+        "in_progress",
+        "completed",
+        "on_hold",
+        "cancelled",
+      ],
+    },
   },
 } as const

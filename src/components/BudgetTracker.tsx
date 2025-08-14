@@ -1,0 +1,454 @@
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Progress } from "@/components/ui/progress";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { DollarSign, Plus, TrendingUp, TrendingDown, AlertTriangle, CheckCircle } from "lucide-react";
+
+interface BudgetItem {
+  id: string;
+  category: string;
+  item_name: string;
+  description?: string;
+  estimated_cost?: number;
+  actual_cost?: number;
+  vendor_name?: string;
+  vendor_contact?: string;
+  payment_status: string;
+  payment_due_date?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface BudgetTrackerProps {
+  eventId?: string;
+}
+
+const categoryColors = {
+  venue: "bg-blue-100 text-blue-800",
+  catering: "bg-green-100 text-green-800",
+  entertainment: "bg-purple-100 text-purple-800",
+  decorations: "bg-pink-100 text-pink-800",
+  transportation: "bg-yellow-100 text-yellow-800",
+  marketing: "bg-orange-100 text-orange-800",
+  supplies: "bg-indigo-100 text-indigo-800",
+  services: "bg-cyan-100 text-cyan-800",
+  other: "bg-gray-100 text-gray-800"
+};
+
+const paymentStatusColors = {
+  pending: "bg-yellow-100 text-yellow-800",
+  paid: "bg-green-100 text-green-800",
+  overdue: "bg-red-100 text-red-800",
+  partial: "bg-orange-100 text-orange-800"
+};
+
+export function BudgetTracker({ eventId }: BudgetTrackerProps) {
+  const [budgetItems, setBudgetItems] = useState<BudgetItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [newItem, setNewItem] = useState({
+    category: "",
+    item_name: "",
+    description: "",
+    estimated_cost: "",
+    vendor_name: "",
+    vendor_contact: "",
+    payment_due_date: ""
+  });
+  const { toast } = useToast();
+
+  useEffect(() => {
+    fetchBudgetItems();
+  }, [eventId]);
+
+  const fetchBudgetItems = async () => {
+    try {
+      let query = supabase.from('budget_items').select('*').order('created_at', { ascending: false });
+      
+      if (eventId) {
+        query = query.eq('event_id', eventId);
+      }
+      
+      const { data, error } = await query;
+      if (error) throw error;
+      
+      setBudgetItems(data || []);
+    } catch (error) {
+      toast({
+        title: "Error fetching budget items",
+        description: "Failed to load budget items. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const createBudgetItem = async () => {
+    if (!newItem.item_name.trim() || !newItem.category) return;
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const itemData = {
+        category: newItem.category as any,
+        item_name: newItem.item_name,
+        description: newItem.description || null,
+        estimated_cost: newItem.estimated_cost ? parseFloat(newItem.estimated_cost) : null,
+        vendor_name: newItem.vendor_name || null,
+        vendor_contact: newItem.vendor_contact || null,
+        payment_due_date: newItem.payment_due_date || null,
+        event_id: eventId || null,
+        created_by: user.id
+      };
+
+      const { error } = await supabase.from('budget_items').insert(itemData);
+      if (error) throw error;
+
+      toast({
+        title: "Budget item created",
+        description: "New budget item has been added successfully.",
+      });
+
+      setNewItem({
+        category: "",
+        item_name: "",
+        description: "",
+        estimated_cost: "",
+        vendor_name: "",
+        vendor_contact: "",
+        payment_due_date: ""
+      });
+      setIsCreateDialogOpen(false);
+      fetchBudgetItems();
+    } catch (error) {
+      toast({
+        title: "Error creating budget item",
+        description: "Failed to create budget item. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const updateActualCost = async (itemId: string, actualCost: number) => {
+    try {
+      const { error } = await supabase
+        .from('budget_items')
+        .update({ actual_cost: actualCost })
+        .eq('id', itemId);
+
+      if (error) throw error;
+
+      setBudgetItems(budgetItems.map(item => 
+        item.id === itemId ? { ...item, actual_cost: actualCost } : item
+      ));
+
+      toast({
+        title: "Cost updated",
+        description: "Actual cost has been updated.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error updating cost",
+        description: "Failed to update actual cost.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const updatePaymentStatus = async (itemId: string, status: string) => {
+    try {
+      const { error } = await supabase
+        .from('budget_items')
+        .update({ payment_status: status })
+        .eq('id', itemId);
+
+      if (error) throw error;
+
+      setBudgetItems(budgetItems.map(item => 
+        item.id === itemId ? { ...item, payment_status: status } : item
+      ));
+
+      toast({
+        title: "Payment status updated",
+        description: "Payment status has been updated.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error updating payment status",
+        description: "Failed to update payment status.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const calculateTotals = () => {
+    const totalEstimated = budgetItems.reduce((sum, item) => sum + (item.estimated_cost || 0), 0);
+    const totalActual = budgetItems.reduce((sum, item) => sum + (item.actual_cost || 0), 0);
+    const variance = totalActual - totalEstimated;
+    const variancePercentage = totalEstimated > 0 ? (variance / totalEstimated) * 100 : 0;
+
+    return { totalEstimated, totalActual, variance, variancePercentage };
+  };
+
+  const { totalEstimated, totalActual, variance, variancePercentage } = calculateTotals();
+
+  if (loading) {
+    return <div className="flex justify-center py-8">Loading budget...</div>;
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold">Budget Tracking</h2>
+        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Budget Item
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Add Budget Item</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="category">Category</Label>
+                <Select value={newItem.category} onValueChange={(value) => setNewItem({ ...newItem, category: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="venue">Venue</SelectItem>
+                    <SelectItem value="catering">Catering</SelectItem>
+                    <SelectItem value="entertainment">Entertainment</SelectItem>
+                    <SelectItem value="decorations">Decorations</SelectItem>
+                    <SelectItem value="transportation">Transportation</SelectItem>
+                    <SelectItem value="marketing">Marketing</SelectItem>
+                    <SelectItem value="supplies">Supplies</SelectItem>
+                    <SelectItem value="services">Services</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="item_name">Item Name</Label>
+                <Input
+                  id="item_name"
+                  placeholder="Enter item name"
+                  value={newItem.item_name}
+                  onChange={(e) => setNewItem({ ...newItem, item_name: e.target.value })}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  placeholder="Enter description"
+                  value={newItem.description}
+                  onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="estimated_cost">Estimated Cost</Label>
+                <Input
+                  id="estimated_cost"
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={newItem.estimated_cost}
+                  onChange={(e) => setNewItem({ ...newItem, estimated_cost: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="vendor_name">Vendor Name</Label>
+                <Input
+                  id="vendor_name"
+                  placeholder="Enter vendor name"
+                  value={newItem.vendor_name}
+                  onChange={(e) => setNewItem({ ...newItem, vendor_name: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="payment_due_date">Payment Due Date</Label>
+                <Input
+                  id="payment_due_date"
+                  type="date"
+                  value={newItem.payment_due_date}
+                  onChange={(e) => setNewItem({ ...newItem, payment_due_date: e.target.value })}
+                />
+              </div>
+
+              <Button onClick={createBudgetItem} className="w-full">
+                Add Budget Item
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* Budget Summary */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Estimated Total</p>
+                <p className="text-2xl font-bold">${totalEstimated.toFixed(2)}</p>
+              </div>
+              <DollarSign className="h-8 w-8 text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Actual Total</p>
+                <p className="text-2xl font-bold">${totalActual.toFixed(2)}</p>
+              </div>
+              <DollarSign className="h-8 w-8 text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Variance</p>
+                <p className={`text-2xl font-bold ${variance >= 0 ? 'text-red-600' : 'text-green-600'}`}>
+                  ${Math.abs(variance).toFixed(2)}
+                </p>
+              </div>
+              {variance >= 0 ? 
+                <TrendingUp className="h-8 w-8 text-red-600" /> : 
+                <TrendingDown className="h-8 w-8 text-green-600" />
+              }
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Variance %</p>
+                <p className={`text-2xl font-bold ${variancePercentage >= 0 ? 'text-red-600' : 'text-green-600'}`}>
+                  {variancePercentage >= 0 ? '+' : ''}{variancePercentage.toFixed(1)}%
+                </p>
+              </div>
+              {Math.abs(variancePercentage) > 10 ? 
+                <AlertTriangle className="h-8 w-8 text-yellow-600" /> : 
+                <CheckCircle className="h-8 w-8 text-green-600" />
+              }
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Budget Items */}
+      <div className="space-y-4">
+        {budgetItems.map((item) => (
+          <Card key={item.id}>
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <h3 className="text-lg font-semibold">{item.item_name}</h3>
+                    <Badge className={categoryColors[item.category as keyof typeof categoryColors]}>
+                      {item.category}
+                    </Badge>
+                    <Badge className={paymentStatusColors[item.payment_status as keyof typeof paymentStatusColors]}>
+                      {item.payment_status}
+                    </Badge>
+                  </div>
+                  {item.description && (
+                    <p className="text-sm text-muted-foreground mb-2">{item.description}</p>
+                  )}
+                  {item.vendor_name && (
+                    <p className="text-sm text-muted-foreground">Vendor: {item.vendor_name}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label>Estimated Cost</Label>
+                  <p className="text-lg font-semibold">${(item.estimated_cost || 0).toFixed(2)}</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor={`actual-${item.id}`}>Actual Cost</Label>
+                  <Input
+                    id={`actual-${item.id}`}
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={item.actual_cost || ''}
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value) || 0;
+                      updateActualCost(item.id, value);
+                    }}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Payment Status</Label>
+                  <Select value={item.payment_status} onValueChange={(value) => updatePaymentStatus(item.id, value)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="paid">Paid</SelectItem>
+                      <SelectItem value="partial">Partial</SelectItem>
+                      <SelectItem value="overdue">Overdue</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {item.estimated_cost && item.actual_cost && (
+                <div className="mt-4">
+                  <div className="flex justify-between text-sm mb-1">
+                    <span>Budget Usage</span>
+                    <span>{((item.actual_cost / item.estimated_cost) * 100).toFixed(1)}%</span>
+                  </div>
+                  <Progress 
+                    value={Math.min((item.actual_cost / item.estimated_cost) * 100, 100)} 
+                    className="h-2"
+                  />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {budgetItems.length === 0 && (
+        <div className="text-center py-12">
+          <DollarSign className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+          <h3 className="text-lg font-semibold mb-2">No budget items yet</h3>
+          <p className="text-muted-foreground mb-4">Add your first budget item to start tracking expenses.</p>
+        </div>
+      )}
+    </div>
+  );
+}

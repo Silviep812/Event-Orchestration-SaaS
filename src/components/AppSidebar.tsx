@@ -12,7 +12,8 @@ import {
   Bell,
   Home,
   Workflow,
-  Palette
+  Palette,
+  CheckSquare
 } from "lucide-react";
 
 import {
@@ -42,6 +43,11 @@ const menuItems = [
     title: "Themes Directory",
     url: "/dashboard/themes",
     icon: Palette,
+  },
+  {
+    title: "Project Management",
+    url: "/dashboard/project-management",
+    icon: CheckSquare,
   },
   {
     title: "Create Event",

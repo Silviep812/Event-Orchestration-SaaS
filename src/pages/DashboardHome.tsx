@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, Users, BarChart3, Plus, Settings, Palette } from "lucide-react";
+import { Calendar, Users, BarChart3, Plus, Settings, Palette, CheckSquare } from "lucide-react";
 
 const DashboardHome = () => {
   const stats = [
@@ -41,6 +41,10 @@ const DashboardHome = () => {
           <Button variant="outline" onClick={() => window.location.href = '/dashboard/themes'}>
             <Palette className="h-4 w-4 mr-2" />
             Browse Themes
+          </Button>
+          <Button variant="outline" onClick={() => window.location.href = '/dashboard/project-management'}>
+            <CheckSquare className="h-4 w-4 mr-2" />
+            Manage Projects
           </Button>
           <Button className="flex items-center gap-2">
             <Plus className="h-4 w-4" />
