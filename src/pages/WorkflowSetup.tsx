@@ -3,12 +3,15 @@ import { WorkflowSelector } from "@/components/workflow/WorkflowSelector";
 import { EventThemeSelector } from "@/components/workflow/EventThemeSelector";
 import { HospitalitySelector } from "@/components/workflow/HospitalitySelector";
 import { VenueSelector } from "@/components/workflow/VenueSelector";
+import { VendorSelector } from "@/components/workflow/VendorSelector";
+import { ServiceSelector } from "@/components/workflow/ServiceSelector";
+import { SupplierSelector } from "@/components/workflow/SupplierSelector";
 import { WorkflowDashboard } from "@/components/workflow/WorkflowDashboard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 
-type SetupStep = "user-type" | "theme" | "hospitality" | "venue" | "dashboard";
+type SetupStep = "user-type" | "theme" | "hospitality" | "venue" | "vendors" | "services" | "suppliers" | "dashboard";
 
 export default function WorkflowSetup() {
   const [currentStep, setCurrentStep] = useState<SetupStep>("user-type");
@@ -16,6 +19,9 @@ export default function WorkflowSetup() {
   const [selectedTheme, setSelectedTheme] = useState<string>("");
   const [selectedHospitality, setSelectedHospitality] = useState<any>(null);
   const [selectedVenue, setSelectedVenue] = useState<any>(null);
+  const [selectedVendor, setSelectedVendor] = useState<any>(null);
+  const [selectedService, setSelectedService] = useState<any>(null);
+  const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
 
   const handleUserTypeSelection = (userType: string) => {
     setSelectedUserType(userType);
@@ -34,6 +40,21 @@ export default function WorkflowSetup() {
 
   const handleVenueSelection = (venue: any) => {
     setSelectedVenue(venue);
+    setCurrentStep("vendors");
+  };
+
+  const handleVendorSelection = (vendor: any) => {
+    setSelectedVendor(vendor);
+    setCurrentStep("services");
+  };
+
+  const handleServiceSelection = (service: any) => {
+    setSelectedService(service);
+    setCurrentStep("suppliers");
+  };
+
+  const handleSupplierSelection = (supplier: any) => {
+    setSelectedSupplier(supplier);
     setCurrentStep("dashboard");
   };
 
@@ -44,17 +65,26 @@ export default function WorkflowSetup() {
       setCurrentStep("theme");
     } else if (currentStep === "venue") {
       setCurrentStep("hospitality");
-    } else if (currentStep === "dashboard") {
+    } else if (currentStep === "vendors") {
       setCurrentStep("venue");
+    } else if (currentStep === "services") {
+      setCurrentStep("vendors");
+    } else if (currentStep === "suppliers") {
+      setCurrentStep("services");
+    } else if (currentStep === "dashboard") {
+      setCurrentStep("suppliers");
     }
   };
 
   const getStepProgress = () => {
     switch (currentStep) {
-      case "user-type": return 20;
-      case "theme": return 40;
-      case "hospitality": return 60;
-      case "venue": return 80;
+      case "user-type": return 12.5;
+      case "theme": return 25;
+      case "hospitality": return 37.5;
+      case "venue": return 50;
+      case "vendors": return 62.5;
+      case "services": return 75;
+      case "suppliers": return 87.5;
       case "dashboard": return 100;
       default: return 0;
     }
@@ -81,14 +111,20 @@ export default function WorkflowSetup() {
                       {currentStep === "theme" && "Choose Event Theme"}
                       {currentStep === "hospitality" && "Select Hospitality Services"}
                       {currentStep === "venue" && "Choose Venue Location"}
+                      {currentStep === "vendors" && "Select Vendors"}
+                      {currentStep === "services" && "Choose Services"}
+                      {currentStep === "suppliers" && "Select Suppliers"}
                     </CardTitle>
                     <p className="text-sm text-muted-foreground mt-1">
                       Step {
                         currentStep === "user-type" ? "1" : 
                         currentStep === "theme" ? "2" : 
                         currentStep === "hospitality" ? "3" : 
-                        currentStep === "venue" ? "4" : "5"
-                      } of 5
+                        currentStep === "venue" ? "4" : 
+                        currentStep === "vendors" ? "5" : 
+                        currentStep === "services" ? "6" : 
+                        currentStep === "suppliers" ? "7" : "8"
+                      } of 8
                     </p>
                   </div>
                 </div>
@@ -144,7 +180,28 @@ export default function WorkflowSetup() {
             />
           )}
 
-          {currentStep === "dashboard" && selectedUserType && selectedTheme && selectedHospitality && selectedVenue && (
+          {currentStep === "vendors" && selectedUserType && selectedTheme && selectedHospitality && selectedVenue && (
+            <VendorSelector 
+              onSelectVendor={handleVendorSelection}
+              selectedVendor={selectedVendor}
+            />
+          )}
+
+          {currentStep === "services" && selectedUserType && selectedTheme && selectedHospitality && selectedVenue && selectedVendor && (
+            <ServiceSelector 
+              onSelectService={handleServiceSelection}
+              selectedService={selectedService}
+            />
+          )}
+
+          {currentStep === "suppliers" && selectedUserType && selectedTheme && selectedHospitality && selectedVenue && selectedVendor && selectedService && (
+            <SupplierSelector 
+              onSelectSupplier={handleSupplierSelection}
+              selectedSupplier={selectedSupplier}
+            />
+          )}
+
+          {currentStep === "dashboard" && selectedUserType && selectedTheme && selectedHospitality && selectedVenue && selectedVendor && selectedService && selectedSupplier && (
             <WorkflowDashboard 
               userType={selectedUserType}
               selectedTheme={selectedTheme}
