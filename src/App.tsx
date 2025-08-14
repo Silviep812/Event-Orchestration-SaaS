@@ -11,6 +11,9 @@ import DashboardHome from "./pages/DashboardHome";
 import WorkflowSetup from "./pages/WorkflowSetup";
 import ThemesDirectory from "./pages/ThemesDirectory";
 import ProjectManagement from "./pages/ProjectManagement";
+import PlanningAssets from "./components/PlanningAssets";
+import Analytics from "./components/Analytics";
+import EventCalendar from "./components/EventCalendar";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,11 +33,13 @@ const App = () => (
               <Route path="workflow" element={<WorkflowSetup />} />
               <Route path="themes" element={<ThemesDirectory />} />
               <Route path="project-management" element={<ProjectManagement />} />
+              <Route path="planning-assets" element={<PlanningAssets />} />
+              <Route path="analytics" element={<Analytics />} />
+              <Route path="calendar" element={<EventCalendar />} />
               <Route path="create-event" element={<div>Create Event Page</div>} />
               <Route path="manage-event" element={<div>Manage Event Page</div>} />
               <Route path="collaborate" element={<div>Collaborate Page</div>} />
               <Route path="track-progress" element={<div>Track Progress Page</div>} />
-              <Route path="analytics" element={<div>Analytics Page</div>} />
               <Route path="reports" element={<div>Reports Page</div>} />
               <Route path="notification" element={<div>Notification Page</div>} />
               <Route path="comments" element={<div>Comments Page</div>} />

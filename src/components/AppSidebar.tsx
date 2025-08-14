@@ -13,7 +13,9 @@ import {
   Home,
   Workflow,
   Palette,
-  CheckSquare
+  CheckSquare,
+  Package,
+  CalendarDays
 } from "lucide-react";
 
 import {
@@ -50,6 +52,21 @@ const menuItems = [
     icon: CheckSquare,
   },
   {
+    title: "Planning Assets",
+    url: "/dashboard/planning-assets",
+    icon: Package,
+  },
+  {
+    title: "Analytics",
+    url: "/dashboard/analytics",
+    icon: BarChart3,
+  },
+  {
+    title: "Calendar",
+    url: "/dashboard/calendar",
+    icon: CalendarDays,
+  },
+  {
     title: "Create Event",
     url: "/dashboard/create-event",
     icon: Plus,
@@ -68,11 +85,6 @@ const menuItems = [
     title: "Track Progress",
     url: "/dashboard/track-progress",
     icon: TrendingUp,
-  },
-  {
-    title: "Analytics",
-    url: "/dashboard/analytics",
-    icon: BarChart3,
   },
   {
     title: "Generate Reports",
