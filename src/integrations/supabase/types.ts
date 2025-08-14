@@ -1265,6 +1265,14 @@ export type Database = {
         }
         Returns: undefined
       }
+      recalculate_project_timeline: {
+        Args: { p_event_id: string }
+        Returns: {
+          estimated_completion: string
+          new_due_date: string
+          task_id: string
+        }[]
+      }
     }
     Enums: {
       app_role:
