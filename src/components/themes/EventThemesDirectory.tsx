@@ -1,9 +1,10 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   Heart, 
   Building, 
@@ -20,165 +21,63 @@ import {
   Palette,
   CheckCircle2,
   Grid3X3,
-  List
+  List,
+  Loader2
 } from "lucide-react";
 
 interface ThemeDetails {
   id: string;
   name: string;
   description: string;
-  detailedDescription: string;
-  icon: any;
   category: string;
+  tags: string[];
+  icon: any;
   color: string;
   bgColor: string;
-  tags: string[];
-  popularWith: string[];
-  features: string[];
-  colorPalette: string[];
-  pricing: "free" | "premium";
   rating: number;
   usageCount: number;
-  imageUrl?: string;
+  pricing: "free" | "premium";
   templates: number;
   vendors: number;
 }
 
-const themeDirectory: ThemeDetails[] = [
-  {
-    id: "wedding",
-    name: "Wedding & Romance",
-    description: "Elegant celebrations of love and commitment",
-    detailedDescription: "Create unforgettable romantic celebrations with our comprehensive wedding theme package. Features elegant color schemes, romantic decorations, and sophisticated vendor partnerships.",
-    icon: Heart,
-    category: "celebration",
-    color: "text-theme-wedding",
-    bgColor: "bg-theme-wedding",
-    tags: ["Elegant", "Romantic", "Formal", "Traditional", "Luxurious"],
-    popularWith: ["professional-planner", "venue-owner"],
-    features: ["Bridal Suites", "Ceremony Layouts", "Reception Planning", "Vendor Network"],
-    colorPalette: ["#FFE4E1", "#FFC0CB", "#DDA0DD", "#B19CD9"],
-    pricing: "premium",
-    rating: 4.9,
-    usageCount: 2847,
-    templates: 25,
-    vendors: 156
-  },
-  {
-    id: "corporate",
-    name: "Corporate & Business",
-    description: "Professional networking and business events",
-    detailedDescription: "Streamline your corporate events with professional themes designed for business excellence. Includes networking layouts, presentation setups, and executive catering options.",
-    icon: Building,
-    category: "business",
-    color: "text-theme-corporate", 
-    bgColor: "bg-theme-corporate",
-    tags: ["Professional", "Networking", "Formal", "Strategic", "Executive"],
-    popularWith: ["professional-planner", "hospitality-owner"],
-    features: ["Conference Rooms", "Networking Spaces", "AV Integration", "Corporate Catering"],
-    colorPalette: ["#4A90E2", "#7B8794", "#2C3E50", "#34495E"],
-    pricing: "free",
-    rating: 4.7,
-    usageCount: 1923,
-    templates: 18,
-    vendors: 89
-  },
-  {
-    id: "birthday",
-    name: "Birthday & Celebrations",
-    description: "Personal milestones and joyful celebrations",
-    detailedDescription: "Make every birthday magical with our vibrant celebration themes. Perfect for all ages with customizable decorations, entertainment options, and memorable experiences.",
-    icon: Cake,
-    category: "celebration",
-    color: "text-theme-birthday",
-    bgColor: "bg-theme-birthday",
-    tags: ["Fun", "Personal", "Colorful", "Memorable", "Festive"],
-    popularWith: ["social-organizer", "venue-owner"],
-    features: ["Age-Specific Themes", "Entertainment Packages", "Custom Decorations", "Photo Booths"],
-    colorPalette: ["#FFD700", "#FF69B4", "#00CED1", "#32CD32"],
-    pricing: "free",
-    rating: 4.8,
-    usageCount: 3156,
-    templates: 32,
-    vendors: 78
-  },
-  {
-    id: "conference",
-    name: "Conference & Summit",
-    description: "Educational and industry-focused gatherings",
-    detailedDescription: "Host impactful conferences and summits with our comprehensive event management theme. Includes speaker management, breakout sessions, and educational resource coordination.",
-    icon: Users,
-    category: "business",
-    color: "text-theme-conference",
-    bgColor: "bg-theme-conference",
-    tags: ["Educational", "Professional", "Informative", "Strategic", "Knowledge"],
-    popularWith: ["professional-planner", "hospitality-owner"],
-    features: ["Speaker Management", "Breakout Rooms", "Live Streaming", "Educational Materials"],
-    colorPalette: ["#2E4A62", "#5D737E", "#8B9DC3", "#DFE3EE"],
-    pricing: "premium",
-    rating: 4.6,
-    usageCount: 892,
-    templates: 15,
-    vendors: 45
-  },
-  {
-    id: "festival",
-    name: "Festival & Entertainment",
-    description: "Large-scale entertainment and cultural events",
-    detailedDescription: "Create spectacular festivals and entertainment events with our dynamic theme package. Features stage management, vendor coordination, and crowd control solutions.",
-    icon: Music,
-    category: "entertainment",
-    color: "text-theme-festival",
-    bgColor: "bg-theme-festival",
-    tags: ["Energetic", "Cultural", "Entertainment", "Large-scale", "Dynamic"],
-    popularWith: ["professional-planner", "venue-owner"],
-    features: ["Stage Management", "Vendor Villages", "Security Planning", "Crowd Control"],
-    colorPalette: ["#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4"],
-    pricing: "premium",
-    rating: 4.5,
-    usageCount: 567,
-    templates: 12,
-    vendors: 234
-  },
-  {
-    id: "social",
-    name: "Social & Community",
-    description: "Community gatherings and social meetups",
-    detailedDescription: "Foster community connections with our welcoming social event themes. Perfect for meetups, community gatherings, and inclusive social events.",
-    icon: Coffee,
-    category: "social",
-    color: "text-theme-social",
-    bgColor: "bg-theme-social",
-    tags: ["Community", "Casual", "Friendly", "Inclusive", "Relaxed"],
-    popularWith: ["social-organizer", "hospitality-owner"],
-    features: ["Community Spaces", "Casual Dining", "Activity Areas", "Inclusive Design"],
-    colorPalette: ["#8BC34A", "#FFC107", "#FF9800", "#795548"],
-    pricing: "free",
-    rating: 4.7,
-    usageCount: 2234,
-    templates: 22,
-    vendors: 67
-  },
-  {
-    id: "networking",
-    name: "Networking & Mixers",
-    description: "Professional connections and industry mixers",
-    detailedDescription: "Maximize professional networking opportunities with our specialized mixer themes. Features connection facilitation, industry-specific setups, and relationship building tools.",
-    icon: Network,
-    category: "business",
-    color: "text-theme-networking",
-    bgColor: "bg-theme-networking",
-    tags: ["Professional", "Connections", "Interactive", "Growth", "Industry"],
-    popularWith: ["professional-planner", "hospitality-owner"],
-    features: ["Connection Tools", "Industry Setups", "Interactive Spaces", "Contact Exchange"],
-    colorPalette: ["#17A2B8", "#6F42C1", "#E83E8C", "#20C997"],
-    pricing: "free",
-    rating: 4.4,
-    usageCount: 1445,
-    templates: 19,
-    vendors: 92
-  }
-];
+// Theme icon mapping
+const getThemeIcon = (themeName: string) => {
+  const iconMap: { [key: string]: any } = {
+    wedding: Heart,
+    'bridal shower': Heart,
+    corporate: Building,
+    business: Building,
+    birthday: Cake,
+    celebration: Cake,
+    conference: Users,
+    summit: Users,
+    festival: Music,
+    entertainment: Music,
+    social: Coffee,
+    community: Coffee,
+    networking: Network,
+    mixer: Network,
+  };
+  
+  const key = Object.keys(iconMap).find(k => 
+    themeName.toLowerCase().includes(k)
+  );
+  return iconMap[key] || Palette;
+};
+
+// Get theme styling based on category
+const getThemeStyles = (category: string) => {
+  const styleMap: { [key: string]: { color: string; bgColor: string } } = {
+    celebration: { color: "text-pink-600", bgColor: "bg-pink-50" },
+    business: { color: "text-blue-600", bgColor: "bg-blue-50" },
+    entertainment: { color: "text-purple-600", bgColor: "bg-purple-50" },
+    social: { color: "text-green-600", bgColor: "bg-green-50" },
+    conference: { color: "text-indigo-600", bgColor: "bg-indigo-50" },
+  };
+  
+  return styleMap[category] || { color: "text-gray-600", bgColor: "bg-gray-50" };
+};
 
 interface EventThemesDirectoryProps {
   onSelectTheme: (themeId: string) => void;
@@ -192,14 +91,116 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
   const [selectedPricing, setSelectedPricing] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [sortBy, setSortBy] = useState("popular");
+  const [themes, setThemes] = useState<ThemeDetails[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const categories = useMemo(() => {
-    const cats = Array.from(new Set(themeDirectory.map(theme => theme.category)));
-    return ["all", ...cats];
+  // Fetch themes from Supabase
+  useEffect(() => {
+    const fetchThemes = async () => {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('Themes Directory')
+          .select('*');
+
+        if (error) {
+          console.error('Error fetching themes:', error);
+          return;
+        }
+
+        // Transform database data to ThemeDetails format
+        const transformedThemes: ThemeDetails[] = data.map((theme: any) => {
+          const category = getCategoryFromTheme(theme);
+          const themeStyles = getThemeStyles(category);
+          
+          return {
+            id: theme.created_at, // Using created_at as unique ID
+            name: getThemeName(theme),
+            description: getThemeDescription(theme),
+            category: category,
+            tags: getThemeTags(theme),
+            icon: getThemeIcon(getThemeName(theme)),
+            color: themeStyles.color,
+            bgColor: themeStyles.bgColor,
+            rating: Math.random() * 2 + 3, // Random rating between 3-5
+            usageCount: Math.floor(Math.random() * 5000) + 100,
+            pricing: Math.random() > 0.6 ? "premium" : "free",
+            templates: Math.floor(Math.random() * 30) + 5,
+            vendors: Math.floor(Math.random() * 200) + 20,
+          };
+        });
+
+        setThemes(transformedThemes);
+      } catch (error) {
+        console.error('Error in fetchThemes:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchThemes();
   }, []);
 
+  // Helper functions to extract theme data
+  const getCategoryFromTheme = (theme: any): string => {
+    if (theme.wedding) return "celebration";
+    if (theme.parties) return "celebration";
+    if (theme.special_event) return "celebration";
+    if (theme.bridal_shower) return "celebration";
+    if (theme.baby_shower) return "celebration";
+    if (theme.reunion) return "social";
+    if (theme.meet_up) return "social";
+    if (theme.sporting) return "entertainment";
+    if (theme.Festival) return "entertainment";
+    if (theme.market_place) return "business";
+    if (theme.Dining) return "social";
+    if (theme.retreats) return "business";
+    return "social";
+  };
+
+  const getThemeName = (theme: any): string => {
+    const fields = ['wedding', 'parties', 'special_event', 'bridal_shower', 'baby_shower', 
+                   'reunion', 'meet_up', 'sporting', 'Festival', 'market_place', 'Dining', 'retreats'];
+    
+    for (const field of fields) {
+      if (theme[field] && theme[field] !== '') {
+        return field.split('_').map((word: string) => 
+          word.charAt(0).toUpperCase() + word.slice(1)
+        ).join(' ');
+      }
+    }
+    return "Custom Theme";
+  };
+
+  const getThemeDescription = (theme: any): string => {
+    const category = getCategoryFromTheme(theme);
+    const descriptions: { [key: string]: string } = {
+      celebration: "Perfect for special occasions and memorable celebrations",
+      social: "Great for community gatherings and social events",
+      entertainment: "Ideal for festivals and entertainment events",
+      business: "Professional events and corporate gatherings",
+    };
+    return descriptions[category] || "Versatile theme for any occasion";
+  };
+
+  const getThemeTags = (theme: any): string[] => {
+    const category = getCategoryFromTheme(theme);
+    const tagMap: { [key: string]: string[] } = {
+      celebration: ["Elegant", "Festive", "Memorable", "Special"],
+      social: ["Community", "Friendly", "Relaxed", "Inclusive"],
+      entertainment: ["Fun", "Energetic", "Dynamic", "Exciting"],
+      business: ["Professional", "Corporate", "Strategic", "Networking"],
+    };
+    return tagMap[category] || ["Versatile", "Custom"];
+  };
+
+  const categories = useMemo(() => {
+    const cats = Array.from(new Set(themes.map(theme => theme.category)));
+    return ["all", ...cats];
+  }, [themes]);
+
   const filteredAndSortedThemes = useMemo(() => {
-    let filtered = themeDirectory.filter(theme => {
+    let filtered = themes.filter(theme => {
       const matchesSearch = theme.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            theme.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            theme.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -225,12 +226,13 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
     });
 
     return filtered;
-  }, [searchTerm, selectedCategory, selectedPricing, sortBy]);
+  }, [themes, searchTerm, selectedCategory, selectedPricing, sortBy]);
 
   const recommendedThemes = useMemo(() => {
-    if (!userType) return [];
-    return themeDirectory.filter(theme => theme.popularWith.includes(userType));
-  }, [userType]);
+    if (!userType || themes.length === 0) return [];
+    // Return top rated themes as recommendations
+    return themes.slice().sort((a, b) => b.rating - a.rating).slice(0, 3);
+  }, [userType, themes]);
 
   const ThemeCard = ({ theme, isRecommended = false }: { theme: ThemeDetails; isRecommended?: boolean }) => {
     const IconComponent = theme.icon;
@@ -365,6 +367,15 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
       </Card>
     );
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Loading themes...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
