@@ -72,7 +72,15 @@ const Index = () => {
               <Button variant="ghost">Features</Button>
               <Button variant="ghost">Pricing</Button>
               <Button variant="ghost">Contact</Button>
-              <Button variant="outline" onClick={() => navigate('/auth')}>Sign In</Button>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  console.log('Sign In button clicked');
+                  navigate('/auth');
+                }}
+              >
+                Sign In
+              </Button>
               <Button onClick={() => navigate('/auth')}>Start Trial</Button>
             </div>
 
@@ -95,9 +103,16 @@ const Index = () => {
                 <Button variant="ghost" className="w-full justify-start">Features</Button>
                 <Button variant="ghost" className="w-full justify-start">Pricing</Button>
                 <Button variant="ghost" className="w-full justify-start">Contact</Button>
-                <Link to="/auth">
-                  <Button variant="outline" className="w-full">Sign In</Button>
-                </Link>
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={() => {
+                    console.log('Mobile Sign In button clicked');
+                    navigate('/auth');
+                  }}
+                >
+                  Sign In
+                </Button>
                 <Link to="/auth">
                   <Button className="w-full">Start Trial</Button>
                 </Link>
