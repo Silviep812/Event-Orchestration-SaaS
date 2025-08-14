@@ -10,10 +10,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Bell, Clock, Plus, Save, AlertCircle, History, Eye, Trash2, Calendar as CalendarIcon, Package } from "lucide-react";
+import { Bell, Clock, Plus, Save, AlertCircle, History, Eye, Trash2, Calendar as CalendarIcon, Package, BarChart3 } from "lucide-react";
 import { format } from "date-fns";
 import TimelineView from "@/components/timeline/TimelineView";
 import ResourceManager from "@/components/ResourceManager";
+import Analytics from "@/components/Analytics";
 
 interface ManageEventData {
   id?: string;
@@ -382,7 +383,7 @@ const ManageEvent = () => {
         <div className="lg:col-span-2 space-y-6">
           {selectedEvent ? (
             <Tabs defaultValue="details" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="details" className="flex items-center gap-2">
                   <Eye className="h-4 w-4" />
                   Details
@@ -394,6 +395,10 @@ const ManageEvent = () => {
                 <TabsTrigger value="resources" className="flex items-center gap-2">
                   <Package className="h-4 w-4" />
                   Resources
+                </TabsTrigger>
+                <TabsTrigger value="analytics" className="flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4" />
+                  Analytics
                 </TabsTrigger>
                 <TabsTrigger value="changelog" className="flex items-center gap-2">
                   <History className="h-4 w-4" />
@@ -563,6 +568,14 @@ const ManageEvent = () => {
                     <ResourceManager eventId={selectedEvent.id} />
                   </CardContent>
                 </Card>
+              </TabsContent>
+
+              <TabsContent value="analytics">
+                <Analytics 
+                  onInteractionTrack={(interaction) => {
+                    console.log('User interaction tracked:', interaction);
+                  }}
+                />
               </TabsContent>
 
               <TabsContent value="changelog">

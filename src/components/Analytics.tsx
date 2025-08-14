@@ -1,111 +1,416 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { BarChart3, TrendingUp, DollarSign, Clock, Users, Calendar } from "lucide-react";
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { DatePickerWithRange } from "@/components/ui/date-picker";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
+import { TrendingUp, TrendingDown, Users, Calendar, DollarSign, CheckCircle, Filter, Activity, Target, Clock } from 'lucide-react';
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { format, subDays } from "date-fns";
 
-const Analytics = () => {
-  const eventData = [
-    { month: "Jan", events: 8, completed: 7 },
-    { month: "Feb", events: 12, completed: 10 },
-    { month: "Mar", events: 15, completed: 14 },
-    { month: "Apr", events: 18, completed: 16 },
-    { month: "May", events: 22, completed: 20 },
-    { month: "Jun", events: 25, completed: 23 },
-  ];
+interface AnalyticsFilters {
+  dateRange: {
+    from: Date;
+    to: Date;
+  };
+  location: string;
+  theme: string;
+}
 
-  const budgetData = [
-    { category: "Venue", budget: 15000, spent: 12000 },
-    { category: "Catering", budget: 8000, spent: 7500 },
-    { category: "Entertainment", budget: 5000, spent: 4200 },
-    { category: "Decorations", budget: 3000, spent: 2800 },
-    { category: "Other", budget: 2000, spent: 1800 },
-  ];
+interface KPIData {
+  title: string;
+  value: string;
+  change: string;
+  icon: any;
+  description: string;
+  trend: 'up' | 'down' | 'neutral';
+}
 
-  const taskStatusData = [
-    { name: "Completed", value: 68, color: "hsl(var(--primary))" },
-    { name: "In Progress", value: 22, color: "hsl(var(--secondary))" },
-    { name: "Not Started", value: 10, color: "hsl(var(--muted))" },
-  ];
+interface UserInteraction {
+  id: string;
+  action: string;
+  timestamp: Date;
+  user_id: string;
+  event_id?: string;
+  details: any;
+}
 
-  const kpiData = [
-    {
-      title: "Event Success Rate",
-      value: "94%",
-      change: "+2.1%",
-      icon: TrendingUp,
-      description: "Events completed successfully"
+interface AnalyticsProps {
+  onInteractionTrack?: (interaction: UserInteraction) => void;
+}
+
+export default function Analytics({ onInteractionTrack }: AnalyticsProps = {}) {
+  const [filters, setFilters] = useState<AnalyticsFilters>({
+    dateRange: {
+      from: subDays(new Date(), 30),
+      to: new Date()
     },
-    {
-      title: "Average Budget Utilization",
-      value: "87%",
-      change: "-1.2%",
-      icon: DollarSign,
-      description: "Budget efficiency"
-    },
-    {
-      title: "Task Completion Rate",
-      value: "92%",
-      change: "+5.3%",
-      icon: Clock,
-      description: "Tasks completed on time"
-    },
-    {
-      title: "Team Utilization",
-      value: "76%",
-      change: "+3.4%",
-      icon: Users,
-      description: "Team member engagement"
-    },
-  ];
+    location: 'all',
+    theme: 'all'
+  });
+  
+  const [analyticsData, setAnalyticsData] = useState({
+    kpis: [] as KPIData[],
+    eventTrends: [] as any[],
+    taskCompletion: [] as any[],
+    resourceUtilization: [] as any[],
+    conversionRates: [] as any[],
+    eventsByLocation: [] as any[]
+  });
+  
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  // Track user interactions
+  const trackInteraction = (action: string, details: any = {}) => {
+    const interaction: UserInteraction = {
+      id: crypto.randomUUID(),
+      action,
+      timestamp: new Date(),
+      user_id: 'current-user', // Replace with actual user ID
+      details
+    };
+    
+    onInteractionTrack?.(interaction);
+    
+    // Store in local analytics for behavior insights
+    const storedInteractions = JSON.parse(localStorage.getItem('analytics_interactions') || '[]');
+    storedInteractions.push(interaction);
+    localStorage.setItem('analytics_interactions', JSON.stringify(storedInteractions.slice(-1000))); // Keep last 1000
+  };
+
+  // Fetch analytics data from database
+  const fetchAnalyticsData = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch events data
+      const { data: events, error: eventsError } = await supabase
+        .from('Manage Event')
+        .select('*')
+        .gte('created_at', filters.dateRange.from.toISOString())
+        .lte('created_at', filters.dateRange.to.toISOString());
+
+      if (eventsError) throw eventsError;
+
+      // Fetch tasks data
+      const { data: tasks, error: tasksError } = await supabase
+        .from('tasks')
+        .select('*')
+        .gte('created_at', filters.dateRange.from.toISOString())
+        .lte('created_at', filters.dateRange.to.toISOString());
+
+      if (tasksError) throw tasksError;
+
+      // Fetch budget items
+      const { data: budgetItems, error: budgetError } = await supabase
+        .from('budget_items')
+        .select('*')
+        .gte('created_at', filters.dateRange.from.toISOString())
+        .lte('created_at', filters.dateRange.to.toISOString());
+
+      if (budgetError) throw budgetError;
+
+      // Calculate KPIs
+      const totalEvents = events?.length || 0;
+      const completedTasks = tasks?.filter(t => t.status === 'completed').length || 0;
+      const totalTasks = tasks?.length || 0;
+      const taskCompletionRate = totalTasks > 0 ? (completedTasks / totalTasks * 100).toFixed(1) : '0';
+      
+      const avgTaskDuration = tasks?.reduce((acc, task) => {
+        return acc + (task.actual_hours || task.estimated_hours || 0);
+      }, 0) / (tasks?.length || 1);
+
+      // Calculate resource utilization (placeholder calculation)
+      const resourceUtilizationRate = '75.5'; // Replace with actual calculation
+      
+      // Calculate lead conversion rate (placeholder)
+      const leadConversionRate = '12.8'; // Replace with actual calculation
+
+      const kpis: KPIData[] = [
+        {
+          title: "Total Events",
+          value: totalEvents.toString(),
+          change: "+12%",
+          icon: Calendar,
+          description: "This period",
+          trend: 'up'
+        },
+        {
+          title: "Task Completion Rate",
+          value: `${taskCompletionRate}%`,
+          change: "+5%",
+          icon: CheckCircle,
+          description: "Completed tasks",
+          trend: 'up'
+        },
+        {
+          title: "Avg Task Duration",
+          value: `${avgTaskDuration.toFixed(1)}h`,
+          change: "-2h",
+          icon: Clock,
+          description: "Average hours",
+          trend: 'down'
+        },
+        {
+          title: "Resource Utilization",
+          value: `${resourceUtilizationRate}%`,
+          change: "+8%",
+          icon: Activity,
+          description: "Efficiency rate",
+          trend: 'up'
+        },
+        {
+          title: "Lead Conversion",
+          value: `${leadConversionRate}%`,
+          change: "+3%",
+          icon: Target,
+          description: "Leads to events",
+          trend: 'up'
+        }
+      ];
+
+      // Process event trends by month
+      const eventTrends = events?.reduce((acc: any[], event) => {
+        const month = format(new Date(event.created_at), 'MMM');
+        const existing = acc.find(item => item.month === month);
+        if (existing) {
+          existing.events += 1;
+        } else {
+          acc.push({ month, events: 1 });
+        }
+        return acc;
+      }, []) || [];
+
+      // Process events by location and theme
+      const eventsByLocation = events?.reduce((acc: any[], event) => {
+        const location = event.venue_location || 'Unknown';
+        const existing = acc.find(item => item.location === location);
+        if (existing) {
+          existing.count += 1;
+        } else {
+          acc.push({ location, count: 1, theme: event.event_theme || 'General' });
+        }
+        return acc;
+      }, []) || [];
+
+      // Task completion trends
+      const taskCompletion = [
+        { status: 'Completed', value: completedTasks, color: '#22c55e' },
+        { status: 'In Progress', value: tasks?.filter(t => t.status === 'in_progress').length || 0, color: '#f59e0b' },
+        { status: 'Pending', value: tasks?.filter(t => t.status === 'not_started').length || 0, color: '#ef4444' },
+        { status: 'On Hold', value: tasks?.filter(t => t.status === 'on_hold').length || 0, color: '#6b7280' },
+      ];
+
+      setAnalyticsData({
+        kpis,
+        eventTrends,
+        taskCompletion,
+        resourceUtilization: [], // Placeholder
+        conversionRates: [], // Placeholder
+        eventsByLocation
+      });
+
+      trackInteraction('analytics_data_fetched', { filters, totalEvents, taskCompletionRate });
+
+    } catch (error) {
+      console.error('Error fetching analytics data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch analytics data",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Update analytics on event completion
+  const updateAnalyticsOnEventCompletion = async (eventId: string) => {
+    try {
+      const taskCompletionValue = parseFloat(analyticsData.kpis.find(k => k.title === 'Task Completion Rate')?.value?.replace('%', '') || '0');
+      
+      await supabase
+        .from('Event Analytics')
+        .upsert({
+          event_id: parseInt(eventId),
+          event_count_update: 1,
+          task_completion_rate: taskCompletionValue,
+          resource_util_percent: parseFloat(analyticsData.kpis.find(k => k.title === 'Resource Utilization')?.value?.replace('%', '') || '0'),
+          lead_conversion_rate: parseFloat(analyticsData.kpis.find(k => k.title === 'Lead Conversion')?.value?.replace('%', '') || '0'),
+          avg_task_duration: parseFloat(analyticsData.kpis.find(k => k.title === 'Avg Task Duration')?.value?.replace('h', '') || '0'),
+          event_freq_by_location: JSON.stringify(analyticsData.eventsByLocation)
+        });
+
+      trackInteraction('event_completed', { eventId });
+      
+      toast({
+        title: "Analytics Updated",
+        description: "Event completion data has been recorded",
+      });
+    } catch (error) {
+      console.error('Error updating analytics:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchAnalyticsData();
+  }, [filters]);
+
+  const handleFilterChange = (filterType: keyof AnalyticsFilters, value: any) => {
+    setFilters(prev => ({
+      ...prev,
+      [filterType]: value
+    }));
+    trackInteraction('filter_applied', { filterType, value });
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold">Analytics Dashboard</h2>
-        <p className="text-muted-foreground">Track your event management performance and metrics</p>
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+        <div className="space-y-2">
+          <h2 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+            Analytics Dashboard
+          </h2>
+          <p className="text-muted-foreground">
+            Track event performance, user behavior, and scalability metrics for marketing leads.
+          </p>
+        </div>
+        
+        {/* Filters */}
+        <Card className="w-full lg:w-auto min-w-[300px] shadow-elegant border-0 bg-gradient-subtle">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Filter className="h-4 w-4" />
+              Filters
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div>
+              <Label htmlFor="date-range" className="text-xs">Date Range</Label>
+              <DatePickerWithRange
+                date={filters.dateRange}
+                onDateChange={(dateRange) => handleFilterChange('dateRange', dateRange)}
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="location-filter" className="text-xs">Location</Label>
+              <Select value={filters.location} onValueChange={(value) => handleFilterChange('location', value)}>
+                <SelectTrigger className="h-8">
+                  <SelectValue placeholder="All Locations" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Locations</SelectItem>
+                  <SelectItem value="new-york">New York</SelectItem>
+                  <SelectItem value="los-angeles">Los Angeles</SelectItem>
+                  <SelectItem value="chicago">Chicago</SelectItem>
+                  <SelectItem value="miami">Miami</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label htmlFor="theme-filter" className="text-xs">Theme</Label>
+              <Select value={filters.theme} onValueChange={(value) => handleFilterChange('theme', value)}>
+                <SelectTrigger className="h-8">
+                  <SelectValue placeholder="All Themes" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Themes</SelectItem>
+                  <SelectItem value="wedding">Wedding</SelectItem>
+                  <SelectItem value="corporate">Corporate</SelectItem>
+                  <SelectItem value="birthday">Birthday</SelectItem>
+                  <SelectItem value="festival">Festival</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {kpiData.map((kpi, index) => (
-          <Card key={index}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">{kpi.title}</CardTitle>
-              <kpi.icon className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{kpi.value}</div>
-              <p className="text-xs text-muted-foreground">
-                <span className={kpi.change.startsWith('+') ? 'text-green-600' : 'text-red-600'}>
-                  {kpi.change}
-                </span>{' '}
-                from last month
-              </p>
-              <div className="text-xs text-muted-foreground mt-1">{kpi.description}</div>
-            </CardContent>
-          </Card>
-        ))}
+      {/* KPI Cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+        {analyticsData.kpis.map((kpi) => {
+          const Icon = kpi.icon
+          const isPositive = kpi.trend === 'up'
+          
+          return (
+            <Card key={kpi.title} className="shadow-elegant border-0 bg-gradient-subtle hover:shadow-lg transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  {kpi.title}
+                </CardTitle>
+                <Icon className="h-4 w-4 text-primary" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{kpi.value}</div>
+                <div className="flex items-center space-x-2">
+                  <div className={`flex items-center text-xs ${
+                    isPositive ? 'text-green-600' : kpi.trend === 'down' ? 'text-red-600' : 'text-muted-foreground'
+                  }`}>
+                    {isPositive ? (
+                      <TrendingUp className="h-3 w-3 mr-1" />
+                    ) : kpi.trend === 'down' ? (
+                      <TrendingDown className="h-3 w-3 mr-1" />
+                    ) : null}
+                    {kpi.change}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {kpi.description}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )
+        })}
       </div>
 
-      <Tabs defaultValue="overview">
-        <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="events">Events</TabsTrigger>
-          <TabsTrigger value="budget">Budget</TabsTrigger>
-          <TabsTrigger value="tasks">Tasks</TabsTrigger>
+      {/* Analytics Tabs */}
+      <Tabs defaultValue="overview" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="overview" onClick={() => trackInteraction('tab_viewed', { tab: 'overview' })}>
+            Overview
+          </TabsTrigger>
+          <TabsTrigger value="events" onClick={() => trackInteraction('tab_viewed', { tab: 'events' })}>
+            Events
+          </TabsTrigger>
+          <TabsTrigger value="tasks" onClick={() => trackInteraction('tab_viewed', { tab: 'tasks' })}>
+            Tasks
+          </TabsTrigger>
+          <TabsTrigger value="behavior" onClick={() => trackInteraction('tab_viewed', { tab: 'behavior' })}>
+            User Behavior
+          </TabsTrigger>
+          <TabsTrigger value="conversion" onClick={() => trackInteraction('tab_viewed', { tab: 'conversion' })}>
+            Lead Conversion
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <Card>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card className="shadow-elegant border-0 bg-gradient-subtle">
               <CardHeader>
-                <CardTitle>Event Trends</CardTitle>
-                <CardDescription>Monthly event completion rates</CardDescription>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5 text-primary" />
+                  Event Trends
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={eventData}>
-                    <CartesianGrid strokeDasharray="3 3" />
+                  <LineChart data={analyticsData.eventTrends}>
+                    <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
                     <XAxis dataKey="month" />
                     <YAxis />
                     <Tooltip />
@@ -113,165 +418,233 @@ const Analytics = () => {
                       type="monotone" 
                       dataKey="events" 
                       stroke="hsl(var(--primary))" 
-                      strokeWidth={2}
-                      name="Total Events"
-                    />
-                    <Line 
-                      type="monotone" 
-                      dataKey="completed" 
-                      stroke="hsl(var(--secondary))" 
-                      strokeWidth={2}
-                      name="Completed"
+                      strokeWidth={3}
+                      dot={{ fill: "hsl(var(--primary))", strokeWidth: 2, r: 4 }}
                     />
                   </LineChart>
                 </ResponsiveContainer>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="shadow-elegant border-0 bg-gradient-subtle">
               <CardHeader>
-                <CardTitle>Task Status Distribution</CardTitle>
-                <CardDescription>Current task completion status</CardDescription>
+                <CardTitle className="flex items-center gap-2">
+                  <CheckCircle className="h-5 w-5 text-primary" />
+                  Task Completion Status
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
                   <PieChart>
                     <Pie
-                      data={taskStatusData}
+                      data={analyticsData.taskCompletion}
                       cx="50%"
                       cy="50%"
-                      innerRadius={60}
-                      outerRadius={100}
-                      paddingAngle={5}
+                      labelLine={false}
+                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      outerRadius={80}
+                      fill="#8884d8"
                       dataKey="value"
                     >
-                      {taskStatusData.map((entry, index) => (
+                      {analyticsData.taskCompletion.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
                     <Tooltip />
                   </PieChart>
                 </ResponsiveContainer>
-                <div className="flex justify-center space-x-4 mt-4">
-                  {taskStatusData.map((entry, index) => (
-                    <div key={index} className="flex items-center space-x-2">
-                      <div 
-                        className="w-3 h-3 rounded-full" 
-                        style={{ backgroundColor: entry.color }}
-                      />
-                      <span className="text-sm">{entry.name}</span>
-                    </div>
-                  ))}
-                </div>
               </CardContent>
             </Card>
           </div>
-        </TabsContent>
 
-        <TabsContent value="events">
-          <Card>
+          <Card className="shadow-elegant border-0 bg-gradient-subtle">
             <CardHeader>
-              <CardTitle>Event Performance</CardTitle>
-              <CardDescription>Monthly event planning and completion metrics</CardDescription>
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="h-5 w-5 text-primary" />
+                Event Frequency by Location & Theme
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={400}>
-                <BarChart data={eventData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={analyticsData.eventsByLocation}>
+                  <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                  <XAxis dataKey="location" />
                   <YAxis />
                   <Tooltip />
-                  <Bar dataKey="events" fill="hsl(var(--primary))" name="Total Events" />
-                  <Bar dataKey="completed" fill="hsl(var(--secondary))" name="Completed Events" />
+                  <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="budget">
-          <div className="space-y-4">
-            <Card>
+        <TabsContent value="events" className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card className="shadow-elegant border-0 bg-gradient-subtle">
               <CardHeader>
-                <CardTitle>Budget Analysis</CardTitle>
-                <CardDescription>Budget allocation and spending by category</CardDescription>
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-primary" />
+                  Event Performance by Month
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={budgetData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="category" />
+                  <BarChart data={analyticsData.eventTrends}>
+                    <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                    <XAxis dataKey="month" />
                     <YAxis />
                     <Tooltip />
-                    <Bar dataKey="budget" fill="hsl(var(--muted))" name="Budget" />
-                    <Bar dataKey="spent" fill="hsl(var(--primary))" name="Spent" />
+                    <Bar dataKey="events" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
             </Card>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {budgetData.map((item, index) => (
-                <Card key={index}>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base">{item.category}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>Spent: ${item.spent.toLocaleString()}</span>
-                        <span>Budget: ${item.budget.toLocaleString()}</span>
-                      </div>
-                      <Progress value={(item.spent / item.budget) * 100} />
-                      <div className="text-xs text-muted-foreground">
-                        {Math.round((item.spent / item.budget) * 100)}% utilized
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+            <Card className="shadow-elegant border-0 bg-gradient-subtle">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Target className="h-5 w-5 text-primary" />
+                  Events by Location
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={analyticsData.eventsByLocation}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ location, count }) => `${location}: ${count}`}
+                      outerRadius={80}
+                      fill="hsl(var(--primary))"
+                      dataKey="count"
+                    >
+                      {analyticsData.eventsByLocation.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={`hsl(var(--primary) / ${0.8 - index * 0.1})`} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
 
-        <TabsContent value="tasks">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <Card>
+        <TabsContent value="tasks" className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card className="shadow-elegant border-0 bg-gradient-subtle">
               <CardHeader>
-                <CardTitle>Task Completion Trends</CardTitle>
-                <CardDescription>Task completion over time</CardDescription>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-primary" />
+                  Average Task Duration Trends
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {["Venue Booking", "Catering Setup", "Guest Management", "Equipment Setup"].map((task, index) => (
-                    <div key={index} className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>{task}</span>
-                        <span>{85 + index * 3}%</span>
-                      </div>
-                      <Progress value={85 + index * 3} />
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={analyticsData.eventTrends}>
+                    <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                    <XAxis dataKey="month" />
+                    <YAxis />
+                    <Tooltip />
+                    <Line 
+                      type="monotone" 
+                      dataKey="events" 
+                      stroke="hsl(var(--primary))" 
+                      strokeWidth={3}
+                      dot={{ fill: "hsl(var(--primary))", strokeWidth: 2, r: 4 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-elegant border-0 bg-gradient-subtle">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CheckCircle className="h-5 w-5 text-primary" />
+                  Task Status Overview
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {analyticsData.taskCompletion.map((task, index) => (
+                  <div key={task.status} className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>{task.status}</span>
+                      <span>{task.value} tasks</span>
                     </div>
-                  ))}
+                    <Progress 
+                      value={(task.value / analyticsData.taskCompletion.reduce((acc, t) => acc + t.value, 0)) * 100} 
+                      className="h-2" 
+                    />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="behavior" className="space-y-4">
+          <Card className="shadow-elegant border-0 bg-gradient-subtle">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="h-5 w-5 text-primary" />
+                User Behavior Insights
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-3">
+                <div className="text-center p-4 bg-surface/50 rounded-lg">
+                  <div className="text-2xl font-bold text-primary">127</div>
+                  <div className="text-sm text-muted-foreground">Page Views</div>
+                </div>
+                <div className="text-center p-4 bg-surface/50 rounded-lg">
+                  <div className="text-2xl font-bold text-primary">45</div>
+                  <div className="text-sm text-muted-foreground">Filter Applications</div>
+                </div>
+                <div className="text-center p-4 bg-surface/50 rounded-lg">
+                  <div className="text-2xl font-bold text-primary">23</div>
+                  <div className="text-sm text-muted-foreground">Chart Interactions</div>
+                </div>
+              </div>
+              <div className="mt-4 text-sm text-muted-foreground">
+                User interaction tracking helps understand how users navigate and interact with the analytics dashboard.
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="conversion" className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card className="shadow-elegant border-0 bg-gradient-subtle">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Target className="h-5 w-5 text-primary" />
+                  Lead to Event Conversion Rate
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center p-6">
+                  <div className="text-4xl font-bold text-primary mb-2">12.8%</div>
+                  <div className="text-sm text-muted-foreground mb-4">Average conversion rate</div>
+                  <Progress value={12.8} className="h-3" />
                 </div>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="shadow-elegant border-0 bg-gradient-subtle">
               <CardHeader>
-                <CardTitle>Team Performance</CardTitle>
-                <CardDescription>Individual team member task completion rates</CardDescription>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="h-5 w-5 text-primary" />
+                  Resource Utilization Rate
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {["Sarah Johnson", "Mike Chen", "Emily Davis", "Alex Rodriguez"].map((member, index) => (
-                    <div key={index} className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>{member}</span>
-                        <span>{92 - index * 2}%</span>
-                      </div>
-                      <Progress value={92 - index * 2} />
-                    </div>
-                  ))}
+                <div className="text-center p-6">
+                  <div className="text-4xl font-bold text-primary mb-2">75.5%</div>
+                  <div className="text-sm text-muted-foreground mb-4">Current utilization</div>
+                  <Progress value={75.5} className="h-3" />
                 </div>
               </CardContent>
             </Card>
@@ -280,6 +653,4 @@ const Analytics = () => {
       </Tabs>
     </div>
   );
-};
-
-export default Analytics;
+}
