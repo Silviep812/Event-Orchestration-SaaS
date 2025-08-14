@@ -10,8 +10,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Bell, Clock, Plus, Save, AlertCircle, History, Eye, Trash2 } from "lucide-react";
+import { Bell, Clock, Plus, Save, AlertCircle, History, Eye, Trash2, Calendar as CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
+import TimelineView from "@/components/timeline/TimelineView";
 
 interface ManageEventData {
   id?: string;
@@ -380,10 +381,14 @@ const ManageEvent = () => {
         <div className="lg:col-span-2 space-y-6">
           {selectedEvent ? (
             <Tabs defaultValue="details" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="details" className="flex items-center gap-2">
                   <Eye className="h-4 w-4" />
                   Details
+                </TabsTrigger>
+                <TabsTrigger value="timeline" className="flex items-center gap-2">
+                  <CalendarIcon className="h-4 w-4" />
+                  Timeline
                 </TabsTrigger>
                 <TabsTrigger value="changelog" className="flex items-center gap-2">
                   <History className="h-4 w-4" />
@@ -529,6 +534,17 @@ const ManageEvent = () => {
                         />
                       </div>
                     </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="timeline">
+                <Card className="shadow-elegant border-0 bg-gradient-subtle">
+                  <CardHeader className="border-b border-border/50">
+                    <CardTitle>Timeline & Task Management</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    <TimelineView eventId={selectedEvent.id} />
                   </CardContent>
                 </Card>
               </TabsContent>
