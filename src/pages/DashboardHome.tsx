@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, Users, BarChart3, Plus } from "lucide-react";
+import { Calendar, Users, BarChart3, Plus, Settings } from "lucide-react";
 
 const DashboardHome = () => {
   const stats = [
@@ -33,10 +33,16 @@ const DashboardHome = () => {
             Welcome back! Here's an overview of your event management activities.
           </p>
         </div>
-        <Button className="flex items-center gap-2">
-          <Plus className="h-4 w-4" />
-          Create New Event
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => window.location.href = '/dashboard/workflow'}>
+            <Settings className="h-4 w-4 mr-2" />
+            Setup Workflow
+          </Button>
+          <Button className="flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            Create New Event
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

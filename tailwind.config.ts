@@ -61,6 +61,27 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				theme: {
+					wedding: 'hsl(var(--theme-wedding))',
+					corporate: 'hsl(var(--theme-corporate))',
+					birthday: 'hsl(var(--theme-birthday))',
+					conference: 'hsl(var(--theme-conference))',
+					festival: 'hsl(var(--theme-festival))',
+					social: 'hsl(var(--theme-social))',
+					networking: 'hsl(var(--theme-networking))'
+				},
+				userType: {
+					organizer: 'hsl(var(--organizer))',
+					planner: 'hsl(var(--planner))',
+					hospitality: 'hsl(var(--hospitality))',
+					venue: 'hsl(var(--venue))'
+				},
+				status: {
+					planning: 'hsl(var(--status-planning))',
+					progress: 'hsl(var(--status-progress))',
+					review: 'hsl(var(--status-review))',
+					complete: 'hsl(var(--status-complete))'
 				}
 			},
 			borderRadius: {

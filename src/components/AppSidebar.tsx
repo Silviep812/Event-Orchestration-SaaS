@@ -9,7 +9,9 @@ import {
   MessageSquare,
   TrendingUp,
   Plus,
-  Bell
+  Bell,
+  Home,
+  Workflow
 } from "lucide-react";
 
 import {
@@ -26,6 +28,16 @@ import {
 
 const menuItems = [
   {
+    title: "Dashboard",
+    url: "/dashboard",
+    icon: Home,
+  },
+  {
+    title: "Workflow Setup",
+    url: "/dashboard/workflow",
+    icon: Workflow,
+  },
+  {
     title: "Create Event",
     url: "/dashboard/create-event",
     icon: Plus,
@@ -33,7 +45,7 @@ const menuItems = [
   {
     title: "Manage Event",
     url: "/dashboard/manage-event",
-    icon: Settings,
+    icon: Calendar,
   },
   {
     title: "Collaborate",

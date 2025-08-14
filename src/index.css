@@ -39,20 +39,34 @@ All colors MUST be HSL.
     --radius: 0.5rem;
 
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* Event Theme Colors */
+    --theme-wedding: 350 100% 88%;
+    --theme-corporate: 210 25% 65%;
+    --theme-birthday: 45 100% 70%;
+    --theme-conference: 225 25% 45%;
+    --theme-festival: 280 100% 75%;
+    --theme-social: 120 40% 70%;
+    --theme-networking: 195 80% 60%;
+    
+    /* User Type Colors */
+    --organizer: 260 100% 75%;
+    --planner: 180 50% 60%;
+    --hospitality: 30 80% 60%;
+    --venue: 140 60% 55%;
+    
+    /* Workflow Status Colors */
+    --status-planning: 35 100% 65%;
+    --status-progress: 210 100% 70%;
+    --status-review: 260 60% 70%;
+    --status-complete: 120 50% 50%;
   }
 
   .dark {
@@ -91,6 +105,27 @@ All colors MUST be HSL.
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* Event Theme Colors - Dark */
+    --theme-wedding: 350 70% 65%;
+    --theme-corporate: 210 20% 50%;
+    --theme-birthday: 45 80% 55%;
+    --theme-conference: 225 30% 40%;
+    --theme-festival: 280 70% 60%;
+    --theme-social: 120 30% 55%;
+    --theme-networking: 195 60% 50%;
+    
+    /* User Type Colors - Dark */
+    --organizer: 260 80% 60%;
+    --planner: 180 40% 50%;
+    --hospitality: 30 60% 50%;
+    --venue: 140 50% 45%;
+    
+    /* Workflow Status Colors - Dark */
+    --status-planning: 35 80% 55%;
+    --status-progress: 210 80% 60%;
+    --status-review: 260 50% 60%;
+    --status-complete: 120 40% 45%;
   }
 }
 
