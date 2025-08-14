@@ -2,12 +2,13 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Menu, X, Calendar, Users, BarChart3, Bell, FolderOpen } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 
 const Index = () => {
   console.log('Index component is rendering');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const navigate = useNavigate();
 
   const features = [
     {
@@ -71,12 +72,8 @@ const Index = () => {
               <Button variant="ghost">Features</Button>
               <Button variant="ghost">Pricing</Button>
               <Button variant="ghost">Contact</Button>
-              <Link to="/auth">
-                <Button variant="outline">Sign In</Button>
-              </Link>
-              <Link to="/auth">
-                <Button>Start Trial</Button>
-              </Link>
+              <Button variant="outline" onClick={() => navigate('/auth')}>Sign In</Button>
+              <Button onClick={() => navigate('/auth')}>Start Trial</Button>
             </div>
 
             {/* Mobile menu button */}
