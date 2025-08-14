@@ -17,26 +17,40 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 250 95% 65%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96.1%;
+    --secondary: 195 85% 70%;
     --secondary-foreground: 222.2 47.4% 11.2%;
 
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 280 85% 75%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --ring: 250 95% 65%;
 
     --radius: 0.5rem;
+
+    /* Vibrant Dashboard Gradients */
+    --gradient-primary: linear-gradient(135deg, 250 95% 65%, 280 85% 75%);
+    --gradient-secondary: linear-gradient(135deg, 195 85% 70%, 220 90% 75%);
+    --gradient-accent: linear-gradient(135deg, 280 85% 75%, 320 80% 70%);
+    --gradient-success: linear-gradient(135deg, 120 60% 60%, 150 70% 65%);
+    --gradient-warning: linear-gradient(135deg, 45 95% 65%, 60 90% 70%);
+    --gradient-info: linear-gradient(135deg, 210 90% 70%, 240 80% 75%);
+
+    /* Vibrant Shadow Effects */
+    --shadow-primary: 0 10px 30px -10px hsl(250 95% 65% / 0.3);
+    --shadow-secondary: 0 10px 30px -10px hsl(195 85% 70% / 0.3);
+    --shadow-accent: 0 10px 30px -10px hsl(280 85% 75% / 0.3);
+    --shadow-glow: 0 0 40px hsl(250 95% 65% / 0.2);
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;

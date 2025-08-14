@@ -54,76 +54,91 @@ const DashboardHome = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {stats.map((stat, index) => (
-          <Card key={index}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                {stat.title}
-              </CardTitle>
-              <stat.icon className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
-              <p className="text-xs text-muted-foreground">
-                {stat.description}
-              </p>
-            </CardContent>
-          </Card>
-        ))}
+        {stats.map((stat, index) => {
+          const gradients = ['bg-gradient-primary', 'bg-gradient-secondary', 'bg-gradient-accent'];
+          const shadows = ['shadow-primary', 'shadow-secondary', 'shadow-accent'];
+          return (
+            <Card key={index} className={`relative overflow-hidden ${shadows[index]} hover:scale-105 transition-all duration-300`}>
+              <div className={`absolute inset-0 ${gradients[index]} opacity-10`} />
+              <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  {stat.title}
+                </CardTitle>
+                <div className={`p-2 rounded-lg ${gradients[index]}`}>
+                  <stat.icon className="h-4 w-4 text-white" />
+                </div>
+              </CardHeader>
+              <CardContent className="relative">
+                <div className="text-2xl font-bold">{stat.value}</div>
+                <p className="text-xs text-muted-foreground">
+                  {stat.description}
+                </p>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Events</CardTitle>
+        <Card className="relative overflow-hidden shadow-secondary hover:shadow-accent transition-all duration-300">
+          <div className="absolute inset-0 bg-gradient-success opacity-5" />
+          <CardHeader className="relative">
+            <CardTitle className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-gradient-success"></div>
+              Recent Events
+            </CardTitle>
             <CardDescription>
               Your latest event activities
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="relative">
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between p-3 rounded-lg bg-gradient-success bg-opacity-10">
                 <div>
                   <p className="font-medium">Annual Conference 2024</p>
                   <p className="text-sm text-muted-foreground">In progress</p>
                 </div>
-                <span className="text-sm text-green-600">85% complete</span>
+                <span className="px-2 py-1 text-xs rounded-full bg-gradient-success text-white">85% complete</span>
               </div>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between p-3 rounded-lg bg-gradient-info bg-opacity-10">
                 <div>
                   <p className="font-medium">Team Building Workshop</p>
                   <p className="text-sm text-muted-foreground">Planning</p>
                 </div>
-                <span className="text-sm text-blue-600">25% complete</span>
+                <span className="px-2 py-1 text-xs rounded-full bg-gradient-info text-white">25% complete</span>
               </div>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between p-3 rounded-lg bg-gradient-primary bg-opacity-10">
                 <div>
                   <p className="font-medium">Product Launch Event</p>
                   <p className="text-sm text-muted-foreground">Completed</p>
                 </div>
-                <span className="text-sm text-gray-600">100% complete</span>
+                <span className="px-2 py-1 text-xs rounded-full bg-gradient-primary text-white">100% complete</span>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
+        <Card className="relative overflow-hidden shadow-primary hover:shadow-glow transition-all duration-300">
+          <div className="absolute inset-0 bg-gradient-accent opacity-5" />
+          <CardHeader className="relative">
+            <CardTitle className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-gradient-accent"></div>
+              Quick Actions
+            </CardTitle>
             <CardDescription>
               Common tasks to get you started
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <Button variant="outline" className="w-full justify-start">
+          <CardContent className="relative space-y-4">
+            <Button variant="outline" className="w-full justify-start bg-gradient-primary bg-opacity-10 border-primary/20 hover:bg-gradient-primary hover:text-white transition-all duration-300">
               <Calendar className="mr-2 h-4 w-4" />
               Schedule New Event
             </Button>
-            <Button variant="outline" className="w-full justify-start">
+            <Button variant="outline" className="w-full justify-start bg-gradient-secondary bg-opacity-10 border-secondary/20 hover:bg-gradient-secondary hover:text-white transition-all duration-300">
               <Users className="mr-2 h-4 w-4" />
               Invite Team Members
             </Button>
-            <Button variant="outline" className="w-full justify-start">
+            <Button variant="outline" className="w-full justify-start bg-gradient-accent bg-opacity-10 border-accent/20 hover:bg-gradient-accent hover:text-white transition-all duration-300">
               <BarChart3 className="mr-2 h-4 w-4" />
               View Analytics
             </Button>

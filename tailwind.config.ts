@@ -82,7 +82,29 @@ export default {
 					progress: 'hsl(var(--status-progress))',
 					review: 'hsl(var(--status-review))',
 					complete: 'hsl(var(--status-complete))'
+				},
+				gradient: {
+					primary: 'var(--gradient-primary)',
+					secondary: 'var(--gradient-secondary)',
+					accent: 'var(--gradient-accent)',
+					success: 'var(--gradient-success)',
+					warning: 'var(--gradient-warning)',
+					info: 'var(--gradient-info)'
 				}
+			},
+			boxShadow: {
+				'primary': 'var(--shadow-primary)',
+				'secondary': 'var(--shadow-secondary)',
+				'accent': 'var(--shadow-accent)',
+				'glow': 'var(--shadow-glow)'
+			},
+			backgroundImage: {
+				'gradient-primary': 'var(--gradient-primary)',
+				'gradient-secondary': 'var(--gradient-secondary)',
+				'gradient-accent': 'var(--gradient-accent)',
+				'gradient-success': 'var(--gradient-success)',
+				'gradient-warning': 'var(--gradient-warning)',
+				'gradient-info': 'var(--gradient-info)'
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
