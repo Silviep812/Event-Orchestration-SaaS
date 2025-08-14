@@ -74,9 +74,11 @@ const Index = () => {
               <Button variant="ghost">Contact</Button>
               <Button 
                 variant="outline" 
-                onClick={() => {
-                  console.log('Sign In button clicked');
-                  navigate('/auth');
+                onClick={(e) => {
+                  console.log('Desktop Sign In button clicked', e);
+                  e.preventDefault();
+                  e.stopPropagation();
+                  window.location.href = '/auth';
                 }}
               >
                 Sign In
