@@ -9,6 +9,7 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import DashboardHome from "./pages/DashboardHome";
 import WorkflowSetup from "./pages/WorkflowSetup";
+import ThemesDirectory from "./pages/ThemesDirectory";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
             <Route path="/dashboard" element={<Dashboard />}>
               <Route index element={<DashboardHome />} />
               <Route path="workflow" element={<WorkflowSetup />} />
+              <Route path="themes" element={<ThemesDirectory />} />
               <Route path="create-event" element={<div>Create Event Page</div>} />
               <Route path="manage-event" element={<div>Manage Event Page</div>} />
               <Route path="collaborate" element={<div>Collaborate Page</div>} />

@@ -11,7 +11,8 @@ import {
   Plus,
   Bell,
   Home,
-  Workflow
+  Workflow,
+  Palette
 } from "lucide-react";
 
 import {
@@ -36,6 +37,11 @@ const menuItems = [
     title: "Workflow Setup",
     url: "/dashboard/workflow",
     icon: Workflow,
+  },
+  {
+    title: "Themes Directory",
+    url: "/dashboard/themes",
+    icon: Palette,
   },
   {
     title: "Create Event",
