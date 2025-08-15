@@ -30,77 +30,140 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
-const menuItems = [
+const menuGroups = [
   {
-    title: "Dashboard",
-    url: "/dashboard",
-    icon: Home,
+    title: "Overview",
+    color: "text-blue-600",
+    bgColor: "bg-blue-50",
+    items: [
+      {
+        title: "Dashboard",
+        url: "/dashboard",
+        icon: Home,
+        color: "text-blue-600",
+        hoverColor: "hover:bg-blue-50"
+      },
+      {
+        title: "Analytics",
+        url: "/dashboard/analytics",
+        icon: BarChart3,
+        color: "text-blue-600",
+        hoverColor: "hover:bg-blue-50"
+      }
+    ]
   },
   {
-    title: "Workflow Setup",
-    url: "/dashboard/workflow",
-    icon: Workflow,
+    title: "Event Planning",
+    color: "text-purple-600",
+    bgColor: "bg-purple-50",
+    items: [
+      {
+        title: "Create Event",
+        url: "/dashboard/create-event",
+        icon: Plus,
+        color: "text-purple-600",
+        hoverColor: "hover:bg-purple-50"
+      },
+      {
+        title: "Manage Event",
+        url: "/dashboard/manage-event",
+        icon: Calendar,
+        color: "text-purple-600",
+        hoverColor: "hover:bg-purple-50"
+      },
+      {
+        title: "Calendar",
+        url: "/dashboard/calendar",
+        icon: CalendarDays,
+        color: "text-purple-600",
+        hoverColor: "hover:bg-purple-50"
+      }
+    ]
   },
   {
-    title: "Themes Directory",
-    url: "/dashboard/themes",
-    icon: Palette,
+    title: "Project Tools",
+    color: "text-green-600",
+    bgColor: "bg-green-50",
+    items: [
+      {
+        title: "Workflow Setup",
+        url: "/dashboard/workflow",
+        icon: Workflow,
+        color: "text-green-600",
+        hoverColor: "hover:bg-green-50"
+      },
+      {
+        title: "Project Management",
+        url: "/dashboard/project-management",
+        icon: CheckSquare,
+        color: "text-green-600",
+        hoverColor: "hover:bg-green-50"
+      },
+      {
+        title: "Track Progress",
+        url: "/dashboard/track-progress",
+        icon: TrendingUp,
+        color: "text-green-600",
+        hoverColor: "hover:bg-green-50"
+      }
+    ]
   },
   {
-    title: "Project Management",
-    url: "/dashboard/project-management",
-    icon: CheckSquare,
+    title: "Resources",
+    color: "text-orange-600",
+    bgColor: "bg-orange-50",
+    items: [
+      {
+        title: "Themes Directory",
+        url: "/dashboard/themes",
+        icon: Palette,
+        color: "text-orange-600",
+        hoverColor: "hover:bg-orange-50"
+      },
+      {
+        title: "Planning Assets",
+        url: "/dashboard/planning-assets",
+        icon: Package,
+        color: "text-orange-600",
+        hoverColor: "hover:bg-orange-50"
+      },
+      {
+        title: "Generate Reports",
+        url: "/dashboard/reports",
+        icon: FileText,
+        color: "text-orange-600",
+        hoverColor: "hover:bg-orange-50"
+      }
+    ]
   },
   {
-    title: "Planning Assets",
-    url: "/dashboard/planning-assets",
-    icon: Package,
-  },
-  {
-    title: "Analytics",
-    url: "/dashboard/analytics",
-    icon: BarChart3,
-  },
-  {
-    title: "Calendar",
-    url: "/dashboard/calendar",
-    icon: CalendarDays,
-  },
-  {
-    title: "Create Event",
-    url: "/dashboard/create-event",
-    icon: Plus,
-  },
-  {
-    title: "Manage Event",
-    url: "/dashboard/manage-event",
-    icon: Calendar,
-  },
-  {
-    title: "Collaborate",
-    url: "/dashboard/collaborate",
-    icon: Users,
-  },
-  {
-    title: "Track Progress",
-    url: "/dashboard/track-progress",
-    icon: TrendingUp,
-  },
-  {
-    title: "Generate Reports",
-    url: "/dashboard/reports",
-    icon: FileText,
-  },
-  {
-    title: "Notification",
-    url: "/dashboard/notification",
-    icon: Bell,
-  },
-  {
-    title: "Comments",
-    url: "/dashboard/comments",
-    icon: MessageSquare,
-  },
+    title: "Communication",
+    color: "text-pink-600",
+    bgColor: "bg-pink-50",
+    items: [
+      {
+        title: "Collaborate",
+        url: "/dashboard/collaborate",
+        icon: Users,
+        color: "text-pink-600",
+        hoverColor: "hover:bg-pink-50"
+      },
+      {
+        title: "Comments",
+        url: "/dashboard/comments",
+        icon: MessageSquare,
+        color: "text-pink-600",
+        hoverColor: "hover:bg-pink-50"
+      },
+      {
+        title: "Notification",
+        url: "/dashboard/notification",
+        icon: Bell,
+        color: "text-pink-600",
+        hoverColor: "hover:bg-pink-50"
+      }
+    ]
+  }
 ];
 
 export function AppSidebar() {
@@ -110,43 +173,66 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
 
   const isActive = (path: string) => currentPath === path;
-  const isExpanded = menuItems.some((item) => isActive(item.url));
-
-  const getNavClass = ({ isActive }: { isActive: boolean }) =>
-    isActive 
-      ? "bg-primary/10 text-primary font-medium border-r-2 border-primary" 
-      : "hover:bg-muted/50 text-muted-foreground hover:text-foreground";
+  
+  const getNavClass = (item: any, isActive: boolean) => {
+    const baseClasses = "transition-all duration-200 rounded-lg mx-2 my-1";
+    if (isActive) {
+      return `${baseClasses} ${item.color} bg-gradient-to-r from-primary/20 to-secondary/20 font-medium border-l-4 border-primary shadow-sm`;
+    }
+    return `${baseClasses} text-muted-foreground ${item.hoverColor} hover:text-foreground hover:shadow-sm hover:scale-[1.02]`;
+  };
 
   return (
     <Sidebar
-      className={collapsed ? "w-14" : "w-64"}
+      className={`${collapsed ? "w-14" : "w-64"} border-r bg-gradient-to-b from-background to-muted/30`}
       collapsible="icon"
     >
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            Event Management
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {menuItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink 
-                      to={item.url} 
-                      className={({ isActive }) => getNavClass({ isActive })}
-                    >
-                      <item.icon className={`h-4 w-4 ${collapsed ? '' : 'mr-3'}`} />
-                      {!collapsed && (
-                        <span className="text-sm">{item.title}</span>
-                      )}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+      <SidebarContent className="px-2 py-4">
+        {!collapsed && (
+          <div className="mb-6 px-4">
+            <h2 className="text-lg font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+              Event Management
+            </h2>
+            <p className="text-xs text-muted-foreground mt-1">
+              Professional event planning platform
+            </p>
+          </div>
+        )}
+        
+        {menuGroups.map((group) => (
+          <SidebarGroup key={group.title} className="mb-4">
+            {!collapsed && (
+              <SidebarGroupLabel className={`text-xs font-semibold ${group.color} uppercase tracking-wider px-4 py-2 ${group.bgColor} rounded-lg mx-2 mb-2`}>
+                {group.title}
+              </SidebarGroupLabel>
+            )}
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {group.items.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <NavLink 
+                        to={item.url} 
+                        className={({ isActive }) => getNavClass(item, isActive)}
+                      >
+                        <item.icon className={`h-5 w-5 ${collapsed ? 'mx-auto' : 'mr-3'} transition-colors duration-200`} />
+                        {!collapsed && (
+                          <span className="text-sm font-medium">{item.title}</span>
+                        )}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
+        
+        {collapsed && (
+          <div className="mt-auto px-2">
+            <div className="h-8 w-8 rounded-full bg-gradient-to-r from-primary to-secondary mx-auto" />
+          </div>
+        )}
       </SidebarContent>
     </Sidebar>
   );
