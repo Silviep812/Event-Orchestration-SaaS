@@ -19,6 +19,8 @@ import CreateEvent from "./pages/CreateEvent";
 import Reports from "./pages/Reports";
 import Collaborate from "./pages/Collaborate";
 import TrackProgress from "./pages/TrackProgress";
+import Notifications from "./pages/Notifications";
+import Comments from "./pages/Comments";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -46,8 +48,8 @@ const App = () => (
               <Route path="collaborate" element={<Collaborate />} />
               <Route path="track-progress" element={<TrackProgress />} />
               <Route path="reports" element={<Reports />} />
-              <Route path="notification" element={<div>Notification Page</div>} />
-              <Route path="comments" element={<div>Comments Page</div>} />
+              <Route path="notification" element={<Notifications />} />
+              <Route path="comments" element={<Comments />} />
             </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
