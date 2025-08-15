@@ -18,6 +18,7 @@ import ManageEventPage from "./pages/ManageEvent";
 import CreateEvent from "./pages/CreateEvent";
 import Reports from "./pages/Reports";
 import Collaborate from "./pages/Collaborate";
+import TrackProgress from "./pages/TrackProgress";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -43,7 +44,7 @@ const App = () => (
               <Route path="create-event" element={<CreateEvent />} />
               <Route path="manage-event" element={<ManageEventPage />} />
               <Route path="collaborate" element={<Collaborate />} />
-              <Route path="track-progress" element={<div>Track Progress Page</div>} />
+              <Route path="track-progress" element={<TrackProgress />} />
               <Route path="reports" element={<Reports />} />
               <Route path="notification" element={<div>Notification Page</div>} />
               <Route path="comments" element={<div>Comments Page</div>} />
