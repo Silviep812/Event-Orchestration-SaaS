@@ -15,6 +15,7 @@ import PlanningAssets from "./components/PlanningAssets";
 import Analytics from "./components/Analytics";
 import EventCalendar from "./components/EventCalendar";
 import ManageEventPage from "./pages/ManageEvent";
+import CreateEvent from "./pages/CreateEvent";
 import Reports from "./pages/Reports";
 import NotFound from "./pages/NotFound";
 
@@ -38,7 +39,7 @@ const App = () => (
               <Route path="planning-assets" element={<PlanningAssets />} />
               <Route path="analytics" element={<Analytics />} />
               <Route path="calendar" element={<EventCalendar />} />
-              <Route path="create-event" element={<div>Create Event Page</div>} />
+              <Route path="create-event" element={<CreateEvent />} />
               <Route path="manage-event" element={<ManageEventPage />} />
               <Route path="collaborate" element={<div>Collaborate Page</div>} />
               <Route path="track-progress" element={<div>Track Progress Page</div>} />
