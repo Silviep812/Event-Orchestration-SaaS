@@ -246,6 +246,14 @@ const ManageEvent = () => {
         </div>
         
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          <Button 
+            onClick={() => window.location.href = '/dashboard/create-event'}
+            className="bg-gradient-to-r from-primary to-secondary text-primary-foreground hover:opacity-90"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            New Managed Event
+          </Button>
+          
           <div className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"
