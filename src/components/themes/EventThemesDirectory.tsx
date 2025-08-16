@@ -145,9 +145,14 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
         const transformedThemes: ThemeDetails[] = [];
         
         data.forEach((themeRow: any) => {
+          console.log('Processing theme row:', themeRow);
           // Process each column that contains theme data
           Object.entries(themeRow).forEach(([key, value]) => {
-            if (key === 'created_at' || !value) return;
+            console.log('Processing key-value pair:', key, value);
+            if (key === 'created_at' || !value) {
+              console.log('Skipping key:', key, 'value:', value);
+              return;
+            }
             
             const category = getCategoryFromKey(key);
             const styles = getThemeStyles(category);
