@@ -108,27 +108,44 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
           return;
         }
 
-        // Transform database data to ThemeDetails format
-        const transformedThemes: ThemeDetails[] = data.map((theme: any) => {
-          const category = getCategoryFromTheme(theme);
-          const themeStyles = getThemeStyles(category);
+        // Transform your column-based data into theme rows
+        const transformedThemes: ThemeDetails[] = [];
+        
+        if (data && data.length > 0) {
+          const themeRow = data[0]; // Get the first (and likely only) row
           
-          return {
-            id: theme.created_at, // Using created_at as unique ID
-            name: getThemeName(theme),
-            description: getThemeDescription(theme),
-            category: category,
-            tags: getThemeTags(theme),
-            icon: getThemeIcon(getThemeName(theme)),
-            color: themeStyles.color,
-            bgColor: themeStyles.bgColor,
-            rating: Math.random() * 2 + 3, // Random rating between 3-5
-            usageCount: Math.floor(Math.random() * 5000) + 100,
-            pricing: Math.random() > 0.6 ? "premium" : "free",
-            templates: Math.floor(Math.random() * 30) + 5,
-            vendors: Math.floor(Math.random() * 200) + 20,
-          };
-        });
+          // Transform each column into a separate theme
+          Object.entries(themeRow).forEach(([key, value]) => {
+            if (key !== 'created_at' && value) {
+              // Handle both single values and arrays
+              const themeValues = Array.isArray(value) ? value : [value];
+              
+              themeValues.forEach((themeValue, index) => {
+                if (themeValue && typeof themeValue === 'string') {
+                  const themeName = themeValue.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                  const category = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                  const themeStyles = getThemeStyles(category);
+                  
+                  transformedThemes.push({
+                    id: `${key}-${index}`,
+                    name: themeName,
+                    description: `Perfect for ${category.toLowerCase()} events with elegant styling and coordinated elements.`,
+                    category: category,
+                    tags: [category, 'Professional', 'Elegant'],
+                    icon: getThemeIcon(themeName),
+                    color: themeStyles.color,
+                    bgColor: themeStyles.bgColor,
+                    rating: Math.round((Math.random() * 2 + 3.5) * 10) / 10,
+                    usageCount: Math.floor(Math.random() * 5000) + 500,
+                    pricing: 'free',
+                    templates: Math.floor(Math.random() * 20) + 5,
+                    vendors: Math.floor(Math.random() * 15) + 3,
+                  });
+                }
+              });
+            }
+          });
+        }
 
         setThemes(transformedThemes);
       } catch (error) {

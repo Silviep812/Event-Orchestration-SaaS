@@ -24,7 +24,12 @@ interface VenueOption {
   ven_contact_name: string;
   ven_contact_ph_nbr: number;
   ven_email: string;
-  ven_address: string;
+  ven_locatiom: string; // Note: using actual column name from database
+  ven_biz_name?: string;
+  ven_price?: number;
+  ven_reservation_date?: string;
+  ven_reservation_time?: string;
+  created_at?: string;
 }
 
 interface VenueSelectorProps {
@@ -54,7 +59,7 @@ export const VenueSelector = ({ onSelectVenue, selectedVenue }: VenueSelectorPro
   const fetchVenues = async () => {
     try {
       const { data, error } = await supabase
-        .from('Venue Directory')
+        .from('Venue Profile')
         .select('*');
 
       if (error) throw error;
@@ -77,25 +82,25 @@ export const VenueSelector = ({ onSelectVenue, selectedVenue }: VenueSelectorPro
       filtered = filtered.filter(venue => 
         venue.ven_contact_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         venue.venue_type_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        venue.ven_address?.toLowerCase().includes(searchTerm.toLowerCase())
+        venue.ven_locatiom?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
     if (cityFilter) {
       filtered = filtered.filter(venue => 
-        venue.ven_address?.toLowerCase().includes(cityFilter.toLowerCase())
+        venue.ven_locatiom?.toLowerCase().includes(cityFilter.toLowerCase())
       );
     }
 
     if (stateFilter) {
       filtered = filtered.filter(venue => 
-        venue.ven_address?.toLowerCase().includes(stateFilter.toLowerCase())
+        venue.ven_locatiom?.toLowerCase().includes(stateFilter.toLowerCase())
       );
     }
 
     if (zipFilter) {
       filtered = filtered.filter(venue => 
-        venue.ven_address?.includes(zipFilter)
+        venue.ven_locatiom?.includes(zipFilter)
       );
     }
 
@@ -234,7 +239,7 @@ export const VenueSelector = ({ onSelectVenue, selectedVenue }: VenueSelectorPro
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredVenues.map((venue) => {
           const isSelected = selectedVenue?.venue_type_id === venue.venue_type_id;
-          const addressInfo = parseAddress(venue.ven_address);
+          const addressInfo = parseAddress(venue.ven_locatiom);
           
           return (
             <Card 
@@ -259,10 +264,10 @@ export const VenueSelector = ({ onSelectVenue, selectedVenue }: VenueSelectorPro
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  {venue.ven_address && (
+                  {venue.ven_locatiom && (
                     <div className="flex items-start gap-2 text-sm">
                       <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-                      <span>{venue.ven_address}</span>
+                      <span>{venue.ven_locatiom}</span>
                     </div>
                   )}
                   {venue.ven_contact_ph_nbr && (

@@ -44,7 +44,7 @@ export type Database = {
         }
         Relationships: []
       }
-      Bookings: {
+      "Bookings Directory": {
         Row: {
           book_id: string
           confirmation: boolean | null
@@ -305,33 +305,75 @@ export type Database = {
         }
         Relationships: []
       }
-      "Distributor Directory": {
+      "Entertainment Directory": {
         Row: {
-          beverages: string | null
-          brewery: string | null
           created_at: string
-          dist_type: string
-          florist: string | null
-          water: string | null
-          winery: string | null
+          "DJ Music": string | null
+          id: number
+          Musicians: string | null
+          Other: string | null
+          Performer: string | null
+          Speaker: string | null
+          Stage_Production: string | null
+          "Standup Comic": string | null
         }
         Insert: {
-          beverages?: string | null
-          brewery?: string | null
           created_at?: string
-          dist_type: string
-          florist?: string | null
-          water?: string | null
-          winery?: string | null
+          "DJ Music"?: string | null
+          id?: number
+          Musicians?: string | null
+          Other?: string | null
+          Performer?: string | null
+          Speaker?: string | null
+          Stage_Production?: string | null
+          "Standup Comic"?: string | null
         }
         Update: {
-          beverages?: string | null
-          brewery?: string | null
           created_at?: string
-          dist_type?: string
-          florist?: string | null
-          water?: string | null
-          winery?: string | null
+          "DJ Music"?: string | null
+          id?: number
+          Musicians?: string | null
+          Other?: string | null
+          Performer?: string | null
+          Speaker?: string | null
+          Stage_Production?: string | null
+          "Standup Comic"?: string | null
+        }
+        Relationships: []
+      }
+      "Entertainment Profile": {
+        Row: {
+          Available_Dates: string | null
+          Business_Location: string | null
+          Business_Name: string | null
+          Contact_Name: string | null
+          Contact_Ph_Nbr: number | null
+          created_at: string
+          Email: string | null
+          id: number
+          Price: number | null
+        }
+        Insert: {
+          Available_Dates?: string | null
+          Business_Location?: string | null
+          Business_Name?: string | null
+          Contact_Name?: string | null
+          Contact_Ph_Nbr?: number | null
+          created_at?: string
+          Email?: string | null
+          id?: number
+          Price?: number | null
+        }
+        Update: {
+          Available_Dates?: string | null
+          Business_Location?: string | null
+          Business_Name?: string | null
+          Contact_Name?: string | null
+          Contact_Ph_Nbr?: number | null
+          created_at?: string
+          Email?: string | null
+          id?: number
+          Price?: number | null
         }
         Relationships: []
       }
@@ -459,6 +501,36 @@ export type Database = {
         Relationships: []
       }
       "Hospitality Directory": {
+        Row: {
+          Airbnb: string | null
+          created_at: string
+          Hotel: string | null
+          id: number
+          Motel: string | null
+          Other: string | null
+          Resort: string | null
+        }
+        Insert: {
+          Airbnb?: string | null
+          created_at?: string
+          Hotel?: string | null
+          id?: number
+          Motel?: string | null
+          Other?: string | null
+          Resort?: string | null
+        }
+        Update: {
+          Airbnb?: string | null
+          created_at?: string
+          Hotel?: string | null
+          id?: number
+          Motel?: string | null
+          Other?: string | null
+          Resort?: string | null
+        }
+        Relationships: []
+      }
+      "Hospitality Profile": {
         Row: {
           created_at: string
           hosp_amendities: string[] | null
@@ -686,54 +758,6 @@ export type Database = {
         }
         Relationships: []
       }
-      "Market Place Online Directory": {
-        Row: {
-          cost_of_item: number | null
-          created_at: string
-          location: string | null
-          market_type_id: string
-          nbr_of_items: number | null
-        }
-        Insert: {
-          cost_of_item?: number | null
-          created_at?: string
-          location?: string | null
-          market_type_id: string
-          nbr_of_items?: number | null
-        }
-        Update: {
-          cost_of_item?: number | null
-          created_at?: string
-          location?: string | null
-          market_type_id?: string
-          nbr_of_items?: number | null
-        }
-        Relationships: []
-      }
-      Notification: {
-        Row: {
-          created_at: string
-          message_type_id: number
-          receiver: string | null
-          sender: string | null
-          subject: string | null
-        }
-        Insert: {
-          created_at?: string
-          message_type_id: number
-          receiver?: string | null
-          sender?: string | null
-          subject?: string | null
-        }
-        Update: {
-          created_at?: string
-          message_type_id?: number
-          receiver?: string | null
-          sender?: string | null
-          subject?: string | null
-        }
-        Relationships: []
-      }
       notifications: {
         Row: {
           created_at: string
@@ -773,7 +797,43 @@ export type Database = {
         }
         Relationships: []
       }
-      "Service Rental Directory": {
+      "Service Profile": {
+        Row: {
+          "Business Name": string | null
+          Contact_Name: string | null
+          Contact_Ph_Nbr: number | null
+          created_at: string
+          Email: string | null
+          id: number
+          Location: string | null
+          Price: number | null
+          Service_Type: string | null
+        }
+        Insert: {
+          "Business Name"?: string | null
+          Contact_Name?: string | null
+          Contact_Ph_Nbr?: number | null
+          created_at?: string
+          Email?: string | null
+          id?: number
+          Location?: string | null
+          Price?: number | null
+          Service_Type?: string | null
+        }
+        Update: {
+          "Business Name"?: string | null
+          Contact_Name?: string | null
+          Contact_Ph_Nbr?: number | null
+          created_at?: string
+          Email?: string | null
+          id?: number
+          Location?: string | null
+          Price?: number | null
+          Service_Type?: string | null
+        }
+        Relationships: []
+      }
+      "Service Rental/Sale Directory": {
         Row: {
           audio_visual_equip: string | null
           child_play_equip: string[] | null
@@ -858,6 +918,36 @@ export type Database = {
         Relationships: []
       }
       "Supplier Directory": {
+        Row: {
+          created_at: string
+          Distributor: string | null
+          id: number
+          Merchandizer: string | null
+          Online_Market: string | null
+          Other: string | null
+          Wholesaler: string | null
+        }
+        Insert: {
+          created_at?: string
+          Distributor?: string | null
+          id?: number
+          Merchandizer?: string | null
+          Online_Market?: string | null
+          Other?: string | null
+          Wholesaler?: string | null
+        }
+        Update: {
+          created_at?: string
+          Distributor?: string | null
+          id?: number
+          Merchandizer?: string | null
+          Online_Market?: string | null
+          Other?: string | null
+          Wholesaler?: string | null
+        }
+        Relationships: []
+      }
+      "Supplier Profile": {
         Row: {
           created_at: string
           distributor_supplier_biz_name: string | null
@@ -955,7 +1045,6 @@ export type Database = {
           baby_shower: string
           bridal_shower: string | null
           Celebration: string | null
-          created_at: string
           Dining: string | null
           Festival: string | null
           market_place: string[] | null
@@ -971,7 +1060,6 @@ export type Database = {
           baby_shower: string
           bridal_shower?: string | null
           Celebration?: string | null
-          created_at?: string
           Dining?: string | null
           Festival?: string | null
           market_place?: string[] | null
@@ -987,7 +1075,6 @@ export type Database = {
           baby_shower?: string
           bridal_shower?: string | null
           Celebration?: string | null
-          created_at?: string
           Dining?: string | null
           Festival?: string | null
           market_place?: string[] | null
@@ -1001,7 +1088,40 @@ export type Database = {
         }
         Relationships: []
       }
-      Transportation: {
+      "Transportation Directory": {
+        Row: {
+          bus: string[] | null
+          car_suv: string | null
+          created_at: string
+          limo: string | null
+          other: string | null
+          transo_rental_id: number
+          truck: string | null
+          van: string | null
+        }
+        Insert: {
+          bus?: string[] | null
+          car_suv?: string | null
+          created_at?: string
+          limo?: string | null
+          other?: string | null
+          transo_rental_id?: number
+          truck?: string | null
+          van?: string | null
+        }
+        Update: {
+          bus?: string[] | null
+          car_suv?: string | null
+          created_at?: string
+          limo?: string | null
+          other?: string | null
+          transo_rental_id?: number
+          truck?: string | null
+          van?: string | null
+        }
+        Relationships: []
+      }
+      "Transportation Profile": {
         Row: {
           arrival_date: string | null
           arrival_time: string | null
@@ -1067,39 +1187,6 @@ export type Database = {
           trans_type?: string | null
           transpo_cost?: number | null
           transpo_id?: string
-        }
-        Relationships: []
-      }
-      "Transportation Directory": {
-        Row: {
-          bus: string[] | null
-          car_suv: string | null
-          created_at: string
-          limo: string | null
-          other: string | null
-          transo_rental_id: number
-          truck: string | null
-          van: string | null
-        }
-        Insert: {
-          bus?: string[] | null
-          car_suv?: string | null
-          created_at?: string
-          limo?: string | null
-          other?: string | null
-          transo_rental_id?: number
-          truck?: string | null
-          van?: string | null
-        }
-        Update: {
-          bus?: string[] | null
-          car_suv?: string | null
-          created_at?: string
-          limo?: string | null
-          other?: string | null
-          transo_rental_id?: number
-          truck?: string | null
-          van?: string | null
         }
         Relationships: []
       }
@@ -1173,32 +1260,92 @@ export type Database = {
       }
       "Vendor Directory": {
         Row: {
+          Bakery: string | null
+          Beverage: string | null
+          Brewery: string | null
+          Caterer: string | null
+          Chef: string | null
           created_at: string
+          Florist: string | null
+          "Food Truck": string | null
+          Foodies: string | null
+          Ice_Sculpure: string | null
+          id: number
+          Mobile_Pop_Up: string | null
+          Other: string | null
+          Videographer: string | null
+          Winery: string | null
+        }
+        Insert: {
+          Bakery?: string | null
+          Beverage?: string | null
+          Brewery?: string | null
+          Caterer?: string | null
+          Chef?: string | null
+          created_at?: string
+          Florist?: string | null
+          "Food Truck"?: string | null
+          Foodies?: string | null
+          Ice_Sculpure?: string | null
+          id?: number
+          Mobile_Pop_Up?: string | null
+          Other?: string | null
+          Videographer?: string | null
+          Winery?: string | null
+        }
+        Update: {
+          Bakery?: string | null
+          Beverage?: string | null
+          Brewery?: string | null
+          Caterer?: string | null
+          Chef?: string | null
+          created_at?: string
+          Florist?: string | null
+          "Food Truck"?: string | null
+          Foodies?: string | null
+          Ice_Sculpure?: string | null
+          id?: number
+          Mobile_Pop_Up?: string | null
+          Other?: string | null
+          Videographer?: string | null
+          Winery?: string | null
+        }
+        Relationships: []
+      }
+      "Vendor Profile": {
+        Row: {
+          created_at: string
+          ven_avail_dates: string | null
           vendor_biz_name: string | null
           vendor_contact_name: string | null
           vendor_contact_nbr: number | null
           vendor_email: string | null
           vendor_location: string | null
+          vendor_price: number | null
           vendor_type: string | null
           vendor_type_id: string
         }
         Insert: {
           created_at?: string
+          ven_avail_dates?: string | null
           vendor_biz_name?: string | null
           vendor_contact_name?: string | null
           vendor_contact_nbr?: number | null
           vendor_email?: string | null
           vendor_location?: string | null
+          vendor_price?: number | null
           vendor_type?: string | null
           vendor_type_id: string
         }
         Update: {
           created_at?: string
+          ven_avail_dates?: string | null
           vendor_biz_name?: string | null
           vendor_contact_name?: string | null
           vendor_contact_nbr?: number | null
           vendor_email?: string | null
           vendor_location?: string | null
+          vendor_price?: number | null
           vendor_type?: string | null
           vendor_type_id?: string
         }
@@ -1206,27 +1353,96 @@ export type Database = {
       }
       "Venue Directory": {
         Row: {
+          "Agri-Farming": string | null
+          Business_Location: string | null
           created_at: string
-          ven_address: string | null
+          Hospitality_Location: string | null
+          id: number
+          Local_Govern_Location: string | null
+          Market_Place: string | null
+          Other: string | null
+          Private_Club: string | null
+          Private_Resident: string | null
+          Recreation_Location: string | null
+          Resort_Location: string | null
+          Restaurant_Location: string | null
+          Sporting_Facility: string | null
+          State_Govern_Location: string | null
+          Warehouse: string | null
+        }
+        Insert: {
+          "Agri-Farming"?: string | null
+          Business_Location?: string | null
+          created_at?: string
+          Hospitality_Location?: string | null
+          id?: number
+          Local_Govern_Location?: string | null
+          Market_Place?: string | null
+          Other?: string | null
+          Private_Club?: string | null
+          Private_Resident?: string | null
+          Recreation_Location?: string | null
+          Resort_Location?: string | null
+          Restaurant_Location?: string | null
+          Sporting_Facility?: string | null
+          State_Govern_Location?: string | null
+          Warehouse?: string | null
+        }
+        Update: {
+          "Agri-Farming"?: string | null
+          Business_Location?: string | null
+          created_at?: string
+          Hospitality_Location?: string | null
+          id?: number
+          Local_Govern_Location?: string | null
+          Market_Place?: string | null
+          Other?: string | null
+          Private_Club?: string | null
+          Private_Resident?: string | null
+          Recreation_Location?: string | null
+          Resort_Location?: string | null
+          Restaurant_Location?: string | null
+          Sporting_Facility?: string | null
+          State_Govern_Location?: string | null
+          Warehouse?: string | null
+        }
+        Relationships: []
+      }
+      "Venue Profile": {
+        Row: {
+          created_at: string
+          ven_biz_name: string | null
           ven_contact_name: string | null
           ven_contact_ph_nbr: number | null
           ven_email: string | null
+          ven_locatiom: string | null
+          ven_price: number | null
+          ven_reservation_date: string | null
+          ven_reservation_time: string | null
           venue_type_id: string
         }
         Insert: {
           created_at?: string
-          ven_address?: string | null
+          ven_biz_name?: string | null
           ven_contact_name?: string | null
           ven_contact_ph_nbr?: number | null
           ven_email?: string | null
+          ven_locatiom?: string | null
+          ven_price?: number | null
+          ven_reservation_date?: string | null
+          ven_reservation_time?: string | null
           venue_type_id: string
         }
         Update: {
           created_at?: string
-          ven_address?: string | null
+          ven_biz_name?: string | null
           ven_contact_name?: string | null
           ven_contact_ph_nbr?: number | null
           ven_email?: string | null
+          ven_locatiom?: string | null
+          ven_price?: number | null
+          ven_reservation_date?: string | null
+          ven_reservation_time?: string | null
           venue_type_id?: string
         }
         Relationships: []

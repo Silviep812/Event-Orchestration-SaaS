@@ -56,7 +56,7 @@ export const HospitalitySelector = ({ onSelectHospitality, selectedHospitality }
   const fetchHospitalities = async () => {
     try {
       const { data, error } = await supabase
-        .from('Hospitality Directory')
+        .from('Hospitality Profile')
         .select('*');
 
       if (error) throw error;
