@@ -23,45 +23,72 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchUserRoles = async (userId: string) => {
     try {
+      console.log('useAuth: Starting fetchUserRoles for user:', userId);
       const { data, error } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', userId);
       
-      if (error) throw error;
+      if (error) {
+        console.error('useAuth: Error fetching user roles:', error);
+        setUserRoles([]);
+        return;
+      }
+      
+      console.log('useAuth: Fetched user roles:', data);
       setUserRoles(data?.map(item => item.role) || []);
     } catch (error) {
-      console.error('Error fetching user roles:', error);
+      console.error('useAuth: Exception in fetchUserRoles:', error);
       setUserRoles([]);
     }
   };
 
   useEffect(() => {
+    console.log('useAuth: Starting auth initialization');
+    setLoading(true);
+
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('useAuth: Auth state changed', { event, hasSession: !!session, hasUser: !!session?.user });
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
+          console.log('useAuth: Fetching user roles for user:', session.user.id);
           await fetchUserRoles(session.user.id);
         } else {
           setUserRoles([]);
         }
         
+        console.log('useAuth: Setting loading to false from auth state change');
         setLoading(false);
       }
     );
 
     // THEN check for existing session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    console.log('useAuth: Checking for existing session');
+    supabase.auth.getSession().then(async ({ data: { session }, error }) => {
+      console.log('useAuth: Got session result', { hasSession: !!session, hasUser: !!session?.user, error });
+      
+      if (error) {
+        console.error('useAuth: Error getting session:', error);
+        setLoading(false);
+        return;
+      }
+
       setSession(session);
       setUser(session?.user ?? null);
       
       if (session?.user) {
+        console.log('useAuth: Fetching user roles for existing session user:', session.user.id);
         await fetchUserRoles(session.user.id);
       }
       
+      console.log('useAuth: Setting loading to false from session check');
+      setLoading(false);
+    }).catch((error) => {
+      console.error('useAuth: Session check failed:', error);
       setLoading(false);
     });
 
