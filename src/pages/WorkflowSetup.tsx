@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { WorkflowSelector } from "@/components/workflow/WorkflowSelector";
 import { EventThemeSelector } from "@/components/workflow/EventThemeSelector";
 import { HospitalitySelector } from "@/components/workflow/HospitalitySelector";
@@ -10,10 +10,12 @@ import { WorkflowDashboard } from "@/components/workflow/WorkflowDashboard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 type SetupStep = "user-type" | "theme" | "hospitality" | "venue" | "vendors" | "services" | "suppliers" | "dashboard";
 
 export default function WorkflowSetup() {
+  const { userRoles } = useAuth();
   const [currentStep, setCurrentStep] = useState<SetupStep>("user-type");
   const [selectedUserType, setSelectedUserType] = useState<string>("");
   const [selectedTheme, setSelectedTheme] = useState<string>("");
@@ -22,6 +24,25 @@ export default function WorkflowSetup() {
   const [selectedVendor, setSelectedVendor] = useState<any>(null);
   const [selectedService, setSelectedService] = useState<any>(null);
   const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
+
+  // Auto-detect user type from Supabase roles
+  useEffect(() => {
+    if (userRoles.length > 0) {
+      // Map Supabase roles to workflow user types
+      if (userRoles.includes('venue_manager')) {
+        setSelectedUserType('venue-owner');
+      } else if (userRoles.includes('hospitality_manager')) {
+        setSelectedUserType('hospitality-owner');
+      } else if (userRoles.includes('event_manager') || userRoles.includes('admin')) {
+        setSelectedUserType('professional-planner');
+      } else {
+        setSelectedUserType('social-organizer');
+      }
+      
+      // Skip to theme selection since role is auto-detected
+      setCurrentStep("theme");
+    }
+  }, [userRoles]);
 
   const getNextStepForUserType = (userType: string, currentStep: SetupStep): SetupStep => {
     switch (userType) {

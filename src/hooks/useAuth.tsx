@@ -6,6 +6,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  userRoles: string[];
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<{ error: any }>;
@@ -18,21 +19,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [userRoles, setUserRoles] = useState<string[]>([]);
+
+  const fetchUserRoles = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId);
+      
+      if (error) throw error;
+      setUserRoles(data?.map(item => item.role) || []);
+    } catch (error) {
+      console.error('Error fetching user roles:', error);
+      setUserRoles([]);
+    }
+  };
 
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          await fetchUserRoles(session.user.id);
+        } else {
+          setUserRoles([]);
+        }
+        
         setLoading(false);
       }
     );
 
     // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        await fetchUserRoles(session.user.id);
+      }
+      
       setLoading(false);
     });
 
@@ -78,6 +107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     session,
     loading,
+    userRoles,
     signIn,
     signUp,
     signOut,
