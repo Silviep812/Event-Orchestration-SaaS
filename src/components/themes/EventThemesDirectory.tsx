@@ -144,8 +144,10 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
         // Transform Supabase data into ThemeDetails format
         const transformedThemes: ThemeDetails[] = [];
         
-        data.forEach((themeRow: any) => {
+        if (data && data.length > 0) {
+          const themeRow = data[0]; // Get the first (and only) row
           console.log('Processing theme row:', themeRow);
+          
           // Process each column that contains theme data
           Object.entries(themeRow).forEach(([key, value]) => {
             console.log('Processing key-value pair:', key, value);
@@ -195,7 +197,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
               });
             }
           });
-        });
+        }
 
         console.log('Transformed themes:', transformedThemes);
         setThemes(transformedThemes);
