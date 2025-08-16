@@ -90,7 +90,7 @@ export const HospitalitySelector = ({ onSelectHospitality, selectedHospitality }
       );
     }
 
-    if (typeFilter) {
+    if (typeFilter && typeFilter !== "all") {
       filtered = filtered.filter(item => 
         item.hosp_type_id?.toLowerCase().includes(typeFilter.toLowerCase())
       );
@@ -181,7 +181,7 @@ export const HospitalitySelector = ({ onSelectHospitality, selectedHospitality }
                   <SelectValue placeholder="Any type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Any type</SelectItem>
+                  <SelectItem value="all">Any type</SelectItem>
                   <SelectItem value="catering">Catering</SelectItem>
                   <SelectItem value="hotel">Hotel</SelectItem>
                   <SelectItem value="restaurant">Restaurant</SelectItem>
