@@ -182,6 +182,13 @@ const menuGroups = [
         hoverColor: "hover:bg-orange-50"
       },
       {
+        title: "Supplier Directory",
+        url: "/dashboard/supplier",
+        icon: Package,
+        color: "text-orange-600",
+        hoverColor: "hover:bg-orange-50"
+      },
+      {
         title: "Generate Reports",
         url: "/dashboard/reports",
         icon: FileText,

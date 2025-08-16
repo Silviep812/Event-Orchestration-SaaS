@@ -29,6 +29,7 @@ import VendorServiceDirectory from "./pages/VendorServiceDirectory";
 import ServiceVendorDirectory from "./pages/ServiceVendorDirectory";
 import TransportationDirectory from "./pages/TransportationDirectory";
 import EntertainmentDirectory from "./pages/EntertainmentDirectory";
+import SupplierDirectory from "./pages/SupplierDirectory";
 
 const queryClient = new QueryClient();
 
@@ -64,6 +65,7 @@ const App = () => (
               <Route path="service-vendor" element={<ServiceVendorDirectory />} />
               <Route path="transportation" element={<TransportationDirectory />} />
               <Route path="entertainment" element={<EntertainmentDirectory />} />
+              <Route path="supplier" element={<SupplierDirectory />} />
             </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
