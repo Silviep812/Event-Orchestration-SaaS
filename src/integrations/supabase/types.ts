@@ -1560,6 +1560,14 @@ export type Database = {
           transportation_type: string
         }[]
       }
+      get_user_directory_safe: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          contact_name: string
+          user_name: string
+          userid: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

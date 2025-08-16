@@ -76,10 +76,7 @@ export function RoleManager() {
 
   const fetchUsers = async () => {
     try {
-      const { data, error } = await supabase
-        .from('User')
-        .select('userid, user_name, email, contact_name')
-        .order('user_name', { ascending: true });
+      const { data, error } = await supabase.rpc('get_user_directory_safe');
 
       if (error) throw error;
       setUsers(data || []);
