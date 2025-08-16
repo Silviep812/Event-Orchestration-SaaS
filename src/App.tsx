@@ -22,6 +22,12 @@ import TrackProgress from "./pages/TrackProgress";
 import Notifications from "./pages/Notifications";
 import Comments from "./pages/Comments";
 import NotFound from "./pages/NotFound";
+import BookingsDirectory from "./pages/BookingsDirectory";
+import VenueDirectory from "./pages/VenueDirectory";
+import HospitalityDirectory from "./pages/HospitalityDirectory";
+import VendorServiceDirectory from "./pages/VendorServiceDirectory";
+import ServiceVendorDirectory from "./pages/ServiceVendorDirectory";
+import TransportationDirectory from "./pages/TransportationDirectory";
 
 const queryClient = new QueryClient();
 
@@ -50,6 +56,12 @@ const App = () => (
               <Route path="reports" element={<Reports />} />
               <Route path="notification" element={<Notifications />} />
               <Route path="comments" element={<Comments />} />
+              <Route path="bookings" element={<BookingsDirectory />} />
+              <Route path="venue" element={<VenueDirectory />} />
+              <Route path="hospitality" element={<HospitalityDirectory />} />
+              <Route path="vendor-service" element={<VendorServiceDirectory />} />
+              <Route path="service-vendor" element={<ServiceVendorDirectory />} />
+              <Route path="transportation" element={<TransportationDirectory />} />
             </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
