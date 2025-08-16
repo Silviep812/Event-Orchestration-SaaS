@@ -23,39 +23,67 @@ export default function WorkflowSetup() {
   const [selectedService, setSelectedService] = useState<any>(null);
   const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
 
+  const getNextStepForUserType = (userType: string, currentStep: SetupStep): SetupStep => {
+    switch (userType) {
+      case "venue-owner":
+        if (currentStep === "user-type") return "theme";
+        if (currentStep === "theme") return "vendors";
+        if (currentStep === "vendors") return "services";
+        if (currentStep === "services") return "suppliers";
+        return "dashboard";
+      
+      case "hospitality-owner":
+        if (currentStep === "user-type") return "theme";
+        if (currentStep === "theme") return "venue";
+        if (currentStep === "venue") return "vendors";
+        if (currentStep === "vendors") return "services";
+        if (currentStep === "services") return "suppliers";
+        return "dashboard";
+      
+      default: // social-organizer, professional-planner
+        if (currentStep === "user-type") return "theme";
+        if (currentStep === "theme") return "hospitality";
+        if (currentStep === "hospitality") return "venue";
+        if (currentStep === "venue") return "vendors";
+        if (currentStep === "vendors") return "services";
+        if (currentStep === "services") return "suppliers";
+        return "dashboard";
+    }
+  };
+
   const handleUserTypeSelection = (userType: string) => {
     setSelectedUserType(userType);
-    setCurrentStep("theme");
+    setCurrentStep(getNextStepForUserType(userType, "user-type"));
   };
 
   const handleThemeSelection = (theme: string) => {
     setSelectedTheme(theme);
-    setCurrentStep("hospitality");
+    setCurrentStep(getNextStepForUserType(selectedUserType, "theme"));
   };
 
   const handleHospitalitySelection = (hospitality: any) => {
     setSelectedHospitality(hospitality);
-    setCurrentStep("venue");
+    setCurrentStep(getNextStepForUserType(selectedUserType, "hospitality"));
   };
 
   const handleVenueSelection = (venue: any) => {
     setSelectedVenue(venue);
-    setCurrentStep("vendors");
+    setCurrentStep(getNextStepForUserType(selectedUserType, "venue"));
   };
 
   const handleVendorSelection = (vendor: any) => {
     setSelectedVendor(vendor);
-    setCurrentStep("services");
+    setCurrentStep(getNextStepForUserType(selectedUserType, "vendors"));
   };
 
   const handleServiceSelection = (service: any) => {
     setSelectedService(service);
-    setCurrentStep("suppliers");
+    setCurrentStep(getNextStepForUserType(selectedUserType, "services"));
   };
 
   const handleSupplierSelection = (supplier: any) => {
     setSelectedSupplier(supplier);
-    setCurrentStep("dashboard");
+    setCurrentStep(getNextStepForUserType(selectedUserType, "suppliers"));
   };
 
   const handleBack = () => {
@@ -166,14 +194,14 @@ export default function WorkflowSetup() {
             />
           )}
 
-          {currentStep === "hospitality" && selectedUserType && selectedTheme && (
+          {currentStep === "hospitality" && selectedUserType && selectedTheme && selectedUserType !== "venue-owner" && selectedUserType !== "hospitality-owner" && (
             <HospitalitySelector 
               onSelectHospitality={handleHospitalitySelection}
               selectedHospitality={selectedHospitality}
             />
           )}
 
-          {currentStep === "venue" && selectedUserType && selectedTheme && selectedHospitality && (
+          {currentStep === "venue" && selectedUserType && selectedTheme && selectedUserType !== "venue-owner" && (
             <VenueSelector 
               onSelectVenue={handleVenueSelection}
               selectedVenue={selectedVenue}
