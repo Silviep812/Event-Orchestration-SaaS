@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,7 +7,7 @@ import { Truck, Camera, Lightbulb, Music, Gamepad2, Flower, Home, Table } from "
 
 const VendorServiceDirectory = () => {
   const [serviceTypes, setServiceTypes] = useState<any[]>([]);
-  const [selectedServiceType, setSelectedServiceType] = useState<string>("");
+  const [selectedServiceTypes, setSelectedServiceTypes] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -56,50 +56,57 @@ const VendorServiceDirectory = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>Select Service Type</CardTitle>
+          <CardTitle>Select Service Types</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Service Type</label>
-            <Select value={selectedServiceType} onValueChange={setSelectedServiceType}>
-              <SelectTrigger className="w-full bg-background border-border">
-                <SelectValue placeholder="Select a service type..." />
-              </SelectTrigger>
-              <SelectContent className="bg-background border border-border shadow-lg z-50">
-                {serviceTypeOptions.map((option) => {
-                  const IconComponent = option.icon;
-                  return (
-                    <SelectItem 
-                      key={option.value} 
-                      value={option.value}
-                      className="hover:bg-muted cursor-pointer"
-                    >
-                      <div className="flex items-center gap-2">
-                        <IconComponent size={16} />
-                        {option.label}
-                      </div>
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
+          <div className="space-y-3">
+            <label className="text-sm font-medium">Service Types (select all that apply)</label>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {serviceTypeOptions.map((option) => {
+                const IconComponent = option.icon;
+                const isChecked = selectedServiceTypes.includes(option.value);
+                return (
+                  <div key={option.value} className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50">
+                    <Checkbox
+                      id={option.value}
+                      checked={isChecked}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setSelectedServiceTypes([...selectedServiceTypes, option.value]);
+                        } else {
+                          setSelectedServiceTypes(selectedServiceTypes.filter(type => type !== option.value));
+                        }
+                      }}
+                    />
+                    <label htmlFor={option.value} className="flex items-center gap-2 cursor-pointer text-sm font-medium">
+                      <IconComponent size={16} />
+                      {option.label}
+                    </label>
+                  </div>
+                );
+              })}
+            </div>
           </div>
           
-          {selectedServiceType && (
+          {selectedServiceTypes.length > 0 && (
             <div className="p-4 bg-muted rounded-lg">
-              <h3 className="font-medium mb-2">Selected Service Type:</h3>
-              <p className="text-sm text-muted-foreground">
-                {serviceTypeOptions.find(opt => opt.value === selectedServiceType)?.label}
-              </p>
+              <h3 className="font-medium mb-2">Selected Service Types:</h3>
+              <div className="flex flex-wrap gap-2">
+                {selectedServiceTypes.map(type => (
+                  <span key={type} className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
+                    {serviceTypeOptions.find(opt => opt.value === type)?.label}
+                  </span>
+                ))}
+              </div>
             </div>
           )}
 
           <Button 
-            onClick={() => setSelectedServiceType("")} 
+            onClick={() => setSelectedServiceTypes([])} 
             variant="outline"
-            disabled={!selectedServiceType}
+            disabled={selectedServiceTypes.length === 0}
           >
-            Clear Selection
+            Clear All Selections
           </Button>
         </CardContent>
       </Card>

@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,7 +7,7 @@ import { Calendar, CheckCircle, Clock } from "lucide-react";
 
 const BookingsDirectory = () => {
   const [bookings, setBookings] = useState<any[]>([]);
-  const [selectedBookingType, setSelectedBookingType] = useState<string>("");
+  const [selectedBookingTypes, setSelectedBookingTypes] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -50,50 +50,57 @@ const BookingsDirectory = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>Select Booking Type</CardTitle>
+          <CardTitle>Select Booking Types</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Booking Type</label>
-            <Select value={selectedBookingType} onValueChange={setSelectedBookingType}>
-              <SelectTrigger className="w-full bg-background border-border">
-                <SelectValue placeholder="Select a booking type..." />
-              </SelectTrigger>
-              <SelectContent className="bg-background border border-border shadow-lg z-50">
-                {bookingTypeOptions.map((option) => {
-                  const IconComponent = option.icon;
-                  return (
-                    <SelectItem 
-                      key={option.value} 
-                      value={option.value}
-                      className="hover:bg-muted cursor-pointer"
-                    >
-                      <div className="flex items-center gap-2">
-                        <IconComponent size={16} />
-                        {option.label}
-                      </div>
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
+          <div className="space-y-3">
+            <label className="text-sm font-medium">Booking Types (select all that apply)</label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {bookingTypeOptions.map((option) => {
+                const IconComponent = option.icon;
+                const isChecked = selectedBookingTypes.includes(option.value);
+                return (
+                  <div key={option.value} className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50">
+                    <Checkbox
+                      id={option.value}
+                      checked={isChecked}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setSelectedBookingTypes([...selectedBookingTypes, option.value]);
+                        } else {
+                          setSelectedBookingTypes(selectedBookingTypes.filter(type => type !== option.value));
+                        }
+                      }}
+                    />
+                    <label htmlFor={option.value} className="flex items-center gap-2 cursor-pointer text-sm font-medium">
+                      <IconComponent size={16} />
+                      {option.label}
+                    </label>
+                  </div>
+                );
+              })}
+            </div>
           </div>
           
-          {selectedBookingType && (
+          {selectedBookingTypes.length > 0 && (
             <div className="p-4 bg-muted rounded-lg">
-              <h3 className="font-medium mb-2">Selected Booking Type:</h3>
-              <p className="text-sm text-muted-foreground">
-                {bookingTypeOptions.find(opt => opt.value === selectedBookingType)?.label}
-              </p>
+              <h3 className="font-medium mb-2">Selected Booking Types:</h3>
+              <div className="flex flex-wrap gap-2">
+                {selectedBookingTypes.map(type => (
+                  <span key={type} className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
+                    {bookingTypeOptions.find(opt => opt.value === type)?.label}
+                  </span>
+                ))}
+              </div>
             </div>
           )}
 
           <Button 
-            onClick={() => setSelectedBookingType("")} 
+            onClick={() => setSelectedBookingTypes([])} 
             variant="outline"
-            disabled={!selectedBookingType}
+            disabled={selectedBookingTypes.length === 0}
           >
-            Clear Selection
+            Clear All Selections
           </Button>
         </CardContent>
       </Card>

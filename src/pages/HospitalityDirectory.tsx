@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,7 +7,7 @@ import { Hotel, Home, MapPin, Coffee } from "lucide-react";
 
 const HospitalityDirectory = () => {
   const [hospitalityTypes, setHospitalityTypes] = useState<any[]>([]);
-  const [selectedHospitalityType, setSelectedHospitalityType] = useState<string>("");
+  const [selectedHospitalityTypes, setSelectedHospitalityTypes] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -51,50 +51,57 @@ const HospitalityDirectory = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>Select Hospitality Type</CardTitle>
+          <CardTitle>Select Hospitality Types</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Hospitality Type</label>
-            <Select value={selectedHospitalityType} onValueChange={setSelectedHospitalityType}>
-              <SelectTrigger className="w-full bg-background border-border">
-                <SelectValue placeholder="Select a hospitality type..." />
-              </SelectTrigger>
-              <SelectContent className="bg-background border border-border shadow-lg z-50">
-                {hospitalityTypeOptions.map((option) => {
-                  const IconComponent = option.icon;
-                  return (
-                    <SelectItem 
-                      key={option.value} 
-                      value={option.value}
-                      className="hover:bg-muted cursor-pointer"
-                    >
-                      <div className="flex items-center gap-2">
-                        <IconComponent size={16} />
-                        {option.label}
-                      </div>
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
+          <div className="space-y-3">
+            <label className="text-sm font-medium">Hospitality Types (select all that apply)</label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {hospitalityTypeOptions.map((option) => {
+                const IconComponent = option.icon;
+                const isChecked = selectedHospitalityTypes.includes(option.value);
+                return (
+                  <div key={option.value} className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50">
+                    <Checkbox
+                      id={option.value}
+                      checked={isChecked}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setSelectedHospitalityTypes([...selectedHospitalityTypes, option.value]);
+                        } else {
+                          setSelectedHospitalityTypes(selectedHospitalityTypes.filter(type => type !== option.value));
+                        }
+                      }}
+                    />
+                    <label htmlFor={option.value} className="flex items-center gap-2 cursor-pointer text-sm font-medium">
+                      <IconComponent size={16} />
+                      {option.label}
+                    </label>
+                  </div>
+                );
+              })}
+            </div>
           </div>
           
-          {selectedHospitalityType && (
+          {selectedHospitalityTypes.length > 0 && (
             <div className="p-4 bg-muted rounded-lg">
-              <h3 className="font-medium mb-2">Selected Hospitality Type:</h3>
-              <p className="text-sm text-muted-foreground">
-                {hospitalityTypeOptions.find(opt => opt.value === selectedHospitalityType)?.label}
-              </p>
+              <h3 className="font-medium mb-2">Selected Hospitality Types:</h3>
+              <div className="flex flex-wrap gap-2">
+                {selectedHospitalityTypes.map(type => (
+                  <span key={type} className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
+                    {hospitalityTypeOptions.find(opt => opt.value === type)?.label}
+                  </span>
+                ))}
+              </div>
             </div>
           )}
 
           <Button 
-            onClick={() => setSelectedHospitalityType("")} 
+            onClick={() => setSelectedHospitalityTypes([])} 
             variant="outline"
-            disabled={!selectedHospitalityType}
+            disabled={selectedHospitalityTypes.length === 0}
           >
-            Clear Selection
+            Clear All Selections
           </Button>
         </CardContent>
       </Card>

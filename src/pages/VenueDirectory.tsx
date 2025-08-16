@@ -1,12 +1,12 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 const VenueDirectory = () => {
   const [venueTypes, setVenueTypes] = useState<any[]>([]);
-  const [selectedVenueType, setSelectedVenueType] = useState<string>("");
+  const [selectedVenueTypes, setSelectedVenueTypes] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -59,44 +59,55 @@ const VenueDirectory = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>Select Venue Type</CardTitle>
+          <CardTitle>Select Venue Types</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Venue Type</label>
-            <Select value={selectedVenueType} onValueChange={setSelectedVenueType}>
-              <SelectTrigger className="w-full bg-background border-border">
-                <SelectValue placeholder="Select a venue type..." />
-              </SelectTrigger>
-              <SelectContent className="bg-background border border-border shadow-lg z-50">
-                {venueTypeOptions.map((option) => (
-                  <SelectItem 
-                    key={option.value} 
-                    value={option.value}
-                    className="hover:bg-muted cursor-pointer"
-                  >
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="space-y-3">
+            <label className="text-sm font-medium">Venue Types (select all that apply)</label>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {venueTypeOptions.map((option) => {
+                const isChecked = selectedVenueTypes.includes(option.value);
+                return (
+                  <div key={option.value} className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50">
+                    <Checkbox
+                      id={option.value}
+                      checked={isChecked}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setSelectedVenueTypes([...selectedVenueTypes, option.value]);
+                        } else {
+                          setSelectedVenueTypes(selectedVenueTypes.filter(type => type !== option.value));
+                        }
+                      }}
+                    />
+                    <label htmlFor={option.value} className="cursor-pointer text-sm font-medium">
+                      {option.label}
+                    </label>
+                  </div>
+                );
+              })}
+            </div>
           </div>
           
-          {selectedVenueType && (
+          {selectedVenueTypes.length > 0 && (
             <div className="p-4 bg-muted rounded-lg">
-              <h3 className="font-medium mb-2">Selected Venue Type:</h3>
-              <p className="text-sm text-muted-foreground">
-                {venueTypeOptions.find(opt => opt.value === selectedVenueType)?.label}
-              </p>
+              <h3 className="font-medium mb-2">Selected Venue Types:</h3>
+              <div className="flex flex-wrap gap-2">
+                {selectedVenueTypes.map(type => (
+                  <span key={type} className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
+                    {venueTypeOptions.find(opt => opt.value === type)?.label}
+                  </span>
+                ))}
+              </div>
             </div>
           )}
 
           <Button 
-            onClick={() => setSelectedVenueType("")} 
+            onClick={() => setSelectedVenueTypes([])} 
             variant="outline"
-            disabled={!selectedVenueType}
+            disabled={selectedVenueTypes.length === 0}
           >
-            Clear Selection
+            Clear All Selections
           </Button>
         </CardContent>
       </Card>
