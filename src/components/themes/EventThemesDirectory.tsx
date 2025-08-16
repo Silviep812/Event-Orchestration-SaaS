@@ -445,8 +445,20 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
     );
   }
 
+  // Add debug info
+  console.log('Themes loaded:', themes.length);
+  console.log('Filtered themes:', filteredAndSortedThemes.length);
+  console.log('Loading state:', loading);
+
   return (
     <div className="space-y-6">
+      {/* Debug Info */}
+      {themes.length === 0 && !loading && (
+        <div className="text-center p-8 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <p className="text-yellow-800">Debug: No themes loaded from database. Check console for details.</p>
+        </div>
+      )}
+
       {/* Header */}
       <div className="text-center space-y-2">
         <div className="flex items-center justify-center gap-2 mb-4">
