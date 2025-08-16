@@ -33,8 +33,8 @@ const VendorServiceDirectory = () => {
   };
 
   const serviceTypeOptions = [
-    { value: "transport_options", label: "Transportation", icon: Truck },
-    { value: "photo_booth", label: "Photo Booth", icon: Camera },
+    { value: "transport_options", label: "Transportation Options", icon: Truck },
+    { value: "photo_both", label: "Photo Booth", icon: Camera },
     { value: "lighting", label: "Lighting", icon: Lightbulb },
     { value: "audio_visual_equip", label: "Audio Visual Equipment", icon: Music },
     { value: "game_tables", label: "Game Tables", icon: Gamepad2 },
@@ -42,7 +42,11 @@ const VendorServiceDirectory = () => {
     { value: "tents", label: "Tents", icon: Home },
     { value: "table_chairs", label: "Tables & Chairs", icon: Table },
     { value: "housewares", label: "Housewares", icon: Home },
-    { value: "entertainment_options", label: "Entertainment Options", icon: Music }
+    { value: "entertainment_options", label: "Entertainment Options", icon: Music },
+    { value: "potty_johns", label: "Portable Toilets", icon: Home },
+    { value: "prod_props", label: "Production Props", icon: Camera },
+    { value: "venue_space_decor", label: "Venue Space Decor", icon: Flower },
+    { value: "child_play_equip", label: "Child Play Equipment", icon: Gamepad2 }
   ];
 
   return (

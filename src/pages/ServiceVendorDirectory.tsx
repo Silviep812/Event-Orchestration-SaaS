@@ -3,7 +3,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ChefHat, Camera, Utensils, Cake } from "lucide-react";
+import { ChefHat, Camera, Utensils, Cake, Truck, Flower } from "lucide-react";
 
 const ServiceVendorDirectory = () => {
   const [vendorTypes, setVendorTypes] = useState<any[]>([]);
@@ -36,7 +36,17 @@ const ServiceVendorDirectory = () => {
     { value: "caterer", label: "Caterer", icon: Utensils },
     { value: "chef", label: "Chef", icon: ChefHat },
     { value: "bakery", label: "Bakery", icon: Cake },
-    { value: "videographer", label: "Videographer", icon: Camera }
+    { value: "videographer", label: "Videographer", icon: Camera },
+    // Vendor Directory entries
+    { value: "food_truck", label: "Food Truck", icon: Truck },
+    { value: "mobile_pop_up", label: "Mobile Pop-Up", icon: Truck },
+    { value: "ice_sculpure", label: "Ice Sculpture", icon: Utensils },
+    { value: "florist", label: "Florist", icon: Flower },
+    { value: "foodies", label: "Foodies", icon: Utensils },
+    { value: "beverage", label: "Beverage", icon: Utensils },
+    { value: "brewery", label: "Brewery", icon: Utensils },
+    { value: "winery", label: "Winery", icon: Utensils },
+    { value: "other", label: "Other", icon: Utensils }
   ];
 
   return (
