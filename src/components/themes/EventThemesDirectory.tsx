@@ -99,12 +99,16 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
     const fetchThemes = async () => {
       try {
         setLoading(true);
+        console.log('Fetching themes from Supabase...');
         const { data, error } = await supabase
           .from('Themes Directory')
           .select('*');
 
+        console.log('Supabase response:', { data, error });
+
         if (error) {
           console.error('Error fetching themes:', error);
+          setLoading(false);
           return;
         }
 
@@ -112,6 +116,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
         const transformedThemes: ThemeDetails[] = [];
         
         if (data && data.length > 0) {
+          console.log('Processing themes data...');
           const themeRow = data[0]; // Get the first (and likely only) row
           
           // Transform each column into a separate theme
@@ -147,6 +152,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
           });
         }
 
+        console.log('Transformed themes:', transformedThemes);
         setThemes(transformedThemes);
       } catch (error) {
         console.error('Error in fetchThemes:', error);
