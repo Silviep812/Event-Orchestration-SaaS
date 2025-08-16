@@ -129,123 +129,74 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
 
         if (error) {
           console.error('Error fetching themes:', error);
-          // Create some fallback themes if there's an error
-          const fallbackThemes: ThemeDetails[] = [
-            {
-              id: 'wedding-1',
-              name: 'Elegant Wedding',
-              description: 'Perfect for wedding celebrations with elegant styling and coordinated elements.',
-              category: 'celebration',
-              tags: ['Wedding', 'Professional', 'Elegant'],
-              icon: Heart,
-              color: 'text-pink-600',
-              bgColor: 'bg-pink-50',
-              rating: 4.8,
-              usageCount: 1250,
-              pricing: 'free',
-              templates: 15,
-              vendors: 8,
-            },
-            {
-              id: 'corporate-1',
-              name: 'Corporate Event',
-              description: 'Perfect for business events with professional styling.',
-              category: 'business',
-              tags: ['Business', 'Professional', 'Corporate'],
-              icon: Building,
-              color: 'text-blue-600',
-              bgColor: 'bg-blue-50',
-              rating: 4.6,
-              usageCount: 980,
-              pricing: 'free',
-              templates: 12,
-              vendors: 6,
-            }
-          ];
-          setThemes(fallbackThemes);
+          setThemes([]);
           setLoading(false);
           return;
         }
 
-        // Simply use fallback themes - no database processing
-        const transformedThemes: ThemeDetails[] = [];
-
-        // If no themes were created from DB, add fallback themes
-        if (transformedThemes.length === 0) {
-          console.log('No themes found in database, using fallback themes');
-          const fallbackThemes: ThemeDetails[] = [
-            {
-              id: 'wedding-fallback',
-              name: 'Wedding Theme',
-              description: 'Perfect for wedding celebrations with elegant styling.',
-              category: 'celebration',
-              tags: ['Wedding', 'Professional', 'Elegant'],
-              icon: Heart,
-              color: 'text-pink-600',
-              bgColor: 'bg-pink-50',
-              rating: 4.8,
-              usageCount: 1250,
-              pricing: 'free',
-              templates: 15,
-              vendors: 8,
-            },
-            {
-              id: 'corporate-fallback',
-              name: 'Corporate Event',
-              description: 'Perfect for business events with professional styling.',
-              category: 'business',
-              tags: ['Business', 'Professional'],
-              icon: Building,
-              color: 'text-blue-600',
-              bgColor: 'bg-blue-50',
-              rating: 4.6,
-              usageCount: 980,
-              pricing: 'free',
-              templates: 12,
-              vendors: 6,
-            },
-            {
-              id: 'party-fallback',
-              name: 'Birthday Party',
-              description: 'Perfect for birthday celebrations.',
-              category: 'celebration',
-              tags: ['Party', 'Fun', 'Celebration'],
-              icon: Cake,
-              color: 'text-purple-600',
-              bgColor: 'bg-purple-50',
-              rating: 4.7,
-              usageCount: 2100,
-              pricing: 'free',
-              templates: 18,
-              vendors: 10,
-            }
-          ];
-          setThemes(fallbackThemes);
-        } else {
-          console.log('Transformed themes:', transformedThemes);
-          setThemes(transformedThemes);
+        if (!data || data.length === 0) {
+          console.log('No themes found in database');
+          setThemes([]);
+          setLoading(false);
+          return;
         }
+
+        // Transform Supabase data into ThemeDetails format
+        const transformedThemes: ThemeDetails[] = [];
+        
+        data.forEach((themeRow: any) => {
+          // Process each column that contains theme data
+          Object.entries(themeRow).forEach(([key, value]) => {
+            if (key === 'created_at' || !value) return;
+            
+            const category = getCategoryFromKey(key);
+            const styles = getThemeStyles(category);
+            
+            // Handle array values (like market_place, meet_up, etc.)
+            if (Array.isArray(value)) {
+              value.forEach((item: string, index: number) => {
+                transformedThemes.push({
+                  id: `${key}-${index}`,
+                  name: item,
+                  description: getThemeDescription(category),
+                  category,
+                  tags: getThemeTagsForCategory(category),
+                  icon: getThemeIcon(item),
+                  color: styles.color,
+                  bgColor: styles.bgColor,
+                  rating: 4.0 + Math.random() * 1.0, // Random rating between 4.0-5.0
+                  usageCount: Math.floor(Math.random() * 2000) + 100,
+                  pricing: Math.random() > 0.7 ? 'premium' : 'free',
+                  templates: Math.floor(Math.random() * 20) + 5,
+                  vendors: Math.floor(Math.random() * 15) + 3,
+                });
+              });
+            } else {
+              // Handle string values
+              transformedThemes.push({
+                id: key,
+                name: String(value),
+                description: getThemeDescription(category),
+                category,
+                tags: getThemeTagsForCategory(category),
+                icon: getThemeIcon(String(value)),
+                color: styles.color,
+                bgColor: styles.bgColor,
+                rating: 4.0 + Math.random() * 1.0,
+                usageCount: Math.floor(Math.random() * 2000) + 100,
+                pricing: Math.random() > 0.7 ? 'premium' : 'free',
+                templates: Math.floor(Math.random() * 20) + 5,
+                vendors: Math.floor(Math.random() * 15) + 3,
+              });
+            }
+          });
+        });
+
+        console.log('Transformed themes:', transformedThemes);
+        setThemes(transformedThemes);
       } catch (error) {
         console.error('Error in fetchThemes:', error);
-        // Set fallback themes on any error
-        const fallbackThemes: ThemeDetails[] = [
-          {
-            id: 'error-fallback',
-            name: 'Default Theme',
-            description: 'Default theme available when database is unavailable.',
-            category: 'social',
-            tags: ['Default'],
-            icon: Palette,
-            color: 'text-gray-600',
-            bgColor: 'bg-gray-50',
-            rating: 4.0,
-            usageCount: 100,
-            pricing: 'free',
-            templates: 5,
-            vendors: 3,
-          }
-        ];
-        setThemes(fallbackThemes);
+        setThemes([]);
       } finally {
         setLoading(false);
       }
@@ -285,8 +236,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
     return "Custom Theme";
   };
 
-  const getThemeDescription = (theme: any): string => {
-    const category = getCategoryFromTheme(theme);
+  const getThemeDescription = (category: string): string => {
     const descriptions: { [key: string]: string } = {
       celebration: "Perfect for special occasions and memorable celebrations",
       social: "Great for community gatherings and social events",
@@ -296,8 +246,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
     return descriptions[category] || "Versatile theme for any occasion";
   };
 
-  const getThemeTags = (theme: any): string[] => {
-    const category = getCategoryFromTheme(theme);
+  const getThemeTagsForCategory = (category: string): string[] => {
     const tagMap: { [key: string]: string[] } = {
       celebration: ["Elegant", "Festive", "Memorable", "Special"],
       social: ["Community", "Friendly", "Relaxed", "Inclusive"],
