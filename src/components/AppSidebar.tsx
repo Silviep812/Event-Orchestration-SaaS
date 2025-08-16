@@ -15,7 +15,12 @@ import {
   Palette,
   CheckSquare,
   Package,
-  CalendarDays
+  CalendarDays,
+  Building2,
+  Coffee,
+  ShoppingCart,
+  Truck,
+  Car
 } from "lucide-react";
 
 import {
@@ -124,6 +129,48 @@ const menuGroups = [
         title: "Planning Assets",
         url: "/dashboard/planning-assets",
         icon: Package,
+        color: "text-orange-600",
+        hoverColor: "hover:bg-orange-50"
+      },
+      {
+        title: "Bookings",
+        url: "/dashboard/bookings",
+        icon: Calendar,
+        color: "text-orange-600",
+        hoverColor: "hover:bg-orange-50"
+      },
+      {
+        title: "Venue",
+        url: "/dashboard/venue",
+        icon: Building2,
+        color: "text-orange-600",
+        hoverColor: "hover:bg-orange-50"
+      },
+      {
+        title: "Hospitality",
+        url: "/dashboard/hospitality",
+        icon: Coffee,
+        color: "text-orange-600",
+        hoverColor: "hover:bg-orange-50"
+      },
+      {
+        title: "Vendor Service Rental/Buy",
+        url: "/dashboard/vendor-service",
+        icon: ShoppingCart,
+        color: "text-orange-600",
+        hoverColor: "hover:bg-orange-50"
+      },
+      {
+        title: "Service Vendor Supplier",
+        url: "/dashboard/service-vendor",
+        icon: Truck,
+        color: "text-orange-600",
+        hoverColor: "hover:bg-orange-50"
+      },
+      {
+        title: "Transportation Directories",
+        url: "/dashboard/transportation",
+        icon: Car,
         color: "text-orange-600",
         hoverColor: "hover:bg-orange-50"
       },
