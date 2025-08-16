@@ -79,6 +79,27 @@ const getThemeStyles = (category: string) => {
   return styleMap[category] || { color: "text-gray-600", bgColor: "bg-gray-50" };
 };
 
+// Get category from database column key
+const getCategoryFromKey = (key: string): string => {
+  const categoryMap: { [key: string]: string } = {
+    wedding: "celebration",
+    bridal_shower: "celebration", 
+    baby_shower: "celebration",
+    parties: "celebration",
+    special_event: "celebration",
+    Celebration: "celebration",
+    reunion: "social",
+    meet_up: "social",
+    Dining: "social",
+    sporting: "entertainment",
+    Festival: "entertainment",
+    market_place: "business",
+    retreats: "business",
+  };
+  
+  return categoryMap[key] || "social";
+};
+
 interface EventThemesDirectoryProps {
   onSelectTheme: (themeId: string) => void;
   selectedTheme?: string;
@@ -122,32 +143,56 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
           // Transform each column into a separate theme
           Object.entries(themeRow).forEach(([key, value]) => {
             if (key !== 'created_at' && value) {
-              // Handle both single values and arrays
-              const themeValues = Array.isArray(value) ? value : [value];
+              console.log(`Processing theme column: ${key}`, value);
               
-              themeValues.forEach((themeValue, index) => {
-                if (themeValue && typeof themeValue === 'string') {
-                  const themeName = themeValue.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-                  const category = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-                  const themeStyles = getThemeStyles(category);
-                  
-                  transformedThemes.push({
-                    id: `${key}-${index}`,
-                    name: themeName,
-                    description: `Perfect for ${category.toLowerCase()} events with elegant styling and coordinated elements.`,
-                    category: category,
-                    tags: [category, 'Professional', 'Elegant'],
-                    icon: getThemeIcon(themeName),
-                    color: themeStyles.color,
-                    bgColor: themeStyles.bgColor,
-                    rating: Math.round((Math.random() * 2 + 3.5) * 10) / 10,
-                    usageCount: Math.floor(Math.random() * 5000) + 500,
-                    pricing: 'free',
-                    templates: Math.floor(Math.random() * 20) + 5,
-                    vendors: Math.floor(Math.random() * 15) + 3,
-                  });
-                }
-              });
+              // Handle both single values and arrays
+              if (Array.isArray(value)) {
+                // Handle array values (like market_place, meet_up, etc.)
+                value.forEach((themeValue, index) => {
+                  if (themeValue && typeof themeValue === 'string') {
+                    const themeName = themeValue;
+                    const category = getCategoryFromKey(key);
+                    const themeStyles = getThemeStyles(category);
+                    
+                    transformedThemes.push({
+                      id: `${key}-${index}`,
+                      name: themeName,
+                      description: `Perfect for ${category.toLowerCase()} events with elegant styling and coordinated elements.`,
+                      category: category,
+                      tags: [category, 'Professional', 'Elegant'],
+                      icon: getThemeIcon(themeName),
+                      color: themeStyles.color,
+                      bgColor: themeStyles.bgColor,
+                      rating: Math.round((Math.random() * 2 + 3.5) * 10) / 10,
+                      usageCount: Math.floor(Math.random() * 5000) + 500,
+                      pricing: 'free',
+                      templates: Math.floor(Math.random() * 20) + 5,
+                      vendors: Math.floor(Math.random() * 15) + 3,
+                    });
+                  }
+                });
+              } else if (typeof value === 'string') {
+                // Handle single string values
+                const themeName = value;
+                const category = getCategoryFromKey(key);
+                const themeStyles = getThemeStyles(category);
+                
+                transformedThemes.push({
+                  id: key,
+                  name: themeName,
+                  description: `Perfect for ${category.toLowerCase()} events with elegant styling and coordinated elements.`,
+                  category: category,
+                  tags: [category, 'Professional', 'Elegant'],
+                  icon: getThemeIcon(themeName),
+                  color: themeStyles.color,
+                  bgColor: themeStyles.bgColor,
+                  rating: Math.round((Math.random() * 2 + 3.5) * 10) / 10,
+                  usageCount: Math.floor(Math.random() * 5000) + 500,
+                  pricing: 'free',
+                  templates: Math.floor(Math.random() * 20) + 5,
+                  vendors: Math.floor(Math.random() * 15) + 3,
+                });
+              }
             }
           });
         }
