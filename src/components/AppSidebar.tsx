@@ -133,42 +133,42 @@ const menuGroups = [
         hoverColor: "hover:bg-orange-50"
       },
       {
-        title: "Bookings",
+        title: "Bookings Directory",
         url: "/dashboard/bookings",
         icon: Calendar,
         color: "text-orange-600",
         hoverColor: "hover:bg-orange-50"
       },
       {
-        title: "Venue",
+        title: "Venue Directory",
         url: "/dashboard/venue",
         icon: Building2,
         color: "text-orange-600",
         hoverColor: "hover:bg-orange-50"
       },
       {
-        title: "Hospitality",
+        title: "Hospitality Directory",
         url: "/dashboard/hospitality",
         icon: Coffee,
         color: "text-orange-600",
         hoverColor: "hover:bg-orange-50"
       },
       {
-        title: "Vendor Service Rental/Buy",
+        title: "Vendor Service Rental/Buy Directory",
         url: "/dashboard/vendor-service",
         icon: ShoppingCart,
         color: "text-orange-600",
         hoverColor: "hover:bg-orange-50"
       },
       {
-        title: "Service Vendor Supplier",
+        title: "Service Vendor Supplier Directory",
         url: "/dashboard/service-vendor",
         icon: Truck,
         color: "text-orange-600",
         hoverColor: "hover:bg-orange-50"
       },
       {
-        title: "Transportation Directories",
+        title: "Transportation Directory",
         url: "/dashboard/transportation",
         icon: Car,
         color: "text-orange-600",
