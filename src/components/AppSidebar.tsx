@@ -47,13 +47,6 @@ const menuGroups = [
         icon: Home,
         color: "text-blue-600",
         hoverColor: "hover:bg-blue-50"
-      },
-      {
-        title: "Analytics",
-        url: "/dashboard/analytics",
-        icon: BarChart3,
-        color: "text-blue-600",
-        hoverColor: "hover:bg-blue-50"
       }
     ]
   },
@@ -90,6 +83,13 @@ const menuGroups = [
     color: "text-green-600",
     bgColor: "bg-green-50",
     items: [
+      {
+        title: "Analytics",
+        url: "/dashboard/analytics",
+        icon: BarChart3,
+        color: "text-green-600",
+        hoverColor: "hover:bg-green-50"
+      },
       {
         title: "Workflow Setup",
         url: "/dashboard/workflow",
