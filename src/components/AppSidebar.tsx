@@ -175,6 +175,13 @@ const menuGroups = [
         hoverColor: "hover:bg-orange-50"
       },
       {
+        title: "Entertainment Directory",
+        url: "/dashboard/entertainment",
+        icon: Users,
+        color: "text-orange-600",
+        hoverColor: "hover:bg-orange-50"
+      },
+      {
         title: "Generate Reports",
         url: "/dashboard/reports",
         icon: FileText,
