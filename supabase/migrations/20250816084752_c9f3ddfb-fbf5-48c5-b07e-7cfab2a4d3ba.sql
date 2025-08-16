@@ -1,0 +1,199 @@
+-- Enable RLS and add secure policies for sensitive tables
+
+-- 1) Comments
+ALTER TABLE public."Comments" ENABLE ROW LEVEL SECURITY;
+
+-- Authenticated users can read comments
+CREATE POLICY "Authenticated users can view comments"
+ON public."Comments"
+FOR SELECT
+TO authenticated
+USING (true);
+
+-- Authenticated users can create comments
+CREATE POLICY "Authenticated users can create comments"
+ON public."Comments"
+FOR INSERT
+TO authenticated
+WITH CHECK (true);
+
+-- Only admins and event managers can update comments
+CREATE POLICY "Admins and event managers can update comments"
+ON public."Comments"
+FOR UPDATE
+TO authenticated
+USING (
+  public.has_role(auth.uid(), 'admin'::app_role)
+  OR public.has_role(auth.uid(), 'event_manager'::app_role)
+);
+
+-- Only admins and event managers can delete comments
+CREATE POLICY "Admins and event managers can delete comments"
+ON public."Comments"
+FOR DELETE
+TO authenticated
+USING (
+  public.has_role(auth.uid(), 'admin'::app_role)
+  OR public.has_role(auth.uid(), 'event_manager'::app_role)
+);
+
+
+-- 2) Event Analytics
+ALTER TABLE public."Event Analytics" ENABLE ROW LEVEL SECURITY;
+
+-- Coordinators (admin, event_manager, task_coordinator) can view
+CREATE POLICY "Coordinators can view event analytics"
+ON public."Event Analytics"
+FOR SELECT
+TO authenticated
+USING (
+  public.has_role(auth.uid(), 'admin'::app_role)
+  OR public.has_role(auth.uid(), 'event_manager'::app_role)
+  OR public.has_role(auth.uid(), 'task_coordinator'::app_role)
+);
+
+-- Only admins and event managers can insert
+CREATE POLICY "Managers can insert event analytics"
+ON public."Event Analytics"
+FOR INSERT
+TO authenticated
+WITH CHECK (
+  public.has_role(auth.uid(), 'admin'::app_role)
+  OR public.has_role(auth.uid(), 'event_manager'::app_role)
+);
+
+-- Only admins and event managers can update
+CREATE POLICY "Managers can update event analytics"
+ON public."Event Analytics"
+FOR UPDATE
+TO authenticated
+USING (
+  public.has_role(auth.uid(), 'admin'::app_role)
+  OR public.has_role(auth.uid(), 'event_manager'::app_role)
+);
+
+-- Only admins can delete
+CREATE POLICY "Admins can delete event analytics"
+ON public."Event Analytics"
+FOR DELETE
+TO authenticated
+USING (public.has_role(auth.uid(), 'admin'::app_role));
+
+
+-- 3) Event Detail Report
+ALTER TABLE public."Event Detail Report" ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Coordinators can view event detail report"
+ON public."Event Detail Report"
+FOR SELECT
+TO authenticated
+USING (
+  public.has_role(auth.uid(), 'admin'::app_role)
+  OR public.has_role(auth.uid(), 'event_manager'::app_role)
+  OR public.has_role(auth.uid(), 'task_coordinator'::app_role)
+);
+
+CREATE POLICY "Managers can insert event detail report"
+ON public."Event Detail Report"
+FOR INSERT
+TO authenticated
+WITH CHECK (
+  public.has_role(auth.uid(), 'admin'::app_role)
+  OR public.has_role(auth.uid(), 'event_manager'::app_role)
+);
+
+CREATE POLICY "Managers can update event detail report"
+ON public."Event Detail Report"
+FOR UPDATE
+TO authenticated
+USING (
+  public.has_role(auth.uid(), 'admin'::app_role)
+  OR public.has_role(auth.uid(), 'event_manager'::app_role)
+);
+
+CREATE POLICY "Admins can delete event detail report"
+ON public."Event Detail Report"
+FOR DELETE
+TO authenticated
+USING (public.has_role(auth.uid(), 'admin'::app_role));
+
+
+-- 4) Event Resources
+ALTER TABLE public."Event Resources" ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Coordinators can view event resources"
+ON public."Event Resources"
+FOR SELECT
+TO authenticated
+USING (
+  public.has_role(auth.uid(), 'admin'::app_role)
+  OR public.has_role(auth.uid(), 'event_manager'::app_role)
+  OR public.has_role(auth.uid(), 'task_coordinator'::app_role)
+);
+
+CREATE POLICY "Managers can insert event resources"
+ON public."Event Resources"
+FOR INSERT
+TO authenticated
+WITH CHECK (
+  public.has_role(auth.uid(), 'admin'::app_role)
+  OR public.has_role(auth.uid(), 'event_manager'::app_role)
+);
+
+CREATE POLICY "Managers can update event resources"
+ON public."Event Resources"
+FOR UPDATE
+TO authenticated
+USING (
+  public.has_role(auth.uid(), 'admin'::app_role)
+  OR public.has_role(auth.uid(), 'event_manager'::app_role)
+);
+
+CREATE POLICY "Admins can delete event resources"
+ON public."Event Resources"
+FOR DELETE
+TO authenticated
+USING (public.has_role(auth.uid(), 'admin'::app_role));
+
+
+-- 5) Manage Event Tasks
+ALTER TABLE public."Manage Event Tasks" ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Coordinators can view manage event tasks"
+ON public."Manage Event Tasks"
+FOR SELECT
+TO authenticated
+USING (
+  public.has_role(auth.uid(), 'admin'::app_role)
+  OR public.has_role(auth.uid(), 'event_manager'::app_role)
+  OR public.has_role(auth.uid(), 'task_coordinator'::app_role)
+);
+
+CREATE POLICY "Coordinators can insert manage event tasks"
+ON public."Manage Event Tasks"
+FOR INSERT
+TO authenticated
+WITH CHECK (
+  public.has_role(auth.uid(), 'admin'::app_role)
+  OR public.has_role(auth.uid(), 'event_manager'::app_role)
+  OR public.has_role(auth.uid(), 'task_coordinator'::app_role)
+);
+
+CREATE POLICY "Coordinators can update manage event tasks"
+ON public."Manage Event Tasks"
+FOR UPDATE
+TO authenticated
+USING (
+  public.has_role(auth.uid(), 'admin'::app_role)
+  OR public.has_role(auth.uid(), 'event_manager'::app_role)
+  OR public.has_role(auth.uid(), 'task_coordinator'::app_role)
+);
+
+CREATE POLICY "Admins and managers can delete manage event tasks"
+ON public."Manage Event Tasks"
+FOR DELETE
+TO authenticated
+USING (
+  public.has_role(auth.uid(), 'admin'::app_role)
+  OR public.has_role(auth.uid(), 'event_manager'::app_role)
+);
