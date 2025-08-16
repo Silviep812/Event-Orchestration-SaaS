@@ -34,7 +34,8 @@ export default function WorkflowSetup() {
       
       case "hospitality-owner":
         if (currentStep === "user-type") return "theme";
-        if (currentStep === "theme") return "venue";
+        if (currentStep === "theme") return "hospitality";
+        if (currentStep === "hospitality") return "venue";
         if (currentStep === "venue") return "vendors";
         if (currentStep === "vendors") return "services";
         if (currentStep === "services") return "suppliers";
@@ -194,42 +195,42 @@ export default function WorkflowSetup() {
             />
           )}
 
-          {currentStep === "hospitality" && selectedUserType && selectedTheme && selectedUserType !== "venue-owner" && selectedUserType !== "hospitality-owner" && (
+          {currentStep === "hospitality" && selectedUserType && selectedTheme && selectedUserType !== "venue-owner" && (
             <HospitalitySelector 
               onSelectHospitality={handleHospitalitySelection}
               selectedHospitality={selectedHospitality}
             />
           )}
 
-          {currentStep === "venue" && selectedUserType && selectedTheme && selectedUserType !== "venue-owner" && (
+          {currentStep === "venue" && selectedUserType && selectedTheme && (
             <VenueSelector 
               onSelectVenue={handleVenueSelection}
               selectedVenue={selectedVenue}
             />
           )}
 
-          {currentStep === "vendors" && selectedUserType && selectedTheme && selectedHospitality && selectedVenue && (
+          {currentStep === "vendors" && selectedUserType && selectedTheme && (
             <VendorSelector 
               onSelectVendor={handleVendorSelection}
               selectedVendor={selectedVendor}
             />
           )}
 
-          {currentStep === "services" && selectedUserType && selectedTheme && selectedHospitality && selectedVenue && selectedVendor && (
+          {currentStep === "services" && selectedUserType && selectedTheme && selectedVendor && (
             <ServiceSelector 
               onSelectService={handleServiceSelection}
               selectedService={selectedService}
             />
           )}
 
-          {currentStep === "suppliers" && selectedUserType && selectedTheme && selectedHospitality && selectedVenue && selectedVendor && selectedService && (
+          {currentStep === "suppliers" && selectedUserType && selectedTheme && selectedService && (
             <SupplierSelector 
               onSelectSupplier={handleSupplierSelection}
               selectedSupplier={selectedSupplier}
             />
           )}
 
-          {currentStep === "dashboard" && selectedUserType && selectedTheme && selectedHospitality && selectedVenue && selectedVendor && selectedService && selectedSupplier && (
+          {currentStep === "dashboard" && selectedUserType && selectedTheme && selectedSupplier && (
             <WorkflowDashboard 
               userType={selectedUserType}
               selectedTheme={selectedTheme}
