@@ -45,18 +45,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     console.log('useAuth: Starting auth initialization');
-    setLoading(true);
 
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         console.log('useAuth: Auth state changed', { event, hasSession: !!session, hasUser: !!session?.user });
         setSession(session);
         setUser(session?.user ?? null);
         
+        // Defer role fetching to avoid auth deadlock
         if (session?.user) {
-          console.log('useAuth: Fetching user roles for user:', session.user.id);
-          await fetchUserRoles(session.user.id);
+          console.log('useAuth: Deferring role fetch for user:', session.user.id);
+          setTimeout(() => {
+            fetchUserRoles(session.user.id);
+          }, 0);
         } else {
           setUserRoles([]);
         }
@@ -82,7 +84,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (session?.user) {
         console.log('useAuth: Fetching user roles for existing session user:', session.user.id);
-        await fetchUserRoles(session.user.id);
+        // Use setTimeout to prevent potential auth deadlock
+        setTimeout(() => {
+          fetchUserRoles(session.user.id);
+        }, 0);
       }
       
       console.log('useAuth: Setting loading to false from session check');

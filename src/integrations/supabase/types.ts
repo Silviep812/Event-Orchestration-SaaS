@@ -1474,6 +1474,7 @@ export type Database = {
           service_rental_type: string | null
           supplier_type: string[] | null
           transportation_type: string | null
+          userid: string | null
         }
         Insert: {
           booking_type?: string[] | null
@@ -1499,6 +1500,7 @@ export type Database = {
           service_rental_type?: string | null
           supplier_type?: string[] | null
           transportation_type?: string | null
+          userid?: string | null
         }
         Update: {
           booking_type?: string[] | null
@@ -1524,6 +1526,7 @@ export type Database = {
           service_rental_type?: string | null
           supplier_type?: string[] | null
           transportation_type?: string | null
+          userid?: string | null
         }
         Relationships: []
       }
