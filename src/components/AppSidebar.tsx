@@ -119,16 +119,16 @@ const menuGroups = [
     bgColor: "bg-orange-50",
     items: [
       {
-        title: "Themes Directory",
-        url: "/dashboard/themes",
-        icon: Palette,
+        title: "Planning Assets",
+        url: "/dashboard/planning-assets",
+        icon: Package,
         color: "text-orange-600",
         hoverColor: "hover:bg-orange-50"
       },
       {
-        title: "Planning Assets",
-        url: "/dashboard/planning-assets",
-        icon: Package,
+        title: "Themes Directory",
+        url: "/dashboard/themes",
+        icon: Palette,
         color: "text-orange-600",
         hoverColor: "hover:bg-orange-50"
       },
