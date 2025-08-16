@@ -111,7 +111,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedPricing, setSelectedPricing] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [sortBy, setSortBy] = useState("popular");
+  const [sortBy, setSortBy] = useState("name");
   const [themes, setThemes] = useState<ThemeDetails[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -173,7 +173,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                   bgColor: styles.bgColor,
                   rating: 4.0 + Math.random() * 1.0, // Random rating between 4.0-5.0
                   usageCount: Math.floor(Math.random() * 2000) + 100,
-                  pricing: Math.random() > 0.7 ? 'premium' : 'free',
+                  pricing: 'free',
                   templates: Math.floor(Math.random() * 20) + 5,
                   vendors: Math.floor(Math.random() * 15) + 3,
                 });
@@ -191,7 +191,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                 bgColor: styles.bgColor,
                 rating: 4.0 + Math.random() * 1.0,
                 usageCount: Math.floor(Math.random() * 2000) + 100,
-                pricing: Math.random() > 0.7 ? 'premium' : 'free',
+                pricing: 'free',
                 templates: Math.floor(Math.random() * 20) + 5,
                 vendors: Math.floor(Math.random() * 15) + 3,
               });
