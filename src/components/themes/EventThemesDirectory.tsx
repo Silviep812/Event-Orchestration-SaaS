@@ -303,6 +303,13 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
     return themes.slice().sort((a, b) => b.rating - a.rating).slice(0, 3);
   }, [userType, themes]);
 
+  // Exclude recommended themes from the "All Themes" list to avoid duplicates
+  const recommendedIds = useMemo(() => new Set(recommendedThemes.map((t) => t.id)), [recommendedThemes]);
+  const nonRecommendedThemes = useMemo(
+    () => filteredAndSortedThemes.filter((t) => !recommendedIds.has(t.id)),
+    [filteredAndSortedThemes, recommendedIds]
+  );
+
   const ThemeCard = ({ theme, isRecommended = false }: { theme: ThemeDetails; isRecommended?: boolean }) => {
     const IconComponent = theme.icon;
     const isSelected = selectedTheme === theme.id;
@@ -572,13 +579,13 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
           ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" 
           : "space-y-4"
         }>
-          {filteredAndSortedThemes.map((theme) => (
+          {nonRecommendedThemes.map((theme) => (
             <ThemeCard key={theme.id} theme={theme} />
           ))}
         </div>
       </div>
 
-      {filteredAndSortedThemes.length === 0 && (
+      {nonRecommendedThemes.length === 0 && recommendedThemes.length === 0 && (
         <Card>
           <CardContent className="text-center py-8">
             <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
