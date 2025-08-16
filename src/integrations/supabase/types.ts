@@ -1449,9 +1449,114 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      create_event_safe: {
+        Row: {
+          booking_type: string[] | null
+          created_at: string | null
+          event_budget: number | null
+          event_collaborators: string[] | null
+          event_description: string | null
+          event_end_date: string | null
+          event_end_time: string | null
+          event_location: string[] | null
+          event_start_date: string | null
+          event_start_time: string | null
+          event_theme: string[] | null
+          is_booking_available: boolean | null
+          is_service_rental_available: boolean | null
+          is_service_type_availabe: boolean | null
+          is_supply_available: boolean | null
+          is_transportation_available: boolean | null
+          is_venue_available: boolean | null
+          notification: string | null
+          priority: string[] | null
+          resources: string[] | null
+          service_rental_type: string | null
+          supplier_type: string[] | null
+          transportation_type: string | null
+        }
+        Insert: {
+          booking_type?: string[] | null
+          created_at?: string | null
+          event_budget?: number | null
+          event_collaborators?: string[] | null
+          event_description?: string | null
+          event_end_date?: string | null
+          event_end_time?: string | null
+          event_location?: string[] | null
+          event_start_date?: string | null
+          event_start_time?: string | null
+          event_theme?: string[] | null
+          is_booking_available?: boolean | null
+          is_service_rental_available?: boolean | null
+          is_service_type_availabe?: boolean | null
+          is_supply_available?: boolean | null
+          is_transportation_available?: boolean | null
+          is_venue_available?: boolean | null
+          notification?: string | null
+          priority?: string[] | null
+          resources?: string[] | null
+          service_rental_type?: string | null
+          supplier_type?: string[] | null
+          transportation_type?: string | null
+        }
+        Update: {
+          booking_type?: string[] | null
+          created_at?: string | null
+          event_budget?: number | null
+          event_collaborators?: string[] | null
+          event_description?: string | null
+          event_end_date?: string | null
+          event_end_time?: string | null
+          event_location?: string[] | null
+          event_start_date?: string | null
+          event_start_time?: string | null
+          event_theme?: string[] | null
+          is_booking_available?: boolean | null
+          is_service_rental_available?: boolean | null
+          is_service_type_availabe?: boolean | null
+          is_supply_available?: boolean | null
+          is_transportation_available?: boolean | null
+          is_venue_available?: boolean | null
+          notification?: string | null
+          priority?: string[] | null
+          resources?: string[] | null
+          service_rental_type?: string | null
+          supplier_type?: string[] | null
+          transportation_type?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      get_my_events_safe: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          booking_type: string[]
+          created_at: string
+          event_budget: number
+          event_collaborators: string[]
+          event_description: string
+          event_end_date: string
+          event_end_time: string
+          event_location: string[]
+          event_start_date: string
+          event_start_time: string
+          event_theme: string[]
+          is_booking_available: boolean
+          is_service_rental_available: boolean
+          is_service_type_availabe: boolean
+          is_supply_available: boolean
+          is_transportation_available: boolean
+          is_venue_available: boolean
+          notification: string
+          priority: string[]
+          resources: string[]
+          service_rental_type: string
+          supplier_type: string[]
+          transportation_type: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
