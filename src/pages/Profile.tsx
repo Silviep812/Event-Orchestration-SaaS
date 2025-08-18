@@ -202,15 +202,17 @@ const Profile = () => {
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     if (!user?.email) {
       toast({ title: "Not signed in", description: "Please sign in again.", variant: "destructive" });
       return;
     }
 
-    if (newPassword.length < 8) {
+    if (!newPassword || newPassword.length < 8) {
       toast({ title: "Weak password", description: "Use at least 8 characters.", variant: "destructive" });
       return;
     }
+    
     if (newPassword !== confirmPassword) {
       toast({ title: "Passwords do not match", description: "Make sure both passwords match.", variant: "destructive" });
       return;
@@ -219,32 +221,38 @@ const Profile = () => {
     try {
       setPasswordLoading(true);
 
-      // Optional verification step if the user provided current password
-      if (currentPassword) {
-        const { error: verifyError } = await supabase.auth.signInWithPassword({
-          email: user.email,
-          password: currentPassword,
-        });
-        if (verifyError) {
-          toast({ title: "Current password incorrect", description: "Please try again.", variant: "destructive" });
-          setPasswordLoading(false);
-          return;
-        }
-      }
-
-      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      // Update password directly without verification
+      const { error } = await supabase.auth.updateUser({ 
+        password: newPassword 
+      });
+      
       if (error) {
-        toast({ title: "Update failed", description: error.message || "Could not update password.", variant: "destructive" });
-        setPasswordLoading(false);
+        console.error('Password update error:', error);
+        toast({ 
+          title: "Update failed", 
+          description: error.message || "Could not update password.", 
+          variant: "destructive" 
+        });
         return;
       }
 
+      // Clear form fields
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-      toast({ title: "Password updated", description: "Your password has been changed successfully." });
+      
+      toast({ 
+        title: "Password updated", 
+        description: "Your password has been changed successfully." 
+      });
+      
     } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Something went wrong.", variant: "destructive" });
+      console.error('Password update exception:', err);
+      toast({ 
+        title: "Error", 
+        description: err.message || "Something went wrong.", 
+        variant: "destructive" 
+      });
     } finally {
       setPasswordLoading(false);
     }
