@@ -40,9 +40,9 @@ const Profile = () => {
   }, [user?.id]);
 
   useEffect(() => {
-    // If user is not authenticated, redirect to auth page
+    // If user is not authenticated, redirect to dashboard
     if (!user) {
-      navigate('/auth');
+      navigate('/dashboard');
       return;
     }
 
@@ -271,10 +271,6 @@ const Profile = () => {
             <div className="grid gap-2">
               <Label>Email</Label>
               <Input value={user?.email || ""} readOnly />
-            </div>
-            <div className="grid gap-2">
-              <Label>User ID</Label>
-              <Input value={user?.id || ""} readOnly />
             </div>
             <Button onClick={updateProfile} disabled={profileLoading}>
               {profileLoading ? "Updating..." : "Update Profile"}
