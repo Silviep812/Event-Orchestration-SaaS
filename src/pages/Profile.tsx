@@ -40,12 +40,6 @@ const Profile = () => {
   }, [user?.id]);
 
   useEffect(() => {
-    // If user is not authenticated, redirect to dashboard
-    if (!user) {
-      navigate('/dashboard');
-      return;
-    }
-
     // Basic SEO for this page
     document.title = "Account Settings | IEP";
     const desc = "Manage your IEP account and update your password.";
@@ -284,9 +278,9 @@ const Profile = () => {
       <section>
         <Card>
           <CardHeader>
-            <CardTitle>Set / Change Password</CardTitle>
+            <CardTitle>Change Password</CardTitle>
             <CardDescription>
-              {"Create a new password or update your existing one. Use at least 8 characters."}
+              Update your account password. Use at least 8 characters.
             </CardDescription>
           </CardHeader>
           <CardContent>
