@@ -189,15 +189,41 @@ const Profile = () => {
 
   const handleSendResetEmail = async () => {
     if (!user?.email) {
-      toast({ title: "No email found", description: "Your account email could not be determined." });
+      toast({ 
+        title: "No email found", 
+        description: "Your account email could not be determined.",
+        variant: "destructive" 
+      });
       return;
     }
-    const { error } = await resetPassword(user.email);
-    if (error) {
-      toast({ title: "Reset failed", description: error.message || "Could not send reset email.", variant: "destructive" });
-      return;
+    
+    console.log('Sending reset email to:', user.email);
+    
+    try {
+      const { error } = await resetPassword(user.email);
+      
+      if (error) {
+        console.error('Reset email error:', error);
+        toast({ 
+          title: "Reset failed", 
+          description: error.message || "Could not send reset email.", 
+          variant: "destructive" 
+        });
+        return;
+      }
+      
+      toast({ 
+        title: "Reset email sent", 
+        description: "Check your inbox for the password reset link. You will be redirected back to this page." 
+      });
+    } catch (err: any) {
+      console.error('Reset email exception:', err);
+      toast({ 
+        title: "Error", 
+        description: "Could not send reset email. Please try again.", 
+        variant: "destructive" 
+      });
     }
-    toast({ title: "Reset email sent", description: "Check your inbox for the password reset link." });
   };
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
@@ -218,39 +244,42 @@ const Profile = () => {
       return;
     }
 
+    setPasswordLoading(true);
+    
     try {
-      setPasswordLoading(true);
-
-      // Update password directly without verification
-      const { error } = await supabase.auth.updateUser({ 
+      console.log('Attempting to update password for user:', user.id);
+      
+      const { data, error } = await supabase.auth.updateUser({ 
         password: newPassword 
       });
+      
+      console.log('Password update result:', { data, error });
       
       if (error) {
         console.error('Password update error:', error);
         toast({ 
           title: "Update failed", 
-          description: error.message || "Could not update password.", 
+          description: error.message, 
           variant: "destructive" 
         });
         return;
       }
 
-      // Clear form fields
+      // Clear form fields on success
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
       
       toast({ 
-        title: "Password updated", 
-        description: "Your password has been changed successfully." 
+        title: "Password updated successfully", 
+        description: "Your password has been changed." 
       });
       
     } catch (err: any) {
       console.error('Password update exception:', err);
       toast({ 
-        title: "Error", 
-        description: err.message || "Something went wrong.", 
+        title: "Unexpected error", 
+        description: "Something went wrong. Please try again.", 
         variant: "destructive" 
       });
     } finally {
@@ -323,15 +352,18 @@ const Profile = () => {
           <CardContent>
             <form onSubmit={handleUpdatePassword} className="space-y-4">
               <div className="grid gap-2">
-                <Label htmlFor="current">Current password (optional)</Label>
+                <Label htmlFor="current">Current password</Label>
                 <Input
                   id="current"
                   type="password"
-                  placeholder="Enter current password"
+                  placeholder="Enter current password (leave blank if unknown)"
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   autoComplete="current-password"
                 />
+                <p className="text-sm text-muted-foreground">
+                  Leave blank if you don't know your current password - you can still update it.
+                </p>
               </div>
 
               <div className="grid gap-2">
