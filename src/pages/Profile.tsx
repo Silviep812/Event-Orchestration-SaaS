@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 
 const Profile = () => {
-  const { user, resetPassword } = useAuth();
+  const { user, resetPassword, loading } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -18,11 +18,12 @@ const Profile = () => {
   console.log("Profile component rendering, user:", user);
   console.log("Profile component user email:", user?.email);
   console.log("Profile component user id:", user?.id);
+  console.log("Profile component loading:", loading);
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [passwordLoading, setPasswordLoading] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
   
   // Profile data state
@@ -31,6 +32,21 @@ const Profile = () => {
     display_name: "",
     bio: ""
   });
+
+  // Show loading while auth is initializing
+  if (loading) {
+    return (
+      <main className="mx-auto max-w-3xl space-y-6">
+        <div className="text-center">Loading...</div>
+      </main>
+    );
+  }
+
+  // Redirect if not authenticated
+  if (!user) {
+    navigate('/auth');
+    return null;
+  }
 
   // Load user profile
   useEffect(() => {
@@ -188,7 +204,7 @@ const Profile = () => {
     }
 
     try {
-      setLoading(true);
+      setPasswordLoading(true);
 
       // Optional verification step if the user provided current password
       if (currentPassword) {
@@ -198,7 +214,7 @@ const Profile = () => {
         });
         if (verifyError) {
           toast({ title: "Current password incorrect", description: "Please try again.", variant: "destructive" });
-          setLoading(false);
+          setPasswordLoading(false);
           return;
         }
       }
@@ -206,7 +222,7 @@ const Profile = () => {
       const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) {
         toast({ title: "Update failed", description: error.message || "Could not update password.", variant: "destructive" });
-        setLoading(false);
+        setPasswordLoading(false);
         return;
       }
 
@@ -217,7 +233,7 @@ const Profile = () => {
     } catch (err: any) {
       toast({ title: "Error", description: err.message || "Something went wrong.", variant: "destructive" });
     } finally {
-      setLoading(false);
+      setPasswordLoading(false);
     }
   };
 
@@ -324,8 +340,8 @@ const Profile = () => {
               </div>
 
               <div className="flex gap-3">
-                <Button type="submit" disabled={loading}>
-                  {loading ? "Updating..." : "Update Password"}
+                <Button type="submit" disabled={passwordLoading}>
+                  {passwordLoading ? "Updating..." : "Update Password"}
                 </Button>
                 <Button type="button" variant="outline" onClick={handleSendResetEmail}>
                   Send Reset Email
