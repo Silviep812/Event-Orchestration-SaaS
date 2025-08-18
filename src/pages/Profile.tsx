@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Upload } from "lucide-react";
 
 const Profile = () => {
   const { user, resetPassword, loading } = useAuth();
@@ -30,8 +32,10 @@ const Profile = () => {
   const [profile, setProfile] = useState({
     username: "",
     display_name: "",
-    bio: ""
+    bio: "",
+    avatar_url: ""
   });
+  const [avatarUploading, setAvatarUploading] = useState(false);
 
   // Show loading while auth is initializing
   if (loading) {
@@ -83,7 +87,7 @@ const Profile = () => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('username, display_name, bio')
+        .select('username, display_name, bio, avatar_url')
         .eq('user_id', user.id)
         .maybeSingle();
 
@@ -101,7 +105,8 @@ const Profile = () => {
         setProfile({
           username: data.username || "",
           display_name: data.display_name || "",
-          bio: data.bio || ""
+          bio: data.bio || "",
+          avatar_url: data.avatar_url || ""
         });
       } else {
         // Create profile if it doesn't exist
@@ -142,7 +147,8 @@ const Profile = () => {
       setProfile({
         username: "idaeventpartners.com",
         display_name: "IDA Event Partners",
-        bio: ""
+        bio: "",
+        avatar_url: ""
       });
     } catch (err: any) {
       console.error('Error in createUserProfile:', err);
@@ -159,7 +165,8 @@ const Profile = () => {
         .update({
           username: profile.username,
           display_name: profile.display_name,
-          bio: profile.bio
+          bio: profile.bio,
+          avatar_url: profile.avatar_url
         })
         .eq('user_id', user.id);
 
@@ -184,6 +191,91 @@ const Profile = () => {
       });
     } finally {
       setProfileLoading(false);
+    }
+  };
+
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user?.id) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid file type",
+        description: "Please select an image file.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please select an image smaller than 5MB.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setAvatarUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/avatar.${fileExt}`;
+
+      // Delete existing avatar if any
+      if (profile.avatar_url) {
+        const oldPath = profile.avatar_url.split('/').pop();
+        if (oldPath) {
+          await supabase.storage
+            .from('avatars')
+            .remove([`${user.id}/${oldPath}`]);
+        }
+      }
+
+      // Upload new avatar
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+
+      const avatarUrl = urlData.publicUrl;
+
+      // Update profile with new avatar URL
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: avatarUrl })
+        .eq('user_id', user.id);
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      // Update local state
+      setProfile(prev => ({ ...prev, avatar_url: avatarUrl }));
+
+      toast({
+        title: "Avatar updated",
+        description: "Your profile picture has been updated successfully."
+      });
+
+    } catch (error: any) {
+      console.error('Avatar upload error:', error);
+      toast({
+        title: "Upload failed",
+        description: error.message || "Failed to upload avatar.",
+        variant: "destructive"
+      });
+    } finally {
+      setAvatarUploading(false);
     }
   };
 
@@ -301,6 +393,39 @@ const Profile = () => {
             <CardDescription>Manage your profile details and account information</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="flex items-center gap-4">
+              <Avatar className="h-20 w-20">
+                <AvatarImage src={profile.avatar_url} alt="Profile picture" />
+                <AvatarFallback className="text-lg">
+                  {profile.display_name.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
+                </AvatarFallback>
+              </Avatar>
+              <div className="grid gap-2">
+                <Label htmlFor="avatar">Profile Picture</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="avatar"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarUpload}
+                    disabled={avatarUploading}
+                    className="cursor-pointer"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={avatarUploading}
+                    onClick={() => document.getElementById('avatar')?.click()}
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    {avatarUploading ? 'Uploading...' : 'Upload'}
+                  </Button>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  PNG, JPG up to 5MB. Avatar will be displayed publicly.
+                </p>
+              </div>
+            </div>
             <div className="grid gap-2">
               <Label htmlFor="username">Username</Label>
               <Input
