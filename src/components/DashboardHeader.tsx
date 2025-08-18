@@ -13,17 +13,37 @@ import { Home, LogOut, Settings, User, Bell, Calendar } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 export function DashboardHeader() {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [userProfile, setUserProfile] = useState<{ avatar_url?: string; display_name?: string } | null>(null);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentDate(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    const loadUserProfile = async () => {
+      if (user?.id) {
+        const { data } = await supabase
+          .from('profiles')
+          .select('avatar_url, display_name')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (data) {
+          setUserProfile(data);
+        }
+      }
+    };
+
+    loadUserProfile();
+  }, [user?.id]);
 
   const handleSignOut = async () => {
     const { error } = await signOut();
@@ -59,6 +79,7 @@ export function DashboardHeader() {
   };
 
   const getUserDisplayName = () => {
+    if (userProfile?.display_name) return userProfile.display_name;
     if (user?.user_metadata?.full_name) return user.user_metadata.full_name;
     if (user?.email) return user.email.split('@')[0];
     return 'User';
@@ -123,7 +144,7 @@ export function DashboardHeader() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="flex items-center gap-2 h-10">
               <Avatar className="h-8 w-8">
-                <AvatarImage src="" />
+                <AvatarImage src={userProfile?.avatar_url || ""} />
                 <AvatarFallback className="text-xs bg-primary text-primary-foreground">
                   {getUserInitials()}
                 </AvatarFallback>
