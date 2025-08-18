@@ -352,6 +352,7 @@ export type Database = {
           Email: string | null
           id: number
           Price: number | null
+          type_id: string | null
         }
         Insert: {
           Available_Dates?: string | null
@@ -363,6 +364,7 @@ export type Database = {
           Email?: string | null
           id?: number
           Price?: number | null
+          type_id?: string | null
         }
         Update: {
           Available_Dates?: string | null
@@ -374,6 +376,7 @@ export type Database = {
           Email?: string | null
           id?: number
           Price?: number | null
+          type_id?: string | null
         }
         Relationships: []
       }
@@ -797,6 +800,51 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          bio: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          updated_at: string
+          user_id: string
+          username: string | null
+        }
+        Insert: {
+          bio?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+          username?: string | null
+        }
+        Update: {
+          bio?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
+      Registration: {
+        Row: {
+          created_at: string
+          id: number
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+        }
+        Update: {
+          created_at?: string
+          id?: number
+        }
+        Relationships: []
+      }
       "Service Profile": {
         Row: {
           "Business Name": string | null
@@ -986,6 +1034,45 @@ export type Database = {
           supplier_type?: string | null
           supply_id?: string
           wholesaler_supplier_biz_name?: string | null
+        }
+        Relationships: []
+      }
+      "Supplier Vendor Profile": {
+        Row: {
+          created_at: string
+          supp_biz_name: string | null
+          supp_contact_name: string | null
+          supp_contact_nbr: number | null
+          supp_contact_role: string | null
+          supp_email: string | null
+          supp_location: string | null
+          supp_name: string | null
+          supp_rate: number | null
+          type: number
+        }
+        Insert: {
+          created_at?: string
+          supp_biz_name?: string | null
+          supp_contact_name?: string | null
+          supp_contact_nbr?: number | null
+          supp_contact_role?: string | null
+          supp_email?: string | null
+          supp_location?: string | null
+          supp_name?: string | null
+          supp_rate?: number | null
+          type?: number
+        }
+        Update: {
+          created_at?: string
+          supp_biz_name?: string | null
+          supp_contact_name?: string | null
+          supp_contact_nbr?: number | null
+          supp_contact_role?: string | null
+          supp_email?: string | null
+          supp_location?: string | null
+          supp_name?: string | null
+          supp_rate?: number | null
+          type?: number
         }
         Relationships: []
       }
