@@ -116,21 +116,34 @@ const Profile = () => {
     if (!user?.id) return;
 
     try {
-      const { error } = await supabase
+      console.log("Creating profile for user:", user.id);
+      const { data, error } = await supabase
         .from('profiles')
         .insert({
           user_id: user.id,
           username: "idaeventpartners.com",
-          display_name: user.email?.split('@')[0] || "User"
-        });
+          display_name: "IDA Event Partners"
+        })
+        .select()
+        .single();
 
       if (error) {
         console.error('Error creating profile:', error);
+        toast({
+          title: "Error creating profile",
+          description: error.message,
+          variant: "destructive"
+        });
         return;
       }
 
-      // Reload the profile
-      await loadUserProfile();
+      console.log("Profile created successfully:", data);
+      // Set the profile state immediately
+      setProfile({
+        username: "idaeventpartners.com",
+        display_name: "IDA Event Partners",
+        bio: ""
+      });
     } catch (err: any) {
       console.error('Error in createUserProfile:', err);
     }
