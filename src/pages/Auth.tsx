@@ -13,11 +13,12 @@ export default function Auth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [resetEmail, setResetEmail] = useState('');
+  const [magicLinkEmail, setMagicLinkEmail] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('signin');
   
-  const { signIn, signUp, resetPassword, user } = useAuth();
+  const { signIn, signUp, resetPassword, signInWithMagicLink, user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -95,6 +96,29 @@ export default function Auth() {
     setLoading(false);
   };
 
+  const handleMagicLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    
+    const { error } = await signInWithMagicLink(magicLinkEmail);
+    
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Magic link failed",
+        description: error.message,
+      });
+    } else {
+      toast({
+        title: "Magic link sent!",
+        description: "Check your email for a secure sign-in link (no password needed).",
+      });
+      setMagicLinkEmail('');
+    }
+    
+    setLoading(false);
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
       <div className="w-full max-w-md">
@@ -123,9 +147,10 @@ export default function Auth() {
           </CardHeader>
           <CardContent>
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="signin">Sign In</TabsTrigger>
                 <TabsTrigger value="signup">Sign Up</TabsTrigger>
+                <TabsTrigger value="magic">Magic Link</TabsTrigger>
                 <TabsTrigger value="reset">Reset</TabsTrigger>
               </TabsList>
               
@@ -136,6 +161,7 @@ export default function Auth() {
                     <Input
                       id="signin-email"
                       type="email"
+                      autoComplete="email"
                       placeholder="Enter your email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
@@ -148,6 +174,7 @@ export default function Auth() {
                       <Input
                         id="signin-password"
                         type={showPassword ? "text" : "password"}
+                        autoComplete="current-password"
                         placeholder="Enter your password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
@@ -181,6 +208,7 @@ export default function Auth() {
                     <Input
                       id="signup-email"
                       type="email"
+                      autoComplete="email"
                       placeholder="Enter your email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
@@ -193,6 +221,7 @@ export default function Auth() {
                       <Input
                         id="signup-password"
                         type={showPassword ? "text" : "password"}
+                        autoComplete="new-password"
                         placeholder="Create a password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
@@ -220,6 +249,31 @@ export default function Auth() {
                 </form>
               </TabsContent>
               
+              <TabsContent value="magic">
+                <div className="space-y-4">
+                  <div className="text-center text-sm text-muted-foreground mb-4">
+                    No password needed! We'll send you a secure link to sign in instantly.
+                  </div>
+                  <form onSubmit={handleMagicLink} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="magic-email">Email</Label>
+                      <Input
+                        id="magic-email"
+                        type="email"
+                        autoComplete="email"
+                        placeholder="Enter your email"
+                        value={magicLinkEmail}
+                        onChange={(e) => setMagicLinkEmail(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <Button type="submit" className="w-full" disabled={loading}>
+                      {loading ? "Sending..." : "Send Magic Link"}
+                    </Button>
+                  </form>
+                </div>
+              </TabsContent>
+
               <TabsContent value="reset">
                 <form onSubmit={handleResetPassword} className="space-y-4">
                   <div className="space-y-2">
@@ -227,6 +281,7 @@ export default function Auth() {
                     <Input
                       id="reset-email"
                       type="email"
+                      autoComplete="email"
                       placeholder="Enter your email"
                       value={resetEmail}
                       onChange={(e) => setResetEmail(e.target.value)}
