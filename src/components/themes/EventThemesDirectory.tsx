@@ -58,6 +58,9 @@ const getThemeIcon = (themeName: string) => {
     community: Coffee,
     networking: Network,
     mixer: Network,
+    health: Heart,
+    wellness: Heart,
+    'health and wellness': Heart,
   };
   
   const key = Object.keys(iconMap).find(k => 
@@ -74,6 +77,7 @@ const getThemeStyles = (category: string) => {
     entertainment: { color: "text-purple-600", bgColor: "bg-purple-50" },
     social: { color: "text-green-600", bgColor: "bg-green-50" },
     conference: { color: "text-indigo-600", bgColor: "bg-indigo-50" },
+    health: { color: "text-emerald-600", bgColor: "bg-emerald-50" },
   };
   
   return styleMap[category] || { color: "text-gray-600", bgColor: "bg-gray-50" };
@@ -82,8 +86,8 @@ const getThemeStyles = (category: string) => {
 // Get premium pricing status
 const getPremiumStatus = (themeName: string): "free" | "premium" => {
   const premiumThemes = [
-    'award ceremony', 'charity gala', 'conference', 'professional groups', 
-    'seminar', 'business networking'
+    'award ceremony', 'awards ceremony', 'charity gala', 'conference', 
+    'seminar', 'business networking', 'product launch'
   ];
   
   return premiumThemes.some(premium => 
@@ -107,6 +111,8 @@ const getCategoryFromKey = (key: string): string => {
     Festival: "entertainment",
     market_place: "business",
     retreats: "business",
+    health_wellness: "health",
+    'health and wellness': "health",
   };
   
   return categoryMap[key] || "social";
@@ -160,13 +166,30 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
           const themeRow = data[0]; // Get the first (and only) row
           console.log('Processing theme row:', themeRow);
           
-          // Process each column that contains theme data
-          Object.entries(themeRow).forEach(([key, value]) => {
-            console.log('Processing key-value pair:', key, value);
-            if (key === 'created_at' || !value) {
-              console.log('Skipping key:', key, 'value:', value);
-              return;
-            }
+            // Process each column that contains theme data
+            Object.entries(themeRow).forEach(([key, value]) => {
+              console.log('Processing key-value pair:', key, value);
+              if (key === 'created_at' || !value) {
+                console.log('Skipping key:', key, 'value:', value);
+                return;
+              }
+              
+              // Filter out unwanted themes
+              const excludedThemes = ['basketball games', 'football event', 'professional groups'];
+              if (Array.isArray(value)) {
+                value = value.filter((item: string) => 
+                  !excludedThemes.some(excluded => 
+                    item.toLowerCase().includes(excluded.toLowerCase())
+                  )
+                );
+                if (value.length === 0) return;
+              } else if (typeof value === 'string') {
+                if (excludedThemes.some(excluded => 
+                  String(value).toLowerCase().includes(excluded.toLowerCase())
+                )) {
+                  return;
+                }
+              }
             
             const category = getCategoryFromKey(key);
             const styles = getThemeStyles(category);
@@ -212,6 +235,26 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
         }
 
         console.log('Transformed themes:', transformedThemes);
+        
+        // Add Health and Wellness theme as it's not in the database yet
+        const healthWellnessTheme: ThemeDetails = {
+          id: 'health-wellness',
+          name: 'Health and Wellness',
+          description: 'Perfect for wellness retreats, health seminars, and mindful gatherings',
+          category: 'health',
+          tags: ['Wellness', 'Mindful', 'Rejuvenating', 'Holistic'],
+          icon: Heart,
+          color: 'text-emerald-600',
+          bgColor: 'bg-emerald-50',
+          rating: 4.5,
+          usageCount: 850,
+          pricing: 'free',
+          templates: 12,
+          vendors: 8,
+        };
+        
+        transformedThemes.push(healthWellnessTheme);
+        
         setThemes(transformedThemes);
       } catch (error) {
         console.error('Error in fetchThemes:', error);
@@ -261,6 +304,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
       social: "Great for community gatherings and social events",
       entertainment: "Ideal for festivals and entertainment events",
       business: "Professional events and corporate gatherings",
+      health: "Perfect for wellness retreats, health seminars, and mindful gatherings",
     };
     return descriptions[category] || "Versatile theme for any occasion";
   };
@@ -271,6 +315,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
       social: ["Community", "Friendly", "Relaxed", "Inclusive"],
       entertainment: ["Fun", "Energetic", "Dynamic", "Exciting"],
       business: ["Professional", "Corporate", "Strategic", "Networking"],
+      health: ["Wellness", "Mindful", "Rejuvenating", "Holistic"],
     };
     return tagMap[category] || ["Versatile", "Custom"];
   };
