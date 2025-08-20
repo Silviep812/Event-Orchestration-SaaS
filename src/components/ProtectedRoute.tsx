@@ -1,6 +1,7 @@
-import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -9,23 +10,51 @@ interface ProtectedRouteProps {
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [verifying, setVerifying] = useState(true);
 
   useEffect(() => {
-    if (!loading && !user) {
-      navigate('/auth');
-    }
-  }, [user, loading, navigate]);
+    let cancelled = false;
 
-  if (loading) {
+    const verifySession = async () => {
+      // If auth provider is still loading, keep verifying state true
+      if (loading) {
+        setVerifying(true);
+        return;
+      }
+
+      // If we already have a user, no need to verify further
+      if (user) {
+        setVerifying(false);
+        return;
+      }
+
+      // No user: double-check session to avoid false redirects (StrictMode double init, etc.)
+      const { data, error } = await supabase.auth.getSession();
+      const hasSession = !!data?.session?.user;
+      console.info('ProtectedRoute: verification', { hasSession, error: error?.message });
+
+      if (cancelled) return;
+
+      if (hasSession) {
+        setVerifying(false);
+      } else {
+        navigate('/auth', { replace: true, state: { from: location.pathname } });
+      }
+    };
+
+    verifySession();
+    return () => {
+      cancelled = true;
+    };
+  }, [user, loading, navigate, location.pathname]);
+
+  if (loading || verifying) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
-  }
-
-  if (!user) {
-    return null;
   }
 
   return <>{children}</>;
