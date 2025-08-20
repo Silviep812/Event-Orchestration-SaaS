@@ -228,6 +228,7 @@ export type Database = {
           event_start_date: string | null
           event_start_time: string | null
           event_theme: string[] | null
+          Hospitality_Location: number | null
           is_booking_available: boolean | null
           is_service_rental_available: boolean | null
           is_service_type_availabe: boolean | null
@@ -241,6 +242,7 @@ export type Database = {
           supplier_type: string[] | null
           transportation_type: string | null
           userid: string
+          Venue_Location: string[] | null
           venue_type: string[] | null
         }
         Insert: {
@@ -258,6 +260,7 @@ export type Database = {
           event_start_date?: string | null
           event_start_time?: string | null
           event_theme?: string[] | null
+          Hospitality_Location?: number | null
           is_booking_available?: boolean | null
           is_service_rental_available?: boolean | null
           is_service_type_availabe?: boolean | null
@@ -271,6 +274,7 @@ export type Database = {
           supplier_type?: string[] | null
           transportation_type?: string | null
           userid: string
+          Venue_Location?: string[] | null
           venue_type?: string[] | null
         }
         Update: {
@@ -288,6 +292,7 @@ export type Database = {
           event_start_date?: string | null
           event_start_time?: string | null
           event_theme?: string[] | null
+          Hospitality_Location?: number | null
           is_booking_available?: boolean | null
           is_service_rental_available?: boolean | null
           is_service_type_availabe?: boolean | null
@@ -301,6 +306,7 @@ export type Database = {
           supplier_type?: string[] | null
           transportation_type?: string | null
           userid?: string
+          Venue_Location?: string[] | null
           venue_type?: string[] | null
         }
         Relationships: []
@@ -413,16 +419,24 @@ export type Database = {
         }
         Relationships: []
       }
-      "Event Detail Report": {
+      "Event Plan Report": {
         Row: {
           created_at: string
           event_attendee_count: number | null
-          event_booking_type: string | null
-          event_collaborators: string | null
+          event_budget: number | null
+          event_collaborators_name: string | null
           event_comments: string | null
           event_description: string | null
           event_end_date: string | null
           event_end_time: string | null
+          event_hosp_biz_name: string | null
+          event_hosp_check_in_date: string | null
+          event_hosp_check_out_date: string | null
+          event_hosp_contact_name: string | null
+          event_hosp_contact_nbr: number | null
+          event_hosp_cost: number | null
+          event_hosp_location: string | null
+          event_hosp_type: string | null
           event_location: string | null
           event_priority: string | null
           event_start_date: string | null
@@ -430,17 +444,40 @@ export type Database = {
           event_status: string | null
           event_theme: string | null
           event_total_cost: number | null
+          event_type: string | null
+          event_venue_biz_name: string | null
+          event_venue_check_in_date: string | null
+          event_venue_check_out_date: string | null
+          event_venue_collab_name: string | null
+          event_venue_contact_name: string | null
+          event_venue_contact_nbr: number | null
+          event_venue_cost: number | null
+          event_venue_location: string | null
+          event_venue_type: string | null
+          hosp_email: string | null
+          user_contact_name: string | null
+          user_contact_nbr: number | null
+          user_name: string | null
           userid: string
+          venue_email: string | null
         }
         Insert: {
           created_at?: string
           event_attendee_count?: number | null
-          event_booking_type?: string | null
-          event_collaborators?: string | null
+          event_budget?: number | null
+          event_collaborators_name?: string | null
           event_comments?: string | null
           event_description?: string | null
           event_end_date?: string | null
           event_end_time?: string | null
+          event_hosp_biz_name?: string | null
+          event_hosp_check_in_date?: string | null
+          event_hosp_check_out_date?: string | null
+          event_hosp_contact_name?: string | null
+          event_hosp_contact_nbr?: number | null
+          event_hosp_cost?: number | null
+          event_hosp_location?: string | null
+          event_hosp_type?: string | null
           event_location?: string | null
           event_priority?: string | null
           event_start_date?: string | null
@@ -448,17 +485,40 @@ export type Database = {
           event_status?: string | null
           event_theme?: string | null
           event_total_cost?: number | null
+          event_type?: string | null
+          event_venue_biz_name?: string | null
+          event_venue_check_in_date?: string | null
+          event_venue_check_out_date?: string | null
+          event_venue_collab_name?: string | null
+          event_venue_contact_name?: string | null
+          event_venue_contact_nbr?: number | null
+          event_venue_cost?: number | null
+          event_venue_location?: string | null
+          event_venue_type?: string | null
+          hosp_email?: string | null
+          user_contact_name?: string | null
+          user_contact_nbr?: number | null
+          user_name?: string | null
           userid?: string
+          venue_email?: string | null
         }
         Update: {
           created_at?: string
           event_attendee_count?: number | null
-          event_booking_type?: string | null
-          event_collaborators?: string | null
+          event_budget?: number | null
+          event_collaborators_name?: string | null
           event_comments?: string | null
           event_description?: string | null
           event_end_date?: string | null
           event_end_time?: string | null
+          event_hosp_biz_name?: string | null
+          event_hosp_check_in_date?: string | null
+          event_hosp_check_out_date?: string | null
+          event_hosp_contact_name?: string | null
+          event_hosp_contact_nbr?: number | null
+          event_hosp_cost?: number | null
+          event_hosp_location?: string | null
+          event_hosp_type?: string | null
           event_location?: string | null
           event_priority?: string | null
           event_start_date?: string | null
@@ -466,7 +526,22 @@ export type Database = {
           event_status?: string | null
           event_theme?: string | null
           event_total_cost?: number | null
+          event_type?: string | null
+          event_venue_biz_name?: string | null
+          event_venue_check_in_date?: string | null
+          event_venue_check_out_date?: string | null
+          event_venue_collab_name?: string | null
+          event_venue_contact_name?: string | null
+          event_venue_contact_nbr?: number | null
+          event_venue_cost?: number | null
+          event_venue_location?: string | null
+          event_venue_type?: string | null
+          hosp_email?: string | null
+          user_contact_name?: string | null
+          user_contact_nbr?: number | null
+          user_name?: string | null
           userid?: string
+          venue_email?: string | null
         }
         Relationships: []
       }
@@ -968,6 +1043,36 @@ export type Database = {
         }
         Relationships: []
       }
+      "Subscription_Plans Directory": {
+        Row: {
+          created_at: string
+          Enterprise: number | null
+          id: number
+          Premium: number | null
+          "Premium Plus": number | null
+          Standard_Plan: number | null
+          Trial: string | null
+        }
+        Insert: {
+          created_at?: string
+          Enterprise?: number | null
+          id?: number
+          Premium?: number | null
+          "Premium Plus"?: number | null
+          Standard_Plan?: number | null
+          Trial?: string | null
+        }
+        Update: {
+          created_at?: string
+          Enterprise?: number | null
+          id?: number
+          Premium?: number | null
+          "Premium Plus"?: number | null
+          Standard_Plan?: number | null
+          Trial?: string | null
+        }
+        Relationships: []
+      }
       "Supplier Directory": {
         Row: {
           created_at: string
@@ -1288,7 +1393,6 @@ export type Database = {
           email: string | null
           is_admin: boolean | null
           user_name: string | null
-          user_profile: string | null
           user_role: string | null
           userid: string | null
           website: string | null
@@ -1300,7 +1404,6 @@ export type Database = {
           email?: string | null
           is_admin?: boolean | null
           user_name?: string | null
-          user_profile?: string | null
           user_role?: string | null
           userid?: string | null
           website?: string | null
@@ -1312,7 +1415,6 @@ export type Database = {
           email?: string | null
           is_admin?: boolean | null
           user_name?: string | null
-          user_profile?: string | null
           user_role?: string | null
           userid?: string | null
           website?: string | null
@@ -1326,6 +1428,69 @@ export type Database = {
             referencedColumns: ["sign_in"]
           },
         ]
+      }
+      "User Profile": {
+        Row: {
+          Biz_Name: string | null
+          created_at: string
+          id: number
+          Pay_Method: string | null
+          Sibscription_Upgrade_Date: string | null
+          Subscription_Start_Date: string | null
+          Subscription_type: string | null
+          Subscription_Upgrade_Type: string | null
+          Subscrition_End_Date: string | null
+          User_Category: string | null
+          User_Contact_Name: string | null
+          User_Contact_Ph_Nbr: number | null
+          User_Email: string | null
+          user_id: string | null
+          User_Location: string | null
+          User_Subscription_Freq: string | null
+          "User_Ty[e": string | null
+          User_Type: string | null
+        }
+        Insert: {
+          Biz_Name?: string | null
+          created_at?: string
+          id?: number
+          Pay_Method?: string | null
+          Sibscription_Upgrade_Date?: string | null
+          Subscription_Start_Date?: string | null
+          Subscription_type?: string | null
+          Subscription_Upgrade_Type?: string | null
+          Subscrition_End_Date?: string | null
+          User_Category?: string | null
+          User_Contact_Name?: string | null
+          User_Contact_Ph_Nbr?: number | null
+          User_Email?: string | null
+          user_id?: string | null
+          User_Location?: string | null
+          User_Subscription_Freq?: string | null
+          "User_Ty[e"?: string | null
+          User_Type?: string | null
+        }
+        Update: {
+          Biz_Name?: string | null
+          created_at?: string
+          id?: number
+          Pay_Method?: string | null
+          Sibscription_Upgrade_Date?: string | null
+          Subscription_Start_Date?: string | null
+          Subscription_type?: string | null
+          Subscription_Upgrade_Type?: string | null
+          Subscrition_End_Date?: string | null
+          User_Category?: string | null
+          User_Contact_Name?: string | null
+          User_Contact_Ph_Nbr?: number | null
+          User_Email?: string | null
+          user_id?: string | null
+          User_Location?: string | null
+          User_Subscription_Freq?: string | null
+          "User_Ty[e"?: string | null
+          User_Type?: string | null
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
