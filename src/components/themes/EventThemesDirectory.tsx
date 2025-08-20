@@ -79,6 +79,18 @@ const getThemeStyles = (category: string) => {
   return styleMap[category] || { color: "text-gray-600", bgColor: "bg-gray-50" };
 };
 
+// Get premium pricing status
+const getPremiumStatus = (themeName: string): "free" | "premium" => {
+  const premiumThemes = [
+    'award ceremony', 'charity gala', 'conference', 'professional groups', 
+    'seminar', 'business networking'
+  ];
+  
+  return premiumThemes.some(premium => 
+    themeName.toLowerCase().includes(premium.toLowerCase())
+  ) ? 'premium' : 'free';
+};
+
 // Get category from database column key
 const getCategoryFromKey = (key: string): string => {
   const categoryMap: { [key: string]: string } = {
@@ -173,7 +185,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                   bgColor: styles.bgColor,
                   rating: 4.0 + Math.random() * 1.0, // Random rating between 4.0-5.0
                   usageCount: Math.floor(Math.random() * 2000) + 100,
-                  pricing: 'free',
+                  pricing: getPremiumStatus(item),
                   templates: Math.floor(Math.random() * 20) + 5,
                   vendors: Math.floor(Math.random() * 15) + 3,
                 });
@@ -191,7 +203,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                 bgColor: styles.bgColor,
                 rating: 4.0 + Math.random() * 1.0,
                 usageCount: Math.floor(Math.random() * 2000) + 100,
-                pricing: 'free',
+                pricing: getPremiumStatus(String(value)),
                 templates: Math.floor(Math.random() * 20) + 5,
                 vendors: Math.floor(Math.random() * 15) + 3,
               });
@@ -299,8 +311,21 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
 
   const recommendedThemes = useMemo(() => {
     if (!userType || themes.length === 0) return [];
-    // Return top rated themes as recommendations
-    return themes.slice().sort((a, b) => b.rating - a.rating).slice(0, 3);
+    
+    // Define recommended themes based on user requirements
+    const recommendedThemeNames = [
+      'celebration theme', 'celebration', 'festival theme', 'festival', 'holiday party'
+    ];
+    
+    // Filter themes that match recommended names
+    const recommended = themes.filter(theme => 
+      recommendedThemeNames.some(recName => 
+        theme.name.toLowerCase().includes(recName.toLowerCase()) ||
+        theme.id.toLowerCase().includes(recName.toLowerCase())
+      )
+    );
+    
+    return recommended.length > 0 ? recommended : themes.slice().sort((a, b) => b.rating - a.rating).slice(0, 3);
   }, [userType, themes]);
 
   // Exclude recommended themes from the "All Themes" list to avoid duplicates
