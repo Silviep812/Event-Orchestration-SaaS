@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, X, Calendar, MapPin, Users, DollarSign } from "lucide-react";
 import { DateRange } from "react-day-picker";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface EventFormData {
   title: string;
@@ -29,18 +30,31 @@ export default function CreateEvent() {
   
   const { register, handleSubmit, formState: { errors }, reset } = useForm<EventFormData>();
 
-  const eventTypes = [
-    "Conference",
-    "Wedding",
-    "Birthday Party",
-    "Corporate Event",
-    "Workshop",
-    "Seminar",
-    "Product Launch",
-    "Networking Event",
-    "Festival",
-    "Concert"
-  ];
+  const [themeOptions, setThemeOptions] = useState<string[]>([]);
+  
+  useEffect(() => {
+    const fetchThemes = async () => {
+      const { data, error } = await supabase
+        .from('Themes Directory')
+        .select('*');
+      
+      if (error || !data || data.length === 0) {
+        setThemeOptions([]);
+        return;
+      }
+      
+      const row = data[0] as Record<string, any>;
+      const options = Object.entries(row)
+        .filter(([key, value]) => key !== 'created_at' && value)
+        .flatMap(([_, value]) => Array.isArray(value) ? value : [String(value)])
+        .filter((v) => v && v.trim().length > 0)
+        .map((v) => v.trim());
+      
+      const unique = Array.from(new Set(options)).sort((a, b) => a.localeCompare(b));
+      setThemeOptions(unique);
+    };
+    fetchThemes();
+  }, []);
 
   const addTag = () => {
     if (newTag.trim() && !tags.includes(newTag.trim())) {
@@ -125,9 +139,9 @@ export default function CreateEvent() {
                     <SelectValue placeholder="Select event type" />
                   </SelectTrigger>
                   <SelectContent>
-                    {eventTypes.map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {type}
+                    {themeOptions.map((name) => (
+                      <SelectItem key={name} value={name}>
+                        {name}
                       </SelectItem>
                     ))}
                   </SelectContent>
