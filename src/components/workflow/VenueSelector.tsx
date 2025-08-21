@@ -104,7 +104,7 @@ export const VenueSelector = ({ onSelectVenue, selectedVenue }: VenueSelectorPro
       );
     }
 
-    if (venueTypeFilter) {
+    if (venueTypeFilter && venueTypeFilter !== "all") {
       filtered = filtered.filter(venue => 
         venue.venue_type_id?.toLowerCase().includes(venueTypeFilter.toLowerCase())
       );
@@ -221,7 +221,7 @@ export const VenueSelector = ({ onSelectVenue, selectedVenue }: VenueSelectorPro
                   <SelectValue placeholder="Any type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Any type</SelectItem>
+                  <SelectItem value="all">Any type</SelectItem>
                   <SelectItem value="hotel">Hotel</SelectItem>
                   <SelectItem value="conference">Conference Center</SelectItem>
                   <SelectItem value="banquet">Banquet Hall</SelectItem>
