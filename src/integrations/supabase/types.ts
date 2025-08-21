@@ -445,6 +445,16 @@ export type Database = {
           event_theme: string | null
           event_total_cost: number | null
           event_type: string | null
+          event_vend_biz_name: string | null
+          event_vend_collab_name: string | null
+          event_vend_contact_name: string | null
+          event_vend_contact_nbr: number | null
+          event_vend_cost: Database["public"]["Enums"]["budget_category"] | null
+          event_vend_email: string | null
+          event_vend_end_date: string | null
+          event_vend_location: string | null
+          event_vend_start_date: string | null
+          event_vend_type: string | null
           event_venue_biz_name: string | null
           event_venue_check_in_date: string | null
           event_venue_check_out_date: string | null
@@ -486,6 +496,18 @@ export type Database = {
           event_theme?: string | null
           event_total_cost?: number | null
           event_type?: string | null
+          event_vend_biz_name?: string | null
+          event_vend_collab_name?: string | null
+          event_vend_contact_name?: string | null
+          event_vend_contact_nbr?: number | null
+          event_vend_cost?:
+            | Database["public"]["Enums"]["budget_category"]
+            | null
+          event_vend_email?: string | null
+          event_vend_end_date?: string | null
+          event_vend_location?: string | null
+          event_vend_start_date?: string | null
+          event_vend_type?: string | null
           event_venue_biz_name?: string | null
           event_venue_check_in_date?: string | null
           event_venue_check_out_date?: string | null
@@ -527,6 +549,18 @@ export type Database = {
           event_theme?: string | null
           event_total_cost?: number | null
           event_type?: string | null
+          event_vend_biz_name?: string | null
+          event_vend_collab_name?: string | null
+          event_vend_contact_name?: string | null
+          event_vend_contact_nbr?: number | null
+          event_vend_cost?:
+            | Database["public"]["Enums"]["budget_category"]
+            | null
+          event_vend_email?: string | null
+          event_vend_end_date?: string | null
+          event_vend_location?: string | null
+          event_vend_start_date?: string | null
+          event_vend_type?: string | null
           event_venue_biz_name?: string | null
           event_venue_check_in_date?: string | null
           event_venue_check_out_date?: string | null
@@ -1187,8 +1221,12 @@ export type Database = {
       tasks: {
         Row: {
           actual_hours: number | null
-          assigned_role: Database["public"]["Enums"]["app_role"] | null
+          assigned_hosp_role: Database["public"]["Enums"]["app_role"] | null
+          assigned_service_vendor_role: string | null
+          assigned_supplier_vendor_role: string | null
           assigned_to: string | null
+          assigned_venue_role: string | null
+          assined_vendor_role: string | null
           created_at: string
           created_by: string
           description: string | null
@@ -1203,8 +1241,12 @@ export type Database = {
         }
         Insert: {
           actual_hours?: number | null
-          assigned_role?: Database["public"]["Enums"]["app_role"] | null
+          assigned_hosp_role?: Database["public"]["Enums"]["app_role"] | null
+          assigned_service_vendor_role?: string | null
+          assigned_supplier_vendor_role?: string | null
           assigned_to?: string | null
+          assigned_venue_role?: string | null
+          assined_vendor_role?: string | null
           created_at?: string
           created_by: string
           description?: string | null
@@ -1219,8 +1261,12 @@ export type Database = {
         }
         Update: {
           actual_hours?: number | null
-          assigned_role?: Database["public"]["Enums"]["app_role"] | null
+          assigned_hosp_role?: Database["public"]["Enums"]["app_role"] | null
+          assigned_service_vendor_role?: string | null
+          assigned_supplier_vendor_role?: string | null
           assigned_to?: string | null
+          assigned_venue_role?: string | null
+          assined_vendor_role?: string | null
           created_at?: string
           created_by?: string
           description?: string | null
@@ -1242,6 +1288,7 @@ export type Database = {
           Celebration: string | null
           Dining: string | null
           Festival: string | null
+          Health_Wellness: string | null
           market_place: string[] | null
           meet_up: string[] | null
           parties: string[] | null
@@ -1257,6 +1304,7 @@ export type Database = {
           Celebration?: string | null
           Dining?: string | null
           Festival?: string | null
+          Health_Wellness?: string | null
           market_place?: string[] | null
           meet_up?: string[] | null
           parties?: string[] | null
@@ -1272,6 +1320,7 @@ export type Database = {
           Celebration?: string | null
           Dining?: string | null
           Festival?: string | null
+          Health_Wellness?: string | null
           market_place?: string[] | null
           meet_up?: string[] | null
           parties?: string[] | null
