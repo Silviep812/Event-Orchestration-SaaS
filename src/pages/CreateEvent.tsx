@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,7 +28,7 @@ export default function CreateEvent() {
   const [newTag, setNewTag] = useState("");
   const { toast } = useToast();
   
-  const { register, handleSubmit, formState: { errors }, reset } = useForm<EventFormData>();
+  const { register, handleSubmit, formState: { errors }, reset, control } = useForm<EventFormData>();
 
   const [themeOptions, setThemeOptions] = useState<string[]>([]);
   
@@ -134,18 +134,25 @@ export default function CreateEvent() {
 
               <div>
                 <Label htmlFor="type">Event Type *</Label>
-                <Select {...register("type", { required: "Event type is required" })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select event type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {themeOptions.map((name) => (
-                      <SelectItem key={name} value={name}>
-                        {name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Controller
+                  name="type"
+                  control={control}
+                  rules={{ required: "Event type is required" }}
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select event type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {themeOptions.map((name) => (
+                          <SelectItem key={name} value={name}>
+                            {name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
                 {errors.type && (
                   <p className="text-sm text-destructive mt-1">{errors.type.message}</p>
                 )}
