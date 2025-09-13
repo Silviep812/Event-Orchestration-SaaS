@@ -26,7 +26,7 @@ interface HospitalityOption {
   hosp_contact_nbr: number;
   hosp_website: string;
   hosp_location: string[];
-  hosp_cost: number;
+  hosp_price: number;
   hosp_amendities: string[];
 }
 
@@ -99,7 +99,7 @@ export const HospitalitySelector = ({ onSelectHospitality, selectedHospitality }
     if (maxBudget) {
       const budget = parseFloat(maxBudget);
       filtered = filtered.filter(item => 
-        item.hosp_cost <= budget
+        item.hosp_price <= budget
       );
     }
 
@@ -246,10 +246,10 @@ export const HospitalitySelector = ({ onSelectHospitality, selectedHospitality }
                       <span className="truncate">{hospitality.hosp_website}</span>
                     </div>
                   )}
-                  {hospitality.hosp_cost && (
+                  {hospitality.hosp_price && (
                     <div className="flex items-center gap-2 text-sm">
                       <DollarSign className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-semibold">${hospitality.hosp_cost}</span>
+                      <span className="font-semibold">${hospitality.hosp_price}</span>
                     </div>
                   )}
                 </div>
