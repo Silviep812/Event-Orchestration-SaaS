@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,7 +27,9 @@ export default function CreateEvent() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [tags, setTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   const { register, handleSubmit, formState: { errors }, reset, control } = useForm<EventFormData>();
 
@@ -67,7 +70,7 @@ export default function CreateEvent() {
     setTags(tags.filter(tag => tag !== tagToRemove));
   };
 
-  const onSubmit = (data: EventFormData) => {
+  const onSubmit = async (data: EventFormData) => {
     if (!dateRange?.from) {
       toast({
         title: "Date Required",
@@ -77,24 +80,76 @@ export default function CreateEvent() {
       return;
     }
 
-    const eventData = {
-      ...data,
-      startDate: dateRange.from,
-      endDate: dateRange.to,
-      tags,
-    };
+    setIsSubmitting(true);
 
-    console.log("Creating event:", eventData);
-    
-    toast({
-      title: "Event Created Successfully!",
-      description: `Your event "${data.title}" has been created and saved.`,
-    });
-    
-    // Reset form
-    reset();
-    setDateRange(undefined);
-    setTags([]);
+    try {
+      // Get current user
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        toast({
+          title: "Authentication Error",
+          description: "You must be logged in to create an event.",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Prepare event data for Supabase
+      const eventData = {
+        userid: user.id,
+        event_start_date: dateRange.from.toISOString().split('T')[0], // Convert to YYYY-MM-DD string
+        event_end_date: dateRange.to ? dateRange.to.toISOString().split('T')[0] : dateRange.from.toISOString().split('T')[0],
+        event_theme: data.type ? [data.type] : null,
+        event_description: data.description || null,
+        event_location: data.venue ? [data.venue] : null,
+        event_budget: data.budget ? parseFloat(data.budget) : null,
+        contact_name: user.user_metadata?.full_name || null,
+        email: user.email || null,
+        // Map other fields as needed
+        priority: tags.length > 0 ? tags : null,
+      };
+
+      // Save to Supabase
+      const { error: insertError } = await supabase
+        .from('Create Event')
+        .insert([eventData]);
+
+      if (insertError) {
+        console.error('Error creating event:', insertError);
+        toast({
+          title: "Error Creating Event",
+          description: "There was an error saving your event. Please try again.",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      toast({
+        title: "Event Created Successfully!",
+        description: `Your event "${data.title}" has been created and saved.`,
+      });
+
+      // Reset form
+      reset();
+      setDateRange(undefined);
+      setTags([]);
+
+      // Redirect to manage event page
+      navigate('/dashboard/manage-event');
+
+    } catch (error) {
+      console.error('Error creating event:', error);
+      toast({
+        title: "Error Creating Event",
+        description: "There was an unexpected error. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -270,8 +325,8 @@ export default function CreateEvent() {
           }}>
             Clear Form
           </Button>
-          <Button type="submit">
-            Create Event
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Creating Event..." : "Create Event"}
           </Button>
         </div>
       </form>
