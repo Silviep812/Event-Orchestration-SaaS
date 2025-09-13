@@ -612,6 +612,54 @@ export type Database = {
         }
         Relationships: []
       }
+      events: {
+        Row: {
+          budget: number | null
+          created_at: string
+          description: string | null
+          end_date: string | null
+          event_type: string
+          expected_attendees: number | null
+          id: string
+          start_date: string
+          tags: string[] | null
+          title: string
+          updated_at: string
+          user_id: string
+          venue: string
+        }
+        Insert: {
+          budget?: number | null
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          event_type: string
+          expected_attendees?: number | null
+          id?: string
+          start_date: string
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+          user_id: string
+          venue: string
+        }
+        Update: {
+          budget?: number | null
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          event_type?: string
+          expected_attendees?: number | null
+          id?: string
+          start_date?: string
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+          venue?: string
+        }
+        Relationships: []
+      }
       "Hospitality Directory": {
         Row: {
           Airbnb: string | null
@@ -649,9 +697,9 @@ export type Database = {
           hosp_biz_name: string | null
           hosp_contact_name: string | null
           hosp_contact_nbr: number | null
-          hosp_cost: number | null
           hosp_location: string[] | null
-          hosp_type_id: string
+          hosp_price: number | null
+          hosp_type_id: Database["public"]["Enums"]["budget_category"]
           hosp_website: string | null
         }
         Insert: {
@@ -660,9 +708,9 @@ export type Database = {
           hosp_biz_name?: string | null
           hosp_contact_name?: string | null
           hosp_contact_nbr?: number | null
-          hosp_cost?: number | null
           hosp_location?: string[] | null
-          hosp_type_id: string
+          hosp_price?: number | null
+          hosp_type_id: Database["public"]["Enums"]["budget_category"]
           hosp_website?: string | null
         }
         Update: {
@@ -671,9 +719,9 @@ export type Database = {
           hosp_biz_name?: string | null
           hosp_contact_name?: string | null
           hosp_contact_nbr?: number | null
-          hosp_cost?: number | null
           hosp_location?: string[] | null
-          hosp_type_id?: string
+          hosp_price?: number | null
+          hosp_type_id?: Database["public"]["Enums"]["budget_category"]
           hosp_website?: string | null
         }
         Relationships: []
@@ -1657,58 +1705,73 @@ export type Database = {
       }
       "Venue Directory": {
         Row: {
+          Agri_Location: string | null
           "Agri-Farming": string | null
           Business_Location: string | null
           created_at: string
           Hospitality_Location: string | null
           id: number
           Local_Govern_Location: string | null
+          Market_Location: string | null
           Market_Place: string | null
           Other: string | null
           Private_Club: string | null
+          Private_Club_Location: string | null
           Private_Resident: string | null
           Recreation_Location: string | null
           Resort_Location: string | null
           Restaurant_Location: string | null
           Sporting_Facility: string | null
+          Sporting_Facility_Location: string | null
           State_Govern_Location: string | null
           Warehouse: string | null
+          Warehouse_Location: string | null
         }
         Insert: {
+          Agri_Location?: string | null
           "Agri-Farming"?: string | null
           Business_Location?: string | null
           created_at?: string
           Hospitality_Location?: string | null
           id?: number
           Local_Govern_Location?: string | null
+          Market_Location?: string | null
           Market_Place?: string | null
           Other?: string | null
           Private_Club?: string | null
+          Private_Club_Location?: string | null
           Private_Resident?: string | null
           Recreation_Location?: string | null
           Resort_Location?: string | null
           Restaurant_Location?: string | null
           Sporting_Facility?: string | null
+          Sporting_Facility_Location?: string | null
           State_Govern_Location?: string | null
           Warehouse?: string | null
+          Warehouse_Location?: string | null
         }
         Update: {
+          Agri_Location?: string | null
           "Agri-Farming"?: string | null
           Business_Location?: string | null
           created_at?: string
           Hospitality_Location?: string | null
           id?: number
           Local_Govern_Location?: string | null
+          Market_Location?: string | null
           Market_Place?: string | null
           Other?: string | null
           Private_Club?: string | null
+          Private_Club_Location?: string | null
           Private_Resident?: string | null
           Recreation_Location?: string | null
           Resort_Location?: string | null
           Restaurant_Location?: string | null
           Sporting_Facility?: string | null
+          Sporting_Facility_Location?: string | null
           State_Govern_Location?: string | null
           Warehouse?: string | null
+          Warehouse_Location?: string | null
         }
         Relationships: []
       }
@@ -1836,6 +1899,10 @@ export type Database = {
       }
     }
     Functions: {
+      execute_raw_sql: {
+        Args: { query: string }
+        Returns: Json
+      }
       get_my_events_safe: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -1928,6 +1995,7 @@ export type Database = {
         | "supplies"
         | "services"
         | "other"
+        | "hospitality"
       task_priority: "low" | "medium" | "high" | "urgent"
       task_status:
         | "not_started"
@@ -2080,6 +2148,7 @@ export const Constants = {
         "supplies",
         "services",
         "other",
+        "hospitality",
       ],
       task_priority: ["low", "medium", "high", "urgent"],
       task_status: [

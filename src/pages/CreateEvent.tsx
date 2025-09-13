@@ -96,24 +96,23 @@ export default function CreateEvent() {
         return;
       }
 
-      // Prepare event data for Supabase
+      // Prepare event data for the new events table
       const eventData = {
-        userid: user.id,
-        event_start_date: dateRange.from.toISOString().split('T')[0], // Convert to YYYY-MM-DD string
-        event_end_date: dateRange.to ? dateRange.to.toISOString().split('T')[0] : dateRange.from.toISOString().split('T')[0],
-        event_theme: data.type ? [data.type] : null,
-        event_description: data.description || null,
-        event_location: data.venue ? [data.venue] : null,
-        event_budget: data.budget ? parseFloat(data.budget) : null,
-        contact_name: user.user_metadata?.full_name || null,
-        email: user.email || null,
-        // Map other fields as needed
-        priority: tags.length > 0 ? tags : null,
+        user_id: user.id,
+        title: data.title,
+        description: data.description || null,
+        event_type: data.type,
+        venue: data.venue,
+        start_date: dateRange.from.toISOString().split('T')[0],
+        end_date: dateRange.to ? dateRange.to.toISOString().split('T')[0] : null,
+        budget: data.budget ? parseFloat(data.budget) : null,
+        expected_attendees: data.expectedAttendees ? parseInt(data.expectedAttendees) : null,
+        tags: tags.length > 0 ? tags : null,
       };
 
-      // Save to Supabase
+      // Save to the new events table
       const { error: insertError } = await supabase
-        .from('Create Event')
+        .from('events')
         .insert([eventData]);
 
       if (insertError) {
