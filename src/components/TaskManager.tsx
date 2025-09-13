@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { CheckCircle2, Clock, AlertCircle, Plus, Calendar, User } from "lucide-react";
 import { format } from "date-fns";
 
@@ -25,6 +26,12 @@ interface Task {
   due_date?: string;
   created_at: string;
   updated_at: string;
+}
+
+interface Event {
+  id: string;
+  title: string;
+  start_date?: string;
 }
 
 interface TaskManagerProps {
@@ -56,6 +63,7 @@ const statusIcons = {
 
 export function TaskManager({ eventId }: TaskManagerProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newTask, setNewTask] = useState({
@@ -64,13 +72,18 @@ export function TaskManager({ eventId }: TaskManagerProps) {
     assigned_role: "",
     priority: "medium" as const,
     estimated_hours: "",
-    due_date: ""
+    due_date: "",
+    selected_event_id: ""
   });
   const { toast } = useToast();
+  const { user } = useAuth();
 
   useEffect(() => {
     fetchTasks();
-  }, [eventId]);
+    if (!eventId) {
+      fetchUserEvents();
+    }
+  }, [eventId, user]);
 
   const fetchTasks = async () => {
     try {
@@ -95,6 +108,23 @@ export function TaskManager({ eventId }: TaskManagerProps) {
     }
   };
 
+  const fetchUserEvents = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('events')
+        .select('id, title, start_date')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      setEvents(data || []);
+    } catch (error) {
+      console.error('Error fetching events:', error);
+    }
+  };
+
   const createTask = async () => {
     if (!newTask.title.trim()) return;
 
@@ -109,7 +139,7 @@ export function TaskManager({ eventId }: TaskManagerProps) {
         priority: newTask.priority as any,
         estimated_hours: newTask.estimated_hours ? parseFloat(newTask.estimated_hours) : null,
         due_date: newTask.due_date || null,
-        event_id: eventId || null,
+        event_id: eventId || newTask.selected_event_id || null,
         created_by: user.id
       };
 
@@ -127,7 +157,8 @@ export function TaskManager({ eventId }: TaskManagerProps) {
         assigned_role: "",
         priority: "medium",
         estimated_hours: "",
-        due_date: ""
+        due_date: "",
+        selected_event_id: ""
       });
       setIsCreateDialogOpen(false);
       fetchTasks();
@@ -186,6 +217,24 @@ export function TaskManager({ eventId }: TaskManagerProps) {
               <DialogTitle>Create New Task</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
+              {!eventId && events.length > 0 && (
+                <div className="space-y-2">
+                  <Label htmlFor="event">Select Project/Event</Label>
+                  <Select value={newTask.selected_event_id} onValueChange={(value) => setNewTask({ ...newTask, selected_event_id: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a project/event" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {events.map((event) => (
+                        <SelectItem key={event.id} value={event.id}>
+                          {event.title} {event.start_date && `(${format(new Date(event.start_date), 'MMM d, yyyy')})`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label htmlFor="title">Task Title</Label>
                 <Input
