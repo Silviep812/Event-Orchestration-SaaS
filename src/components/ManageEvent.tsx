@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { Bell, Clock, Plus, Save, AlertCircle, History, Eye, Trash2, Calendar as CalendarIcon, Package, BarChart3 } from "lucide-react";
 import { format } from "date-fns";
 import TimelineView from "@/components/timeline/TimelineView";
@@ -18,18 +19,20 @@ import Analytics from "@/components/Analytics";
 
 interface ManageEventData {
   id?: string;
-  event_user_id: string;
-  event_contact_name?: string;
-  event_contact_email?: string;
-  event_contact_ph_nbr?: number;
-  event_date?: string;
-  event_time?: string;
-  event_type?: string;
-  event_theme?: string;
-  event_status?: string;
-  set_priority?: string;
-  task_status?: string;
+  user_id: string;
+  title: string;
+  description?: string;
+  start_date?: string;
+  end_date?: string;
+  start_time?: string;
+  end_time?: string;
+  location?: string;
+  theme?: string;
+  type?: string;
+  status?: string;
+  budget?: number;
   created_at?: string;
+  updated_at?: string;
 }
 
 interface ChangeLog {
@@ -67,15 +70,22 @@ const ManageEvent = () => {
     type: 'change_request'
   });
   const { toast } = useToast();
+  const { user } = useAuth();
 
   // Auto-save debounce
   const [saveTimeout, setSaveTimeout] = useState<NodeJS.Timeout | null>(null);
 
   const fetchEvents = async () => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
     try {
       const { data, error } = await supabase
-        .from('Manage Event')
+        .from('events')
         .select('*')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -109,25 +119,56 @@ const ManageEvent = () => {
   };
 
   const saveEvent = async (eventData: ManageEventData, isManual = false) => {
-    console.log('Save event called with:', eventData);
+    if (!eventData.id) return;
     
-    if (isManual) {
-      toast({
-        title: "Info",
-        description: "Save functionality will be implemented after database setup",
-      });
-    }
-    
-    // Log the change attempt
     try {
+      setSaving(true);
+      
+      const { error } = await supabase
+        .from('events')
+        .update({
+          title: eventData.title,
+          description: eventData.description,
+          start_date: eventData.start_date,
+          end_date: eventData.end_date,
+          start_time: eventData.start_time,
+          end_time: eventData.end_time,
+          location: eventData.location,
+          theme: eventData.theme,
+          type: eventData.type,
+          status: eventData.status,
+          budget: eventData.budget,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', eventData.id)
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
+
+      if (isManual) {
+        toast({
+          title: "Success",
+          description: "Event saved successfully",
+        });
+      }
+
+      // Log the change
       await supabase.rpc('log_change', {
         p_entity_type: 'event',
         p_entity_id: eventData.id,
         p_action: 'updated',
-        p_description: isManual ? 'Manual save attempted' : 'Auto-save attempted'
+        p_description: isManual ? 'Manual save' : 'Auto-save'
       });
+      
     } catch (error) {
-      console.error('Error logging change:', error);
+      console.error('Error saving event:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save event",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -190,7 +231,7 @@ const ManageEvent = () => {
       .on('postgres_changes', { 
         event: '*', 
         schema: 'public', 
-        table: 'Manage Event' 
+        table: 'events' 
       }, () => {
         fetchEvents();
       })
@@ -216,8 +257,10 @@ const ManageEvent = () => {
   }, [selectedEvent?.id]);
 
   useEffect(() => {
-    fetchEvents();
-  }, []);
+    if (user) {
+      fetchEvents();
+    }
+  }, [user]);
 
   useEffect(() => {
     if (selectedEvent?.id) {
@@ -371,14 +414,14 @@ const ManageEvent = () => {
                   onClick={() => setSelectedEvent(event)}
                 >
                   <div className="font-medium text-sm truncate">
-                    {event.event_contact_name || 'Unnamed Event'}
+                    {event.title || 'Unnamed Event'}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {event.event_type} • {event.event_status}
+                    {event.type} • {event.status}
                   </div>
-                  {event.event_date && (
+                  {event.start_date && (
                     <div className="text-xs text-muted-foreground">
-                      {format(new Date(event.event_date), 'MMM dd, yyyy')}
+                      {format(new Date(event.start_date), 'MMM dd, yyyy')}
                     </div>
                   )}
                 </div>
@@ -444,72 +487,91 @@ const ManageEvent = () => {
                   <CardContent className="space-y-6 p-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="contact-name">Contact Name</Label>
+                        <Label htmlFor="title">Event Title</Label>
                         <Input
-                          id="contact-name"
-                          value={selectedEvent.event_contact_name || ''}
-                          onChange={(e) => handleFieldChange('event_contact_name', e.target.value)}
-                          placeholder="Enter contact name"
+                          id="title"
+                          value={selectedEvent.title || ''}
+                          onChange={(e) => handleFieldChange('title', e.target.value)}
+                          placeholder="Enter event title"
                         />
                       </div>
                       
                       <div>
-                        <Label htmlFor="contact-email">Contact Email</Label>
+                        <Label htmlFor="type">Event Type</Label>
                         <Input
-                          id="contact-email"
-                          type="email"
-                          value={selectedEvent.event_contact_email || ''}
-                          onChange={(e) => handleFieldChange('event_contact_email', e.target.value)}
-                          placeholder="Enter contact email"
-                        />
-                      </div>
-                      
-                      <div>
-                        <Label htmlFor="contact-phone">Contact Phone</Label>
-                        <Input
-                          id="contact-phone"
-                          type="tel"
-                          value={selectedEvent.event_contact_ph_nbr || ''}
-                          onChange={(e) => handleFieldChange('event_contact_ph_nbr', e.target.value ? parseInt(e.target.value) : undefined)}
-                          placeholder="Enter contact phone"
-                        />
-                      </div>
-                      
-                      <div>
-                        <Label htmlFor="event-type">Event Type</Label>
-                        <Input
-                          id="event-type"
-                          value={selectedEvent.event_type || ''}
-                          onChange={(e) => handleFieldChange('event_type', e.target.value)}
+                          id="type"
+                          value={selectedEvent.type || ''}
+                          onChange={(e) => handleFieldChange('type', e.target.value)}
                           placeholder="Enter event type"
                         />
                       </div>
                       
                       <div>
-                        <Label htmlFor="event-date">Event Date</Label>
+                        <Label htmlFor="start-date">Start Date</Label>
                         <Input
-                          id="event-date"
+                          id="start-date"
                           type="date"
-                          value={selectedEvent.event_date || ''}
-                          onChange={(e) => handleFieldChange('event_date', e.target.value)}
+                          value={selectedEvent.start_date || ''}
+                          onChange={(e) => handleFieldChange('start_date', e.target.value)}
                         />
                       </div>
                       
                       <div>
-                        <Label htmlFor="event-time">Event Time</Label>
+                        <Label htmlFor="end-date">End Date</Label>
                         <Input
-                          id="event-time"
-                          type="time"
-                          value={selectedEvent.event_time ? selectedEvent.event_time.slice(0, 5) : ''}
-                          onChange={(e) => handleFieldChange('event_time', e.target.value)}
+                          id="end-date"
+                          type="date"
+                          value={selectedEvent.end_date || ''}
+                          onChange={(e) => handleFieldChange('end_date', e.target.value)}
                         />
                       </div>
                       
                       <div>
-                        <Label htmlFor="event-status">Event Status</Label>
+                        <Label htmlFor="start-time">Start Time</Label>
+                        <Input
+                          id="start-time"
+                          type="time"
+                          value={selectedEvent.start_time ? selectedEvent.start_time.slice(0, 5) : ''}
+                          onChange={(e) => handleFieldChange('start_time', e.target.value)}
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="end-time">End Time</Label>
+                        <Input
+                          id="end-time"
+                          type="time"
+                          value={selectedEvent.end_time ? selectedEvent.end_time.slice(0, 5) : ''}
+                          onChange={(e) => handleFieldChange('end_time', e.target.value)}
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="location">Location</Label>
+                        <Input
+                          id="location"
+                          value={selectedEvent.location || ''}
+                          onChange={(e) => handleFieldChange('location', e.target.value)}
+                          placeholder="Enter event location"
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="budget">Budget</Label>
+                        <Input
+                          id="budget"
+                          type="number"
+                          value={selectedEvent.budget || ''}
+                          onChange={(e) => handleFieldChange('budget', e.target.value ? parseFloat(e.target.value) : undefined)}
+                          placeholder="Enter budget"
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="status">Event Status</Label>
                         <Select
-                          value={selectedEvent.event_status || ''}
-                          onValueChange={(value) => handleFieldChange('event_status', value)}
+                          value={selectedEvent.status || ''}
+                          onValueChange={(value) => handleFieldChange('status', value)}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Select status" />
@@ -525,30 +587,23 @@ const ManageEvent = () => {
                       </div>
                       
                       <div>
-                        <Label htmlFor="priority">Priority</Label>
-                        <Select
-                          value={selectedEvent.set_priority || ''}
-                          onValueChange={(value) => handleFieldChange('set_priority', value)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select priority" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="low">Low</SelectItem>
-                            <SelectItem value="medium">Medium</SelectItem>
-                            <SelectItem value="high">High</SelectItem>
-                            <SelectItem value="urgent">Urgent</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <Label htmlFor="theme">Event Theme</Label>
+                        <Input
+                          id="theme"
+                          value={selectedEvent.theme || ''}
+                          onChange={(e) => handleFieldChange('theme', e.target.value)}
+                          placeholder="Enter event theme"
+                        />
                       </div>
                       
                       <div className="md:col-span-2">
-                        <Label htmlFor="event-theme">Event Theme</Label>
-                        <Input
-                          id="event-theme"
-                          value={selectedEvent.event_theme || ''}
-                          onChange={(e) => handleFieldChange('event_theme', e.target.value)}
-                          placeholder="Enter event theme"
+                        <Label htmlFor="description">Description</Label>
+                        <Textarea
+                          id="description"
+                          value={selectedEvent.description || ''}
+                          onChange={(e) => handleFieldChange('description', e.target.value)}
+                          placeholder="Enter event description"
+                          rows={3}
                         />
                       </div>
                     </div>
