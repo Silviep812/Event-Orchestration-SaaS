@@ -135,7 +135,7 @@ export function TaskManager({ eventId }: TaskManagerProps) {
       const taskData = {
         title: newTask.title,
         description: newTask.description || null,
-        assigned_role: newTask.assigned_role as any || null,
+        assigned_venue_role: newTask.assigned_role || null,
         priority: newTask.priority as any,
         estimated_hours: newTask.estimated_hours ? parseFloat(newTask.estimated_hours) : null,
         due_date: newTask.due_date || null,
