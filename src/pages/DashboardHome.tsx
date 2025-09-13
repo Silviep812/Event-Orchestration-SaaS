@@ -26,19 +26,27 @@ const DashboardHome = () => {
       try {
         setLoading(true);
         
-        // Fetch events data
+        // Get current user
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('User not authenticated');
+
+        const userId = user.id as string;
+
+        // Fetch events data for current user only
         const { data: events, error: eventsError } = await supabase
           .from('Manage Event')
           .select('*')
+          .eq('event_user_id', userId)
           .order('created_at', { ascending: false })
           .limit(10);
 
         if (eventsError) throw eventsError;
 
-        // Fetch tasks data
+        // Fetch tasks data for current user only
         const { data: tasks, error: tasksError } = await supabase
           .from('tasks')
-          .select('*');
+          .select('*')
+          .eq('created_by', userId);
 
         if (tasksError) throw tasksError;
 
