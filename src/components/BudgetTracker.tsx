@@ -54,6 +54,7 @@ export function BudgetTracker({ eventId }: BudgetTrackerProps) {
   const [budgetItems, setBudgetItems] = useState<BudgetItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [userEvents, setUserEvents] = useState<Array<{id: string, event_start_date: string, event_description?: string}>>([]);
   const [newItem, setNewItem] = useState({
     category: "",
     item_name: "",
@@ -61,12 +62,14 @@ export function BudgetTracker({ eventId }: BudgetTrackerProps) {
     estimated_cost: "",
     vendor_name: "",
     vendor_contact: "",
-    payment_due_date: ""
+    payment_due_date: "",
+    event_id: ""
   });
   const { toast } = useToast();
 
   useEffect(() => {
     fetchBudgetItems();
+    fetchUserEvents();
   }, [eventId]);
 
   const fetchBudgetItems = async () => {
@@ -92,6 +95,29 @@ export function BudgetTracker({ eventId }: BudgetTrackerProps) {
     }
   };
 
+  const fetchUserEvents = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('Create Event')
+        .select('userid, event_start_date, event_description')
+        .eq('userid', user.id)
+        .order('event_start_date', { ascending: false });
+      
+      if (error) throw error;
+      
+      setUserEvents(data?.map(event => ({
+        id: event.userid,
+        event_start_date: event.event_start_date,
+        event_description: event.event_description
+      })) || []);
+    } catch (error) {
+      console.error('Error fetching user events:', error);
+    }
+  };
+
   const createBudgetItem = async () => {
     if (!newItem.item_name.trim() || !newItem.category) return;
 
@@ -107,7 +133,7 @@ export function BudgetTracker({ eventId }: BudgetTrackerProps) {
         vendor_name: newItem.vendor_name || null,
         vendor_contact: newItem.vendor_contact || null,
         payment_due_date: newItem.payment_due_date || null,
-        event_id: eventId || null,
+        event_id: newItem.event_id || eventId || null,
         created_by: user.id
       };
 
@@ -126,7 +152,8 @@ export function BudgetTracker({ eventId }: BudgetTrackerProps) {
         estimated_cost: "",
         vendor_name: "",
         vendor_contact: "",
-        payment_due_date: ""
+        payment_due_date: "",
+        event_id: ""
       });
       setIsCreateDialogOpen(false);
       fetchBudgetItems();
@@ -222,6 +249,22 @@ export function BudgetTracker({ eventId }: BudgetTrackerProps) {
               <DialogTitle>Add Budget Item</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="project">Project</Label>
+                <Select value={newItem.event_id} onValueChange={(value) => setNewItem({ ...newItem, event_id: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select project" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {userEvents.map((event) => (
+                      <SelectItem key={event.id} value={event.id}>
+                        {event.event_description || `Event ${event.event_start_date}`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="category">Category</Label>
                 <Select value={newItem.category} onValueChange={(value) => setNewItem({ ...newItem, category: value })}>
