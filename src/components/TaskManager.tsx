@@ -87,7 +87,7 @@ export function TaskManager({ eventId }: TaskManagerProps) {
 
   const fetchTasks = async () => {
     try {
-      let query = supabase.from('tasks').select('*').order('created_at', { ascending: false });
+      let query = supabase.from('tasks_new').select('*').order('created_at', { ascending: false });
       
       if (eventId) {
         query = query.eq('event_id', eventId);
@@ -143,7 +143,7 @@ export function TaskManager({ eventId }: TaskManagerProps) {
         created_by: user.id
       };
 
-      const { error } = await supabase.from('tasks').insert(taskData);
+      const { error } = await supabase.from('tasks_new').insert(taskData);
       if (error) throw error;
 
       toast({
@@ -174,7 +174,7 @@ export function TaskManager({ eventId }: TaskManagerProps) {
   const updateTaskStatus = async (taskId: string, status: Task['status']) => {
     try {
       const { error } = await supabase
-        .from('tasks')
+        .from('tasks_new')
         .update({ status })
         .eq('id', taskId);
 

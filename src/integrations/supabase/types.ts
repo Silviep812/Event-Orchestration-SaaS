@@ -1280,10 +1280,73 @@ export type Database = {
           description: string | null
           due_date: string | null
           estimated_hours: number | null
+          event_id: string
+          id: string
+          priority: Database["public"]["Enums"]["task_priority"]
+          status: Database["public"]["Enums"]["task_status"] | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          actual_hours?: number | null
+          assigned_hosp_role?: Database["public"]["Enums"]["app_role"] | null
+          assigned_service_vendor_role?: string | null
+          assigned_supplier_vendor_role?: string | null
+          assigned_to?: string | null
+          assigned_venue_role?: string | null
+          assined_vendor_role?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          due_date?: string | null
+          estimated_hours?: number | null
+          event_id: string
+          id?: string
+          priority?: Database["public"]["Enums"]["task_priority"]
+          status?: Database["public"]["Enums"]["task_status"] | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          actual_hours?: number | null
+          assigned_hosp_role?: Database["public"]["Enums"]["app_role"] | null
+          assigned_service_vendor_role?: string | null
+          assigned_supplier_vendor_role?: string | null
+          assigned_to?: string | null
+          assigned_venue_role?: string | null
+          assined_vendor_role?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          due_date?: string | null
+          estimated_hours?: number | null
+          event_id?: string
+          id?: string
+          priority?: Database["public"]["Enums"]["task_priority"]
+          status?: Database["public"]["Enums"]["task_status"] | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      tasks_new: {
+        Row: {
+          actual_hours: number | null
+          assigned_hosp_role: Database["public"]["Enums"]["app_role"] | null
+          assigned_service_vendor_role: string | null
+          assigned_supplier_vendor_role: string | null
+          assigned_to: string | null
+          assigned_venue_role: string | null
+          assined_vendor_role: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          due_date: string | null
+          estimated_hours: number | null
           event_id: string | null
           id: string
           priority: Database["public"]["Enums"]["task_priority"]
-          status: Database["public"]["Enums"]["task_status"]
+          status: Database["public"]["Enums"]["task_status"] | null
           title: string
           updated_at: string
         }
@@ -1303,7 +1366,7 @@ export type Database = {
           event_id?: string | null
           id?: string
           priority?: Database["public"]["Enums"]["task_priority"]
-          status?: Database["public"]["Enums"]["task_status"]
+          status?: Database["public"]["Enums"]["task_status"] | null
           title: string
           updated_at?: string
         }
@@ -1323,7 +1386,7 @@ export type Database = {
           event_id?: string | null
           id?: string
           priority?: Database["public"]["Enums"]["task_priority"]
-          status?: Database["public"]["Enums"]["task_status"]
+          status?: Database["public"]["Enums"]["task_status"] | null
           title?: string
           updated_at?: string
         }
