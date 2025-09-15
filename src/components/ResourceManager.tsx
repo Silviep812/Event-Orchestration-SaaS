@@ -526,7 +526,7 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
       </Card>
 
       {/* Resource Groups */}
-      <Tabs value="drag-drop" defaultValue="drag-drop">
+      <Tabs defaultValue="drag-drop">
         <TabsList>
           <TabsTrigger value="drag-drop">Drag & Drop View</TabsTrigger>
           <TabsTrigger value="standard">Standard View</TabsTrigger>
