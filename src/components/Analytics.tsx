@@ -90,7 +90,7 @@ export default function Analytics({ onInteractionTrack }: AnalyticsProps = {}) {
       
       // Fetch events data
       const { data: events, error: eventsError } = await supabase
-        .from('Manage Event')
+        .from('events')
         .select('*')
         .gte('created_at', filters.dateRange.from.toISOString())
         .lte('created_at', filters.dateRange.to.toISOString());
