@@ -11,6 +11,7 @@ import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { DollarSign, Plus, TrendingUp, TrendingDown, AlertTriangle, CheckCircle } from "lucide-react";
+import { format } from "date-fns";
 
 interface BudgetItem {
   id: string;
@@ -54,7 +55,7 @@ export function BudgetTracker({ eventId }: BudgetTrackerProps) {
   const [budgetItems, setBudgetItems] = useState<BudgetItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [userEvents, setUserEvents] = useState<Array<{id: string, event_start_date: string, event_description?: string}>>([]);
+  const [userEvents, setUserEvents] = useState<Array<{id: string, event_start_date: string, event_title?: string}>>([]);
   const [newItem, setNewItem] = useState({
     category: "",
     item_name: "",
@@ -102,16 +103,16 @@ export function BudgetTracker({ eventId }: BudgetTrackerProps) {
 
       const { data, error } = await supabase
         .from('events')
-        .select('user_id, start_date, description')
+        .select('id, user_id, start_date, title')
         .eq('user_id', user.id)
         .order('start_date', { ascending: false });
       
       if (error) throw error;
-      
+
       setUserEvents(data?.map(event => ({
-        id: event.user_id,
+        id: event.id,
         event_start_date: event.start_date,
-        event_description: event.description
+        event_title: event.title
       })) || []);
     } catch (error) {
       console.error('Error fetching user events:', error);
@@ -258,7 +259,7 @@ export function BudgetTracker({ eventId }: BudgetTrackerProps) {
                   <SelectContent>
                     {userEvents.map((event) => (
                       <SelectItem key={event.id} value={event.id}>
-                        {event.event_description || `Event ${event.event_start_date}`}
+                        {event.event_title} {event.event_start_date && `(${format(new Date(event.event_start_date), 'MMM d, yyyy')})`}
                       </SelectItem>
                     ))}
                   </SelectContent>
