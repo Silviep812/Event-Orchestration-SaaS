@@ -101,17 +101,17 @@ export function BudgetTracker({ eventId }: BudgetTrackerProps) {
       if (!user) return;
 
       const { data, error } = await supabase
-        .from('Create Event')
-        .select('userid, event_start_date, event_description')
-        .eq('userid', user.id)
-        .order('event_start_date', { ascending: false });
+        .from('events')
+        .select('user_id, start_date, description')
+        .eq('user_id', user.id)
+        .order('start_date', { ascending: false });
       
       if (error) throw error;
       
       setUserEvents(data?.map(event => ({
-        id: event.userid,
-        event_start_date: event.event_start_date,
-        event_description: event.event_description
+        id: event.user_id,
+        event_start_date: event.start_date,
+        event_description: event.description
       })) || []);
     } catch (error) {
       console.error('Error fetching user events:', error);
