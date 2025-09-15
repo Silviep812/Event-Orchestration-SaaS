@@ -421,7 +421,7 @@ const ManageEvent = () => {
                   </div>
                   {event.start_date && (
                     <div className="text-xs text-muted-foreground">
-                      {format(new Date(event.start_date), 'MMM dd, yyyy')}
+                      {format(new Date(event.start_date + 'T00:00:00'), 'MMM dd, yyyy')}
                     </div>
                   )}
                 </div>
