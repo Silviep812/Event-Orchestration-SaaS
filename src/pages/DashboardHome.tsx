@@ -34,9 +34,9 @@ const DashboardHome = () => {
 
         // Fetch events data for current user only
         const { data: events, error: eventsError } = await supabase
-          .from('Create Event')
+          .from('events')
           .select('*')
-          .eq('userid', userId)
+          .eq('user_id', userId)
           .order('created_at', { ascending: false })
           .limit(10);
 
