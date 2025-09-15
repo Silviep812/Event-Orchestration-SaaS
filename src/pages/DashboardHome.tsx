@@ -34,9 +34,9 @@ const DashboardHome = () => {
 
         // Fetch events data for current user only
         const { data: events, error: eventsError } = await supabase
-          .from('Manage Event')
+          .from('Create Event')
           .select('*')
-          .eq('event_user_id', userId)
+          .eq('userid', userId)
           .order('created_at', { ascending: false })
           .limit(10);
 
@@ -215,13 +215,13 @@ const DashboardHome = () => {
                     </div>
                   ) : analytics.recentEvents.length > 0 ? (
                     analytics.recentEvents.map((event: any, index) => (
-                      <div key={event.id || index} className="flex items-center justify-between p-3 rounded-lg bg-gradient-success bg-opacity-10">
+                      <div key={event.userid || index} className="flex items-center justify-between p-3 rounded-lg bg-gradient-success bg-opacity-10">
                         <div>
-                          <p className="font-medium">{event.event_contact_name || 'Unnamed Event'}</p>
-                          <p className="text-sm text-muted-foreground">{event.event_type || 'Event'} • {event.event_status || 'Active'}</p>
+                          <p className="font-medium">{event.contact_name || event.event_description || 'Unnamed Event'}</p>
+                          <p className="text-sm text-muted-foreground">{event.event_description || 'Event'} • {new Date(event.event_start_date).toLocaleDateString()}</p>
                         </div>
                         <span className="px-2 py-1 text-xs rounded-full bg-gradient-success text-white">
-                          {event.event_status === 'completed' ? '100%' : `${Math.floor(Math.random() * 40) + 40}%`} complete
+                          Active
                         </span>
                       </div>
                     ))
