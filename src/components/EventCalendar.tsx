@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,8 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CalendarIcon, Plus, Clock, MapPin, Users } from "lucide-react";
-import { format, isSameDay } from "date-fns";
+import { format, isSameDay, parseISO } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Event {
   id: string;
@@ -25,8 +27,11 @@ interface Event {
 
 const EventCalendar = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
   const [newEvent, setNewEvent] = useState({
     title: "",
     time: "",
@@ -36,52 +41,63 @@ const EventCalendar = () => {
     description: ""
   });
 
-  const events: Event[] = [
-    {
-      id: "1",
-      title: "Annual Conference 2024",
-      date: new Date(2024, 7, 15),
-      time: "09:00 AM",
-      location: "Grand Convention Center",
-      type: "event",
-      attendees: 250,
-      description: "Annual company conference with keynote speakers",
-      status: "planned"
-    },
-    {
-      id: "2",
-      title: "Team Building Workshop",
-      date: new Date(2024, 7, 20),
-      time: "02:00 PM",
-      location: "Central Park",
-      type: "event",
-      attendees: 30,
-      description: "Outdoor team building activities",
-      status: "planned"
-    },
-    {
-      id: "3",
-      title: "Client Meeting",
-      date: new Date(2024, 7, 22),
-      time: "10:30 AM",
-      location: "Office Conference Room",
-      type: "meeting",
-      attendees: 8,
-      description: "Project proposal presentation",
-      status: "planned"
-    },
-    {
-      id: "4",
-      title: "Budget Submission Deadline",
-      date: new Date(2024, 7, 25),
-      time: "11:59 PM",
-      location: "Online",
-      type: "deadline",
-      attendees: 0,
-      description: "Final budget submission for Q4",
-      status: "planned"
+  // Fetch user's events from the database
+  const fetchUserEvents = async () => {
+    if (!user) return;
+    
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('start_date', { ascending: true });
+
+      if (error) throw error;
+
+      // Transform database events to component format
+      const transformedEvents: Event[] = data?.map(event => ({
+        id: event.id,
+        title: event.title,
+        date: parseISO(event.start_date),
+        time: format(parseISO(event.start_date), 'HH:mm'),
+        location: event.venue || 'TBD',
+        type: getEventTypeFromDatabase(event.event_type),
+        attendees: event.expected_attendees || 0,
+        description: event.description || '',
+        status: 'planned' as const
+      })) || [];
+
+      setEvents(transformedEvents);
+    } catch (error) {
+      console.error('Error fetching events:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch your events.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  // Helper function to map database event types to component types
+  const getEventTypeFromDatabase = (dbType: string): "meeting" | "event" | "deadline" | "other" => {
+    const typeMap: Record<string, "meeting" | "event" | "deadline" | "other"> = {
+      'meeting': 'meeting',
+      'conference': 'event',
+      'workshop': 'event',
+      'deadline': 'deadline',
+      'celebration': 'event',
+      'corporate': 'event',
+      'social': 'event'
+    };
+    return typeMap[dbType?.toLowerCase()] || 'other';
+  };
+
+  useEffect(() => {
+    fetchUserEvents();
+  }, [user]);
 
   const getEventTypeColor = (type: string) => {
     switch (type) {
@@ -109,8 +125,8 @@ const EventCalendar = () => {
     return events.map(event => event.date);
   };
 
-  const handleCreateEvent = () => {
-    if (!selectedDate || !newEvent.title || !newEvent.time) {
+  const handleCreateEvent = async () => {
+    if (!selectedDate || !newEvent.title || !newEvent.time || !user) {
       toast({
         title: "Error",
         description: "Please fill in all required fields.",
@@ -119,23 +135,66 @@ const EventCalendar = () => {
       return;
     }
 
-    toast({
-      title: "Event Created",
-      description: `${newEvent.title} has been scheduled for ${format(selectedDate, "MMM dd, yyyy")}.`,
-    });
+    try {
+      // Combine date and time
+      const eventDateTime = new Date(selectedDate);
+      const [hours, minutes] = newEvent.time.split(':');
+      eventDateTime.setHours(parseInt(hours), parseInt(minutes));
 
-    setNewEvent({
-      title: "",
-      time: "",
-      location: "",
-      type: "event",
-      attendees: 0,
-      description: ""
-    });
-    setIsDialogOpen(false);
+      const eventData = {
+        title: newEvent.title,
+        description: newEvent.description,
+        event_type: newEvent.type,
+        start_date: eventDateTime.toISOString(),
+        end_date: eventDateTime.toISOString(),
+        venue: newEvent.location,
+        expected_attendees: newEvent.attendees,
+        user_id: user.id,
+        tags: [newEvent.type]
+      };
+
+      const { error } = await supabase
+        .from('events')
+        .insert([eventData]);
+
+      if (error) throw error;
+
+      toast({
+        title: "Event Created",
+        description: `${newEvent.title} has been scheduled for ${format(selectedDate, "MMM dd, yyyy")}.`,
+      });
+
+      // Refresh events list
+      fetchUserEvents();
+
+      setNewEvent({
+        title: "",
+        time: "",
+        location: "",
+        type: "event",
+        attendees: 0,
+        description: ""
+      });
+      setIsDialogOpen(false);
+    } catch (error) {
+      console.error('Error creating event:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create event. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const eventsForSelectedDate = selectedDate ? getEventsForDate(selectedDate) : [];
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

@@ -188,12 +188,12 @@ export default function Analytics({ onInteractionTrack }: AnalyticsProps = {}) {
 
       // Process events by location and theme
       const eventsByLocation = events?.reduce((acc: any[], event) => {
-        const location = event.venue_location || 'Unknown';
+        const location = event.venue || 'Unknown';
         const existing = acc.find(item => item.location === location);
         if (existing) {
           existing.count += 1;
         } else {
-          acc.push({ location, count: 1, theme: event.event_theme || 'General' });
+          acc.push({ location, count: 1, theme: event.event_type || 'General' });
         }
         return acc;
       }, []) || [];
