@@ -62,6 +62,7 @@ const ManageEvent = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [autoSave, setAutoSave] = useState(true);
+  const [pendingChanges, setPendingChanges] = useState<{[key: string]: {oldValue: any, newValue: any}}>({});
   const [newRequestDialog, setNewRequestDialog] = useState(false);
   const [newRequest, setNewRequest] = useState<NewRequest>({
     title: '',
@@ -123,7 +124,7 @@ const ManageEvent = () => {
     
     try {
       setSaving(true);
-      
+
       const { error } = await supabase
         .from('events')
         .update({
@@ -138,10 +139,9 @@ const ManageEvent = () => {
           type: eventData.type,
           status: eventData.status,
           budget: eventData.budget,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
-        .eq('id', eventData.id)
-        .eq('user_id', user?.id);
+        .eq('id', eventData.id);
 
       if (error) throw error;
 
@@ -150,15 +150,31 @@ const ManageEvent = () => {
           title: "Success",
           description: "Event saved successfully",
         });
+        
+        // Log individual field changes when manually saving
+        for (const [field, change] of Object.entries(pendingChanges)) {
+          await supabase.rpc('log_change', {
+            p_entity_type: 'event',
+            p_entity_id: eventData.id,
+            p_action: 'updated',
+            p_field_name: field,
+            p_old_value: change.oldValue?.toString() || null,
+            p_new_value: change.newValue?.toString() || null,
+            p_description: `Manual save: ${field} updated`
+          });
+        }
+        
+        // Clear pending changes after manual save
+        setPendingChanges({});
+      } else {
+        // Auto-save general log
+        await supabase.rpc('log_change', {
+          p_entity_type: 'event',
+          p_entity_id: eventData.id,
+          p_action: 'updated',
+          p_description: 'Auto-save'
+        });
       }
-
-      // Log the change
-      await supabase.rpc('log_change', {
-        p_entity_type: 'event',
-        p_entity_id: eventData.id,
-        p_action: 'updated',
-        p_description: isManual ? 'Manual save' : 'Auto-save'
-      });
       
     } catch (error) {
       console.error('Error saving event:', error);
@@ -187,20 +203,32 @@ const ManageEvent = () => {
     // Update in events list
     setEvents(prev => prev.map(e => e.id === updatedEvent.id ? updatedEvent : e));
 
-    // Log the field change
+    // Log field change for audit trail
     if (selectedEvent.id) {
-      try {
-        await supabase.rpc('log_change', {
-          p_entity_type: 'event',
-          p_entity_id: selectedEvent.id,
-          p_action: 'updated',
-          p_field_name: field,
-          p_old_value: oldValue?.toString() || null,
-          p_new_value: value?.toString() || null,
-          p_description: `Field "${field}" updated from "${oldValue || 'empty'}" to "${value || 'empty'}"`
-        });
-      } catch (error) {
-        console.error('Error logging field change:', error);
+      if (autoSave) {
+        // For auto-save, log immediately
+        try {
+          await supabase.rpc('log_change', {
+            p_entity_type: 'event',
+            p_entity_id: selectedEvent.id,
+            p_action: 'updated',
+            p_field_name: field,
+            p_old_value: oldValue?.toString() || null,
+            p_new_value: value?.toString() || null,
+            p_description: `Field "${field}" updated from "${oldValue || 'empty'}" to "${value || 'empty'}"`
+          });
+        } catch (error) {
+          console.error('Error logging field change:', error);
+        }
+      } else {
+        // For manual save, track pending changes
+        setPendingChanges(prev => ({
+          ...prev,
+          [field]: {
+            oldValue: oldValue,
+            newValue: value
+          }
+        }));
       }
     }
 
