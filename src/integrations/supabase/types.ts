@@ -618,10 +618,12 @@ export type Database = {
           created_at: string
           description: string | null
           end_date: string | null
+          end_time: string | null
           event_type: string
           expected_attendees: number | null
           id: string
           start_date: string
+          start_time: string | null
           tags: string[] | null
           title: string
           updated_at: string
@@ -633,10 +635,12 @@ export type Database = {
           created_at?: string
           description?: string | null
           end_date?: string | null
+          end_time?: string | null
           event_type: string
           expected_attendees?: number | null
           id?: string
           start_date: string
+          start_time?: string | null
           tags?: string[] | null
           title: string
           updated_at?: string
@@ -648,10 +652,12 @@ export type Database = {
           created_at?: string
           description?: string | null
           end_date?: string | null
+          end_time?: string | null
           event_type?: string
           expected_attendees?: number | null
           id?: string
           start_date?: string
+          start_time?: string | null
           tags?: string[] | null
           title?: string
           updated_at?: string
