@@ -193,7 +193,7 @@ const ManageEvent = () => {
         await supabase.rpc('log_change', {
           p_entity_type: 'event',
           p_entity_id: selectedEvent.id,
-          p_action: 'field_updated',
+          p_action: 'updated',
           p_field_name: field,
           p_old_value: oldValue?.toString() || null,
           p_new_value: value?.toString() || null,
