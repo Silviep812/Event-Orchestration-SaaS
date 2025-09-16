@@ -287,7 +287,7 @@ const DashboardHome = () => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Button 
                   variant="outline" 
-                  className="w-full justify-start bg-gradient-primary bg-opacity-10 border-primary/20 hover:bg-gradient-primary hover:text-white transition-all duration-300"
+                  className="w-full justify-start bg-gradient-primary bg-opacity-10 border-primary/20 hover:text-white transition-all duration-300"
                   onClick={() => window.location.href = '/dashboard/project-management'}
                 >
                   <Calendar className="mr-2 h-4 w-4" />
@@ -295,7 +295,7 @@ const DashboardHome = () => {
                 </Button>
                 <Button 
                   variant="outline" 
-                  className="w-full justify-start bg-gradient-secondary bg-opacity-10 border-secondary/20 hover:bg-gradient-secondary hover:text-white transition-all duration-300"
+                  className="w-full justify-start bg-gradient-secondary bg-opacity-10 border-secondary/20 hover:text-white transition-all duration-300"
                   onClick={() => window.location.href = '/dashboard/workflow'}
                 >
                   <Users className="mr-2 h-4 w-4" />
@@ -303,7 +303,7 @@ const DashboardHome = () => {
                 </Button>
                 <Button 
                   variant="outline" 
-                  className="w-full justify-start bg-gradient-accent bg-opacity-10 border-accent/20 hover:bg-gradient-accent hover:text-white transition-all duration-300"
+                  className="w-full justify-start bg-gradient-accent bg-opacity-10 border-accent/20 hover:text-white transition-all duration-300"
                   onClick={() => {
                     const analyticsTab = document.querySelector('[value="analytics"]') as HTMLElement;
                     analyticsTab?.click();
