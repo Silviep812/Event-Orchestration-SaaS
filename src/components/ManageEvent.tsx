@@ -166,14 +166,6 @@ const ManageEvent = () => {
         
         // Clear pending changes after manual save
         setPendingChanges({});
-      } else {
-        // Auto-save general log
-        await supabase.rpc('log_change', {
-          p_entity_type: 'event',
-          p_entity_id: eventData.id,
-          p_action: 'updated',
-          p_description: 'Auto-save'
-        });
       }
       
     } catch (error) {
