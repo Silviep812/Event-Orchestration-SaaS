@@ -145,27 +145,27 @@ const ManageEvent = () => {
 
       if (error) throw error;
 
+      // Only log changes after successful save
+      for (const [field, change] of Object.entries(pendingChanges)) {
+        await supabase.rpc('log_change', {
+          p_entity_type: 'event',
+          p_entity_id: eventData.id,
+          p_action: 'updated',
+          p_field_name: field,
+          p_old_value: change.oldValue?.toString() || null,
+          p_new_value: change.newValue?.toString() || null,
+          p_description: `${isManual ? 'Manual save' : 'Auto-save'}: ${field} updated`
+        });
+      }
+      
+      // Clear pending changes after successful save and logging
+      setPendingChanges({});
+
       if (isManual) {
         toast({
           title: "Success",
           description: "Event saved successfully",
         });
-        
-        // Log individual field changes when manually saving
-        for (const [field, change] of Object.entries(pendingChanges)) {
-          await supabase.rpc('log_change', {
-            p_entity_type: 'event',
-            p_entity_id: eventData.id,
-            p_action: 'updated',
-            p_field_name: field,
-            p_old_value: change.oldValue?.toString() || null,
-            p_new_value: change.newValue?.toString() || null,
-            p_description: `Manual save: ${field} updated`
-          });
-        }
-        
-        // Clear pending changes after manual save
-        setPendingChanges({});
       }
       
     } catch (error) {
@@ -195,33 +195,15 @@ const ManageEvent = () => {
     // Update in events list
     setEvents(prev => prev.map(e => e.id === updatedEvent.id ? updatedEvent : e));
 
-    // Log field change for audit trail
+    // Always track pending changes (will be logged only after successful save)
     if (selectedEvent.id) {
-      if (autoSave) {
-        // For auto-save, log immediately
-        try {
-          await supabase.rpc('log_change', {
-            p_entity_type: 'event',
-            p_entity_id: selectedEvent.id,
-            p_action: 'updated',
-            p_field_name: field,
-            p_old_value: oldValue?.toString() || null,
-            p_new_value: value?.toString() || null,
-            p_description: `Field "${field}" updated from "${oldValue || 'empty'}" to "${value || 'empty'}"`
-          });
-        } catch (error) {
-          console.error('Error logging field change:', error);
+      setPendingChanges(prev => ({
+        ...prev,
+        [field]: {
+          oldValue: oldValue,
+          newValue: value
         }
-      } else {
-        // For manual save, track pending changes
-        setPendingChanges(prev => ({
-          ...prev,
-          [field]: {
-            oldValue: oldValue,
-            newValue: value
-          }
-        }));
-      }
+      }));
     }
 
     // Auto-save logic
