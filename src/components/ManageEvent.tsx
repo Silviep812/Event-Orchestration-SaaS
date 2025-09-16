@@ -172,14 +172,37 @@ const ManageEvent = () => {
     }
   };
 
-  const handleFieldChange = (field: string, value: any) => {
+  const handleFieldChange = async (field: string, value: any) => {
     if (!selectedEvent) return;
+
+    // Capture old value for logging
+    const oldValue = selectedEvent[field as keyof ManageEventData];
+    
+    // Only proceed if value actually changed
+    if (oldValue === value) return;
 
     const updatedEvent = { ...selectedEvent, [field]: value };
     setSelectedEvent(updatedEvent);
 
     // Update in events list
     setEvents(prev => prev.map(e => e.id === updatedEvent.id ? updatedEvent : e));
+
+    // Log the field change
+    if (selectedEvent.id) {
+      try {
+        await supabase.rpc('log_change', {
+          p_entity_type: 'event',
+          p_entity_id: selectedEvent.id,
+          p_action: 'field_updated',
+          p_field_name: field,
+          p_old_value: oldValue?.toString() || null,
+          p_new_value: value?.toString() || null,
+          p_description: `Field "${field}" updated from "${oldValue || 'empty'}" to "${value || 'empty'}"`
+        });
+      } catch (error) {
+        console.error('Error logging field change:', error);
+      }
+    }
 
     // Auto-save logic
     if (autoSave) {
