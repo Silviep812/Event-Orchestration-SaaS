@@ -217,8 +217,8 @@ const DashboardHome = () => {
                     analytics.recentEvents.map((event: any, index) => (
                       <div key={event.userid || index} className="flex items-center justify-between p-3 rounded-lg bg-gradient-success bg-opacity-10">
                         <div>
-                          <p className="font-medium">{event.contact_name || event.event_description || 'Unnamed Event'}</p>
-                          <p className="text-sm text-muted-foreground">{event.event_description || 'Event'} • {new Date(event.event_start_date).toLocaleDateString()}</p>
+                          <p className="font-medium">{event.title || event.description || 'Unnamed Event'}</p>
+                          <p className="text-sm text-muted-foreground">{event.description || 'Event'} • {new Date(event.start_date + 'T00:00:00').toLocaleDateString()}</p>
                         </div>
                         <span className="px-2 py-1 text-xs rounded-full bg-gradient-success text-white">
                           Active
