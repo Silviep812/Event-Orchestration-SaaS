@@ -129,8 +129,7 @@ export function DashboardHeader() {
         
         {/* Welcome message */}
         <div className="hidden md:block text-sm">
-          <div className="text-muted-foreground">Welcome back,</div>
-          <div className="font-semibold text-foreground text-base">{getUserDisplayName()}</div>
+          <div className="text-muted-foreground">Welcome back!</div>
         </div>
         
         {/* Notifications */}
