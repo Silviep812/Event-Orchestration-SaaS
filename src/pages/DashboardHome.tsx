@@ -137,7 +137,7 @@ const DashboardHome = () => {
             <CheckSquare className="h-4 w-4 mr-2" />
             Manage Projects
           </Button>
-          <Button className="flex items-center gap-2 bg-gradient-primary hover:opacity-90">
+          <Button variant="outline" onClick={() => window.location.href = '/dashboard/create-event'} className="flex items-center gap-2 bg-gradient-primary hover:opacity-90">
             <Plus className="h-4 w-4" />
             Create New Event
           </Button>
