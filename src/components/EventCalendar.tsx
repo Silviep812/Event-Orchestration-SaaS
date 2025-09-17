@@ -141,18 +141,12 @@ const EventCalendar = () => {
       const [hours, minutes] = newEvent.time.split(':');
       eventDateTime.setHours(parseInt(hours), parseInt(minutes));
 
-      // Create end time (default to 1 hour later if no end time specified)
-      const endDateTime = new Date(eventDateTime);
-      endDateTime.setHours(endDateTime.getHours() + 1);
-
       const eventData = {
         title: newEvent.title,
         description: newEvent.description,
         event_type: newEvent.type,
-        start_date: eventDateTime.toISOString().split('T')[0], // Date only
-        end_date: endDateTime.toISOString().split('T')[0], // Date only
-        start_time: eventDateTime.toISOString(), // Full timestamp with timezone
-        end_time: endDateTime.toISOString(), // Full timestamp with timezone
+        start_date: eventDateTime.toISOString(),
+        end_date: eventDateTime.toISOString(),
         venue: newEvent.location,
         expected_attendees: newEvent.attendees,
         user_id: user.id,
