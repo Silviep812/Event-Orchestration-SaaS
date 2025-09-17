@@ -33,6 +33,7 @@ interface Task {
   estimated_hours?: number;
   dependencies?: string[];
   event_id?: string;
+  due_date?: string;
 }
 
 interface TimelineViewProps {
@@ -150,8 +151,8 @@ const TimelineView = ({ eventId }: TimelineViewProps) => {
 
     // Check for overdue tasks
     taskList.forEach(task => {
-      const endDate = new Date(task.end_date + 'T' + (task.end_time || '23:59'));
-      if (isAfter(now, endDate) && task.status !== 'completed') {
+      const dueDate = new Date(task.due_date);
+      if (isAfter(now, dueDate) && task.status !== 'completed') {
         overdueIds.push(task.id);
       }
     });
@@ -192,17 +193,11 @@ const TimelineView = ({ eventId }: TimelineViewProps) => {
     setOverdueFlags(overdueIds);
   };
 
-  const getTasksForDate = (date: Date) => {
+  // Only show tasks whose due_date matches the selected date
+  const getTasksForSelectedDate = (date: Date | undefined) => {
+    if (!date) return tasks;
     const dateStr = format(date, 'yyyy-MM-dd');
-    return tasks.filter(task => {
-      const taskStart = new Date(task.start_date);
-      const taskEnd = new Date(task.end_date);
-      const checkDate = new Date(dateStr);
-      
-      return isWithinInterval(checkDate, { start: taskStart, end: taskEnd }) ||
-             task.start_date === dateStr ||
-             task.end_date === dateStr;
-    });
+    return tasks.filter(task => new Date(task.due_date).toISOString().split('T')[0] === dateStr);
   };
 
   const getStatusColor = (status: Task['status']) => {
@@ -404,7 +399,7 @@ const TimelineView = ({ eventId }: TimelineViewProps) => {
 
       {/* Tasks List */}
       <div className="space-y-4">
-        {tasks.map((task) => (
+        {getTasksForSelectedDate(selectedDate).map((task) => (
           <Card 
             key={task.id} 
             className={cn(
