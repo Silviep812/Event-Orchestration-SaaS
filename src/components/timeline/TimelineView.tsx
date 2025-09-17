@@ -193,11 +193,40 @@ const TimelineView = ({ eventId }: TimelineViewProps) => {
     setOverdueFlags(overdueIds);
   };
 
-  // Only show tasks whose due_date matches the selected date
+  // Filter tasks by day, week, or month of selectedDate
   const getTasksForSelectedDate = (date: Date | undefined) => {
     if (!date) return tasks;
     const dateStr = format(date, 'yyyy-MM-dd');
-    return tasks.filter(task => new Date(task.due_date).toISOString().split('T')[0] === dateStr);
+    if (viewMode === 'day') {
+      return tasks.filter(task => {
+        if (!task.due_date) return false;
+        return format(new Date(task.due_date), 'yyyy-MM-dd') === dateStr;
+      });
+    }
+    if (viewMode === 'week') {
+      // Get start and end of week (Sunday to Saturday)
+      const startOfWeek = new Date(date);
+      startOfWeek.setDate(date.getDate() - date.getDay());
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 6);
+      return tasks.filter(task => {
+        if (!task.due_date) return false;
+        const due = new Date(task.due_date);
+        return due >= startOfWeek && due <= endOfWeek;
+      });
+    }
+    if (viewMode === 'month') {
+      const year = date.getFullYear();
+      const month = date.getMonth();
+      const startOfMonth = new Date(year, month, 1);
+      const endOfMonth = new Date(year, month + 1, 0);
+      return tasks.filter(task => {
+        if (!task.due_date) return false;
+        const due = new Date(task.due_date);
+        return due >= startOfMonth && due <= endOfMonth;
+      });
+    }
+    return tasks;
   };
 
   const getStatusColor = (status: Task['status']) => {
