@@ -36,6 +36,7 @@ interface Task {
   estimated_hours?: number;
   dependencies?: string[];
   event_id?: string;
+  due_date?: string;
 }
 
 interface TimelineViewProps {
@@ -51,71 +52,85 @@ const TimelineView = ({ eventId }: TimelineViewProps) => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  // Mock tasks for demonstration
+  // Fetch real tasks from database
   useEffect(() => {
-    const mockTasks: Task[] = [
-      {
-        id: '1',
-        title: 'Venue Booking',
-        description: 'Secure and confirm venue reservation',
-        start_date: format(new Date(), 'yyyy-MM-dd'),
-        end_date: format(addDays(new Date(), 2), 'yyyy-MM-dd'),
-        start_time: '09:00',
-        end_time: '17:00',
-        status: 'in_progress',
-        priority: 'high',
-        estimated_hours: 16,
-        dependencies: [],
-        event_id: eventId
-      },
-      {
-        id: '2',
-        title: 'Catering Selection',
-        description: 'Choose catering service and menu',
-        start_date: format(addDays(new Date(), 1), 'yyyy-MM-dd'),
-        end_date: format(addDays(new Date(), 3), 'yyyy-MM-dd'),
-        start_time: '10:00',
-        end_time: '16:00',
-        status: 'not_started',
-        priority: 'medium',
-        estimated_hours: 12,
-        dependencies: ['1'],
-        event_id: eventId
-      },
-      {
-        id: '3',
-        title: 'Equipment Setup',
-        description: 'Setup audio/visual equipment',
-        start_date: format(addDays(new Date(), 5), 'yyyy-MM-dd'),
-        end_date: format(addDays(new Date(), 5), 'yyyy-MM-dd'),
-        start_time: '08:00',
-        end_time: '12:00',
-        status: 'not_started',
-        priority: 'urgent',
-        estimated_hours: 4,
-        dependencies: ['1'],
-        event_id: eventId
-      },
-      {
-        id: '4',
-        title: 'Final Inspection',
-        description: 'Final walkthrough and inspection',
-        start_date: format(addDays(new Date(), -1), 'yyyy-MM-dd'),
-        end_date: format(addDays(new Date(), -1), 'yyyy-MM-dd'),
-        start_time: '14:00',
-        end_time: '18:00',
-        status: 'overdue',
-        priority: 'high',
-        estimated_hours: 4,
-        dependencies: ['1', '2', '3'],
-        event_id: eventId
-      }
-    ];
+    const fetchTasks = async () => {
+      try {
+        setLoading(true);
+        let query = supabase
+          .from('tasks')
+          .select(`
+            id,
+            title,
+            description,
+            due_date,
+            status,
+            priority,
+            assigned_to,
+            estimated_hours,
+            event_id,
+            created_at,
+            updated_at
+          `)
+          .order('due_date', { ascending: true });
 
-    setTasks(mockTasks);
-    analyzeConstraints(mockTasks);
-    setLoading(false);
-  }, [eventId]);
+        // Filter by event if eventId is provided
+        if (eventId) {
+          query = query.eq('event_id', eventId);
+        }
+
+        const { data: tasksData, error } = await query;
+
+        if (error) {
+          console.error('Error fetching tasks:', error);
+          toast({
+            title: "Error",
+            description: "Failed to load tasks",
+            variant: "destructive"
+          });
+          return;
+        }
+
+        // Transform database tasks to component format
+        const transformedTasks: Task[] = (tasksData || []).map(task => {
+          const dueDate = task.due_date ? new Date(task.due_date) : new Date();
+          const startDate = format(dueDate, 'yyyy-MM-dd');
+          const endDate = startDate; // Default end date same as start
+          
+          return {
+            id: task.id,
+            title: task.title,
+            description: task.description || '',
+            start_date: startDate,
+            end_date: endDate,
+            start_time: format(dueDate, 'HH:mm'),
+            end_time: format(addDays(dueDate, 0).setHours(dueDate.getHours() + (task.estimated_hours || 1)), 'HH:mm'),
+            status: task.status as Task['status'],
+            priority: task.priority as Task['priority'],
+            assigned_to: task.assigned_to || undefined,
+            estimated_hours: task.estimated_hours || 1,
+            dependencies: [], // TODO: Add dependencies support
+            event_id: task.event_id || undefined,
+            due_date: task.due_date
+          };
+        });
+
+        setTasks(transformedTasks);
+        analyzeConstraints(transformedTasks);
+      } catch (error) {
+        console.error('Error in fetchTasks:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load tasks",
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTasks();
+  }, [eventId, toast]);
 
   const analyzeConstraints = (taskList: Task[]) => {
     const now = new Date();
@@ -286,17 +301,64 @@ const TimelineView = ({ eventId }: TimelineViewProps) => {
     );
   };
 
-  const updateTask = (taskId: string, updates: Partial<Task>) => {
-    const updatedTasks = tasks.map(task => 
-      task.id === taskId ? { ...task, ...updates } : task
-    );
-    setTasks(updatedTasks);
-    analyzeConstraints(updatedTasks);
-    
-    toast({
-      title: "Task Updated",
-      description: "Timeline has been recalculated for constraints",
-    });
+  const updateTask = async (taskId: string, updates: Partial<Task>) => {
+    try {
+      // Prepare update data for database
+      const updateData: any = {};
+      
+      if (updates.status) updateData.status = updates.status;
+      if (updates.priority) updateData.priority = updates.priority;
+      if (updates.title) updateData.title = updates.title;
+      if (updates.description) updateData.description = updates.description;
+      if (updates.estimated_hours) updateData.estimated_hours = updates.estimated_hours;
+      if (updates.assigned_to) updateData.assigned_to = updates.assigned_to;
+      
+      // Handle date/time updates
+      if (updates.start_date || updates.start_time || updates.end_date || updates.end_time) {
+        const currentTask = tasks.find(t => t.id === taskId);
+        if (currentTask) {
+          const startDate = updates.start_date || currentTask.start_date;
+          const startTime = updates.start_time || currentTask.start_time || '09:00';
+          const newDueDate = new Date(`${startDate}T${startTime}:00`);
+          updateData.due_date = newDueDate.toISOString();
+        }
+      }
+
+      // Update in database
+      const { error } = await supabase
+        .from('tasks')
+        .update(updateData)
+        .eq('id', taskId);
+
+      if (error) {
+        console.error('Error updating task:', error);
+        toast({
+          title: "Error",
+          description: "Failed to update task",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Update local state
+      const updatedTasks = tasks.map(task => 
+        task.id === taskId ? { ...task, ...updates } : task
+      );
+      setTasks(updatedTasks);
+      analyzeConstraints(updatedTasks);
+      
+      toast({
+        title: "Task Updated",
+        description: "Timeline has been recalculated for constraints",
+      });
+    } catch (error) {
+      console.error('Error in updateTask:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update task",
+        variant: "destructive"
+      });
+    }
   };
 
   if (loading) {
