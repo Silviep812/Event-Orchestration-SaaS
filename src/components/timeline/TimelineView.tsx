@@ -15,11 +15,8 @@ import {
   CalendarIcon, 
   Clock, 
   AlertTriangle, 
-  CheckCircle, 
   XCircle, 
-  Plus,
   Flag,
-  Trash2
 } from "lucide-react";
 
 interface Task {
@@ -30,7 +27,7 @@ interface Task {
   end_date: string;
   start_time?: string;
   end_time?: string;
-  status: 'not_started' | 'in_progress' | 'completed' | 'overdue';
+  status: 'not_started' | 'in_progress' | 'completed' | 'on_hold' | 'cancelled' | 'overdue';
   priority: 'low' | 'medium' | 'high' | 'urgent';
   assigned_to?: string;
   estimated_hours?: number;
@@ -42,6 +39,7 @@ interface TimelineViewProps {
   eventId?: string;
 }
 
+
 const TimelineView = ({ eventId }: TimelineViewProps) => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
@@ -51,70 +49,98 @@ const TimelineView = ({ eventId }: TimelineViewProps) => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  // Mock tasks for demonstration
-  useEffect(() => {
-    const mockTasks: Task[] = [
-      {
-        id: '1',
-        title: 'Venue Booking',
-        description: 'Secure and confirm venue reservation',
-        start_date: format(new Date(), 'yyyy-MM-dd'),
-        end_date: format(addDays(new Date(), 2), 'yyyy-MM-dd'),
-        start_time: '09:00',
-        end_time: '17:00',
-        status: 'in_progress',
-        priority: 'high',
-        estimated_hours: 16,
-        dependencies: [],
-        event_id: eventId
-      },
-      {
-        id: '2',
-        title: 'Catering Selection',
-        description: 'Choose catering service and menu',
-        start_date: format(addDays(new Date(), 1), 'yyyy-MM-dd'),
-        end_date: format(addDays(new Date(), 3), 'yyyy-MM-dd'),
-        start_time: '10:00',
-        end_time: '16:00',
-        status: 'not_started',
-        priority: 'medium',
-        estimated_hours: 12,
-        dependencies: ['1'],
-        event_id: eventId
-      },
-      {
-        id: '3',
-        title: 'Equipment Setup',
-        description: 'Setup audio/visual equipment',
-        start_date: format(addDays(new Date(), 5), 'yyyy-MM-dd'),
-        end_date: format(addDays(new Date(), 5), 'yyyy-MM-dd'),
-        start_time: '08:00',
-        end_time: '12:00',
-        status: 'not_started',
-        priority: 'urgent',
-        estimated_hours: 4,
-        dependencies: ['1'],
-        event_id: eventId
-      },
-      {
-        id: '4',
-        title: 'Final Inspection',
-        description: 'Final walkthrough and inspection',
-        start_date: format(addDays(new Date(), -1), 'yyyy-MM-dd'),
-        end_date: format(addDays(new Date(), -1), 'yyyy-MM-dd'),
-        start_time: '14:00',
-        end_time: '18:00',
-        status: 'overdue',
-        priority: 'high',
-        estimated_hours: 4,
-        dependencies: ['1', '2', '3'],
-        event_id: eventId
-      }
-    ];
+  // Old mock data for reference
+  // const mockTasks: Task[] = [
+  //    {
+  //      id: '1',
+  //      title: 'Venue Booking',
+  //      description: 'Secure and confirm venue reservation',
+  //      start_date: format(new Date(), 'yyyy-MM-dd'),
+  //      end_date: format(addDays(new Date(), 2), 'yyyy-MM-dd'),
+  //      start_time: '09:00',
+  //      end_time: '17:00',
+  //      status: 'in_progress',
+  //      priority: 'high',
+  //      estimated_hours: 16,
+  //      dependencies: [],
+  //      event_id: eventId
+  //    },
+  //    {
+  //      id: '2',
+  //      title: 'Catering Selection',
+  //      description: 'Choose catering service and menu',
+  //      start_date: format(addDays(new Date(), 1), 'yyyy-MM-dd'),
+  //      end_date: format(addDays(new Date(), 3), 'yyyy-MM-dd'),
+  //      start_time: '10:00',
+  //      end_time: '16:00',
+  //      status: 'not_started',
+  //      priority: 'medium',
+  //      estimated_hours: 12,
+  //      dependencies: ['1'],
+  //      event_id: eventId
+  //    },
+  //    {
+  //      id: '3',
+  //      title: 'Equipment Setup',
+  //      description: 'Setup audio/visual equipment',
+  //      start_date: format(addDays(new Date(), 5), 'yyyy-MM-dd'),
+  //      end_date: format(addDays(new Date(), 5), 'yyyy-MM-dd'),
+  //      start_time: '08:00',
+  //      end_time: '12:00',
+  //      status: 'not_started',
+  //      priority: 'urgent',
+  //      estimated_hours: 4,
+  //      dependencies: ['1'],
+  //      event_id: eventId
+  //    },
+  //    {
+  //      id: '4',
+  //      title: 'Final Inspection',
+  //      description: 'Final walkthrough and inspection',
+  //      start_date: format(addDays(new Date(), -1), 'yyyy-MM-dd'),
+  //      end_date: format(addDays(new Date(), -1), 'yyyy-MM-dd'),
+  //      start_time: '14:00',
+  //      end_time: '18:00',
+  //      status: 'overdue',
+  //      priority: 'high',
+  //      estimated_hours: 4,
+  //      dependencies: ['1', '2', '3'],
+  //      event_id: eventId
+  //    }
 
-    setTasks(mockTasks);
-    analyzeConstraints(mockTasks);
-    setLoading(false);
+
+  // Fetch real tasks for the selected event
+  useEffect(() => {
+    if (!eventId) {
+      setTasks([]);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    const fetchTasks = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('tasks_new')
+          .select('*')
+          .eq('event_id', eventId)
+          .order('due_date', { ascending: true });
+          console.log('Fetched tasks:', data, error);
+        if (error) throw error;
+        setTasks(data || []);
+        analyzeConstraints(data || []);
+      } catch (error) {
+        toast({
+          title: 'Error fetching tasks',
+          description: 'Could not load tasks for this event.',
+          variant: 'destructive',
+        });
+        setTasks([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTasks();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventId]);
 
   const analyzeConstraints = (taskList: Task[]) => {
