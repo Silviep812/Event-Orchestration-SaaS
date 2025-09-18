@@ -32,9 +32,11 @@ export default function CreateEvent() {
   const { toast } = useToast();
   const navigate = useNavigate();
   
-  const { register, handleSubmit, formState: { errors }, reset, control } = useForm<EventFormData>();
+  const { register, handleSubmit, formState: { errors }, reset, control, watch, setValue } = useForm<EventFormData>();
 
   const [eventThemes, setEventThemes] = useState<{ id: string; name: string }[]>([]);
+  const [eventTypes, setEventTypes] = useState<{ id: string; name: string; theme_id: string }[]>([]);
+  const selectedThemeId = watch("theme_id");
   
   useEffect(() => {
     const fetchThemes = async () => {
@@ -53,6 +55,33 @@ export default function CreateEvent() {
     };
     fetchThemes();
   }, []);
+
+  useEffect(() => {
+    const fetchEventTypes = async () => {
+      if (!selectedThemeId) {
+        setEventTypes([]);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('event_types')
+        .select('id, name, theme_id')
+        .eq('theme_id', selectedThemeId)
+        .order('name');
+      
+      if (error) {
+        console.error('Error fetching event types:', error);
+        setEventTypes([]);
+        return;
+      }
+      
+      setEventTypes(data || []);
+    };
+    
+    fetchEventTypes();
+    // Reset event type when theme changes
+    setValue("type", "");
+  }, [selectedThemeId, setValue]);
 
   const addTag = () => {
     if (newTag.trim() && !tags.includes(newTag.trim())) {
@@ -215,23 +244,37 @@ export default function CreateEvent() {
                   control={control}
                   rules={{ required: "Event type is required" }}
                   render={({ field }) => (
-                    <Select value={field.value} onValueChange={field.onChange}>
+                    <Select 
+                      value={field.value} 
+                      onValueChange={field.onChange}
+                      disabled={!selectedThemeId}
+                    >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select event type" />
+                        <SelectValue 
+                          placeholder={
+                            selectedThemeId 
+                              ? "Select event type" 
+                              : "Select theme first"
+                          } 
+                        />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="conference">Conference</SelectItem>
-                        <SelectItem value="workshop">Workshop</SelectItem>
-                        <SelectItem value="meeting">Meeting</SelectItem>
-                        <SelectItem value="party">Party</SelectItem>
-                        <SelectItem value="wedding">Wedding</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
+                        {eventTypes.map((type) => (
+                          <SelectItem key={type.id} value={type.name}>
+                            {type.name}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   )}
                 />
                 {errors.type && (
                   <p className="text-sm text-destructive mt-1">{errors.type.message}</p>
+                )}
+                {!selectedThemeId && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Please select an event theme first to see available types.
+                  </p>
                 )}
               </div>
 
