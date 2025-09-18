@@ -21,33 +21,6 @@ export default function ThemesDirectory() {
     }
   };
 
-  const stats = [
-    {
-      title: "Total Themes",
-      value: "7",
-      description: "Curated event themes",
-      icon: Palette,
-    },
-    {
-      title: "Total Uses",
-      value: "13.1K",
-      description: "Theme installations",
-      icon: Download,
-    },
-    {
-      title: "Average Rating",
-      value: "4.7",
-      description: "User satisfaction",
-      icon: Star,
-    },
-    {
-      title: "Active Users",
-      value: "2.4K",
-      description: "Monthly active users",
-      icon: Users,
-    },
-  ];
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -69,22 +42,6 @@ export default function ThemesDirectory() {
             </Button>
           )}
         </div>
-      </div>
-
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        {stats.map((stat, index) => (
-          <Card key={index}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-              <stat.icon className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
-              <p className="text-xs text-muted-foreground">{stat.description}</p>
-            </CardContent>
-          </Card>
-        ))}
       </div>
 
       {/* Selected Theme Banner */}
