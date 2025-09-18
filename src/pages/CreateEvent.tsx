@@ -125,7 +125,7 @@ export default function CreateEvent() {
         user_id: user.id,
         title: data.title,
         description: data.description || null,
-        event_type: data.type,
+        type_id: data.type,
         venue: data.venue,
         start_date: dateRange.from.toISOString().split('T')[0],
         end_date: dateRange.to ? dateRange.to.toISOString().split('T')[0] : null,
