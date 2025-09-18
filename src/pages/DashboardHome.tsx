@@ -103,14 +103,6 @@ const DashboardHome = () => {
       trend: "+5%",
       color: "accent"
     },
-    {
-      title: "Lead Conversion",
-      value: loading ? "..." : `${analytics.leadConversion}%`,
-      description: "Leads to events ratio",
-      icon: Target,
-      trend: "+3%",
-      color: "success"
-    },
   ];
 
   return (
@@ -145,7 +137,7 @@ const DashboardHome = () => {
       </div>
 
       {/* Enhanced Analytics KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {stats.map((stat, index) => {
           const gradients = ['bg-gradient-primary', 'bg-gradient-secondary', 'bg-gradient-accent', 'bg-gradient-success'];
           const shadows = ['shadow-primary', 'shadow-secondary', 'shadow-accent', 'shadow-success'];
@@ -260,13 +252,6 @@ const DashboardHome = () => {
                     <span>{analytics.resourceUtilization}%</span>
                   </div>
                   <Progress value={analytics.resourceUtilization} className="h-2" />
-                </div>
-                <div className="space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span>Lead Conversion</span>
-                    <span>{analytics.leadConversion}%</span>
-                  </div>
-                  <Progress value={analytics.leadConversion} className="h-2" />
                 </div>
               </CardContent>
             </Card>
