@@ -573,7 +573,7 @@ const ManageEvent = () => {
                             onClick={() => selectedEvent && saveEvent(selectedEvent, true)}
                             size="sm"
                             disabled={saving}
-                            className="bg-gradient-primary hover:opacity-90"
+                            className="hover:opacity-90"
                           >
                             <Save className="h-4 w-4 mr-2" />
                             Save Changes
