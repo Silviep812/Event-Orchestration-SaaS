@@ -260,7 +260,7 @@ export default function CreateEvent() {
                       </SelectTrigger>
                       <SelectContent>
                         {eventTypes.map((type) => (
-                          <SelectItem key={type.id} value={type.name}>
+                          <SelectItem key={type.id} value={type.id}>
                             {type.name}
                           </SelectItem>
                         ))}

@@ -193,7 +193,7 @@ export default function Analytics({ onInteractionTrack }: AnalyticsProps = {}) {
         if (existing) {
           existing.count += 1;
         } else {
-          acc.push({ location, count: 1, theme: event.event_type || 'General' });
+          acc.push({ location, count: 1, theme: 'General' });
         }
         return acc;
       }, []) || [];

@@ -666,7 +666,6 @@ export type Database = {
           description: string | null
           end_date: string | null
           end_time: string | null
-          event_type: string
           expected_attendees: number | null
           id: string
           start_date: string
@@ -674,6 +673,7 @@ export type Database = {
           tags: string[] | null
           theme_id: string | null
           title: string
+          type_id: string | null
           updated_at: string
           user_id: string
           venue: string
@@ -684,7 +684,6 @@ export type Database = {
           description?: string | null
           end_date?: string | null
           end_time?: string | null
-          event_type: string
           expected_attendees?: number | null
           id?: string
           start_date: string
@@ -692,6 +691,7 @@ export type Database = {
           tags?: string[] | null
           theme_id?: string | null
           title: string
+          type_id?: string | null
           updated_at?: string
           user_id: string
           venue: string
@@ -702,7 +702,6 @@ export type Database = {
           description?: string | null
           end_date?: string | null
           end_time?: string | null
-          event_type?: string
           expected_attendees?: number | null
           id?: string
           start_date?: string
@@ -710,6 +709,7 @@ export type Database = {
           tags?: string[] | null
           theme_id?: string | null
           title?: string
+          type_id?: string | null
           updated_at?: string
           user_id?: string
           venue?: string
@@ -720,6 +720,13 @@ export type Database = {
             columns: ["theme_id"]
             isOneToOne: false
             referencedRelation: "event_themes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_type_id_fkey"
+            columns: ["type_id"]
+            isOneToOne: false
+            referencedRelation: "event_types"
             referencedColumns: ["id"]
           },
         ]

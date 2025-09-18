@@ -62,7 +62,7 @@ const EventCalendar = () => {
         date: parseISO(event.start_date),
         time: format(parseISO(event.start_date), 'HH:mm'),
         location: event.venue || 'TBD',
-        type: getEventTypeFromDatabase(event.event_type),
+        type: getEventTypeFromDatabase('general'),
         attendees: event.expected_attendees || 0,
         description: event.description || '',
         status: 'planned' as const
