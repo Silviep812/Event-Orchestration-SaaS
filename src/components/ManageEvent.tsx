@@ -27,12 +27,24 @@ interface ManageEventData {
   start_time?: string;
   end_time?: string;
   location?: string;
-  theme?: string;
-  type?: string;
+  theme_id?: string;
+  type_id?: string;
   status?: string;
   budget?: number;
   created_at?: string;
   updated_at?: string;
+  venue?: string;
+}
+
+interface EventTheme {
+  id: string;
+  name: string;
+}
+
+interface EventType {
+  id: string;
+  name: string;
+  theme_id: string;
 }
 
 interface ChangeLog {
@@ -70,6 +82,8 @@ const ManageEvent = () => {
     priority: 'medium',
     type: 'change_request'
   });
+  const [eventThemes, setEventThemes] = useState<EventTheme[]>([]);
+  const [eventTypes, setEventTypes] = useState<EventType[]>([]);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -100,6 +114,40 @@ const ManageEvent = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchThemes = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('event_themes')
+        .select('id, name')
+        .order('name');
+      
+      if (error) throw error;
+      setEventThemes(data || []);
+    } catch (error) {
+      console.error('Error fetching themes:', error);
+    }
+  };
+
+  const fetchEventTypes = async (themeId?: string) => {
+    try {
+      let query = supabase
+        .from('event_types')
+        .select('id, name, theme_id')
+        .order('name');
+      
+      if (themeId) {
+        query = query.eq('theme_id', themeId);
+      }
+
+      const { data, error } = await query;
+      
+      if (error) throw error;
+      setEventTypes(data || []);
+    } catch (error) {
+      console.error('Error fetching event types:', error);
     }
   };
 
@@ -134,9 +182,9 @@ const ManageEvent = () => {
           end_date: eventData.end_date,
           start_time: eventData.start_time,
           end_time: eventData.end_time,
-          location: eventData.location,
-          theme: eventData.theme,
-          type: eventData.type,
+          venue: eventData.venue,
+          theme_id: eventData.theme_id,
+          type_id: eventData.type_id,
           status: eventData.status,
           budget: eventData.budget,
           updated_at: new Date().toISOString(),
@@ -302,8 +350,16 @@ const ManageEvent = () => {
   useEffect(() => {
     if (user) {
       fetchEvents();
+      fetchThemes();
+      fetchEventTypes();
     }
   }, [user]);
+
+  useEffect(() => {
+    if (selectedEvent?.theme_id) {
+      fetchEventTypes(selectedEvent.theme_id);
+    }
+  }, [selectedEvent?.theme_id]);
 
   useEffect(() => {
     if (selectedEvent?.id) {
@@ -460,7 +516,7 @@ const ManageEvent = () => {
                     {event.title || 'Unnamed Event'}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {event.type} • {event.status}
+                    {event.status}
                   </div>
                   {event.start_date && (
                     <div className="text-xs text-muted-foreground">
@@ -540,13 +596,26 @@ const ManageEvent = () => {
                       </div>
                       
                       <div>
-                        <Label htmlFor="type">Event Type</Label>
-                        <Input
-                          id="type"
-                          value={selectedEvent.type || ''}
-                          onChange={(e) => handleFieldChange('type', e.target.value)}
-                          placeholder="Enter event type"
-                        />
+                        <Label htmlFor="theme">Event Theme</Label>
+                        <Select
+                          value={selectedEvent.theme_id || ''}
+                          onValueChange={(value) => {
+                            handleFieldChange('theme_id', value);
+                            // Reset type when theme changes
+                            handleFieldChange('type_id', '');
+                          }}
+                        >
+                          <SelectTrigger className="bg-background border-border z-50">
+                            <SelectValue placeholder="Select theme" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-background border-border shadow-lg z-50">
+                            {eventThemes.map((theme) => (
+                              <SelectItem key={theme.id} value={theme.id}>
+                                {theme.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                       
                       <div>
@@ -590,12 +659,40 @@ const ManageEvent = () => {
                       </div>
                       
                       <div>
-                        <Label htmlFor="location">Location</Label>
+                        <Label htmlFor="type">Event Type</Label>
+                        <Select
+                          value={selectedEvent.type_id || ''}
+                          onValueChange={(value) => handleFieldChange('type_id', value)}
+                          disabled={!selectedEvent.theme_id}
+                        >
+                          <SelectTrigger className="bg-background border-border z-50">
+                            <SelectValue 
+                              placeholder={
+                                selectedEvent.theme_id 
+                                  ? "Select event type" 
+                                  : "Select theme first"
+                              } 
+                            />
+                          </SelectTrigger>
+                          <SelectContent className="bg-background border-border shadow-lg z-50">
+                            {eventTypes
+                              .filter(type => type.theme_id === selectedEvent.theme_id)
+                              .map((type) => (
+                                <SelectItem key={type.id} value={type.id}>
+                                  {type.name}
+                                </SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="location">Venue</Label>
                         <Input
                           id="location"
-                          value={selectedEvent.location || ''}
-                          onChange={(e) => handleFieldChange('location', e.target.value)}
-                          placeholder="Enter event location"
+                          value={selectedEvent.venue || ''}
+                          onChange={(e) => handleFieldChange('venue', e.target.value)}
+                          placeholder="Enter venue name"
                         />
                       </div>
                       
@@ -628,15 +725,6 @@ const ManageEvent = () => {
                         </Select>
                       </div>
                       
-                      <div>
-                        <Label htmlFor="theme">Event Theme</Label>
-                        <Input
-                          id="theme"
-                          value={selectedEvent.theme || ''}
-                          onChange={(e) => handleFieldChange('theme', e.target.value)}
-                          placeholder="Enter event theme"
-                        />
-                      </div>
                       
                       <div className="md:col-span-2">
                         <Label htmlFor="description">Description</Label>
