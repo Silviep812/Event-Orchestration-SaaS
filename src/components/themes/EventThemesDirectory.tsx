@@ -34,7 +34,6 @@ interface ThemeDetails {
   icon: any;
   color: string;
   bgColor: string;
-  rating: number;
   usageCount: number;
   pricing: "free" | "premium";
   templates: number;
@@ -206,7 +205,6 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                   icon: getThemeIcon(item),
                   color: styles.color,
                   bgColor: styles.bgColor,
-                  rating: 4.0 + Math.random() * 1.0, // Random rating between 4.0-5.0
                   usageCount: Math.floor(Math.random() * 2000) + 100,
                   pricing: getPremiumStatus(item),
                   templates: Math.floor(Math.random() * 20) + 5,
@@ -224,7 +222,6 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                 icon: getThemeIcon(String(value)),
                 color: styles.color,
                 bgColor: styles.bgColor,
-                rating: 4.0 + Math.random() * 1.0,
                 usageCount: Math.floor(Math.random() * 2000) + 100,
                 pricing: getPremiumStatus(String(value)),
                 templates: Math.floor(Math.random() * 20) + 5,
@@ -246,7 +243,6 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
           icon: Heart,
           color: 'text-emerald-600',
           bgColor: 'bg-emerald-50',
-          rating: 4.5,
           usageCount: 850,
           pricing: 'free',
           templates: 12,
@@ -342,8 +338,6 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
       switch (sortBy) {
         case "name":
           return a.name.localeCompare(b.name);
-        case "rating":
-          return b.rating - a.rating;
         case "usage":
           return b.usageCount - a.usageCount;
         default: // popular
@@ -370,7 +364,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
       )
     );
     
-    return recommended.length > 0 ? recommended : themes.slice().sort((a, b) => b.rating - a.rating).slice(0, 3);
+    return recommended.length > 0 ? recommended : themes.slice().sort((a, b) => b.usageCount - a.usageCount).slice(0, 3);
   }, [userType, themes]);
 
   // Exclude recommended themes from the "All Themes" list to avoid duplicates
@@ -406,11 +400,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                     <p className="text-sm text-muted-foreground">{theme.description}</p>
                   </div>
                   <div className="text-right">
-                    <div className="flex items-center gap-1 text-sm">
-                      <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                      <span>{theme.rating}</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">{theme.usageCount} uses</p>
+                    <p className="text-sm text-muted-foreground">{theme.usageCount} uses</p>
                   </div>
                 </div>
                 
@@ -472,10 +462,6 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
             <CardDescription className="text-sm">{theme.description}</CardDescription>
             
             <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                <span>{theme.rating}</span>
-              </div>
               <span>{theme.usageCount} uses</span>
             </div>
           </div>
@@ -587,7 +573,6 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
             >
               <option value="popular">Most Popular</option>
               <option value="name">Name</option>
-              <option value="rating">Highest Rated</option>
               <option value="usage">Most Used</option>
             </select>
           </div>
