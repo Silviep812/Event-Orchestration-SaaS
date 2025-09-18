@@ -287,7 +287,6 @@ export const WorkflowDashboard = ({ userType, selectedTheme }: WorkflowDashboard
         <TabsList>
           <TabsTrigger value="timeline">Timeline View</TabsTrigger>
           <TabsTrigger value="kanban">Task Board</TabsTrigger>
-          <TabsTrigger value="calendar">Calendar View</TabsTrigger>
         </TabsList>
 
         <TabsContent value="timeline" className="space-y-4">
@@ -374,20 +373,6 @@ export const WorkflowDashboard = ({ userType, selectedTheme }: WorkflowDashboard
               </Card>
             ))}
           </div>
-        </TabsContent>
-
-        <TabsContent value="calendar">
-          <Card>
-            <CardHeader>
-              <CardTitle>Calendar View</CardTitle>
-              <CardDescription>View your workflow tasks in calendar format</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8 text-muted-foreground">
-                Calendar integration coming soon
-              </div>
-            </CardContent>
-          </Card>
         </TabsContent>
       </Tabs>
     </div>
