@@ -21,6 +21,7 @@ interface EventFormData {
   venue: string;
   budget: string;
   expectedAttendees: string;
+  theme_id: string;
 }
 
 export default function CreateEvent() {
@@ -33,28 +34,22 @@ export default function CreateEvent() {
   
   const { register, handleSubmit, formState: { errors }, reset, control } = useForm<EventFormData>();
 
-  const [themeOptions, setThemeOptions] = useState<string[]>([]);
+  const [eventThemes, setEventThemes] = useState<{ id: string; name: string }[]>([]);
   
   useEffect(() => {
     const fetchThemes = async () => {
       const { data, error } = await supabase
-        .from('Themes Directory')
-        .select('*');
+        .from('event_themes')
+        .select('id, name')
+        .order('name');
       
-      if (error || !data || data.length === 0) {
-        setThemeOptions([]);
+      if (error) {
+        console.error('Error fetching themes:', error);
+        setEventThemes([]);
         return;
       }
       
-      const row = data[0] as Record<string, any>;
-      const options = Object.entries(row)
-        .filter(([key, value]) => key !== 'created_at' && value)
-        .flatMap(([_, value]) => Array.isArray(value) ? value : [String(value)])
-        .filter((v) => v && v.trim().length > 0)
-        .map((v) => v.trim());
-      
-      const unique = Array.from(new Set(options)).sort((a, b) => a.localeCompare(b));
-      setThemeOptions(unique);
+      setEventThemes(data || []);
     };
     fetchThemes();
   }, []);
@@ -108,6 +103,7 @@ export default function CreateEvent() {
         budget: data.budget ? parseFloat(data.budget) : null,
         expected_attendees: data.expectedAttendees ? parseInt(data.expectedAttendees) : null,
         tags: tags.length > 0 ? tags : null,
+        theme_id: data.theme_id,
       };
 
       // Save to the new events table
@@ -187,6 +183,32 @@ export default function CreateEvent() {
               </div>
 
               <div>
+                <Label htmlFor="theme">Event Theme *</Label>
+                <Controller
+                  name="theme_id"
+                  control={control}
+                  rules={{ required: "Event theme is required" }}
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select event theme" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {eventThemes.map((theme) => (
+                          <SelectItem key={theme.id} value={theme.id}>
+                            {theme.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {errors.theme_id && (
+                  <p className="text-sm text-destructive mt-1">{errors.theme_id.message}</p>
+                )}
+              </div>
+
+              <div>
                 <Label htmlFor="type">Event Type *</Label>
                 <Controller
                   name="type"
@@ -198,11 +220,12 @@ export default function CreateEvent() {
                         <SelectValue placeholder="Select event type" />
                       </SelectTrigger>
                       <SelectContent>
-                        {themeOptions.map((name) => (
-                          <SelectItem key={name} value={name}>
-                            {name}
-                          </SelectItem>
-                        ))}
+                        <SelectItem value="conference">Conference</SelectItem>
+                        <SelectItem value="workshop">Workshop</SelectItem>
+                        <SelectItem value="meeting">Meeting</SelectItem>
+                        <SelectItem value="party">Party</SelectItem>
+                        <SelectItem value="wedding">Wedding</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
                       </SelectContent>
                     </Select>
                   )}

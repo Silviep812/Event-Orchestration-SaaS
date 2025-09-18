@@ -612,6 +612,24 @@ export type Database = {
         }
         Relationships: []
       }
+      event_themes: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       events: {
         Row: {
           budget: number | null
@@ -625,6 +643,7 @@ export type Database = {
           start_date: string
           start_time: string | null
           tags: string[] | null
+          theme_id: string | null
           title: string
           updated_at: string
           user_id: string
@@ -642,6 +661,7 @@ export type Database = {
           start_date: string
           start_time?: string | null
           tags?: string[] | null
+          theme_id?: string | null
           title: string
           updated_at?: string
           user_id: string
@@ -659,12 +679,21 @@ export type Database = {
           start_date?: string
           start_time?: string | null
           tags?: string[] | null
+          theme_id?: string | null
           title?: string
           updated_at?: string
           user_id?: string
           venue?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "events_theme_id_fkey"
+            columns: ["theme_id"]
+            isOneToOne: false
+            referencedRelation: "event_themes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       "Hospitality Directory": {
         Row: {
