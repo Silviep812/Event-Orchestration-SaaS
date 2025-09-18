@@ -27,7 +27,7 @@ interface Task {
   end_date: string;
   start_time?: string;
   end_time?: string;
-  status: 'not_started' | 'in_progress' | 'completed' | 'on_hold' | 'cancelled' | 'overdue';
+  status: 'not_started' | 'in_progress' | 'completed' | 'on_hold' | 'cancelled';
   priority: 'low' | 'medium' | 'high' | 'urgent';
   assigned_to?: string;
   estimated_hours?: number;
@@ -149,11 +149,13 @@ const TimelineView = ({ eventId }: TimelineViewProps) => {
     const conflictIds: string[] = [];
     const overdueIds: string[] = [];
 
-    // Check for overdue tasks
+    // Check for overdue tasks (computed based on due_date vs current time)
     taskList.forEach(task => {
-      const dueDate = new Date(task.due_date);
-      if (isAfter(now, dueDate) && task.status !== 'completed') {
-        overdueIds.push(task.id);
+      if (task.due_date) {
+        const dueDate = new Date(task.due_date);
+        if (isAfter(now, dueDate) && task.status !== 'completed') {
+          overdueIds.push(task.id);
+        }
       }
     });
 
@@ -229,7 +231,7 @@ const TimelineView = ({ eventId }: TimelineViewProps) => {
     return tasks;
   };
 
-  const getStatusColor = (status: Task['status']) => {
+  const getStatusColor = (status: Task['status'] | 'overdue') => {
     switch (status) {
       case 'completed': return 'bg-green-500';
       case 'in_progress': return 'bg-blue-500';
@@ -336,17 +338,35 @@ const TimelineView = ({ eventId }: TimelineViewProps) => {
     );
   };
 
-  const updateTask = (taskId: string, updates: Partial<Task>) => {
-    const updatedTasks = tasks.map(task => 
-      task.id === taskId ? { ...task, ...updates } : task
-    );
-    setTasks(updatedTasks);
-    analyzeConstraints(updatedTasks);
-    
-    toast({
-      title: "Task Updated",
-      description: "Timeline has been recalculated for constraints",
-    });
+  const updateTask = async (taskId: string, updates: Partial<Task>) => {
+    try {
+      // Update in Supabase first
+      const { error } = await supabase
+        .from('tasks_new')
+        .update(updates)
+        .eq('id', taskId);
+
+      if (error) throw error;
+
+      // Update local state only if Supabase update succeeds
+      const updatedTasks = tasks.map(task => 
+        task.id === taskId ? { ...task, ...updates } : task
+      );
+      setTasks(updatedTasks);
+      analyzeConstraints(updatedTasks);
+      
+      toast({
+        title: "Task Updated",
+        description: "Task has been saved successfully",
+      });
+    } catch (error) {
+      console.error('Error updating task:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save task changes",
+        variant: "destructive",
+      });
+    }
   };
 
   if (loading) {
@@ -441,7 +461,7 @@ const TimelineView = ({ eventId }: TimelineViewProps) => {
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
-                    <div className={cn("w-3 h-3 rounded-full", getStatusColor(task.status))} />
+                    <div className={cn("w-3 h-3 rounded-full", getStatusColor(overdueFlags.includes(task.id) ? 'overdue' : task.status))} />
                     <h3 className="font-medium">{task.title}</h3>
                     <Badge variant="outline" className={getPriorityColor(task.priority)}>
                       {task.priority}
@@ -475,7 +495,8 @@ const TimelineView = ({ eventId }: TimelineViewProps) => {
                     <SelectItem value="not_started">Not Started</SelectItem>
                     <SelectItem value="in_progress">In Progress</SelectItem>
                     <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="overdue">Overdue</SelectItem>
+                    <SelectItem value="on_hold">On Hold</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
