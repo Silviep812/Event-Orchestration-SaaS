@@ -630,6 +630,35 @@ export type Database = {
         }
         Relationships: []
       }
+      event_types: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          theme_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          theme_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          theme_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_types_theme_id_fkey"
+            columns: ["theme_id"]
+            isOneToOne: false
+            referencedRelation: "event_themes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       events: {
         Row: {
           budget: number | null
