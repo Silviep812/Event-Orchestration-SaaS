@@ -596,24 +596,19 @@ const ManageEvent = () => {
                       </div>
                       
                       <div>
-                        <Label htmlFor="theme">Event Theme</Label>
+                        <Label htmlFor="status">Event Status</Label>
                         <Select
-                          value={selectedEvent.theme_id || ''}
-                          onValueChange={(value) => {
-                            handleFieldChange('theme_id', value);
-                            // Reset type when theme changes
-                            handleFieldChange('type_id', '');
-                          }}
+                          value={selectedEvent.status || ''}
+                          onValueChange={(value) => handleFieldChange('status', value)}
                         >
-                          <SelectTrigger className="bg-background border-border z-50">
-                            <SelectValue placeholder="Select theme" />
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select status" />
                           </SelectTrigger>
-                          <SelectContent className="bg-background border-border shadow-lg z-50">
-                            {eventThemes.map((theme) => (
-                              <SelectItem key={theme.id} value={theme.id}>
-                                {theme.name}
-                              </SelectItem>
-                            ))}
+                          <SelectContent>
+                            <SelectItem value="pending">Pending</SelectItem>
+                            <SelectItem value="in_progress">In Progress</SelectItem>
+                            <SelectItem value="completed">Completed</SelectItem>
+                            <SelectItem value="cancelled">Cancelled</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -656,6 +651,29 @@ const ManageEvent = () => {
                           value={selectedEvent.end_time ? selectedEvent.end_time.slice(0, 5) : ''}
                           onChange={(e) => handleFieldChange('end_time', e.target.value)}
                         />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="theme">Event Theme</Label>
+                        <Select
+                          value={selectedEvent.theme_id || ''}
+                          onValueChange={(value) => {
+                            handleFieldChange('theme_id', value);
+                            // Reset type when theme changes
+                            handleFieldChange('type_id', '');
+                          }}
+                        >
+                          <SelectTrigger className="bg-background border-border z-50">
+                            <SelectValue placeholder="Select theme" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-background border-border shadow-lg z-50">
+                            {eventThemes.map((theme) => (
+                              <SelectItem key={theme.id} value={theme.id}>
+                                {theme.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                       
                       <div>
@@ -706,25 +724,6 @@ const ManageEvent = () => {
                           placeholder="Enter budget"
                         />
                       </div>
-                      
-                      <div>
-                        <Label htmlFor="status">Event Status</Label>
-                        <Select
-                          value={selectedEvent.status || ''}
-                          onValueChange={(value) => handleFieldChange('status', value)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select status" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="pending">Pending</SelectItem>
-                            <SelectItem value="in_progress">In Progress</SelectItem>
-                            <SelectItem value="completed">Completed</SelectItem>
-                            <SelectItem value="cancelled">Cancelled</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      
                       
                       <div className="md:col-span-2">
                         <Label htmlFor="description">Description</Label>
