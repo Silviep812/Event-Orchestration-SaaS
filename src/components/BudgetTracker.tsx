@@ -56,6 +56,7 @@ export function BudgetTracker({ eventId }: BudgetTrackerProps) {
   const [loading, setLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [userEvents, setUserEvents] = useState<Array<{id: string, event_start_date: string, event_title?: string}>>([]);
+  const [selectedEventFilter, setSelectedEventFilter] = useState<string>("all");
   const [newItem, setNewItem] = useState({
     category: "",
     item_name: "",
@@ -71,14 +72,17 @@ export function BudgetTracker({ eventId }: BudgetTrackerProps) {
   useEffect(() => {
     fetchBudgetItems();
     fetchUserEvents();
-  }, [eventId]);
+  }, [eventId, selectedEventFilter]);
 
   const fetchBudgetItems = async () => {
     try {
       let query = supabase.from('budget_items').select('*').order('created_at', { ascending: false });
       
-      if (eventId) {
-        query = query.eq('event_id', eventId);
+      // Use the selected filter, or eventId prop if provided
+      const filterEventId = eventId || (selectedEventFilter !== "all" ? selectedEventFilter : null);
+      
+      if (filterEventId) {
+        query = query.eq('event_id', filterEventId);
       }
       
       const { data, error } = await query;
@@ -245,6 +249,12 @@ export function BudgetTracker({ eventId }: BudgetTrackerProps) {
               Add Budget Item
             </Button>
           </DialogTrigger>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Budget Item
+            </Button>
+          </DialogTrigger>
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>Add Budget Item</DialogTitle>
@@ -345,6 +355,26 @@ export function BudgetTracker({ eventId }: BudgetTrackerProps) {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Event Filter */}
+      {!eventId && (
+        <div className="flex items-center gap-4">
+          <Label htmlFor="event-filter">Filter by Event:</Label>
+          <Select value={selectedEventFilter} onValueChange={setSelectedEventFilter}>
+            <SelectTrigger className="w-64">
+              <SelectValue placeholder="Select event to filter" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Events</SelectItem>
+              {userEvents.map((event) => (
+                <SelectItem key={event.id} value={event.id}>
+                  {event.event_title} {event.event_start_date && `(${format(new Date(event.event_start_date), 'MMM d, yyyy')})`}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       {/* Budget Summary */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
