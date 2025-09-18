@@ -258,7 +258,7 @@ const TimelineView = ({ eventId }: TimelineViewProps) => {
     );
 
     return (
-      <div className="grid grid-cols-2 gap-4">
+      <div className="space-y-4">
         <div>
           <Label>Start Date & Time</Label>
           <div className="flex gap-2">
