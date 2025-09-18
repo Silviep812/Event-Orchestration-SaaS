@@ -249,12 +249,6 @@ export function BudgetTracker({ eventId }: BudgetTrackerProps) {
               Add Budget Item
             </Button>
           </DialogTrigger>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Budget Item
-            </Button>
-          </DialogTrigger>
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>Add Budget Item</DialogTitle>
