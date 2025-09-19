@@ -192,7 +192,7 @@ export default function Collaborate() {
     });
   };
 
-  const handleInviteMember = () => {
+  const handleInviteMember = async () => {
     if (!inviteEmail || !inviteRole) {
       toast({
         title: "Error",
@@ -202,15 +202,42 @@ export default function Collaborate() {
       return;
     }
 
-    // Here you would normally send an invitation
-    toast({
-      title: "Invitation sent",
-      description: `Invitation sent to ${inviteEmail} as ${inviteRole}.`,
-    });
+    try {
+      const { data, error } = await supabase.functions.invoke('send-team-invitation', {
+        body: {
+          email: inviteEmail,
+          role: inviteRole,
+          inviterName: user?.email?.split('@')[0] || 'Team Admin',
+          inviterEmail: user?.email || 'admin@example.com'
+        }
+      });
 
-    setInviteEmail("");
-    setInviteRole("");
-    setIsInviteDialogOpen(false);
+      if (error) {
+        console.error('Error sending invitation:', error);
+        toast({
+          title: "Error",
+          description: "Failed to send invitation. Please try again.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: "Invitation sent",
+        description: `Invitation sent to ${inviteEmail} as ${inviteRole}.`,
+      });
+
+      setInviteEmail("");
+      setInviteRole("");
+      setIsInviteDialogOpen(false);
+    } catch (error) {
+      console.error('Error sending invitation:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send invitation. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const getStatusColor = (status: string) => {
