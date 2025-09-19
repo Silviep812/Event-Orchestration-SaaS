@@ -36,8 +36,6 @@ interface ThemeDetails {
   bgColor: string;
   usageCount: number;
   pricing: "free" | "premium";
-  templates: number;
-  vendors: number;
 }
 
 // Theme icon mapping
@@ -82,39 +80,28 @@ const getThemeStyles = (category: string) => {
   return styleMap[category] || { color: "text-gray-600", bgColor: "bg-gray-50" };
 };
 
-// Get premium pricing status
-const getPremiumStatus = (themeName: string): "free" | "premium" => {
-  const premiumThemes = [
-    'award ceremony', 'awards ceremony', 'charity gala', 'conference', 
-    'seminar', 'business networking', 'product launch'
-  ];
+// Get category from theme name
+const getCategoryFromName = (themeName: string): string => {
+  const name = themeName.toLowerCase();
   
-  return premiumThemes.some(premium => 
-    themeName.toLowerCase().includes(premium.toLowerCase())
-  ) ? 'premium' : 'free';
-};
-
-// Get category from database column key
-const getCategoryFromKey = (key: string): string => {
-  const categoryMap: { [key: string]: string } = {
-    wedding: "celebration",
-    bridal_shower: "celebration", 
-    baby_shower: "celebration",
-    parties: "celebration",
-    special_event: "celebration",
-    Celebration: "celebration",
-    reunion: "social",
-    meet_up: "social",
-    Dining: "social",
-    sporting: "entertainment",
-    Festival: "entertainment",
-    market_place: "business",
-    retreats: "business",
-    health_wellness: "health",
-    'health and wellness': "health",
-  };
+  if (name.includes('wedding') || name.includes('bridal') || name.includes('baby shower') || 
+      name.includes('birthday') || name.includes('party') || name.includes('celebration')) {
+    return "celebration";
+  }
+  if (name.includes('business') || name.includes('corporate') || name.includes('conference') || 
+      name.includes('seminar') || name.includes('networking')) {
+    return "business";
+  }
+  if (name.includes('festival') || name.includes('music') || name.includes('entertainment') || 
+      name.includes('concert') || name.includes('show')) {
+    return "entertainment";
+  }
+  if (name.includes('health') || name.includes('wellness') || name.includes('fitness') || 
+      name.includes('yoga') || name.includes('spa')) {
+    return "health";
+  }
   
-  return categoryMap[key] || "social";
+  return "social";
 };
 
 interface EventThemesDirectoryProps {
@@ -137,10 +124,11 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
     const fetchThemes = async () => {
       try {
         setLoading(true);
-        console.log('Fetching themes from Supabase...');
+        console.log('Fetching themes from event_themes table...');
         const { data, error } = await supabase
-          .from('Themes Directory')
-          .select('*');
+          .from('event_themes')
+          .select('id, name, description, tags, premium, created_at')
+          .order('name');
 
         console.log('Supabase response:', { data, error });
 
@@ -159,98 +147,25 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
         }
 
         // Transform Supabase data into ThemeDetails format
-        const transformedThemes: ThemeDetails[] = [];
-        
-        if (data && data.length > 0) {
-          const themeRow = data[0]; // Get the first (and only) row
-          console.log('Processing theme row:', themeRow);
+        const transformedThemes: ThemeDetails[] = data.map((theme) => {
+          const category = getCategoryFromName(theme.name);
+          const styles = getThemeStyles(category);
           
-            // Process each column that contains theme data
-            Object.entries(themeRow).forEach(([key, value]) => {
-              console.log('Processing key-value pair:', key, value);
-              if (key === 'created_at' || !value) {
-                console.log('Skipping key:', key, 'value:', value);
-                return;
-              }
-              
-              // Filter out unwanted themes
-              const excludedThemes = ['basketball games', 'football event', 'professional groups'];
-              if (Array.isArray(value)) {
-                value = value.filter((item: string) => 
-                  !excludedThemes.some(excluded => 
-                    item.toLowerCase().includes(excluded.toLowerCase())
-                  )
-                );
-                if (value.length === 0) return;
-              } else if (typeof value === 'string') {
-                if (excludedThemes.some(excluded => 
-                  String(value).toLowerCase().includes(excluded.toLowerCase())
-                )) {
-                  return;
-                }
-              }
-            
-            const category = getCategoryFromKey(key);
-            const styles = getThemeStyles(category);
-            
-            // Handle array values (like market_place, meet_up, etc.)
-            if (Array.isArray(value)) {
-              value.forEach((item: string, index: number) => {
-                transformedThemes.push({
-                  id: `${key}-${index}`,
-                  name: item,
-                  description: getThemeDescription(category),
-                  category,
-                  tags: getThemeTagsForCategory(category),
-                  icon: getThemeIcon(item),
-                  color: styles.color,
-                  bgColor: styles.bgColor,
-                  usageCount: Math.floor(Math.random() * 2000) + 100,
-                  pricing: getPremiumStatus(item),
-                  templates: Math.floor(Math.random() * 20) + 5,
-                  vendors: Math.floor(Math.random() * 15) + 3,
-                });
-              });
-            } else {
-              // Handle string values
-              transformedThemes.push({
-                id: key,
-                name: String(value),
-                description: getThemeDescription(category),
-                category,
-                tags: getThemeTagsForCategory(category),
-                icon: getThemeIcon(String(value)),
-                color: styles.color,
-                bgColor: styles.bgColor,
-                usageCount: Math.floor(Math.random() * 2000) + 100,
-                pricing: getPremiumStatus(String(value)),
-                templates: Math.floor(Math.random() * 20) + 5,
-                vendors: Math.floor(Math.random() * 15) + 3,
-              });
-            }
-          });
-        }
+          return {
+            id: theme.id,
+            name: theme.name,
+            description: theme.description || getThemeDescription(category),
+            category,
+            tags: theme.tags || getThemeTagsForCategory(category),
+            icon: getThemeIcon(theme.name),
+            color: styles.color,
+            bgColor: styles.bgColor,
+            usageCount: Math.floor(Math.random() * 2000) + 100, // Mock data for usage count
+            pricing: theme.premium ? 'premium' : 'free',
+          };
+        });
 
         console.log('Transformed themes:', transformedThemes);
-        
-        // Add Health and Wellness theme as it's not in the database yet
-        const healthWellnessTheme: ThemeDetails = {
-          id: 'health-wellness',
-          name: 'Health and Wellness',
-          description: 'Perfect for wellness retreats, health seminars, and mindful gatherings',
-          category: 'health',
-          tags: ['Wellness', 'Mindful', 'Rejuvenating', 'Holistic'],
-          icon: Heart,
-          color: 'text-emerald-600',
-          bgColor: 'bg-emerald-50',
-          usageCount: 850,
-          pricing: 'free',
-          templates: 12,
-          vendors: 8,
-        };
-        
-        transformedThemes.push(healthWellnessTheme);
-        
         setThemes(transformedThemes);
       } catch (error) {
         console.error('Error in fetchThemes:', error);
@@ -476,9 +391,8 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
             ))}
           </div>
           
-          <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-            <span>{theme.templates} templates</span>
-            <span>{theme.vendors} vendors</span>
+          <div className="text-right">
+            <p className="text-sm text-muted-foreground">{theme.usageCount} uses</p>
           </div>
           
           <div className="flex gap-2">
@@ -526,7 +440,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
           <h2 className="text-2xl font-bold">Event Themes Directory</h2>
         </div>
         <p className="text-muted-foreground max-w-2xl mx-auto">
-          Browse our comprehensive collection of event themes. Each theme includes templates, vendor networks, and specialized features.
+          Browse our comprehensive collection of event themes. Each theme comes with specialized features and styling options.
         </p>
       </div>
 
