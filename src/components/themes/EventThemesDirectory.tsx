@@ -365,10 +365,6 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
           <div className="space-y-2">
             <CardTitle className="text-lg">{theme.name}</CardTitle>
             <CardDescription className="text-sm">{theme.description}</CardDescription>
-            
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>{theme.usageCount} uses</span>
-            </div>
           </div>
         </CardHeader>
         
@@ -379,10 +375,6 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                 {tag}
               </Badge>
             ))}
-          </div>
-          
-          <div className="text-right">
-            <p className="text-sm text-muted-foreground">{theme.usageCount} uses</p>
           </div>
           
           <div className="flex gap-2">
