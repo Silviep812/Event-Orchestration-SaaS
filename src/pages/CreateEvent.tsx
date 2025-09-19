@@ -34,7 +34,7 @@ export default function CreateEvent() {
   
   const { register, handleSubmit, formState: { errors }, reset, control, watch, setValue } = useForm<EventFormData>();
 
-  const [eventThemes, setEventThemes] = useState<{ id: string; name: string }[]>([]);
+  const [eventThemes, setEventThemes] = useState<{ id: string; name: string; premium: boolean }[]>([]);
   const [eventTypes, setEventTypes] = useState<{ id: string; name: string; theme_id: string }[]>([]);
   const selectedThemeId = watch("theme_id");
   
@@ -42,7 +42,7 @@ export default function CreateEvent() {
     const fetchThemes = async () => {
       const { data, error } = await supabase
         .from('event_themes')
-        .select('id, name')
+        .select('id, name, premium')
         .order('name');
       
       if (error) {

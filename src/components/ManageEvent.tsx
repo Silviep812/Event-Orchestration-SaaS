@@ -39,6 +39,7 @@ interface ManageEventData {
 interface EventTheme {
   id: string;
   name: string;
+  premium: boolean;
 }
 
 interface EventType {
@@ -121,7 +122,7 @@ const ManageEvent = () => {
     try {
       const { data, error } = await supabase
         .from('event_themes')
-        .select('id, name')
+        .select('id, name, premium')
         .order('name');
       
       if (error) throw error;

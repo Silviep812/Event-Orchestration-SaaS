@@ -618,6 +618,7 @@ export type Database = {
           description: string | null
           id: string
           name: string
+          premium: boolean
           tags: string[] | null
         }
         Insert: {
@@ -625,6 +626,7 @@ export type Database = {
           description?: string | null
           id?: string
           name: string
+          premium?: boolean
           tags?: string[] | null
         }
         Update: {
@@ -632,6 +634,7 @@ export type Database = {
           description?: string | null
           id?: string
           name?: string
+          premium?: boolean
           tags?: string[] | null
         }
         Relationships: []
