@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,12 +31,21 @@ export default function CreateEvent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   
   const { register, handleSubmit, formState: { errors }, reset, control, watch, setValue } = useForm<EventFormData>();
 
   const [eventThemes, setEventThemes] = useState<{ id: string; name: string; premium: boolean }[]>([]);
   const [eventTypes, setEventTypes] = useState<{ id: string; name: string; theme_id: string }[]>([]);
   const selectedThemeId = watch("theme_id");
+  
+  // Pre-select theme from URL parameter
+  useEffect(() => {
+    const themeParam = searchParams.get('theme');
+    if (themeParam) {
+      setValue('theme_id', themeParam);
+    }
+  }, [searchParams, setValue]);
   
   useEffect(() => {
     const fetchThemes = async () => {
