@@ -34,7 +34,7 @@ interface TeamMember {
   email: string;
   role: string;
   avatar?: string;
-  status: 'online' | 'offline' | 'busy';
+  status: 'online' | 'offline' | 'busy' | 'invited';
   joinedAt: string;
 }
 
@@ -78,35 +78,32 @@ export default function Collaborate() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("");
 
-  // Mock data - replace with real data fetching
+  // Fetch real team members data
   useEffect(() => {
-    // Initialize with mock data
-    setTeamMembers([
-      {
-        id: "1",
-        name: "John Doe",
-        email: "john@example.com",
-        role: "Event Manager",
-        status: "online",
-        joinedAt: "2024-01-15"
-      },
-      {
-        id: "2",
-        name: "Sarah Wilson",
-        email: "sarah@example.com",
-        role: "Coordinator",
-        status: "busy",
-        joinedAt: "2024-01-20"
-      },
-      {
-        id: "3",
-        name: "Mike Johnson",
-        email: "mike@example.com",
-        role: "Vendor Manager",
-        status: "offline",
-        joinedAt: "2024-02-01"
+    const fetchTeamMembers = async () => {
+      if (!user) return;
+
+      try {
+        const { data, error } = await supabase.functions.invoke('get-invited-users', {
+          headers: {
+            Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+          }
+        });
+
+        if (error) {
+          console.error('Error fetching team members:', error);
+          return;
+        }
+
+        if (data.success) {
+          setTeamMembers(data.teamMembers);
+        }
+      } catch (error) {
+        console.error('Error fetching team members:', error);
       }
-    ]);
+    };
+
+    fetchTeamMembers();
 
     setMessages([
       {
@@ -169,7 +166,7 @@ export default function Collaborate() {
         type: "member"
       }
     ]);
-  }, []);
+  }, [user]);
 
   const handleSendMessage = () => {
     if (!newMessage.trim() || !user) return;
@@ -230,6 +227,17 @@ export default function Collaborate() {
       setInviteEmail("");
       setInviteRole("");
       setIsInviteDialogOpen(false);
+      
+      // Refresh team members list
+      const { data: refreshData, error: refreshError } = await supabase.functions.invoke('get-invited-users', {
+        headers: {
+          Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+        }
+      });
+      
+      if (refreshData?.success) {
+        setTeamMembers(refreshData.teamMembers);
+      }
     } catch (error) {
       console.error('Error sending invitation:', error);
       toast({
@@ -245,6 +253,7 @@ export default function Collaborate() {
       case 'online': return 'bg-green-500';
       case 'busy': return 'bg-yellow-500';
       case 'offline': return 'bg-gray-400';
+      case 'invited': return 'bg-blue-500';
       default: return 'bg-gray-400';
     }
   };
