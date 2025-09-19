@@ -77,6 +77,8 @@ export default function Collaborate() {
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("");
+  const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
+  const [isMemberDialogOpen, setIsMemberDialogOpen] = useState(false);
 
   // Fetch real team members data
   useEffect(() => {
@@ -268,6 +270,11 @@ export default function Collaborate() {
     }
   };
 
+  const handleMemberClick = (member: TeamMember) => {
+    setSelectedMember(member);
+    setIsMemberDialogOpen(true);
+  };
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -320,6 +327,62 @@ export default function Collaborate() {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Member Details Dialog */}
+        <Dialog open={isMemberDialogOpen} onOpenChange={setIsMemberDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Team Member Details</DialogTitle>
+            </DialogHeader>
+            {selectedMember && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <div className="relative">
+                    <Avatar className="w-16 h-16">
+                      <AvatarImage src={selectedMember.avatar} />
+                      <AvatarFallback className="text-lg">
+                        {selectedMember.name.split(' ').map(n => n[0]).join('')}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${getStatusColor(selectedMember.status)}`} />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold">{selectedMember.name}</h3>
+                    <p className="text-muted-foreground break-all">{selectedMember.email}</p>
+                  </div>
+                </div>
+                
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Role</label>
+                    <div className="mt-1">
+                      <Badge variant="secondary" className="text-sm">{selectedMember.role}</Badge>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Status</label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <div className={`w-2 h-2 rounded-full ${getStatusColor(selectedMember.status)}`} />
+                      <span className="capitalize text-sm">{selectedMember.status}</span>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Joined Date</label>
+                    <p className="text-sm mt-1">
+                      {new Date(selectedMember.joinedAt).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -345,7 +408,11 @@ export default function Collaborate() {
         <TabsContent value="team" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {teamMembers.map((member) => (
-              <Card key={member.id}>
+              <Card 
+                key={member.id} 
+                className="cursor-pointer hover:shadow-md transition-shadow"
+                onClick={() => handleMemberClick(member)}
+              >
                 <CardHeader className="pb-3">
                   <div className="flex items-center gap-3">
                     <div className="relative">
@@ -357,9 +424,9 @@ export default function Collaborate() {
                       </Avatar>
                       <div className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-white ${getStatusColor(member.status)}`} />
                     </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold">{member.name}</h3>
-                      <p className="text-sm text-muted-foreground">{member.email}</p>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold truncate">{member.name}</h3>
+                      <p className="text-sm text-muted-foreground truncate">{member.email}</p>
                     </div>
                   </div>
                 </CardHeader>
