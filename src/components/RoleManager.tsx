@@ -18,10 +18,13 @@ interface UserRole {
 }
 
 interface User {
-  userid?: string;
-  user_name?: string;
-  email?: string;
-  contact_name?: string;
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  status: string;
+  joinedAt: string;
+  avatar?: string;
 }
 
 export function RoleManager() {
@@ -76,10 +79,13 @@ export function RoleManager() {
 
   const fetchUsers = async () => {
     try {
-      const { data, error } = await supabase.rpc('get_user_directory_safe');
+      const { data, error } = await supabase.functions.invoke('get-invited-users');
 
       if (error) throw error;
-      setUsers(data || []);
+      
+      // Only get confirmed users (not pending invitations)
+      const confirmedUsers = data?.teamMembers?.filter((member: any) => member.status !== 'invited') || [];
+      setUsers(confirmedUsers);
     } catch (error) {
       toast({
         title: "Error fetching users",
@@ -155,7 +161,7 @@ export function RoleManager() {
   };
 
   const getUserInfo = (userId: string) => {
-    return users.find(user => user.userid === userId);
+    return users.find(user => user.id === userId);
   };
 
   if (loading) {
@@ -186,8 +192,8 @@ export function RoleManager() {
                   </SelectTrigger>
                   <SelectContent>
                     {users.map((user) => (
-                      <SelectItem key={user.userid} value={user.userid || ''}>
-                        {user.user_name || user.contact_name || user.email}
+                      <SelectItem key={user.id} value={user.id}>
+                        {user.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -275,7 +281,7 @@ export function RoleManager() {
                   <div className="flex items-center gap-4">
                     <div>
                       <h4 className="font-semibold">
-                        {user?.user_name || user?.contact_name || user?.email || 'Unknown User'}
+                        {user?.name || 'Unknown User'}
                       </h4>
                       {user?.email && (
                         <p className="text-sm text-muted-foreground">{user.email}</p>
