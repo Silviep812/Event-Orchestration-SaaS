@@ -150,13 +150,14 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
         const transformedThemes: ThemeDetails[] = data.map((theme) => {
           const category = getCategoryFromName(theme.name);
           const styles = getThemeStyles(category);
+          console.log('Transforming theme:', theme.name, 'Category:', category, 'Styles:', styles);
           
           return {
             id: theme.id,
             name: theme.name,
             description: theme.description || getThemeDescription(category),
             category,
-            tags: theme.tags || getThemeTagsForCategory(category),
+            tags: theme?.tags || [],
             icon: getThemeIcon(theme.name),
             color: styles.color,
             bgColor: styles.bgColor,
@@ -218,17 +219,6 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
       health: "Perfect for wellness retreats, health seminars, and mindful gatherings",
     };
     return descriptions[category] || "Versatile theme for any occasion";
-  };
-
-  const getThemeTagsForCategory = (category: string): string[] => {
-    const tagMap: { [key: string]: string[] } = {
-      celebration: ["Elegant", "Festive", "Memorable", "Special"],
-      social: ["Community", "Friendly", "Relaxed", "Inclusive"],
-      entertainment: ["Fun", "Energetic", "Dynamic", "Exciting"],
-      business: ["Professional", "Corporate", "Strategic", "Networking"],
-      health: ["Wellness", "Mindful", "Rejuvenating", "Holistic"],
-    };
-    return tagMap[category] || ["Versatile", "Custom"];
   };
 
   const categories = useMemo(() => {
