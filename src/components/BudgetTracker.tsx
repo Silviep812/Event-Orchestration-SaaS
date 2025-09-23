@@ -275,99 +275,106 @@ export function BudgetTracker({ eventId }: BudgetTrackerProps) {
               Add Budget Item
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md md:max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Add Budget Item</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="project">Project</Label>
-                <Select value={newItem.event_id} onValueChange={(value) => setNewItem({ ...newItem, event_id: value })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select project" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {userEvents.map((event) => (
-                      <SelectItem key={event.id} value={event.id}>
-                        {event.event_title} {event.event_start_date && `(${format(new Date(event.event_start_date), 'MMM d, yyyy')})`}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="project">Project</Label>
+                  <Select value={newItem.event_id} onValueChange={(value) => setNewItem({ ...newItem, event_id: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select project" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {userEvents.map((event) => (
+                        <SelectItem key={event.id} value={event.id}>
+                          {event.event_title} {event.event_start_date && `(${format(new Date(event.event_start_date), 'MMM d, yyyy')})`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="category">Category</Label>
+                  <Select value={newItem.category} onValueChange={(value) => setNewItem({ ...newItem, category: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="venue">Venue</SelectItem>
+                      <SelectItem value="catering">Catering</SelectItem>
+                      <SelectItem value="entertainment">Entertainment</SelectItem>
+                      <SelectItem value="decorations">Decorations</SelectItem>
+                      <SelectItem value="transportation">Transportation</SelectItem>
+                      <SelectItem value="marketing">Marketing</SelectItem>
+                      <SelectItem value="supplies">Supplies</SelectItem>
+                      <SelectItem value="services">Services</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="item_name">Item Name</Label>
+                  <Input
+                    id="item_name"
+                    placeholder="Enter item name"
+                    value={newItem.item_name}
+                    onChange={(e) => setNewItem({ ...newItem, item_name: e.target.value })}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="estimated_cost">Estimated Cost</Label>
+                  <Input
+                    id="estimated_cost"
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={newItem.estimated_cost}
+                    onChange={(e) => setNewItem({ ...newItem, estimated_cost: e.target.value })}
+                  />
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="category">Category</Label>
-                <Select value={newItem.category} onValueChange={(value) => setNewItem({ ...newItem, category: value })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="venue">Venue</SelectItem>
-                    <SelectItem value="catering">Catering</SelectItem>
-                    <SelectItem value="entertainment">Entertainment</SelectItem>
-                    <SelectItem value="decorations">Decorations</SelectItem>
-                    <SelectItem value="transportation">Transportation</SelectItem>
-                    <SelectItem value="marketing">Marketing</SelectItem>
-                    <SelectItem value="supplies">Supplies</SelectItem>
-                    <SelectItem value="services">Services</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    placeholder="Enter description"
+                    value={newItem.description}
+                    onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
+                    rows={3}
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="item_name">Item Name</Label>
-                <Input
-                  id="item_name"
-                  placeholder="Enter item name"
-                  value={newItem.item_name}
-                  onChange={(e) => setNewItem({ ...newItem, item_name: e.target.value })}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  placeholder="Enter description"
-                  value={newItem.description}
-                  onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
-                />
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="vendor_name">Vendor Name</Label>
+                  <Input
+                    id="vendor_name"
+                    placeholder="Enter vendor name"
+                    value={newItem.vendor_name}
+                    onChange={(e) => setNewItem({ ...newItem, vendor_name: e.target.value })}
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="estimated_cost">Estimated Cost</Label>
-                <Input
-                  id="estimated_cost"
-                  type="number"
-                  step="0.01"
-                  placeholder="0.00"
-                  value={newItem.estimated_cost}
-                  onChange={(e) => setNewItem({ ...newItem, estimated_cost: e.target.value })}
-                />
+                <div className="space-y-2">
+                  <Label htmlFor="payment_due_date">Payment Due Date</Label>
+                  <Input
+                    id="payment_due_date"
+                    type="date"
+                    value={newItem.payment_due_date}
+                    onChange={(e) => setNewItem({ ...newItem, payment_due_date: e.target.value })}
+                  />
+                </div>
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="vendor_name">Vendor Name</Label>
-                <Input
-                  id="vendor_name"
-                  placeholder="Enter vendor name"
-                  value={newItem.vendor_name}
-                  onChange={(e) => setNewItem({ ...newItem, vendor_name: e.target.value })}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="payment_due_date">Payment Due Date</Label>
-                <Input
-                  id="payment_due_date"
-                  type="date"
-                  value={newItem.payment_due_date}
-                  onChange={(e) => setNewItem({ ...newItem, payment_due_date: e.target.value })}
-                />
-              </div>
-
+            </div>
+            
+            <div className="mt-6">
               <Button onClick={createBudgetItem} className="w-full">
                 Add Budget Item
               </Button>
