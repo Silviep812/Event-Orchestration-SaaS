@@ -171,6 +171,32 @@ export function BudgetTracker({ eventId }: BudgetTrackerProps) {
     }
   };
 
+  const updateEstimatedCost = async (itemId: string, estimatedCost: number) => {
+    try {
+      const { error } = await supabase
+        .from('budget_items')
+        .update({ estimated_cost: estimatedCost })
+        .eq('id', itemId);
+
+      if (error) throw error;
+
+      setBudgetItems(budgetItems.map(item => 
+        item.id === itemId ? { ...item, estimated_cost: estimatedCost } : item
+      ));
+
+      toast({
+        title: "Estimated cost updated",
+        description: "Estimated cost has been updated.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error updating estimated cost",
+        description: "Failed to update estimated cost.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const updateActualCost = async (itemId: string, actualCost: number) => {
     try {
       const { error } = await supabase
@@ -458,8 +484,18 @@ export function BudgetTracker({ eventId }: BudgetTrackerProps) {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label>Estimated Cost</Label>
-                  <p className="text-lg font-semibold">${(item.estimated_cost || 0).toFixed(2)}</p>
+                  <Label htmlFor={`estimated-${item.id}`}>Estimated Cost</Label>
+                  <Input
+                    id={`estimated-${item.id}`}
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={item.estimated_cost || ''}
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value) || 0;
+                      updateEstimatedCost(item.id, value);
+                    }}
+                  />
                 </div>
 
                 <div className="space-y-2">
