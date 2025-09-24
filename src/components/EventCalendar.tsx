@@ -1,12 +1,9 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CalendarIcon, Plus, Clock, MapPin, Users } from "lucide-react";
 import { format, isSameDay, parseISO } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -28,18 +25,10 @@ interface Event {
 const EventCalendar = () => {
   const { toast } = useToast();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
-  const [newEvent, setNewEvent] = useState({
-    title: "",
-    time: "",
-    location: "",
-    type: "event" as const,
-    attendees: 0,
-    description: ""
-  });
 
   // Fetch user's events from the database
   const fetchUserEvents = async () => {
@@ -125,66 +114,6 @@ const EventCalendar = () => {
     return events.map(event => event.date);
   };
 
-  const handleCreateEvent = async () => {
-    if (!selectedDate || !newEvent.title || !newEvent.time || !user) {
-      toast({
-        title: "Error",
-        description: "Please fill in all required fields.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    try {
-      // Combine date and time
-      const eventDateTime = new Date(selectedDate);
-      const [hours, minutes] = newEvent.time.split(':');
-      eventDateTime.setHours(parseInt(hours), parseInt(minutes));
-
-      const eventData = {
-        title: newEvent.title,
-        description: newEvent.description,
-        event_type: newEvent.type,
-        start_date: eventDateTime.toISOString(),
-        end_date: eventDateTime.toISOString(),
-        venue: newEvent.location,
-        expected_attendees: newEvent.attendees,
-        user_id: user.id,
-        tags: [newEvent.type]
-      };
-
-      const { error } = await supabase
-        .from('events')
-        .insert([eventData]);
-
-      if (error) throw error;
-
-      toast({
-        title: "Event Created",
-        description: `${newEvent.title} has been scheduled for ${format(selectedDate, "MMM dd, yyyy")}.`,
-      });
-
-      // Refresh events list
-      fetchUserEvents();
-
-      setNewEvent({
-        title: "",
-        time: "",
-        location: "",
-        type: "event",
-        attendees: 0,
-        description: ""
-      });
-      setIsDialogOpen(false);
-    } catch (error) {
-      console.error('Error creating event:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create event. Please try again.",
-        variant: "destructive"
-      });
-    }
-  };
 
   const eventsForSelectedDate = selectedDate ? getEventsForDate(selectedDate) : [];
 
@@ -210,63 +139,10 @@ const EventCalendar = () => {
           <h2 className="text-2xl font-bold">Event Calendar</h2>
           <p className="text-muted-foreground">Manage and track your events and important dates</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Event
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Create New Event</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <Input
-                placeholder="Event title *"
-                value={newEvent.title}
-                onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
-              />
-              <div className="grid grid-cols-2 gap-2">
-                <Input
-                  type="time"
-                  value={newEvent.time}
-                  onChange={(e) => setNewEvent({ ...newEvent, time: e.target.value })}
-                />
-                <Input
-                  type="number"
-                  placeholder="Attendees"
-                  value={newEvent.attendees || ""}
-                  onChange={(e) => setNewEvent({ ...newEvent, attendees: parseInt(e.target.value) || 0 })}
-                />
-              </div>
-              <Input
-                placeholder="Location"
-                value={newEvent.location}
-                onChange={(e) => setNewEvent({ ...newEvent, location: e.target.value })}
-              />
-              <Select value={newEvent.type} onValueChange={(value: any) => setNewEvent({ ...newEvent, type: value })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Event type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="event">Event</SelectItem>
-                  <SelectItem value="meeting">Meeting</SelectItem>
-                  <SelectItem value="deadline">Deadline</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-              <Textarea
-                placeholder="Description (optional)"
-                value={newEvent.description}
-                onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
-              />
-              <Button onClick={handleCreateEvent} className="w-full">
-                Create Event
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <Button onClick={() => navigate("/dashboard/create-event")}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Event
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -357,7 +233,7 @@ const EventCalendar = () => {
                     variant="outline"
                     size="sm"
                     className="mt-2"
-                    onClick={() => setIsDialogOpen(true)}
+                    onClick={() => navigate("/dashboard/create-event")}
                   >
                     Add Event
                   </Button>
