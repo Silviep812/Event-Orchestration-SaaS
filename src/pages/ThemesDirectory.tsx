@@ -37,11 +37,6 @@ export default function ThemesDirectory() {
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Dashboard
           </Button>
-          {selectedTheme && (
-            <Button onClick={handleUseTheme}>
-              Use Selected Theme
-            </Button>
-          )}
         </div>
       </div>
 
