@@ -674,6 +674,7 @@ export type Database = {
           id: string
           start_date: string
           start_time: string | null
+          status: Database["public"]["Enums"]["event_status_enum"] | null
           tags: string[] | null
           theme_id: number | null
           title: string
@@ -692,6 +693,7 @@ export type Database = {
           id?: string
           start_date: string
           start_time?: string | null
+          status?: Database["public"]["Enums"]["event_status_enum"] | null
           tags?: string[] | null
           theme_id?: number | null
           title: string
@@ -710,6 +712,7 @@ export type Database = {
           id?: string
           start_date?: string
           start_time?: string | null
+          status?: Database["public"]["Enums"]["event_status_enum"] | null
           tags?: string[] | null
           theme_id?: number | null
           title?: string
