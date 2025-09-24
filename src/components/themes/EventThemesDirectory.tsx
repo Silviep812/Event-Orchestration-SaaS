@@ -427,7 +427,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
       {/* Search and Filters */}
       <Card>
         <CardContent className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -458,16 +458,6 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
               <option value="all">All Pricing</option>
               <option value="free">Free</option>
               <option value="premium">Premium</option>
-            </select>
-            
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-            >
-              <option value="popular">Most Popular</option>
-              <option value="name">Name</option>
-              <option value="usage">Most Used</option>
             </select>
           </div>
           
