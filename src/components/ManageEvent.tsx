@@ -691,10 +691,26 @@ const ManageEvent = () => {
                         <Label htmlFor="theme">Event Theme</Label>
                         <Select
                           value={selectedEvent.theme_id?.toString() || ''}
-                          onValueChange={(value) => {
-                            handleFieldChange('theme_id', value);
-                            // Reset type when theme changes
-                            handleFieldChange('type_id', '');
+                          onValueChange={async (value) => {
+                            const themeId = parseInt(value);
+                            // Set theme and reset type immediately
+                            setSelectedEvent(prev => prev ? { ...prev, theme_id: themeId, type_id: undefined } : prev);
+                            // Fetch event types for the new theme and update eventTypes immediately
+                            try {
+                              let query = supabase
+                                .from('event_types')
+                                .select('id, name, theme_id')
+                                .order('name');
+                              query = query.eq('theme_id', themeId);
+                              const { data, error } = await query;
+                              if (!error && data) {
+                                setEventTypes(data);
+                              } else {
+                                setEventTypes([]);
+                              }
+                            } catch (err) {
+                              setEventTypes([]);
+                            }
                           }}
                         >
                           <SelectTrigger className="bg-background border-border z-50">
