@@ -802,7 +802,7 @@ export type Database = {
           event_contact_name: string | null
           event_contact_ph_nbr: number | null
           event_date: string | null
-          event_status: string | null
+          event_status: Database["public"]["Enums"]["event_status_enum"] | null
           event_theme: string | null
           event_time: string | null
           event_type: string | null
@@ -852,7 +852,7 @@ export type Database = {
           event_contact_name?: string | null
           event_contact_ph_nbr?: number | null
           event_date?: string | null
-          event_status?: string | null
+          event_status?: Database["public"]["Enums"]["event_status_enum"] | null
           event_theme?: string | null
           event_time?: string | null
           event_type?: string | null
@@ -902,7 +902,7 @@ export type Database = {
           event_contact_name?: string | null
           event_contact_ph_nbr?: number | null
           event_date?: string | null
-          event_status?: string | null
+          event_status?: Database["public"]["Enums"]["event_status_enum"] | null
           event_theme?: string | null
           event_time?: string | null
           event_type?: string | null
@@ -2139,6 +2139,7 @@ export type Database = {
         | "services"
         | "other"
         | "hospitality"
+      event_status_enum: "pending" | "in_progress" | "completed" | "cancelled"
       task_priority: "low" | "medium" | "high" | "urgent"
       task_status:
         | "not_started"
@@ -2293,6 +2294,7 @@ export const Constants = {
         "other",
         "hospitality",
       ],
+      event_status_enum: ["pending", "in_progress", "completed", "cancelled"],
       task_priority: ["low", "medium", "high", "urgent"],
       task_status: [
         "not_started",
