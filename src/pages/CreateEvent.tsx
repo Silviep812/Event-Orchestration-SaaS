@@ -38,35 +38,39 @@ export default function CreateEvent() {
   const [eventThemes, setEventThemes] = useState<{ id: number; name: string; premium: boolean }[]>([]);
   const [eventTypes, setEventTypes] = useState<{ id: string; name: string; theme_id: number }[]>([]);
   const selectedThemeId = watch("theme_id");
-  
-  // Pre-select theme from URL parameter
-  useEffect(() => {
-    const themeParam = searchParams.get('theme');
-    if (themeParam) {
-      const themeId = parseInt(themeParam, 10);
-      if (!isNaN(themeId)) {
-        setValue('theme_id', themeId);
-      }
-    }
-  }, [searchParams, setValue]);
-  
+
+  const [themesLoaded, setThemesLoaded] = useState(false);
+
   useEffect(() => {
     const fetchThemes = async () => {
       const { data, error } = await supabase
         .from('event_themes')
         .select('id, name, premium')
         .order('name');
-      
+
       if (error) {
         console.error('Error fetching themes:', error);
         setEventThemes([]);
+        setThemesLoaded(true);
         return;
       }
-      
       setEventThemes(data || []);
+      setThemesLoaded(true);
     };
     fetchThemes();
   }, []);
+
+useEffect(() => {
+  // Only set theme_id from URL param after themes are loaded
+  if (!themesLoaded) return;
+  const themeParam = searchParams.get('theme');
+  if (themeParam) {
+    const themeId = parseInt(themeParam, 10);
+    if (!isNaN(themeId)) {
+      setValue('theme_id', themeId);
+    }
+  }
+}, [themesLoaded, searchParams, setValue]);
 
   useEffect(() => {
     const fetchEventTypes = async () => {
@@ -78,7 +82,7 @@ export default function CreateEvent() {
       const { data, error } = await supabase
         .from('event_types')
         .select('id, name, theme_id')
-        .eq('theme_id', selectedThemeId.toString())
+        .eq('theme_id', selectedThemeId)
         .order('name');
       
       if (error) {
