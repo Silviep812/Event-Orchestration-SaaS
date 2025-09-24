@@ -29,7 +29,7 @@ interface ManageEventData {
   location?: string;
   theme_id?: number;
   type_id?: number;
-  status?: string;
+  status?: 'pending' | 'in_progress' | 'completed' | 'cancelled';
   budget?: number;
   created_at?: string;
   updated_at?: string;
@@ -320,6 +320,13 @@ const ManageEvent = () => {
     }
   };
 
+  // Helper to map status value to display string
+  const getStatusDisplay = (status: string | undefined) => {
+    if (!status) return '';
+    if (status === 'in_progress') return 'in progress';
+    return status.replace('_', ' ');
+  };
+
   // Real-time subscriptions
   useEffect(() => {
     const eventsChannel = supabase
@@ -521,7 +528,7 @@ const ManageEvent = () => {
                     {event.title || 'Unnamed Event'}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {event.status}
+                    {getStatusDisplay(event.status)}
                   </div>
                   {event.start_date && (
                     <div className="text-xs text-muted-foreground">
