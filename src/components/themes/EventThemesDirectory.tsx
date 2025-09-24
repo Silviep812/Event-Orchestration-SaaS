@@ -306,9 +306,6 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                     </h3>
                     <p className="text-sm text-muted-foreground">{theme.description}</p>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm text-muted-foreground">{theme.usageCount} uses</p>
-                  </div>
                 </div>
                 
                 <div className="flex items-center justify-between">
