@@ -28,7 +28,7 @@ interface ManageEventData {
   end_time?: string;
   location?: string;
   theme_id?: number;
-  type_id?: string;
+  type_id?: number;
   status?: string;
   budget?: number;
   created_at?: string;
@@ -43,7 +43,7 @@ interface EventTheme {
 }
 
 interface EventType {
-  id: string;
+  id: number;
   name: string;
   theme_id: number;
 }
@@ -136,7 +136,7 @@ const ManageEvent = () => {
     }
   };
 
-  const fetchEventTypes = async (themeId?: string) => {
+  const fetchEventTypes = async (themeId?: number) => {
     try {
       let query = supabase
         .from('event_types')
@@ -150,11 +150,7 @@ const ManageEvent = () => {
       const { data, error } = await query;
       
       if (error) throw error;
-        const transformedTypes = data.map(type => ({
-          ...type,
-          theme_id: type.theme_id ? Number(type.theme_id) : 0
-        }));
-        setEventTypes(transformedTypes);
+      setEventTypes(data || []);
     } catch (error) {
       console.error('Error fetching event types:', error);
     }
@@ -192,7 +188,7 @@ const ManageEvent = () => {
           start_time: eventData.start_time,
           end_time: eventData.end_time,
           venue: eventData.venue,
-          theme_id: eventData.theme_id?.toString(),
+          theme_id: eventData.theme_id,
           type_id: eventData.type_id,
           status: eventData.status,
           budget: eventData.budget,
@@ -366,7 +362,7 @@ const ManageEvent = () => {
 
   useEffect(() => {
     if (selectedEvent?.theme_id) {
-      fetchEventTypes(selectedEvent.theme_id.toString());
+      fetchEventTypes(selectedEvent.theme_id);
     }
   }, [selectedEvent?.theme_id]);
 

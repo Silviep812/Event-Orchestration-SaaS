@@ -36,7 +36,7 @@ export default function CreateEvent() {
   const { register, handleSubmit, formState: { errors }, reset, control, watch, setValue } = useForm<EventFormData>();
 
   const [eventThemes, setEventThemes] = useState<{ id: number; name: string; premium: boolean }[]>([]);
-  const [eventTypes, setEventTypes] = useState<{ id: string; name: string; theme_id: number }[]>([]);
+  const [eventTypes, setEventTypes] = useState<{ id: number; name: string; theme_id: number }[]>([]);
   const selectedThemeId = watch("theme_id");
 
   const [themesLoaded, setThemesLoaded] = useState(false);
@@ -91,11 +91,7 @@ useEffect(() => {
         return;
       }
       
-        const transformedTypes = data.map(type => ({
-          ...type,
-          theme_id: type.theme_id ? Number(type.theme_id) : 0
-        }));
-        setEventTypes(transformedTypes);
+      setEventTypes(data || []);
     };
     
     fetchEventTypes();
@@ -145,14 +141,14 @@ useEffect(() => {
         user_id: user.id,
         title: data.title,
         description: data.description || null,
-        type_id: data.type,
+        type_id: parseInt(data.type),
         venue: data.venue,
         start_date: dateRange.from.toISOString().split('T')[0],
         end_date: dateRange.to ? dateRange.to.toISOString().split('T')[0] : null,
         budget: data.budget ? parseFloat(data.budget) : null,
         expected_attendees: data.expectedAttendees ? parseInt(data.expectedAttendees) : null,
         tags: tags.length > 0 ? tags : null,
-        theme_id: data.theme_id.toString(),
+        theme_id: data.theme_id,
       };
 
       // Save to the new events table
@@ -278,13 +274,13 @@ useEffect(() => {
                           } 
                         />
                       </SelectTrigger>
-                      <SelectContent>
-                        {eventTypes.map((type) => (
-                          <SelectItem key={type.id} value={type.id}>
-                            {type.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
+                       <SelectContent>
+                         {eventTypes.map((type) => (
+                           <SelectItem key={type.id} value={type.id.toString()}>
+                             {type.name}
+                           </SelectItem>
+                         ))}
+                       </SelectContent>
                     </Select>
                   )}
                 />

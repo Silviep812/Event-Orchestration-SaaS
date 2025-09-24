@@ -645,19 +645,19 @@ export type Database = {
       event_types: {
         Row: {
           created_at: string
-          id: string
+          id: number
           name: string
           theme_id: number | null
         }
         Insert: {
           created_at?: string
-          id?: string
+          id?: number
           name: string
           theme_id?: number | null
         }
         Update: {
           created_at?: string
-          id?: string
+          id?: number
           name?: string
           theme_id?: number | null
         }
@@ -677,7 +677,7 @@ export type Database = {
           tags: string[] | null
           theme_id: number | null
           title: string
-          type_id: string | null
+          type_id: number | null
           updated_at: string
           user_id: string
           venue: string
@@ -695,7 +695,7 @@ export type Database = {
           tags?: string[] | null
           theme_id?: number | null
           title: string
-          type_id?: string | null
+          type_id?: number | null
           updated_at?: string
           user_id: string
           venue: string
@@ -713,7 +713,7 @@ export type Database = {
           tags?: string[] | null
           theme_id?: number | null
           title?: string
-          type_id?: string | null
+          type_id?: number | null
           updated_at?: string
           user_id?: string
           venue?: string
