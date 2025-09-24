@@ -99,15 +99,28 @@ const ManageEvent = () => {
 
     try {
       const { data, error } = await supabase
-        .from('events')
+        .from('Manage Event')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('event_user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       const transformedData = data.map(event => ({
-        ...event,
-        theme_id: event.theme_id ? Number(event.theme_id) : undefined
+        id: event.event_user_id,
+        user_id: event.event_user_id,
+        title: event.event_contact_name || 'Untitled Event',
+        description: '', // No description field in Manage Event table
+        start_date: event.event_date,
+        end_date: event.event_date, // Using same date for now
+        start_time: event.event_time,
+        end_time: event.event_time, // Using same time for now  
+        venue: event.venue_name || '',
+        theme_id: event.event_theme ? Number(event.event_theme) : undefined,
+        type_id: event.event_type ? Number(event.event_type) : undefined,
+        status: event.event_status || 'Planning',
+        budget: typeof event.event_budget_cost === 'number' ? event.event_budget_cost : undefined,
+        created_at: event.created_at,
+        updated_at: event.created_at
       }));
       setEvents(transformedData);
     } catch (error) {
@@ -179,22 +192,17 @@ const ManageEvent = () => {
       setSaving(true);
 
       const { error } = await supabase
-        .from('events')
+        .from('Manage Event')
         .update({
-          title: eventData.title,
-          description: eventData.description,
-          start_date: eventData.start_date,
-          end_date: eventData.end_date,
-          start_time: eventData.start_time,
-          end_time: eventData.end_time,
-          venue: eventData.venue,
-          theme_id: eventData.theme_id,
-          type_id: eventData.type_id,
-          status: eventData.status,
-          budget: eventData.budget,
-          updated_at: new Date().toISOString(),
+          event_contact_name: eventData.title,
+          event_theme: eventData.theme_id?.toString(),
+          event_type: eventData.type_id?.toString(),
+          event_status: eventData.status,
+          event_date: eventData.start_date,
+          event_time: eventData.start_time,
+          venue_name: eventData.venue,
         })
-        .eq('id', eventData.id);
+        .eq('event_user_id', eventData.id);
 
       if (error) throw error;
 
