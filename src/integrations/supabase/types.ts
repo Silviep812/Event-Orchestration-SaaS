@@ -675,7 +675,7 @@ export type Database = {
           start_date: string
           start_time: string | null
           tags: string[] | null
-          theme_id: string | null
+          theme_id: number | null
           title: string
           type_id: string | null
           updated_at: string
@@ -693,7 +693,7 @@ export type Database = {
           start_date: string
           start_time?: string | null
           tags?: string[] | null
-          theme_id?: string | null
+          theme_id?: number | null
           title: string
           type_id?: string | null
           updated_at?: string
@@ -711,7 +711,7 @@ export type Database = {
           start_date?: string
           start_time?: string | null
           tags?: string[] | null
-          theme_id?: string | null
+          theme_id?: number | null
           title?: string
           type_id?: string | null
           updated_at?: string
