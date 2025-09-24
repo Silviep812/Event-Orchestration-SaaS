@@ -194,7 +194,6 @@ const EventCalendar = () => {
                     <div key={event.id} className="border rounded-lg p-3 space-y-2">
                       <div className="flex items-center justify-between">
                         <h4 className="font-semibold text-sm">{event.title}</h4>
-                        <div className={`w-3 h-3 rounded-full ${getEventTypeColor(event.type)}`} />
                       </div>
                       <div className="space-y-1 text-xs text-muted-foreground">
                         <div className="flex items-center gap-1">
@@ -258,7 +257,6 @@ const EventCalendar = () => {
                         event.start_time ? 'at ' + event.start_time : ''}
                       </p>
                     </div>
-                    <div className={`w-2 h-2 rounded-full ${getEventTypeColor(event.type)}`} />
                   </div>
                 ))}
               </div>
