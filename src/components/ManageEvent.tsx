@@ -174,7 +174,36 @@ const ManageEvent = () => {
 
   const saveEvent = async (eventData: ManageEventData, isManual = false) => {
     if (!eventData.id) return;
-    
+
+    // Date validation
+    if (eventData.start_date && eventData.end_date) {
+      const start = new Date(eventData.start_date);
+      const end = new Date(eventData.end_date);
+      if (end < start) {
+        toast({
+          title: "Invalid Dates",
+          description: "End date cannot be before start date.",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (start > end) {
+        toast({
+          title: "Invalid Dates",
+          description: "Start date cannot be after end date.",
+          variant: "destructive",
+        });
+        return;
+      }
+    } else if (eventData.end_date && !eventData.start_date) {
+      toast({
+        title: "Invalid Dates",
+        description: "Start date is required if end date is set.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       setSaving(true);
 
@@ -363,13 +392,6 @@ const ManageEvent = () => {
     if (user) {
       fetchEvents();
       fetchThemes();
-      fetchEventTypes();
-    }
-  }, [user]);
-
-  useEffect(() => {
-    if (selectedEvent?.theme_id) {
-      fetchEventTypes(selectedEvent.theme_id);
     }
   }, [selectedEvent?.theme_id]);
 
