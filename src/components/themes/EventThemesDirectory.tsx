@@ -321,10 +321,6 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                   </div>
                   
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm">
-                      <Eye className="h-4 w-4 mr-1" />
-                      Preview
-                    </Button>
                     <Button 
                       size="sm" 
                       variant={isSelected ? "default" : "outline"}
