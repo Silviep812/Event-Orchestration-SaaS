@@ -57,7 +57,6 @@ export function BudgetTracker({ eventId }: BudgetTrackerProps) {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [userEvents, setUserEvents] = useState<Array<{id: string, event_start_date: string, event_title?: string}>>([]);
   const [selectedEventFilter, setSelectedEventFilter] = useState<string>("all");
-  const [eventBudget, setEventBudget] = useState<number | null>(null);
   const [newItem, setNewItem] = useState({
     category: "",
     item_name: "",
@@ -73,7 +72,6 @@ export function BudgetTracker({ eventId }: BudgetTrackerProps) {
   useEffect(() => {
     fetchBudgetItems();
     fetchUserEvents();
-    fetchEventBudget();
   }, [eventId, selectedEventFilter]);
 
   const fetchBudgetItems = async () => {
@@ -108,47 +106,20 @@ export function BudgetTracker({ eventId }: BudgetTrackerProps) {
       if (!user) return;
 
       const { data, error } = await supabase
-        .from('Create Event')
-        .select('userid, event_start_date, contact_name')
-        .eq('userid', user.id)
-        .order('event_start_date', { ascending: false });
+        .from('events')
+        .select('id, user_id, start_date, title')
+        .eq('user_id', user.id)
+        .order('start_date', { ascending: false });
       
       if (error) throw error;
 
       setUserEvents(data?.map(event => ({
-        id: event.userid,
-        event_start_date: event.event_start_date,
-        event_title: event.contact_name
+        id: event.id,
+        event_start_date: event.start_date,
+        event_title: event.title
       })) || []);
     } catch (error) {
       console.error('Error fetching user events:', error);
-    }
-  };
-
-  const fetchEventBudget = async () => {
-    try {
-      const filterEventId = eventId || (selectedEventFilter !== "all" ? selectedEventFilter : null);
-      
-      if (!filterEventId) {
-        setEventBudget(null);
-        return;
-      }
-
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from('Create Event')
-        .select('event_budget')
-        .eq('userid', filterEventId)
-        .single();
-      
-      if (error) throw error;
-
-      setEventBudget(data?.event_budget || null);
-    } catch (error) {
-      console.error('Error fetching event budget:', error);
-      setEventBudget(null);
     }
   };
 
@@ -430,33 +401,6 @@ export function BudgetTracker({ eventId }: BudgetTrackerProps) {
             </SelectContent>
           </Select>
         </div>
-      )}
-
-      {/* Event Budget */}
-      {eventBudget !== null && (
-        <Card className="mb-4">
-          <CardHeader>
-            <CardTitle>Event Budget</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Event Budget</p>
-                <p className="text-3xl font-bold text-primary">${eventBudget.toFixed(2)}</p>
-              </div>
-              <DollarSign className="h-10 w-10 text-primary" />
-            </div>
-            <div className="mt-2">
-              <p className="text-sm text-muted-foreground">
-                Allocated: ${totalEstimated.toFixed(2)} ({eventBudget > 0 ? ((totalEstimated / eventBudget) * 100).toFixed(1) : 0}%)
-              </p>
-              <Progress 
-                value={eventBudget > 0 ? Math.min((totalEstimated / eventBudget) * 100, 100) : 0} 
-                className="mt-1"
-              />
-            </div>
-          </CardContent>
-        </Card>
       )}
 
       {/* Budget Summary */}
