@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { DollarSign, Plus, TrendingUp, TrendingDown, AlertTriangle, CheckCircle } from "lucide-react";
+import { DollarSign, Plus, TrendingUp, TrendingDown, AlertTriangle, CheckCircle, Archive, ArchiveRestore, Eye, EyeOff } from "lucide-react";
 import { format } from "date-fns";
 
 interface BudgetItem {
@@ -24,6 +24,7 @@ interface BudgetItem {
   vendor_contact?: string;
   payment_status: string;
   payment_due_date?: string;
+  archived: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -57,6 +58,7 @@ export function BudgetTracker({ eventId }: BudgetTrackerProps) {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [userEvents, setUserEvents] = useState<Array<{id: string, event_start_date: string, event_title?: string}>>([]);
   const [selectedEventFilter, setSelectedEventFilter] = useState<string>("all");
+  const [showArchived, setShowArchived] = useState(false);
   const [newItem, setNewItem] = useState({
     category: "",
     item_name: "",
@@ -77,7 +79,7 @@ export function BudgetTracker({ eventId }: BudgetTrackerProps) {
   useEffect(() => {
     fetchBudgetItems();
     fetchUserEvents();
-  }, [eventId, selectedEventFilter]);
+  }, [eventId, selectedEventFilter, showArchived]);
 
   const fetchBudgetItems = async () => {
     try {
@@ -89,6 +91,9 @@ export function BudgetTracker({ eventId }: BudgetTrackerProps) {
       if (filterEventId) {
         query = query.eq('event_id', filterEventId);
       }
+      
+      // Filter by archived status
+      query = query.eq('archived', showArchived);
       
       const { data, error } = await query;
       if (error) throw error;
@@ -280,6 +285,30 @@ export function BudgetTracker({ eventId }: BudgetTrackerProps) {
     }
   };
 
+  const archiveBudgetItem = async (itemId: string, archived: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('budget_items')
+        .update({ archived })
+        .eq('id', itemId);
+
+      if (error) throw error;
+
+      toast({
+        title: archived ? "Item archived" : "Item restored",
+        description: archived ? "Budget item has been archived." : "Budget item has been restored.",
+      });
+
+      fetchBudgetItems();
+    } catch (error) {
+      toast({
+        title: "Error updating item",
+        description: "Failed to update budget item.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const calculateTotals = () => {
     const totalEstimated = budgetItems.reduce((sum, item) => sum + (item.estimated_cost || 0), 0);
     const totalActual = budgetItems.reduce((sum, item) => sum + (item.actual_cost || 0), 0);
@@ -424,25 +453,36 @@ export function BudgetTracker({ eventId }: BudgetTrackerProps) {
         </Dialog>
       </div>
 
-      {/* Event Filter */}
-      {!eventId && (
-        <div className="flex items-center gap-4">
-          <Label htmlFor="event-filter">Filter by Event:</Label>
-          <Select value={selectedEventFilter} onValueChange={setSelectedEventFilter}>
-            <SelectTrigger className="w-64">
-              <SelectValue placeholder="Select event to filter" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Events</SelectItem>
-              {userEvents.map((event) => (
-                <SelectItem key={event.id} value={event.id}>
-                  {event.event_title} {event.event_start_date && `(${format(new Date(event.event_start_date), 'MMM d, yyyy')})`}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
+      {/* Filters */}
+      <div className="flex items-center gap-4 flex-wrap">
+        {!eventId && (
+          <>
+            <Label htmlFor="event-filter">Filter by Event:</Label>
+            <Select value={selectedEventFilter} onValueChange={setSelectedEventFilter}>
+              <SelectTrigger className="w-64">
+                <SelectValue placeholder="Select event to filter" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Events</SelectItem>
+                {userEvents.map((event) => (
+                  <SelectItem key={event.id} value={event.id}>
+                    {event.event_title} {event.event_start_date && `(${format(new Date(event.event_start_date), 'MMM d, yyyy')})`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </>
+        )}
+        
+        <Button
+          variant="outline"
+          onClick={() => setShowArchived(!showArchived)}
+          className="flex items-center gap-2"
+        >
+          {showArchived ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          {showArchived ? "Hide Archived" : "Show Archived"}
+        </Button>
+      </div>
 
       {/* Budget Summary */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -528,6 +568,24 @@ export function BudgetTracker({ eventId }: BudgetTrackerProps) {
                     <p className="text-sm text-muted-foreground">Vendor: {item.vendor_name}</p>
                   )}
                 </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => archiveBudgetItem(item.id, !item.archived)}
+                  className="flex items-center gap-2"
+                >
+                  {item.archived ? (
+                    <>
+                      <ArchiveRestore className="h-4 w-4" />
+                      Restore
+                    </>
+                  ) : (
+                    <>
+                      <Archive className="h-4 w-4" />
+                      Archive
+                    </>
+                  )}
+                </Button>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -597,8 +655,15 @@ export function BudgetTracker({ eventId }: BudgetTrackerProps) {
       {budgetItems.length === 0 && (
         <div className="text-center py-12">
           <DollarSign className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-          <h3 className="text-lg font-semibold mb-2">No budget items yet</h3>
-          <p className="text-muted-foreground mb-4">Add your first budget item to start tracking expenses.</p>
+          <h3 className="text-lg font-semibold mb-2">
+            {showArchived ? "No archived budget items" : "No budget items yet"}
+          </h3>
+          <p className="text-muted-foreground mb-4">
+            {showArchived 
+              ? "You haven't archived any budget items yet." 
+              : "Add your first budget item to start tracking expenses."
+            }
+          </p>
         </div>
       )}
     </div>

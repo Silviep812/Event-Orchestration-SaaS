@@ -74,12 +74,13 @@ export type Database = {
       budget_items: {
         Row: {
           actual_cost: number | null
+          archived: boolean
           category: Database["public"]["Enums"]["budget_category"]
           created_at: string
           created_by: string
           description: string | null
           estimated_cost: number | null
-          event_id: string | null
+          event_id: string
           id: string
           item_name: string
           payment_due_date: string | null
@@ -90,12 +91,13 @@ export type Database = {
         }
         Insert: {
           actual_cost?: number | null
+          archived?: boolean
           category: Database["public"]["Enums"]["budget_category"]
           created_at?: string
           created_by: string
           description?: string | null
           estimated_cost?: number | null
-          event_id?: string | null
+          event_id: string
           id?: string
           item_name: string
           payment_due_date?: string | null
@@ -106,12 +108,13 @@ export type Database = {
         }
         Update: {
           actual_cost?: number | null
+          archived?: boolean
           category?: Database["public"]["Enums"]["budget_category"]
           created_at?: string
           created_by?: string
           description?: string | null
           estimated_cost?: number | null
-          event_id?: string | null
+          event_id?: string
           id?: string
           item_name?: string
           payment_due_date?: string | null
