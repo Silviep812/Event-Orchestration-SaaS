@@ -266,15 +266,15 @@ const EventCalendar = () => {
         <div className="lg:col-span-2">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex flex justify-center gap-2">
                 <CalendarIcon className="h-5 w-5" />
                 Calendar View
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="flex justify-center">
                 Click on a date to view events or schedule new ones
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex justify-center">
               <Calendar
                 mode="single"
                 selected={selectedDate}
