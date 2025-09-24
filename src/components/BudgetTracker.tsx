@@ -282,7 +282,7 @@ export function BudgetTracker({ eventId }: BudgetTrackerProps) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="project">Project</Label>
+                  <Label htmlFor="project">Project *</Label>
                   <Select value={newItem.event_id} onValueChange={(value) => setNewItem({ ...newItem, event_id: value })}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select project" />
@@ -298,7 +298,7 @@ export function BudgetTracker({ eventId }: BudgetTrackerProps) {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="category">Category</Label>
+                  <Label htmlFor="category">Category *</Label>
                   <Select value={newItem.category} onValueChange={(value) => setNewItem({ ...newItem, category: value })}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select category" />
@@ -318,7 +318,7 @@ export function BudgetTracker({ eventId }: BudgetTrackerProps) {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="item_name">Item Name</Label>
+                  <Label htmlFor="item_name">Item Name *</Label>
                   <Input
                     id="item_name"
                     placeholder="Enter item name"
