@@ -684,8 +684,8 @@ const ManageEvent = () => {
                       <div>
                         <Label htmlFor="type">Event Type</Label>
                         <Select
-                          value={selectedEvent.type_id || ''}
-                          onValueChange={(value) => handleFieldChange('type_id', value)}
+                          value={selectedEvent.type_id?.toString() || ''}
+                          onValueChange={(value) => handleFieldChange('type_id', parseInt(value))}
                           disabled={!selectedEvent.theme_id}
                         >
                           <SelectTrigger className="bg-background border-border z-50">
@@ -701,7 +701,7 @@ const ManageEvent = () => {
                             {eventTypes
                               .filter(type => type.theme_id === selectedEvent.theme_id)
                               .map((type) => (
-                                <SelectItem key={type.id} value={type.id}>
+                                <SelectItem key={type.id} value={type.id.toString()}>
                                   {type.name}
                                 </SelectItem>
                               ))}
