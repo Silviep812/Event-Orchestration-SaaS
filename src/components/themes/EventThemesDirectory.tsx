@@ -35,7 +35,7 @@ interface ThemeDetails {
   color: string;
   bgColor: string;
   usageCount: number;
-  pricing: number;
+  premium: boolean;
 }
 
 // Theme icon mapping
@@ -127,7 +127,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
         console.log('Fetching themes from event_themes table...');
         const { data, error } = await supabase
           .from('event_themes')
-          .select('id, name, description, tags, created_at')
+          .select('id, name, description, tags, premium, created_at')
           .order('name');
 
         console.log('Supabase response:', { data, error });
@@ -162,7 +162,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
             color: styles.color,
             bgColor: styles.bgColor,
             usageCount: Math.floor(Math.random() * 2000) + 100, // Mock data for usage count
-            pricing: 0, // Default to free for now
+            premium: theme.premium,
           };
         });
 
@@ -234,8 +234,8 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
       
       const matchesCategory = selectedCategory === "all" || theme.category === selectedCategory;
       const matchesPricing = selectedPricing === "all" || 
-                            (selectedPricing === "free" && (theme.pricing === 0 || theme.pricing == null)) ||
-                            (selectedPricing === "premium" && theme.pricing > 0);
+                            (selectedPricing === "free" && (theme.premium === false || theme.premium == null)) ||
+                            (selectedPricing === "premium" && theme.premium == true);
       
       return matchesSearch && matchesCategory && matchesPricing;
     });
@@ -302,7 +302,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                     <h3 className="text-lg font-semibold flex items-center gap-2">
                       {theme.name}
                       {isRecommended && <Badge variant="secondary" className="text-xs">Recommended</Badge>}
-                      {theme.pricing > 0 && <Badge variant="outline" className="text-xs">Premium</Badge>}
+                      {theme.premium == true && <Badge variant="outline" className="text-xs">Premium</Badge>}
                     </h3>
                     <p className="text-sm text-muted-foreground">{theme.description}</p>
                   </div>
@@ -353,7 +353,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
             <div className="flex flex-col items-end gap-1">
               {isSelected && <CheckCircle2 className="h-5 w-5 text-primary" />}
               {isRecommended && <Badge variant="secondary" className="text-xs">Recommended</Badge>}
-              {theme.pricing > 0 && <Badge variant="outline" className="text-xs">Premium</Badge>}
+              {theme.premium == true && <Badge variant="outline" className="text-xs">Premium</Badge>}
             </div>
           </div>
           
