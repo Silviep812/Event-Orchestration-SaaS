@@ -209,29 +209,12 @@ export function BudgetTracker({ eventId }: BudgetTrackerProps) {
 
   const updateEstimatedCost = async (itemId: string, estimatedCost: number) => {
     try {
-      // Get current item for logging
-      const currentItem = budgetItems.find(item => item.id === itemId);
-      const oldValue = currentItem?.estimated_cost;
-
       const { error } = await supabase
         .from('budget_items')
         .update({ estimated_cost: estimatedCost })
         .eq('id', itemId);
 
       if (error) throw error;
-
-      // Log the change
-      if (currentItem) {
-        await supabase.rpc('log_change', {
-          p_entity_type: 'budget_item',
-          p_entity_id: itemId,
-          p_action: 'update',
-          p_field_name: 'estimated_cost',
-          p_old_value: oldValue?.toString() || 'null',
-          p_new_value: estimatedCost.toString(),
-          p_description: `Updated estimated cost for "${currentItem.item_name}" from $${oldValue || 0} to $${estimatedCost}`
-        });
-      }
 
       setBudgetItems(budgetItems.map(item => 
         item.id === itemId ? { ...item, estimated_cost: estimatedCost } : item
@@ -252,29 +235,12 @@ export function BudgetTracker({ eventId }: BudgetTrackerProps) {
 
   const updateActualCost = async (itemId: string, actualCost: number) => {
     try {
-      // Get current item for logging
-      const currentItem = budgetItems.find(item => item.id === itemId);
-      const oldValue = currentItem?.actual_cost;
-
       const { error } = await supabase
         .from('budget_items')
         .update({ actual_cost: actualCost })
         .eq('id', itemId);
 
       if (error) throw error;
-
-      // Log the change
-      if (currentItem) {
-        await supabase.rpc('log_change', {
-          p_entity_type: 'budget_item',
-          p_entity_id: itemId,
-          p_action: 'update',
-          p_field_name: 'actual_cost',
-          p_old_value: oldValue?.toString() || 'null',
-          p_new_value: actualCost.toString(),
-          p_description: `Updated actual cost for "${currentItem.item_name}" from $${oldValue || 0} to $${actualCost}`
-        });
-      }
 
       setBudgetItems(budgetItems.map(item => 
         item.id === itemId ? { ...item, actual_cost: actualCost } : item
@@ -295,29 +261,12 @@ export function BudgetTracker({ eventId }: BudgetTrackerProps) {
 
   const updatePaymentStatus = async (itemId: string, status: string) => {
     try {
-      // Get current item for logging
-      const currentItem = budgetItems.find(item => item.id === itemId);
-      const oldValue = currentItem?.payment_status;
-
       const { error } = await supabase
         .from('budget_items')
         .update({ payment_status: status })
         .eq('id', itemId);
 
       if (error) throw error;
-
-      // Log the change
-      if (currentItem) {
-        await supabase.rpc('log_change', {
-          p_entity_type: 'budget_item',
-          p_entity_id: itemId,
-          p_action: 'update',
-          p_field_name: 'payment_status',
-          p_old_value: oldValue || 'null',
-          p_new_value: status,
-          p_description: `Updated payment status for "${currentItem.item_name}" from "${oldValue || 'unset'}" to "${status}"`
-        });
-      }
 
       setBudgetItems(budgetItems.map(item => 
         item.id === itemId ? { ...item, payment_status: status } : item
