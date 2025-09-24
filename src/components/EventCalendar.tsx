@@ -14,7 +14,7 @@ interface Event {
   id: string;
   title: string;
   date: Date;
-  time: string;
+  start_time: string;
   location: string;
   type: "meeting" | "event" | "deadline" | "other";
   attendees: number;
@@ -49,7 +49,7 @@ const EventCalendar = () => {
         id: event.id,
         title: event.title,
         date: parseISO(event.start_date),
-        time: format(parseISO(event.start_date), 'HH:mm'),
+        start_time: event.start_time ? event?.start_time.slice(0, 5) : '',
         location: event.venue || 'TBD',
         type: getEventTypeFromDatabase('general'),
         attendees: event.expected_attendees || 0,
@@ -199,7 +199,7 @@ const EventCalendar = () => {
                       <div className="space-y-1 text-xs text-muted-foreground">
                         <div className="flex items-center gap-1">
                           <Clock className="h-3 w-3" />
-                          {event.time}
+                          {event.start_time}
                         </div>
                         {event.location && (
                           <div className="flex items-center gap-1">
@@ -254,7 +254,8 @@ const EventCalendar = () => {
                     <div>
                       <p className="font-medium text-sm">{event.title}</p>
                       <p className="text-xs text-muted-foreground">
-                        {format(event.date, "MMM dd")} at {event.time}
+                        {format(event.date, "MMM dd") &&
+                        event.start_time ? 'at ' + event.start_time : ''}
                       </p>
                     </div>
                     <div className={`w-2 h-2 rounded-full ${getEventTypeColor(event.type)}`} />
