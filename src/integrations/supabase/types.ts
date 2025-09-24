@@ -647,19 +647,19 @@ export type Database = {
           created_at: string
           id: string
           name: string
-          theme_id: string
+          theme_id: number | null
         }
         Insert: {
           created_at?: string
           id?: string
           name: string
-          theme_id: string
+          theme_id?: number | null
         }
         Update: {
           created_at?: string
           id?: string
           name?: string
-          theme_id?: string
+          theme_id?: number | null
         }
         Relationships: []
       }
