@@ -7,10 +7,10 @@ import { ArrowLeft, Palette, Download, Star, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 export default function ThemesDirectory() {
-  const [selectedTheme, setSelectedTheme] = useState<string>("");
+  const [selectedTheme, setSelectedTheme] = useState<number | undefined>();
   const navigate = useNavigate();
 
-  const handleThemeSelection = (themeId: string) => {
+  const handleThemeSelection = (themeId: number) => {
     setSelectedTheme(themeId);
   };
 
@@ -56,7 +56,7 @@ export default function ThemesDirectory() {
                 <div>
                   <h3 className="font-semibold">Theme Selected</h3>
                   <p className="text-sm text-muted-foreground">
-                    You've selected the <Badge variant="outline" className="mx-1">{selectedTheme}</Badge> theme
+                    You've selected theme <Badge variant="outline" className="mx-1">#{selectedTheme}</Badge>
                   </p>
                 </div>
               </div>

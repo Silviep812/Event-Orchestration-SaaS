@@ -27,7 +27,7 @@ interface ManageEventData {
   start_time?: string;
   end_time?: string;
   location?: string;
-  theme_id?: string;
+  theme_id?: number;
   type_id?: string;
   status?: string;
   budget?: number;
@@ -37,7 +37,7 @@ interface ManageEventData {
 }
 
 interface EventTheme {
-  id: string;
+  id: number;
   name: string;
   premium: boolean;
 }
@@ -45,7 +45,7 @@ interface EventTheme {
 interface EventType {
   id: string;
   name: string;
-  theme_id: string;
+  theme_id: number;
 }
 
 interface ChangeLog {
@@ -105,7 +105,11 @@ const ManageEvent = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setEvents(data || []);
+      const transformedData = data.map(event => ({
+        ...event,
+        theme_id: event.theme_id ? Number(event.theme_id) : undefined
+      }));
+      setEvents(transformedData);
     } catch (error) {
       console.error('Error fetching events:', error);
       toast({
@@ -146,7 +150,11 @@ const ManageEvent = () => {
       const { data, error } = await query;
       
       if (error) throw error;
-      setEventTypes(data || []);
+        const transformedTypes = data.map(type => ({
+          ...type,
+          theme_id: type.theme_id ? Number(type.theme_id) : 0
+        }));
+        setEventTypes(transformedTypes);
     } catch (error) {
       console.error('Error fetching event types:', error);
     }
@@ -184,7 +192,7 @@ const ManageEvent = () => {
           start_time: eventData.start_time,
           end_time: eventData.end_time,
           venue: eventData.venue,
-          theme_id: eventData.theme_id,
+          theme_id: eventData.theme_id?.toString(),
           type_id: eventData.type_id,
           status: eventData.status,
           budget: eventData.budget,
@@ -358,7 +366,7 @@ const ManageEvent = () => {
 
   useEffect(() => {
     if (selectedEvent?.theme_id) {
-      fetchEventTypes(selectedEvent.theme_id);
+      fetchEventTypes(selectedEvent.theme_id.toString());
     }
   }, [selectedEvent?.theme_id]);
 
@@ -657,7 +665,7 @@ const ManageEvent = () => {
                       <div>
                         <Label htmlFor="theme">Event Theme</Label>
                         <Select
-                          value={selectedEvent.theme_id || ''}
+                          value={selectedEvent.theme_id?.toString() || ''}
                           onValueChange={(value) => {
                             handleFieldChange('theme_id', value);
                             // Reset type when theme changes
@@ -669,7 +677,7 @@ const ManageEvent = () => {
                           </SelectTrigger>
                           <SelectContent className="bg-background border-border shadow-lg z-50">
                             {eventThemes.map((theme) => (
-                              <SelectItem key={theme.id} value={theme.id}>
+                              <SelectItem key={theme.id} value={theme.id.toString()}>
                                 {theme.name}
                               </SelectItem>
                             ))}

@@ -21,7 +21,7 @@ interface EventFormData {
   venue: string;
   budget: string;
   expectedAttendees: string;
-  theme_id: string;
+  theme_id: number;
 }
 
 export default function CreateEvent() {
@@ -35,15 +35,18 @@ export default function CreateEvent() {
   
   const { register, handleSubmit, formState: { errors }, reset, control, watch, setValue } = useForm<EventFormData>();
 
-  const [eventThemes, setEventThemes] = useState<{ id: string; name: string; premium: boolean }[]>([]);
-  const [eventTypes, setEventTypes] = useState<{ id: string; name: string; theme_id: string }[]>([]);
+  const [eventThemes, setEventThemes] = useState<{ id: number; name: string; premium: boolean }[]>([]);
+  const [eventTypes, setEventTypes] = useState<{ id: string; name: string; theme_id: number }[]>([]);
   const selectedThemeId = watch("theme_id");
   
   // Pre-select theme from URL parameter
   useEffect(() => {
     const themeParam = searchParams.get('theme');
     if (themeParam) {
-      setValue('theme_id', themeParam);
+      const themeId = parseInt(themeParam, 10);
+      if (!isNaN(themeId)) {
+        setValue('theme_id', themeId);
+      }
     }
   }, [searchParams, setValue]);
   
@@ -75,7 +78,7 @@ export default function CreateEvent() {
       const { data, error } = await supabase
         .from('event_types')
         .select('id, name, theme_id')
-        .eq('theme_id', selectedThemeId)
+        .eq('theme_id', selectedThemeId.toString())
         .order('name');
       
       if (error) {
@@ -84,7 +87,11 @@ export default function CreateEvent() {
         return;
       }
       
-      setEventTypes(data || []);
+        const transformedTypes = data.map(type => ({
+          ...type,
+          theme_id: type.theme_id ? Number(type.theme_id) : 0
+        }));
+        setEventTypes(transformedTypes);
     };
     
     fetchEventTypes();
@@ -141,7 +148,7 @@ export default function CreateEvent() {
         budget: data.budget ? parseFloat(data.budget) : null,
         expected_attendees: data.expectedAttendees ? parseInt(data.expectedAttendees) : null,
         tags: tags.length > 0 ? tags : null,
-        theme_id: data.theme_id,
+        theme_id: data.theme_id.toString(),
       };
 
       // Save to the new events table
@@ -227,13 +234,13 @@ export default function CreateEvent() {
                   control={control}
                   rules={{ required: "Event theme is required" }}
                   render={({ field }) => (
-                    <Select value={field.value} onValueChange={field.onChange}>
+                    <Select value={field.value?.toString()} onValueChange={(value) => field.onChange(Number(value))}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select event theme" />
                       </SelectTrigger>
                       <SelectContent>
                         {eventThemes.map((theme) => (
-                          <SelectItem key={theme.id} value={theme.id}>
+                          <SelectItem key={theme.id} value={theme.id.toString()}>
                             {theme.name}
                           </SelectItem>
                         ))}

@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 
 interface ThemeDetails {
-  id: string;
+  id: number;
   name: string;
   description: string;
   category: string;
@@ -35,7 +35,7 @@ interface ThemeDetails {
   color: string;
   bgColor: string;
   usageCount: number;
-  pricing: "free" | "premium";
+  pricing: number;
 }
 
 // Theme icon mapping
@@ -105,8 +105,8 @@ const getCategoryFromName = (themeName: string): string => {
 };
 
 interface EventThemesDirectoryProps {
-  onSelectTheme: (themeId: string) => void;
-  selectedTheme?: string;
+  onSelectTheme: (themeId: number) => void;
+  selectedTheme?: number;
   userType?: string;
 }
 
@@ -127,7 +127,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
         console.log('Fetching themes from event_themes table...');
         const { data, error } = await supabase
           .from('event_themes')
-          .select('id, name, description, tags, premium, created_at')
+          .select('id, name, description, tags, created_at')
           .order('name');
 
         console.log('Supabase response:', { data, error });
@@ -162,7 +162,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
             color: styles.color,
             bgColor: styles.bgColor,
             usageCount: Math.floor(Math.random() * 2000) + 100, // Mock data for usage count
-            pricing: theme.premium ? 'premium' : 'free',
+            pricing: 0, // Default to free for now
           };
         });
 
@@ -233,7 +233,9 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                            theme.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
       
       const matchesCategory = selectedCategory === "all" || theme.category === selectedCategory;
-      const matchesPricing = selectedPricing === "all" || theme.pricing === selectedPricing;
+      const matchesPricing = selectedPricing === "all" || 
+                            (selectedPricing === "free" && (theme.pricing === 0 || theme.pricing == null)) ||
+                            (selectedPricing === "premium" && theme.pricing > 0);
       
       return matchesSearch && matchesCategory && matchesPricing;
     });
@@ -265,7 +267,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
     const recommended = themes.filter(theme => 
       recommendedThemeNames.some(recName => 
         theme.name.toLowerCase().includes(recName.toLowerCase()) ||
-        theme.id.toLowerCase().includes(recName.toLowerCase())
+        theme.id.toString().toLowerCase().includes(recName.toLowerCase())
       )
     );
     
@@ -300,7 +302,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                     <h3 className="text-lg font-semibold flex items-center gap-2">
                       {theme.name}
                       {isRecommended && <Badge variant="secondary" className="text-xs">Recommended</Badge>}
-                      {theme.pricing === "premium" && <Badge variant="outline" className="text-xs">Premium</Badge>}
+                      {theme.pricing > 0 && <Badge variant="outline" className="text-xs">Premium</Badge>}
                     </h3>
                     <p className="text-sm text-muted-foreground">{theme.description}</p>
                   </div>
@@ -358,7 +360,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
             <div className="flex flex-col items-end gap-1">
               {isSelected && <CheckCircle2 className="h-5 w-5 text-primary" />}
               {isRecommended && <Badge variant="secondary" className="text-xs">Recommended</Badge>}
-              {theme.pricing === "premium" && <Badge variant="outline" className="text-xs">Premium</Badge>}
+              {theme.pricing > 0 && <Badge variant="outline" className="text-xs">Premium</Badge>}
             </div>
           </div>
           

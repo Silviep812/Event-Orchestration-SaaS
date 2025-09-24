@@ -619,7 +619,7 @@ export type Database = {
         Row: {
           created_at: string
           description: string | null
-          id: string
+          id: number
           name: string
           premium: boolean
           tags: string[] | null
@@ -627,7 +627,7 @@ export type Database = {
         Insert: {
           created_at?: string
           description?: string | null
-          id?: string
+          id?: number
           name: string
           premium?: boolean
           tags?: string[] | null
@@ -635,7 +635,7 @@ export type Database = {
         Update: {
           created_at?: string
           description?: string | null
-          id?: string
+          id?: number
           name?: string
           premium?: boolean
           tags?: string[] | null
@@ -661,15 +661,7 @@ export type Database = {
           name?: string
           theme_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "event_types_theme_id_fkey"
-            columns: ["theme_id"]
-            isOneToOne: false
-            referencedRelation: "event_themes"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       events: {
         Row: {
@@ -727,13 +719,6 @@ export type Database = {
           venue?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "events_theme_id_fkey"
-            columns: ["theme_id"]
-            isOneToOne: false
-            referencedRelation: "event_themes"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "events_type_id_fkey"
             columns: ["type_id"]
