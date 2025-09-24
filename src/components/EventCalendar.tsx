@@ -19,7 +19,7 @@ interface Event {
   type: "meeting" | "event" | "deadline" | "other";
   attendees: number;
   description?: string;
-  status: "planned" | "in-progress" | "completed" | "cancelled";
+  status: "pending" | "in_progress" | "completed" | "cancelled";
 }
 
 const EventCalendar = () => {
@@ -54,7 +54,7 @@ const EventCalendar = () => {
         type: getEventTypeFromDatabase('general'),
         attendees: event.expected_attendees || 0,
         description: event.description || '',
-        status: 'planned' as const
+        status: event.status
       })) || [];
 
       setEvents(transformedEvents);
@@ -218,7 +218,7 @@ const EventCalendar = () => {
                           {event.type}
                         </Badge>
                         <span className={`text-xs font-medium ${getStatusColor(event.status)}`}>
-                          {event.status.replace('-', ' ')}
+                          {event.status.replace('_', ' ')}
                         </span>
                       </div>
                     </div>
