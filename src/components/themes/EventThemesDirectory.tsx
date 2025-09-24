@@ -105,7 +105,7 @@ const getCategoryFromName = (themeName: string): string => {
 };
 
 interface EventThemesDirectoryProps {
-  onSelectTheme: (themeId: number) => void;
+  onSelectTheme: (themeId: number, themeName: string) => void;
   selectedTheme?: number;
   userType?: string;
 }
@@ -328,7 +328,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                     <Button 
                       size="sm" 
                       variant={isSelected ? "default" : "outline"}
-                      onClick={() => onSelectTheme(theme.id)}
+                      onClick={() => onSelectTheme(theme.id, theme.name)}
                     >
                       {isSelected ? (
                         <>
@@ -384,7 +384,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
               size="sm" 
               className="flex-1"
               variant={isSelected ? "default" : "outline"}
-              onClick={() => onSelectTheme(theme.id)}
+              onClick={() => onSelectTheme(theme.id, theme.name)}
             >
               {isSelected ? "Selected" : "Select"}
             </Button>
