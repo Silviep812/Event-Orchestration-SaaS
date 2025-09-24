@@ -67,6 +67,11 @@ export function BudgetTracker({ eventId }: BudgetTrackerProps) {
     payment_due_date: "",
     event_id: ""
   });
+  const [formErrors, setFormErrors] = useState({
+    event_id: "",
+    category: "",
+    item_name: ""
+  });
   const { toast } = useToast();
 
   useEffect(() => {
@@ -123,8 +128,29 @@ export function BudgetTracker({ eventId }: BudgetTrackerProps) {
     }
   };
 
+  const validateForm = () => {
+    const errors = {
+      event_id: "",
+      category: "",
+      item_name: ""
+    };
+
+    if (!newItem.event_id.trim()) {
+      errors.event_id = "Project is required";
+    }
+    if (!newItem.category.trim()) {
+      errors.category = "Category is required";
+    }
+    if (!newItem.item_name.trim()) {
+      errors.item_name = "Item name is required";
+    }
+
+    setFormErrors(errors);
+    return !errors.event_id && !errors.category && !errors.item_name;
+  };
+
   const createBudgetItem = async () => {
-    if (!newItem.item_name.trim() || !newItem.category) return;
+    if (!validateForm()) return;
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -159,6 +185,11 @@ export function BudgetTracker({ eventId }: BudgetTrackerProps) {
         vendor_contact: "",
         payment_due_date: "",
         event_id: ""
+      });
+      setFormErrors({
+        event_id: "",
+        category: "",
+        item_name: ""
       });
       setIsCreateDialogOpen(false);
       fetchBudgetItems();
@@ -284,7 +315,7 @@ export function BudgetTracker({ eventId }: BudgetTrackerProps) {
                 <div className="space-y-2">
                   <Label htmlFor="project">Project *</Label>
                   <Select value={newItem.event_id} onValueChange={(value) => setNewItem({ ...newItem, event_id: value })}>
-                    <SelectTrigger>
+                    <SelectTrigger className={formErrors.event_id ? "border-destructive" : ""}>
                       <SelectValue placeholder="Select project" />
                     </SelectTrigger>
                     <SelectContent>
@@ -295,12 +326,15 @@ export function BudgetTracker({ eventId }: BudgetTrackerProps) {
                       ))}
                     </SelectContent>
                   </Select>
+                  {formErrors.event_id && (
+                    <p className="text-sm text-destructive">{formErrors.event_id}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="category">Category *</Label>
                   <Select value={newItem.category} onValueChange={(value) => setNewItem({ ...newItem, category: value })}>
-                    <SelectTrigger>
+                    <SelectTrigger className={formErrors.category ? "border-destructive" : ""}>
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
                     <SelectContent>
@@ -315,6 +349,9 @@ export function BudgetTracker({ eventId }: BudgetTrackerProps) {
                       <SelectItem value="other">Other</SelectItem>
                     </SelectContent>
                   </Select>
+                  {formErrors.category && (
+                    <p className="text-sm text-destructive">{formErrors.category}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -324,7 +361,11 @@ export function BudgetTracker({ eventId }: BudgetTrackerProps) {
                     placeholder="Enter item name"
                     value={newItem.item_name}
                     onChange={(e) => setNewItem({ ...newItem, item_name: e.target.value })}
+                    className={formErrors.item_name ? "border-destructive" : ""}
                   />
+                  {formErrors.item_name && (
+                    <p className="text-sm text-destructive">{formErrors.item_name}</p>
+                  )}
                 </div>
                 
                 <div className="space-y-2">
