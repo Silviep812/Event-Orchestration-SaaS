@@ -88,14 +88,14 @@ const EventCalendar = () => {
     fetchUserEvents();
   }, [user]);
 
-  const getEventTypeColor = (type: string) => {
-    switch (type) {
-      case "meeting": return "bg-blue-500";
-      case "event": return "bg-green-500";
-      case "deadline": return "bg-red-500";
-      default: return "bg-gray-500";
-    }
-  };
+  // const getEventTypeColor = (type: string) => {
+  //   switch (type) {
+  //     case "meeting": return "bg-blue-500";
+  //     case "event": return "bg-green-500";
+  //     case "deadline": return "bg-red-500";
+  //     default: return "bg-gray-500";
+  //   }
+  // };
 
   const getStatusColor = (status: string) => {
     switch (status) {
