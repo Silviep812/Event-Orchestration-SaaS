@@ -81,7 +81,7 @@ const EventCalendar = () => {
       'corporate': 'event',
       'social': 'event'
     };
-    return typeMap[dbType?.toLowerCase()] || 'other';
+    return typeMap[dbType?.toLowerCase()] || 'event';
   };
 
   useEffect(() => {
