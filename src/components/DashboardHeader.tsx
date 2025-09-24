@@ -104,16 +104,6 @@ export function DashboardHeader() {
             />
             <span className="hidden sm:block text-xl font-bold text-primary">IEP</span>
           </Link>
-          
-          {/* Navigation breadcrumb */}
-          <nav className="hidden lg:flex items-center gap-2 text-sm text-muted-foreground">
-            <Link to="/" className="flex items-center gap-1 hover:text-primary transition-colors">
-              <Home className="h-4 w-4" />
-              <span className="hidden xl:block">Home</span>
-            </Link>
-            <span>/</span>
-            <span>Dashboard</span>
-          </nav>
         </div>
       </div>
 
