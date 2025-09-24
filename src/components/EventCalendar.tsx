@@ -188,13 +188,6 @@ const EventCalendar = () => {
 
   const eventsForSelectedDate = selectedDate ? getEventsForDate(selectedDate) : [];
 
-  // Filter for upcoming events only
-  const now = new Date();
-  const upcomingEvents = events.filter(event => {
-    const eventStart = event.date;
-    return eventStart >= now;
-  });
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -373,7 +366,7 @@ const EventCalendar = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {upcomingEvents.slice(0, 3).map((event) => (
+                {events.slice(0, 3).map((event) => (
                   <div key={event.id} className="flex items-center justify-between p-2 border rounded">
                     <div>
                       <p className="font-medium text-sm">{event.title}</p>
