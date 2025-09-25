@@ -131,7 +131,7 @@ export default function TrackProgress() {
   const calculateProjectStats = (taskList: Task[]) => {
     const completed = taskList.filter(t => t.status === 'completed').length;
     const overdue = taskList.filter(t => 
-      t.due_date && new Date(t.due_date) < new Date() && t.status !== 'completed' && t.status !== 'cancelled'
+      t.due_date && new Date(t.due_date) < new Date() && t.status !== 'completed' && t.status !== 'cancelled' && t.status !== 'on_hold'
     ).length;
     const inProgress = taskList.filter(t => t.status === 'in_progress').length;
     const totalHours = taskList.reduce((sum, t) => sum + (t.estimated_hours || 0), 0);
