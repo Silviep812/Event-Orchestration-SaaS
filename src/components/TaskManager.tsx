@@ -66,6 +66,8 @@ export function TaskManager({ eventId }: TaskManagerProps) {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [newTask, setNewTask] = useState({
     title: "",
     description: "",
@@ -197,6 +199,20 @@ export function TaskManager({ eventId }: TaskManagerProps) {
     }
   };
 
+  const handleUpdateTask = async () => {
+    if (!selectedTask) return;
+    await updateTask(selectedTask.id, {
+      title: selectedTask.title,
+      description: selectedTask.description,
+      priority: selectedTask.priority,
+      assigned_role: selectedTask.assigned_role,
+      estimated_hours: selectedTask.estimated_hours,
+      due_date: selectedTask.due_date,
+    });
+    setIsEditDialogOpen(false);
+    setSelectedTask(null);
+  };
+
   if (loading) {
     return <div className="flex justify-center py-8">Loading tasks...</div>;
   }
@@ -323,21 +339,20 @@ export function TaskManager({ eventId }: TaskManagerProps) {
         {tasks.map((task) => {
           const StatusIcon = statusIcons[task.status];
           return (
-            <Card key={task.id} className="hover:shadow-md transition-shadow">
+            <Card 
+              key={task.id} 
+              className="hover:shadow-md transition-shadow cursor-pointer"
+              onClick={() => {
+                setSelectedTask(task);
+                setIsEditDialogOpen(true);
+              }}
+            >
               <CardHeader className="pb-2">
                 <div className="flex items-start justify-between">
                   <CardTitle className="text-lg">{task.title}</CardTitle>
-                  <Select value={task.priority} onValueChange={(value: any) => updateTask(task.id, { priority: value })}>
-                    <SelectTrigger className={`h-8 w-28 ${priorityColors[task.priority]}`}>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="low">Low</SelectItem>
-                      <SelectItem value="medium">Medium</SelectItem>
-                      <SelectItem value="high">High</SelectItem>
-                      <SelectItem value="urgent">Urgent</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Badge className={priorityColors[task.priority]}>
+                    {task.priority}
+                  </Badge>
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -345,7 +360,7 @@ export function TaskManager({ eventId }: TaskManagerProps) {
                   <p className="text-sm text-muted-foreground">{task.description}</p>
                 )}
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                   <StatusIcon className="h-4 w-4" />
                   <Select value={task.status} onValueChange={(value: any) => updateTask(task.id, { status: value })}>
                     <SelectTrigger className="h-8">
@@ -368,34 +383,113 @@ export function TaskManager({ eventId }: TaskManagerProps) {
                   </div>
                 )}
 
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Clock className="h-3 w-3" />
-                  <Input
-                    type="number"
-                    step="0.5"
-                    value={task.estimated_hours || ''}
-                    onChange={(e) => updateTask(task.id, { estimated_hours: e.target.value ? parseFloat(e.target.value) : undefined })}
-                    className="h-8 w-24"
-                    placeholder="Hours"
-                  />
-                  <span>h estimated</span>
-                </div>
+                {task.estimated_hours && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Clock className="h-3 w-3" />
+                    <span>{task.estimated_hours}h estimated</span>
+                  </div>
+                )}
 
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Calendar className="h-3 w-3" />
-                  <Input
-                    type="datetime-local"
-                    value={task.due_date ? format(new Date(task.due_date), "yyyy-MM-dd'T'HH:mm") : ''}
-                    onChange={(e) => updateTask(task.id, { due_date: e.target.value || undefined })}
-                    className="h-8"
-                  />
-                </div>
+                {task.due_date && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Calendar className="h-3 w-3" />
+                    <span>Due: {format(new Date(task.due_date), 'MMM d, yyyy')}</span>
+                  </div>
+                )}
               </CardContent>
             </Card>
           );
         })}
-
       </div>
+
+      {/* Edit Task Dialog */}
+      {selectedTask && (
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Task</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-title">Task Title</Label>
+                <Input
+                  id="edit-title"
+                  value={selectedTask.title}
+                  onChange={(e) => setSelectedTask({ ...selectedTask, title: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-description">Description</Label>
+                <Textarea
+                  id="edit-description"
+                  value={selectedTask.description || ''}
+                  onChange={(e) => setSelectedTask({ ...selectedTask, description: e.target.value })}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-priority">Priority</Label>
+                  <Select
+                    value={selectedTask.priority}
+                    onValueChange={(value: any) => setSelectedTask({ ...selectedTask, priority: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">Low</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="urgent">Urgent</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-role">Assigned Role</Label>
+                  <Select
+                    value={selectedTask.assigned_role || ''}
+                    onValueChange={(value) => setSelectedTask({ ...selectedTask, assigned_role: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="event_manager">Event Manager</SelectItem>
+                      <SelectItem value="vendor_coordinator">Vendor Coordinator</SelectItem>
+                      <SelectItem value="budget_manager">Budget Manager</SelectItem>
+                      <SelectItem value="task_coordinator">Task Coordinator</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-hours">Estimated Hours</Label>
+                  <Input
+                    id="edit-hours"
+                    type="number"
+                    step="0.5"
+                    value={selectedTask.estimated_hours || ''}
+                    onChange={(e) => setSelectedTask({ ...selectedTask, estimated_hours: e.target.value ? parseFloat(e.target.value) : undefined })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-due_date">Due Date</Label>
+                  <Input
+                    id="edit-due_date"
+                    type="datetime-local"
+                    value={selectedTask.due_date ? format(new Date(selectedTask.due_date), "yyyy-MM-dd'T'HH:mm") : ''}
+                    onChange={(e) => setSelectedTask({ ...selectedTask, due_date: e.target.value || undefined })}
+                  />
+                </div>
+              </div>
+              <Button onClick={handleUpdateTask} className="w-full">
+                Save Changes
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {tasks.length === 0 && (
         <div className="text-center py-12">
