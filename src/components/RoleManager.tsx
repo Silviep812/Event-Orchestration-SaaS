@@ -37,21 +37,19 @@ export function RoleManager() {
   const { toast } = useToast();
 
   const roles = [
-    { value: 'admin', label: 'Admin', description: 'Full system access' },
-    { value: 'event_manager', label: 'Event Manager', description: 'Manage events and overall coordination' },
-    { value: 'vendor_coordinator', label: 'Vendor Coordinator', description: 'Manage vendor relationships' },
-    { value: 'budget_manager', label: 'Budget Manager', description: 'Handle financial planning and tracking' },
-    { value: 'task_coordinator', label: 'Task Coordinator', description: 'Assign and track task completion' },
-    { value: 'client', label: 'Client', description: 'View event progress and provide feedback' }
+    { value: 'host', label: 'Host', description: 'Primary event host responsible for overall event success' },
+    { value: 'organizer', label: 'Organizer', description: 'Coordinate event logistics and team activities' },
+    { value: 'event_planner', label: 'Event Planner', description: 'Professional event planning and design' },
+    { value: 'venue_owner', label: 'Venue Owner', description: 'Manage venue-specific requirements and services' },
+    { value: 'hospitality_provider', label: 'Hospitality Provider', description: 'Handle guest services and hospitality arrangements' }
   ];
 
   const roleColors = {
-    admin: "bg-red-100 text-red-800",
-    event_manager: "bg-blue-100 text-blue-800",
-    vendor_coordinator: "bg-green-100 text-green-800",
-    budget_manager: "bg-yellow-100 text-yellow-800",
-    task_coordinator: "bg-purple-100 text-purple-800",
-    client: "bg-gray-100 text-gray-800"
+    host: "bg-red-100 text-red-800",
+    organizer: "bg-blue-100 text-blue-800",
+    event_planner: "bg-green-100 text-green-800",
+    venue_owner: "bg-yellow-100 text-yellow-800",
+    hospitality_provider: "bg-purple-100 text-purple-800"
   };
 
   useEffect(() => {
