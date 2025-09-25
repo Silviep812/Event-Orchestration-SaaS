@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useEventFilter } from "@/hooks/useEventFilter";
-import { CheckCircle2, Clock, AlertCircle, Plus, Calendar, User } from "lucide-react";
+import { CheckCircle2, Clock, AlertCircle, Plus, Calendar, User, Archive, ArchiveRestore, Eye, EyeOff } from "lucide-react";
 import { format } from "date-fns";
 
 interface Task {
@@ -25,6 +25,7 @@ interface Task {
   estimated_hours?: number;
   actual_hours?: number;
   due_date?: string;
+  archived: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -60,6 +61,7 @@ const statusIcons = {
 export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showArchived, setShowArchived] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -78,7 +80,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
 
   useEffect(() => {
     fetchTasks();
-  }, [eventId, user, selectedEventFilter]);
+  }, [eventId, user, selectedEventFilter, showArchived]);
 
   const fetchTasks = async () => {
     try {
@@ -88,6 +90,9 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
       } else if (selectedEventFilter && selectedEventFilter !== "all") {
         query = query.eq('event_id', selectedEventFilter);
       }
+      
+      // Filter by archived status
+      query = query.eq('archived', showArchived);
       
       const { data, error } = await query;
       if (error) throw error;
@@ -190,6 +195,30 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
     setSelectedTask(null);
   };
 
+  const archiveTask = async (taskId: string, archived: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('tasks')
+        .update({ archived })
+        .eq('id', taskId);
+
+      if (error) throw error;
+
+      toast({
+        title: archived ? "Task archived" : "Task restored",
+        description: archived ? "Task has been archived." : "Task has been restored.",
+      });
+
+      fetchTasks();
+    } catch (error) {
+      toast({
+        title: "Error updating task",
+        description: "Failed to update task.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (loading) {
     return <div className="flex justify-center py-8">Loading tasks...</div>;
   }
@@ -197,7 +226,17 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Task Management</h2>
+        <div className="flex items-center gap-4">
+          <h2 className="text-2xl font-bold">Task Management</h2>
+          <Button
+            variant="outline"
+            onClick={() => setShowArchived(!showArchived)}
+            className="flex items-center gap-2"
+          >
+            {showArchived ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            {showArchived ? "Hide Archived" : "Show Archived"}
+          </Button>
+        </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
             <Button>
@@ -368,13 +407,34 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                   </div>
                 )}
 
-                {task.due_date && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Calendar className="h-3 w-3" />
-                    <span>Due: {format(new Date(task.due_date), 'MMM d, yyyy')}</span>
+                  {task.due_date && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Calendar className="h-3 w-3" />
+                      <span>Due: {format(new Date(task.due_date), 'MMM d, yyyy')}</span>
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-2 pt-2" onClick={(e) => e.stopPropagation()}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => archiveTask(task.id, !task.archived)}
+                      className="flex items-center gap-1"
+                    >
+                      {task.archived ? (
+                        <>
+                          <ArchiveRestore className="h-3 w-3" />
+                          Restore
+                        </>
+                      ) : (
+                        <>
+                          <Archive className="h-3 w-3" />
+                          Archive
+                        </>
+                      )}
+                    </Button>
                   </div>
-                )}
-              </CardContent>
+                </CardContent>
             </Card>
           );
         })}

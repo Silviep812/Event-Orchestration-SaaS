@@ -1340,6 +1340,7 @@ export type Database = {
       tasks: {
         Row: {
           actual_hours: number | null
+          archived: boolean
           assigned_service_vendor_role: string | null
           assigned_supplier_vendor_role: string | null
           assigned_to: string | null
@@ -1363,6 +1364,7 @@ export type Database = {
         }
         Insert: {
           actual_hours?: number | null
+          archived?: boolean
           assigned_service_vendor_role?: string | null
           assigned_supplier_vendor_role?: string | null
           assigned_to?: string | null
@@ -1386,6 +1388,7 @@ export type Database = {
         }
         Update: {
           actual_hours?: number | null
+          archived?: boolean
           assigned_service_vendor_role?: string | null
           assigned_supplier_vendor_role?: string | null
           assigned_to?: string | null
