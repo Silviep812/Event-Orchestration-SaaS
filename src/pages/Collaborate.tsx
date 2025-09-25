@@ -86,6 +86,7 @@ export default function Collaborate() {
       if (!user) return;
 
       try {
+        // Get users from get-invited-users function
         const { data, error } = await supabase.functions.invoke('get-invited-users', {
           headers: {
             Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
@@ -98,7 +99,34 @@ export default function Collaborate() {
         }
 
         if (data.success) {
-          setTeamMembers(data.teamMembers);
+          // Get roles from user_roles table
+          const { data: userRolesData, error: rolesError } = await supabase
+            .from('user_roles')
+            .select('user_id, role');
+
+          if (rolesError) {
+            console.error('Error fetching user roles:', rolesError);
+            // If roles fetch fails, still show users but with default role
+            setTeamMembers(data.teamMembers.map((member: TeamMember) => ({
+              ...member,
+              role: 'Member'
+            })));
+            return;
+          }
+
+          // Create a map of user roles for quick lookup
+          const rolesMap = new Map();
+          userRolesData?.forEach(role => {
+            rolesMap.set(role.user_id, role.role);
+          });
+
+          // Combine user data with roles from database
+          const membersWithRoles = data.teamMembers.map((member: TeamMember) => ({
+            ...member,
+            role: rolesMap.get(member.id) || 'Member'
+          }));
+
+          setTeamMembers(membersWithRoles);
         }
       } catch (error) {
         console.error('Error fetching team members:', error);
@@ -230,7 +258,7 @@ export default function Collaborate() {
       setInviteRole("");
       setIsInviteDialogOpen(false);
       
-      // Refresh team members list
+      // Refresh team members list with updated roles
       const { data: refreshData, error: refreshError } = await supabase.functions.invoke('get-invited-users', {
         headers: {
           Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
@@ -238,7 +266,26 @@ export default function Collaborate() {
       });
       
       if (refreshData?.success) {
-        setTeamMembers(refreshData.teamMembers);
+        // Get updated roles from database
+        const { data: userRolesData, error: rolesError } = await supabase
+          .from('user_roles')
+          .select('user_id, role');
+
+        if (!rolesError && userRolesData) {
+          const rolesMap = new Map();
+          userRolesData.forEach(role => {
+            rolesMap.set(role.user_id, role.role);
+          });
+
+          const membersWithRoles = refreshData.teamMembers.map((member: TeamMember) => ({
+            ...member,
+            role: rolesMap.get(member.id) || 'Member'
+          }));
+
+          setTeamMembers(membersWithRoles);
+        } else {
+          setTeamMembers(refreshData.teamMembers);
+        }
       }
     } catch (error) {
       console.error('Error sending invitation:', error);

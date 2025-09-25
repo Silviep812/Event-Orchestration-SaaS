@@ -58,6 +58,26 @@ const handler = async (req: Request): Promise<Response> => {
       throw inviteError;
     }
 
+    // Store the role in user_roles table for the invited user
+    // Note: We use the email to identify the user since they don't have a user_id yet
+    if (data.user && data.user.id) {
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .upsert({
+          user_id: data.user.id,
+          role: role
+        }, {
+          onConflict: 'user_id,role'
+        });
+
+      if (roleError) {
+        console.error("Error storing role in database:", roleError);
+        // Don't fail the invitation if role storage fails
+      } else {
+        console.log("Role stored in database for user:", data.user.id);
+      }
+    }
+
     console.log("Invitation sent successfully:", data);
 
     return new Response(
