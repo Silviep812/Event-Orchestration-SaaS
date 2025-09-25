@@ -121,7 +121,7 @@ const TimelineView = ({ eventId }: TimelineViewProps) => {
     const fetchTasks = async () => {
       try {
         const { data, error } = await supabase
-          .from('tasks_new')
+          .from('tasks')
           .select('*')
           .eq('event_id', eventId)
           .order('due_date', { ascending: true });
@@ -364,7 +364,7 @@ const TimelineView = ({ eventId }: TimelineViewProps) => {
     try {
       // Update in Supabase first
       const { error } = await supabase
-        .from('tasks_new')
+        .from('tasks')
         .update(updates)
         .eq('id', taskId);
 
