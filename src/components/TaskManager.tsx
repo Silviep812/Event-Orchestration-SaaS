@@ -782,50 +782,52 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
               Create Task
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-4xl">
             <DialogHeader>
               <DialogTitle>Create New Task</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
-              {!eventId && events.length > 0 && (
+            <div className="grid grid-cols-2 gap-6">
+              {/* Left column */}
+              <div className="space-y-4">
+                {!eventId && events.length > 0 && (
+                  <div className="space-y-2">
+                    <Label htmlFor="event">Select Project/Event</Label>
+                    <Select value={newTask.selected_event_id} onValueChange={(value) => setNewTask({ ...newTask, selected_event_id: value })}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose a project/event" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {events.map((event) => (
+                          <SelectItem key={event.id} value={event.id}>
+                            {event.title} {event.start_date && `(${format(new Date(event.start_date), 'MMM d, yyyy')})`}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
                 <div className="space-y-2">
-                  <Label htmlFor="event">Select Project/Event</Label>
-                  <Select value={newTask.selected_event_id} onValueChange={(value) => setNewTask({ ...newTask, selected_event_id: value })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choose a project/event" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {events.map((event) => (
-                        <SelectItem key={event.id} value={event.id}>
-                          {event.title} {event.start_date && `(${format(new Date(event.start_date), 'MMM d, yyyy')})`}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="title">Task Title</Label>
+                  <Input
+                    id="title"
+                    placeholder="Enter task title"
+                    value={newTask.title}
+                    onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
+                  />
                 </div>
-              )}
+                
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    placeholder="Enter task description"
+                    value={newTask.description}
+                    onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
+                    rows={4}
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="title">Task Title</Label>
-                <Input
-                  id="title"
-                  placeholder="Enter task title"
-                  value={newTask.title}
-                  onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  placeholder="Enter task description"
-                  value={newTask.description}
-                  onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="priority">Priority</Label>
                   <Select value={newTask.priority} onValueChange={(value: any) => setNewTask({ ...newTask, priority: value })}>
@@ -859,7 +861,8 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              {/* Right column */}
+              <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="hours">Estimated Hours</Label>
                   <Input
@@ -881,42 +884,44 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     onChange={(e) => setNewTask({ ...newTask, due_date: e.target.value })}
                   />
                 </div>
-              </div>
 
-              {/* Dependencies selection */}
-              {availableTasks.length > 0 && (
-                <div className="space-y-2">
-                  <Label>Task Dependencies</Label>
-                  <p className="text-sm text-muted-foreground">Select tasks that must be completed before this task can start:</p>
-                  <div className="max-h-32 overflow-y-auto space-y-2 border rounded-md p-2">
-                    {availableTasks.map((task) => (
-                      <div key={task.id} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`dep-${task.id}`}
-                          checked={newTask.dependencies.includes(task.id)}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setNewTask({
-                                ...newTask,
-                                dependencies: [...newTask.dependencies, task.id]
-                              });
-                            } else {
-                              setNewTask({
-                                ...newTask,
-                                dependencies: newTask.dependencies.filter(id => id !== task.id)
-                              });
-                            }
-                          }}
-                        />
-                        <label htmlFor={`dep-${task.id}`} className="text-sm font-medium leading-none">
-                          {task.title}
-                        </label>
-                      </div>
-                    ))}
+                {/* Dependencies selection */}
+                {availableTasks.length > 0 && (
+                  <div className="space-y-2">
+                    <Label>Task Dependencies</Label>
+                    <p className="text-sm text-muted-foreground">Select tasks that must be completed before this task can start:</p>
+                    <div className="max-h-48 overflow-y-auto space-y-2 border rounded-md p-2">
+                      {availableTasks.map((task) => (
+                        <div key={task.id} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`dep-${task.id}`}
+                            checked={newTask.dependencies.includes(task.id)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setNewTask({
+                                  ...newTask,
+                                  dependencies: [...newTask.dependencies, task.id]
+                                });
+                              } else {
+                                setNewTask({
+                                  ...newTask,
+                                  dependencies: newTask.dependencies.filter(id => id !== task.id)
+                                });
+                              }
+                            }}
+                          />
+                          <label htmlFor={`dep-${task.id}`} className="text-sm font-medium leading-none">
+                            {task.title}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
-
+                )}
+              </div>
+            </div>
+            
+            <div className="mt-6">
               <Button onClick={createTask} className="w-full">
                 Create Task
               </Button>
@@ -1032,28 +1037,32 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
           }
           setIsEditDialogOpen(open);
         }}>
-          <DialogContent>
+          <DialogContent className="max-w-4xl">
             <DialogHeader>
               <DialogTitle>Edit Task</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-title">Task Title</Label>
-                <Input
-                  id="edit-title"
-                  value={selectedTask.title}
-                  onChange={(e) => setSelectedTask({ ...selectedTask, title: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-description">Description</Label>
-                <Textarea
-                  id="edit-description"
-                  value={selectedTask.description || ''}
-                  onChange={(e) => setSelectedTask({ ...selectedTask, description: e.target.value })}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-6">
+              {/* Left column */}
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-title">Task Title</Label>
+                  <Input
+                    id="edit-title"
+                    value={selectedTask.title}
+                    onChange={(e) => setSelectedTask({ ...selectedTask, title: e.target.value })}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="edit-description">Description</Label>
+                  <Textarea
+                    id="edit-description"
+                    value={selectedTask.description || ''}
+                    onChange={(e) => setSelectedTask({ ...selectedTask, description: e.target.value })}
+                    rows={4}
+                  />
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="edit-priority">Priority</Label>
                   <Select
@@ -1071,6 +1080,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     </SelectContent>
                   </Select>
                 </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="edit-assigned-role">Assigned Role</Label>
                   <Select value={selectedTask.assigned_role || "none"} onValueChange={(value) => setSelectedTask({ ...selectedTask, assigned_role: value === "none" ? undefined : value })}>
@@ -1088,7 +1098,9 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                   </Select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+
+              {/* Right column */}
+              <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="edit-hours">Estimated Hours</Label>
                   <Input
@@ -1099,6 +1111,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     onChange={(e) => setSelectedTask({ ...selectedTask, estimated_hours: e.target.value ? parseFloat(e.target.value) : undefined })}
                   />
                 </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="edit-due_date">Due Date</Label>
                   <Input
@@ -1108,37 +1121,40 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     onChange={(e) => setSelectedTask({ ...selectedTask, due_date: e.target.value || undefined })}
                   />
                 </div>
-              </div>
 
-              {/* Dependencies selection for editing */}
-              {availableTasks.filter(task => task.id !== selectedTask.id).length > 0 && (
-                <div className="space-y-2">
-                  <Label>Task Dependencies</Label>
-                  <p className="text-sm text-muted-foreground">Select tasks that must be completed before this task can start:</p>
-                  <div className="max-h-32 overflow-y-auto space-y-2 border rounded-md p-2">
-                    {availableTasks
-                      .filter(task => task.id !== selectedTask.id)
-                      .map((task) => (
-                      <div key={task.id} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`edit-dep-${task.id}`}
-                          checked={selectedDependencies.includes(task.id)}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setSelectedDependencies([...selectedDependencies, task.id]);
-                            } else {
-                              setSelectedDependencies(selectedDependencies.filter(id => id !== task.id));
-                            }
-                          }}
-                        />
-                        <label htmlFor={`edit-dep-${task.id}`} className="text-sm font-medium leading-none">
-                          {task.title}
-                        </label>
-                      </div>
-                    ))}
+                {/* Dependencies selection for editing */}
+                {availableTasks.filter(task => task.id !== selectedTask.id).length > 0 && (
+                  <div className="space-y-2">
+                    <Label>Task Dependencies</Label>
+                    <p className="text-sm text-muted-foreground">Select tasks that must be completed before this task can start:</p>
+                    <div className="max-h-48 overflow-y-auto space-y-2 border rounded-md p-2">
+                      {availableTasks
+                        .filter(task => task.id !== selectedTask.id)
+                        .map((task) => (
+                        <div key={task.id} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`edit-dep-${task.id}`}
+                            checked={selectedDependencies.includes(task.id)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedDependencies([...selectedDependencies, task.id]);
+                              } else {
+                                setSelectedDependencies(selectedDependencies.filter(id => id !== task.id));
+                              }
+                            }}
+                          />
+                          <label htmlFor={`edit-dep-${task.id}`} className="text-sm font-medium leading-none">
+                            {task.title}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
+            </div>
+            
+            <div className="mt-6">
               <Button onClick={handleUpdateTask} className="w-full">
                 Save Changes
               </Button>
