@@ -63,23 +63,42 @@ export function RoleManager() {
 
   const fetchUsers = async () => {
     try {
+      // Get users from get-invited-users function
       const { data, error } = await supabase.functions.invoke('get-invited-users');
 
       if (error) throw error;
       
-      // Get all users including their roles from auth metadata
+      // Get all users from the function
       const allUsers = data?.teamMembers || [];
-      setUsers(allUsers);
       
-      // Convert users to role assignments for display
-      const roleAssignments = allUsers
-        .filter((user: any) => user.role && user.role !== 'Member' && user.status !== 'invited')
-        .map((user: any) => ({
-          id: user.id,
-          user_id: user.id,
-          role: user.role,
-          created_at: user.joinedAt
-        }));
+      // Get roles from user_roles table
+      const { data: userRolesData, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('user_id, role, created_at');
+
+      if (rolesError) throw rolesError;
+
+      // Create a map of user roles for quick lookup
+      const rolesMap = new Map();
+      userRolesData?.forEach(role => {
+        rolesMap.set(role.user_id, role);
+      });
+
+      // Add role information to users
+      const usersWithRoles = allUsers.map((user: any) => ({
+        ...user,
+        role: rolesMap.get(user.id)?.role || 'Member'
+      }));
+
+      setUsers(usersWithRoles);
+      
+      // Convert roles to role assignments for display
+      const roleAssignments = userRolesData?.map((role: any) => ({
+        id: role.user_id, // Use user_id as id for consistency
+        user_id: role.user_id,
+        role: role.role,
+        created_at: role.created_at
+      })) || [];
       
       setUserRoles(roleAssignments);
     } catch (error) {
@@ -97,10 +116,15 @@ export function RoleManager() {
     if (!selectedUser || !selectedRole) return;
 
     try {
-      // Update user metadata with the new role
-      const { error } = await supabase.auth.admin.updateUserById(selectedUser, {
-        user_metadata: { role: selectedRole }
-      });
+      // Insert or update role in user_roles table
+      const { error } = await supabase
+        .from('user_roles')
+        .upsert({
+          user_id: selectedUser,
+          role: selectedRole as any
+        }, {
+          onConflict: 'user_id,role'
+        });
 
       if (error) throw error;
 
@@ -124,10 +148,15 @@ export function RoleManager() {
 
   const changeRole = async (userId: string, newRole: string) => {
     try {
-      // Update user metadata with the new role
-      const { error } = await supabase.auth.admin.updateUserById(userId, {
-        user_metadata: { role: newRole }
-      });
+      // Update role in user_roles table
+      const { error } = await supabase
+        .from('user_roles')
+        .upsert({
+          user_id: userId,
+          role: newRole as any
+        }, {
+          onConflict: 'user_id,role'
+        });
 
       if (error) throw error;
 
