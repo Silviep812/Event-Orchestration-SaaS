@@ -247,6 +247,28 @@ export default function TrackProgress() {
   //     }
   //  ]
 
+  //   const mockMilestones: Milestone[] = [
+  //     {
+  //       id: "1",
+  //       title: "Venue & Catering Secured",
+  //       description: "All major venue and catering arrangements finalized",
+  //       targetDate: "2024-08-20",
+  //       status: "on_track",
+  //       progress: 85,
+  //       tasks: []
+  //     },
+  //     {
+  //       id: "2",
+  //       title: "Guest Management Complete",
+  //       description: "All guest-related tasks completed",
+  //       targetDate: "2024-08-25",
+  //       status: "at_risk",
+  //       progress: 40,
+  //       tasks: []
+  //     }
+  //   ];
+  //   setMilestones(mockMilestones);
+  // }, []);
 
   const getStatusColor = (status: string) => {
     switch (status) {
