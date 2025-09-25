@@ -17,7 +17,6 @@ interface AnalyticsFilters {
     from: Date;
     to: Date;
   };
-  location: string;
   theme: string;
 }
 
@@ -49,7 +48,6 @@ export default function Analytics({ onInteractionTrack }: AnalyticsProps = {}) {
       from: subDays(new Date(), 30),
       to: new Date()
     },
-    location: 'all',
     theme: 'all'
   });
   
@@ -304,22 +302,6 @@ export default function Analytics({ onInteractionTrack }: AnalyticsProps = {}) {
                 date={filters.dateRange}
                 onDateChange={(dateRange) => handleFilterChange('dateRange', dateRange)}
               />
-            </div>
-            
-            <div>
-              <Label htmlFor="location-filter" className="text-xs">Location</Label>
-              <Select value={filters.location} onValueChange={(value) => handleFilterChange('location', value)}>
-                <SelectTrigger className="h-8">
-                  <SelectValue placeholder="All Locations" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Locations</SelectItem>
-                  <SelectItem value="new-york">New York</SelectItem>
-                  <SelectItem value="los-angeles">Los Angeles</SelectItem>
-                  <SelectItem value="chicago">Chicago</SelectItem>
-                  <SelectItem value="miami">Miami</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
             
             <div>
