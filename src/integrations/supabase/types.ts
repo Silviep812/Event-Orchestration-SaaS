@@ -2131,6 +2131,11 @@ export type Database = {
         | "budget_manager"
         | "task_coordinator"
         | "client"
+        | "host"
+        | "organizer"
+        | "event_planner"
+        | "venue_owner"
+        | "hospitality_provider"
       budget_category:
         | "venue"
         | "catering"
@@ -2284,6 +2289,11 @@ export const Constants = {
         "budget_manager",
         "task_coordinator",
         "client",
+        "host",
+        "organizer",
+        "event_planner",
+        "venue_owner",
+        "hospitality_provider",
       ],
       budget_category: [
         "venue",
