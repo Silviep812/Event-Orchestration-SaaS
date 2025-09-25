@@ -76,6 +76,13 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [selectedDependencies, setSelectedDependencies] = useState<string[]>([]);
+  const [dueDateConflictDialog, setDueDateConflictDialog] = useState({
+    isOpen: false,
+    currentDate: "",
+    suggestedDate: "",
+    onConfirm: () => {},
+    onCancel: () => {}
+  });
   const [newTask, setNewTask] = useState({
     title: "",
     description: "",
@@ -255,9 +262,105 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
     }
   };
 
+  const checkDueDateConflict = async (taskDueDate: string | undefined, dependencyIds: string[]): Promise<{hasConflict: boolean, suggestedDate?: string}> => {
+    if (!taskDueDate || dependencyIds.length === 0) {
+      return { hasConflict: false };
+    }
+
+    try {
+      // Get the due dates of all dependency tasks
+      const { data: dependencyTasks, error } = await supabase
+        .from('tasks')
+        .select('id, due_date')
+        .in('id', dependencyIds);
+
+      if (error) throw error;
+
+      // Find the latest due date among dependencies
+      let latestDependencyDate: Date | null = null;
+      for (const depTask of dependencyTasks) {
+        if (depTask.due_date) {
+          const depDate = new Date(depTask.due_date);
+          if (!latestDependencyDate || depDate > latestDependencyDate) {
+            latestDependencyDate = depDate;
+          }
+        }
+      }
+
+      if (!latestDependencyDate) {
+        return { hasConflict: false };
+      }
+
+      const currentTaskDate = new Date(taskDueDate);
+      
+      // If task due date is before or same as dependency due date, there's a conflict
+      if (currentTaskDate <= latestDependencyDate) {
+        // Suggest a date 1 day after the latest dependency
+        const suggestedDate = new Date(latestDependencyDate);
+        suggestedDate.setDate(suggestedDate.getDate() + 1);
+        
+        return {
+          hasConflict: true,
+          suggestedDate: suggestedDate.toISOString().split('T')[0]
+        };
+      }
+
+      return { hasConflict: false };
+    } catch (error) {
+      console.error('Error checking due date conflict:', error);
+      return { hasConflict: false };
+    }
+  };
+
+  const handleDueDateConflictConfirmation = (
+    currentDate: string,
+    suggestedDate: string,
+    onConfirm: () => void,
+    onCancel: () => void
+  ) => {
+    setDueDateConflictDialog({
+      isOpen: true,
+      currentDate,
+      suggestedDate,
+      onConfirm: () => {
+        setDueDateConflictDialog(prev => ({ ...prev, isOpen: false }));
+        onConfirm();
+      },
+      onCancel: () => {
+        setDueDateConflictDialog(prev => ({ ...prev, isOpen: false }));
+        onCancel();
+      }
+    });
+  };
+
   const createTask = async () => {
     if (!newTask.title.trim()) return;
 
+    // Check for due date conflicts with dependencies
+    if (newTask.due_date && newTask.dependencies.length > 0) {
+      const conflict = await checkDueDateConflict(newTask.due_date, newTask.dependencies);
+      if (conflict.hasConflict && conflict.suggestedDate) {
+        handleDueDateConflictConfirmation(
+          newTask.due_date,
+          conflict.suggestedDate,
+          () => {
+            // User confirmed, update due date and continue
+            setNewTask(prev => ({ ...prev, due_date: conflict.suggestedDate! }));
+            executeCreateTask(conflict.suggestedDate);
+          },
+          () => {
+            // User cancelled, do nothing
+            return;
+          }
+        );
+        return;
+      }
+    }
+
+    executeCreateTask();
+  };
+
+  const executeCreateTask = async (overrideDueDate?: string) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
@@ -268,7 +371,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         assigned_venue_role: newTask.assigned_role || null,
         priority: newTask.priority as any,
         estimated_hours: newTask.estimated_hours ? parseFloat(newTask.estimated_hours) : null,
-        due_date: newTask.due_date || null,
+        due_date: overrideDueDate || newTask.due_date || null,
         event_id: eventId || newTask.selected_event_id || null,
         created_by: user.id
       };
@@ -344,20 +447,46 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
   const handleUpdateTask = async () => {
     if (!selectedTask) return;
     
+    // Check for due date conflicts with dependencies
+    if (selectedTask.due_date && selectedDependencies.length > 0) {
+      const conflict = await checkDueDateConflict(selectedTask.due_date, selectedDependencies);
+      if (conflict.hasConflict && conflict.suggestedDate) {
+        handleDueDateConflictConfirmation(
+          selectedTask.due_date,
+          conflict.suggestedDate,
+          () => {
+            // User confirmed, update due date and continue
+            const updatedTask = { ...selectedTask, due_date: conflict.suggestedDate };
+            setSelectedTask(updatedTask);
+            executeUpdateTask(updatedTask, conflict.suggestedDate);
+          },
+          () => {
+            // User cancelled, do nothing
+            return;
+          }
+        );
+        return;
+      }
+    }
+
+    executeUpdateTask(selectedTask);
+  };
+
+  const executeUpdateTask = async (taskToUpdate: Task, overrideDueDate?: string) => {
     try {
-      await updateTask(selectedTask.id, {
-        title: selectedTask.title,
-        description: selectedTask.description,
-        priority: selectedTask.priority,
-        assigned_role: selectedTask.assigned_role,
-        estimated_hours: selectedTask.estimated_hours,
-        due_date: selectedTask.due_date,
+      await updateTask(taskToUpdate.id, {
+        title: taskToUpdate.title,
+        description: taskToUpdate.description,
+        priority: taskToUpdate.priority,
+        assigned_role: taskToUpdate.assigned_role,
+        estimated_hours: taskToUpdate.estimated_hours,
+        due_date: overrideDueDate || taskToUpdate.due_date,
       });
 
       // Save dependencies
-      if (selectedDependencies.length !== (selectedTask.dependencies?.length || 0) || 
-          !selectedDependencies.every(dep => selectedTask.dependencies?.includes(dep))) {
-        await saveDependencies(selectedTask.id, selectedDependencies);
+      if (selectedDependencies.length !== (taskToUpdate.dependencies?.length || 0) || 
+          !selectedDependencies.every(dep => taskToUpdate.dependencies?.includes(dep))) {
+        await saveDependencies(taskToUpdate.id, selectedDependencies);
       }
 
       setIsEditDialogOpen(false);
@@ -786,6 +915,42 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Due Date Conflict Confirmation Dialog */}
+      <Dialog open={dueDateConflictDialog.isOpen} onOpenChange={(open) => {
+        if (!open) {
+          dueDateConflictDialog.onCancel();
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Due Date Conflict Detected</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              This task depends on other tasks that have later due dates. The task's due date needs to be adjusted to avoid conflicts.
+            </p>
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span className="font-medium">Current due date:</span>
+                <span>{dueDateConflictDialog.currentDate ? format(new Date(dueDateConflictDialog.currentDate), 'MMM dd, yyyy') : 'Not set'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-medium">Suggested due date:</span>
+                <span className="text-blue-600 font-medium">{dueDateConflictDialog.suggestedDate ? format(new Date(dueDateConflictDialog.suggestedDate), 'MMM dd, yyyy') : 'Not set'}</span>
+              </div>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={dueDateConflictDialog.onCancel}>
+                Cancel
+              </Button>
+              <Button onClick={dueDateConflictDialog.onConfirm}>
+                Continue with Suggested Date
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {tasks.length === 0 && (
         <div className="text-center py-12">
