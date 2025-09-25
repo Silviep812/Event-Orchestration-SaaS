@@ -304,9 +304,12 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
       setIsCreateDialogOpen(false);
       fetchTasks();
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to create task. Please try again.";
+      const isCircularDependency = errorMessage.includes("Circular dependency detected");
+      
       toast({
         title: "Error creating task",
-        description: "Failed to create task. Please try again.",
+        description: isCircularDependency ? errorMessage : "Failed to create task. Please try again.",
         variant: "destructive",
       });
     }
@@ -362,9 +365,12 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
       setSelectedDependencies([]);
       fetchTasks();
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to update task. Please try again.";
+      const isCircularDependency = errorMessage.includes("Circular dependency detected");
+      
       toast({
         title: "Error updating task",
-        description: "Failed to update task. Please try again.",
+        description: isCircularDependency ? errorMessage : "Failed to update task. Please try again.",
         variant: "destructive",
       });
     }
