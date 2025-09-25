@@ -83,6 +83,13 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
     onConfirm: () => {},
     onCancel: () => {}
   });
+  const [dependentTasksConflictDialog, setDependentTasksConflictDialog] = useState({
+    isOpen: false,
+    affectedTasks: [] as { id: string; title: string; currentDueDate: string }[],
+    newDueDate: "",
+    onConfirm: () => {},
+    onCancel: () => {}
+  });
   const [newTask, setNewTask] = useState({
     title: "",
     description: "",
@@ -312,6 +319,85 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
     }
   };
 
+  const findDependentTasks = async (taskId: string): Promise<string[]> => {
+    try {
+      // Get all tasks that depend on this task
+      const { data: dependencies, error } = await supabase
+        .from('tasks_dependencies')
+        .select('task_id')
+        .eq('depends_on_task_id', taskId);
+
+      if (error) throw error;
+
+      const dependentTaskIds = dependencies?.map(dep => dep.task_id) || [];
+      
+      // Recursively find all tasks that depend on the dependent tasks
+      const allDependentIds = new Set(dependentTaskIds);
+      
+      const findRecursive = async (taskIds: string[]) => {
+        for (const id of taskIds) {
+          const { data: nestedDeps, error } = await supabase
+            .from('tasks_dependencies')
+            .select('task_id')
+            .eq('depends_on_task_id', id);
+          
+          if (error) continue;
+          
+          const newIds = nestedDeps?.map(dep => dep.task_id).filter(id => !allDependentIds.has(id)) || [];
+          newIds.forEach(id => allDependentIds.add(id));
+          
+          if (newIds.length > 0) {
+            await findRecursive(newIds);
+          }
+        }
+      };
+      
+      await findRecursive(dependentTaskIds);
+      return Array.from(allDependentIds);
+    } catch (error) {
+      console.error('Error finding dependent tasks:', error);
+      return [];
+    }
+  };
+
+  const checkDependentTasksConflict = async (taskId: string, newDueDate: string): Promise<{hasConflict: boolean, affectedTasks?: {id: string; title: string; currentDueDate: string}[]}> => {
+    try {
+      const dependentTaskIds = await findDependentTasks(taskId);
+      
+      if (dependentTaskIds.length === 0) {
+        return { hasConflict: false };
+      }
+
+      // Get the dependent tasks with their due dates
+      const { data: dependentTasks, error } = await supabase
+        .from('tasks')
+        .select('id, title, due_date')
+        .in('id', dependentTaskIds)
+        .not('due_date', 'is', null);
+
+      if (error) throw error;
+
+      const newDate = new Date(newDueDate);
+      const affectedTasks = dependentTasks?.filter(task => {
+        if (!task.due_date) return false;
+        const taskDate = new Date(task.due_date);
+        return taskDate <= newDate;
+      }).map(task => ({
+        id: task.id,
+        title: task.title,
+        currentDueDate: task.due_date
+      })) || [];
+
+      return {
+        hasConflict: affectedTasks.length > 0,
+        affectedTasks
+      };
+    } catch (error) {
+      console.error('Error checking dependent tasks conflict:', error);
+      return { hasConflict: false };
+    }
+  };
+
   const handleDueDateConflictConfirmation = (
     currentDate: string,
     suggestedDate: string,
@@ -328,6 +414,27 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
       },
       onCancel: () => {
         setDueDateConflictDialog(prev => ({ ...prev, isOpen: false }));
+        onCancel();
+      }
+    });
+  };
+
+  const handleDependentTasksConflictConfirmation = (
+    affectedTasks: { id: string; title: string; currentDueDate: string }[],
+    newDueDate: string,
+    onConfirm: () => void,
+    onCancel: () => void
+  ) => {
+    setDependentTasksConflictDialog({
+      isOpen: true,
+      affectedTasks,
+      newDueDate,
+      onConfirm: () => {
+        setDependentTasksConflictDialog(prev => ({ ...prev, isOpen: false }));
+        onConfirm();
+      },
+      onCancel: () => {
+        setDependentTasksConflictDialog(prev => ({ ...prev, isOpen: false }));
         onCancel();
       }
     });
@@ -447,7 +554,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
   const handleUpdateTask = async () => {
     if (!selectedTask) return;
     
-    // Check for due date conflicts with dependencies
+    // First check for due date conflicts with dependencies (existing logic)
     if (selectedTask.due_date && selectedDependencies.length > 0) {
       const conflict = await checkDueDateConflict(selectedTask.due_date, selectedDependencies);
       if (conflict.hasConflict && conflict.suggestedDate) {
@@ -459,6 +566,26 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
             const updatedTask = { ...selectedTask, due_date: conflict.suggestedDate };
             setSelectedTask(updatedTask);
             executeUpdateTask(updatedTask, conflict.suggestedDate);
+          },
+          () => {
+            // User cancelled, do nothing
+            return;
+          }
+        );
+        return;
+      }
+    }
+
+    // Check if updating this task's due date affects dependent tasks
+    if (selectedTask.due_date) {
+      const dependentConflict = await checkDependentTasksConflict(selectedTask.id, selectedTask.due_date);
+      if (dependentConflict.hasConflict && dependentConflict.affectedTasks) {
+        handleDependentTasksConflictConfirmation(
+          dependentConflict.affectedTasks,
+          selectedTask.due_date,
+          () => {
+            // User confirmed, update dependent tasks and continue
+            executeUpdateTaskWithDependents(selectedTask, dependentConflict.affectedTasks);
           },
           () => {
             // User cancelled, do nothing
@@ -500,6 +627,62 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
       toast({
         title: "Error updating task",
         description: isCircularDependency ? errorMessage : "Failed to update task. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const executeUpdateTaskWithDependents = async (
+    taskToUpdate: Task, 
+    affectedTasks: { id: string; title: string; currentDueDate: string }[]
+  ) => {
+    try {
+      // Update the main task first
+      await updateTask(taskToUpdate.id, {
+        title: taskToUpdate.title,
+        description: taskToUpdate.description,
+        priority: taskToUpdate.priority,
+        assigned_role: taskToUpdate.assigned_role,
+        estimated_hours: taskToUpdate.estimated_hours,
+        due_date: taskToUpdate.due_date,
+      });
+
+      // Save dependencies
+      if (selectedDependencies.length !== (taskToUpdate.dependencies?.length || 0) || 
+          !selectedDependencies.every(dep => taskToUpdate.dependencies?.includes(dep))) {
+        await saveDependencies(taskToUpdate.id, selectedDependencies);
+      }
+
+      // Update dependent tasks' due dates to 1 day after the main task
+      const mainTaskDate = new Date(taskToUpdate.due_date!);
+      const newDueDateForDependents = new Date(mainTaskDate);
+      newDueDateForDependents.setDate(newDueDateForDependents.getDate() + 1);
+      
+      const updatePromises = affectedTasks.map(task => 
+        supabase
+          .from('tasks')
+          .update({ due_date: newDueDateForDependents.toISOString() })
+          .eq('id', task.id)
+      );
+
+      await Promise.all(updatePromises);
+
+      toast({
+        title: "Tasks updated",
+        description: `Updated ${affectedTasks.length + 1} task${affectedTasks.length > 0 ? 's' : ''} successfully.`,
+      });
+
+      setIsEditDialogOpen(false);
+      setSelectedTask(null);
+      setSelectedDependencies([]);
+      fetchTasks();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to update tasks. Please try again.";
+      const isCircularDependency = errorMessage.includes("Circular dependency detected");
+      
+      toast({
+        title: "Error updating tasks",
+        description: isCircularDependency ? errorMessage : "Failed to update tasks. Please try again.",
         variant: "destructive",
       });
     }
@@ -946,6 +1129,45 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
               </Button>
               <Button onClick={dueDateConflictDialog.onConfirm}>
                 Continue with Suggested Date
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dependent Tasks Conflict Dialog */}
+      <Dialog open={dependentTasksConflictDialog.isOpen} onOpenChange={(open) => {
+        if (!open) {
+          dependentTasksConflictDialog.onCancel();
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Dependent Tasks Conflict Detected</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              The following tasks depend on this task and have earlier due dates. They will be updated to maintain proper scheduling:
+            </p>
+            <div className="max-h-40 overflow-y-auto space-y-2 border rounded-md p-3">
+              {dependentTasksConflictDialog.affectedTasks.map((task) => (
+                <div key={task.id} className="flex justify-between items-center py-1">
+                  <span className="font-medium text-sm">{task.title}</span>
+                  <div className="text-xs text-muted-foreground">
+                    {format(new Date(task.currentDueDate), 'MMM dd, yyyy')} → 
+                    <span className="text-blue-600 font-medium ml-1">
+                      {format(new Date(new Date(dependentTasksConflictDialog.newDueDate).getTime() + 24 * 60 * 60 * 1000), 'MMM dd, yyyy')}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={dependentTasksConflictDialog.onCancel}>
+                Cancel
+              </Button>
+              <Button onClick={dependentTasksConflictDialog.onConfirm}>
+                Continue and Update Tasks
               </Button>
             </div>
           </div>
