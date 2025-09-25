@@ -157,8 +157,79 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
     }
   };
 
+  const checkCircularDependency = async (taskId: string, dependencyIds: string[]): Promise<boolean> => {
+    try {
+      // Get all existing dependencies from the database
+      const { data: allDependencies, error } = await supabase
+        .from('tasks_dependencies')
+        .select('task_id, depends_on_task_id');
+
+      if (error) throw error;
+
+      // Create a map of current dependencies (excluding the ones we're about to change)
+      const dependencyMap: { [key: string]: string[] } = {};
+      allDependencies?.forEach(dep => {
+        if (dep.task_id !== taskId) { // Exclude current task's dependencies as we're updating them
+          if (!dependencyMap[dep.task_id]) {
+            dependencyMap[dep.task_id] = [];
+          }
+          dependencyMap[dep.task_id].push(dep.depends_on_task_id);
+        }
+      });
+
+      // Add the new dependencies we want to create
+      dependencyMap[taskId] = dependencyIds;
+
+      // Check if any of the new dependencies would create a circular dependency
+      const visited = new Set<string>();
+      const recursionStack = new Set<string>();
+
+      const hasCycle = (currentTaskId: string): boolean => {
+        if (recursionStack.has(currentTaskId)) {
+          return true; // Found a cycle
+        }
+        if (visited.has(currentTaskId)) {
+          return false; // Already processed this node
+        }
+
+        visited.add(currentTaskId);
+        recursionStack.add(currentTaskId);
+
+        const dependencies = dependencyMap[currentTaskId] || [];
+        for (const depId of dependencies) {
+          if (hasCycle(depId)) {
+            return true;
+          }
+        }
+
+        recursionStack.delete(currentTaskId);
+        return false;
+      };
+
+      // Check for cycles starting from any task
+      for (const task of Object.keys(dependencyMap)) {
+        visited.clear();
+        recursionStack.clear();
+        if (hasCycle(task)) {
+          return true;
+        }
+      }
+
+      return false;
+    } catch (error) {
+      console.error('Error checking circular dependency:', error);
+      return false;
+    }
+  };
+
   const saveDependencies = async (taskId: string, dependencyIds: string[]) => {
     try {
+      // Check for circular dependencies
+      const hasCircularDependency = await checkCircularDependency(taskId, dependencyIds);
+      if (hasCircularDependency) {
+        throw new Error('Circular dependency detected! This would create a dependency loop between tasks.');
+      }
+
       // First, remove existing dependencies
       await supabase
         .from('tasks_dependencies')
