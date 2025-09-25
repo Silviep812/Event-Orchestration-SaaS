@@ -56,6 +56,7 @@ interface ProjectStats {
   completedTasks: number;
   overdueTasks: number;
   inProgressTasks: number;
+  onHoldTasks: number;
   totalHours: number;
   completedHours: number;
   averageCompletion: number;
@@ -75,6 +76,7 @@ export default function TrackProgress() {
     completedTasks: 0,
     overdueTasks: 0,
     inProgressTasks: 0,
+    onHoldTasks: 0,
     totalHours: 0,
     completedHours: 0,
     averageCompletion: 0,
@@ -134,6 +136,7 @@ export default function TrackProgress() {
       t.due_date && new Date(t.due_date) < new Date() && t.status !== 'completed' && t.status !== 'cancelled' && t.status !== 'on_hold'
     ).length;
     const inProgress = taskList.filter(t => t.status === 'in_progress').length;
+    const onHold = taskList.filter(t => t.status === 'on_hold').length;
     const totalHours = taskList.reduce((sum, t) => sum + (t.estimated_hours || 0), 0);
     const completedHours = taskList.reduce((sum, t) => sum + (t.actual_hours || 0), 0);
     
@@ -163,6 +166,7 @@ export default function TrackProgress() {
       completedTasks: completed,
       overdueTasks: overdue,
       inProgressTasks: inProgress,
+      onHoldTasks: onHold,
       totalHours,
       completedHours,
       averageCompletion: Math.round(avgProgress),
@@ -574,8 +578,9 @@ export default function TrackProgress() {
                   {[
                     { label: 'Completed', count: projectStats.completedTasks, color: 'bg-green-500' },
                     { label: 'In Progress', count: projectStats.inProgressTasks, color: 'bg-blue-500' },
+                    { label: 'On Hold', count: projectStats.onHoldTasks, color: 'bg-yellow-500' },
                     { label: 'Overdue', count: projectStats.overdueTasks, color: 'bg-orange-500' },
-                    { label: 'Not Started', count: projectStats.totalTasks - projectStats.completedTasks - projectStats.inProgressTasks - projectStats.overdueTasks, color: 'bg-gray-400' }
+                    { label: 'Not Started', count: projectStats.totalTasks - projectStats.completedTasks - projectStats.inProgressTasks - projectStats.onHoldTasks - projectStats.overdueTasks, color: 'bg-gray-400' }
                   ].map((item) => (
                     <div key={item.label} className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
