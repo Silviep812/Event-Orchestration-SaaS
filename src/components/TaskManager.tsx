@@ -68,6 +68,7 @@ export function TaskManager({ eventId }: TaskManagerProps) {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [selectedEventFilter, setSelectedEventFilter] = useState<string>("all");
   const [newTask, setNewTask] = useState({
     title: "",
     description: "",
@@ -85,7 +86,7 @@ export function TaskManager({ eventId }: TaskManagerProps) {
     if (!eventId) {
       fetchUserEvents();
     }
-  }, [eventId, user]);
+  }, [eventId, user, selectedEventFilter]);
 
   const fetchTasks = async () => {
     try {
@@ -93,6 +94,8 @@ export function TaskManager({ eventId }: TaskManagerProps) {
       
       if (eventId) {
         query = query.eq('event_id', eventId);
+      } else if (selectedEventFilter !== "all") {
+        query = query.eq('event_id', selectedEventFilter);
       }
       
       const { data, error } = await query;
@@ -334,6 +337,27 @@ export function TaskManager({ eventId }: TaskManagerProps) {
           </DialogContent>
         </Dialog>
       </div>
+
+      {!eventId && events.length > 0 && (
+        <div className="flex items-center gap-4">
+          <Label htmlFor="event-filter" className="text-sm font-medium">
+            Filter by Event:
+          </Label>
+          <Select value={selectedEventFilter} onValueChange={setSelectedEventFilter}>
+            <SelectTrigger className="w-64">
+              <SelectValue placeholder="Select an event to filter" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Events</SelectItem>
+              {events.map((event) => (
+                <SelectItem key={event.id} value={event.id}>
+                  {event.title} {event.start_date && `(${format(new Date(event.start_date), 'MMM d, yyyy')})`}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {tasks.map((task) => {
