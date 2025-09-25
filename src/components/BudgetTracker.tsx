@@ -10,7 +10,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useEventFilter } from "@/hooks/useEventFilter";
 import { DollarSign, Plus, TrendingUp, TrendingDown, AlertTriangle, CheckCircle, Archive, ArchiveRestore, Eye, EyeOff } from "lucide-react";
 import { format } from "date-fns";
 
@@ -57,6 +56,8 @@ export function BudgetTracker({ eventId }: BudgetTrackerProps) {
   const [budgetItems, setBudgetItems] = useState<BudgetItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [userEvents, setUserEvents] = useState<Array<{id: string, event_start_date: string, event_title?: string}>>([]);
+  const [selectedEventFilter, setSelectedEventFilter] = useState<string>("all");
   const [showArchived, setShowArchived] = useState(false);
   const [newItem, setNewItem] = useState({
     category: "",
@@ -74,18 +75,22 @@ export function BudgetTracker({ eventId }: BudgetTrackerProps) {
     item_name: ""
   });
   const { toast } = useToast();
-  const { selectedEventFilter, setSelectedEventFilter, events, applyEventFilter } = useEventFilter();
 
   useEffect(() => {
     fetchBudgetItems();
+    fetchUserEvents();
   }, [eventId, selectedEventFilter, showArchived]);
 
   const fetchBudgetItems = async () => {
     try {
       let query = supabase.from('budget_items').select('*').order('created_at', { ascending: false });
       
-      // Apply event filter using shared hook
-      query = applyEventFilter(query, eventId);
+      // Use the selected filter, or eventId prop if provided
+      const filterEventId = eventId || (selectedEventFilter !== "all" ? selectedEventFilter : null);
+      
+      if (filterEventId) {
+        query = query.eq('event_id', filterEventId);
+      }
       
       // Filter by archived status
       query = query.eq('archived', showArchived);
@@ -102,6 +107,29 @@ export function BudgetTracker({ eventId }: BudgetTrackerProps) {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchUserEvents = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('events')
+        .select('id, user_id, start_date, title')
+        .eq('user_id', user.id)
+        .order('start_date', { ascending: false });
+      
+      if (error) throw error;
+
+      setUserEvents(data?.map(event => ({
+        id: event.id,
+        event_start_date: event.start_date,
+        event_title: event.title
+      })) || []);
+    } catch (error) {
+      console.error('Error fetching user events:', error);
     }
   };
 
@@ -320,9 +348,9 @@ export function BudgetTracker({ eventId }: BudgetTrackerProps) {
                       <SelectValue placeholder="Select project" />
                     </SelectTrigger>
                     <SelectContent>
-                      {events.map((event) => (
+                      {userEvents.map((event) => (
                         <SelectItem key={event.id} value={event.id}>
-                          {event.title} {event.start_date && `(${format(new Date(event.start_date), 'MMM d, yyyy')})`}
+                          {event.event_title} {event.event_start_date && `(${format(new Date(event.event_start_date), 'MMM d, yyyy')})`}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -436,9 +464,9 @@ export function BudgetTracker({ eventId }: BudgetTrackerProps) {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Events</SelectItem>
-                {events.map((event) => (
+                {userEvents.map((event) => (
                   <SelectItem key={event.id} value={event.id}>
-                    {event.title} {event.start_date && `(${format(new Date(event.start_date), 'MMM d, yyyy')})`}
+                    {event.event_title} {event.event_start_date && `(${format(new Date(event.event_start_date), 'MMM d, yyyy')})`}
                   </SelectItem>
                 ))}
               </SelectContent>

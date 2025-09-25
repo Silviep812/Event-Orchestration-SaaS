@@ -10,7 +10,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { useEventFilter } from "@/hooks/useEventFilter";
 import { CheckCircle2, Clock, AlertCircle, Plus, Calendar, User } from "lucide-react";
 import { format } from "date-fns";
 
@@ -27,6 +26,12 @@ interface Task {
   due_date?: string;
   created_at: string;
   updated_at: string;
+}
+
+interface Event {
+  id: string;
+  title: string;
+  start_date?: string;
 }
 
 interface TaskManagerProps {
@@ -58,10 +63,12 @@ const statusIcons = {
 
 export function TaskManager({ eventId }: TaskManagerProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [selectedEventFilter, setSelectedEventFilter] = useState<string>("all");
   const [newTask, setNewTask] = useState({
     title: "",
     description: "",
@@ -73,16 +80,23 @@ export function TaskManager({ eventId }: TaskManagerProps) {
   });
   const { toast } = useToast();
   const { user } = useAuth();
-  const { selectedEventFilter, setSelectedEventFilter, events, applyEventFilter } = useEventFilter();
 
   useEffect(() => {
     fetchTasks();
+    if (!eventId) {
+      fetchUserEvents();
+    }
   }, [eventId, user, selectedEventFilter]);
 
   const fetchTasks = async () => {
     try {
       let query = supabase.from('tasks').select('*').order('created_at', { ascending: false });
-      query = applyEventFilter(query, eventId);
+      
+      if (eventId) {
+        query = query.eq('event_id', eventId);
+      } else if (selectedEventFilter !== "all") {
+        query = query.eq('event_id', selectedEventFilter);
+      }
       
       const { data, error } = await query;
       if (error) throw error;
@@ -96,6 +110,23 @@ export function TaskManager({ eventId }: TaskManagerProps) {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchUserEvents = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('events')
+        .select('id, title, start_date')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      setEvents(data || []);
+    } catch (error) {
+      console.error('Error fetching events:', error);
     }
   };
 
