@@ -171,27 +171,27 @@ export function TaskManager({ eventId }: TaskManagerProps) {
     }
   };
 
-  const updateTaskStatus = async (taskId: string, status: Task['status']) => {
+  const updateTask = async (taskId: string, updates: Partial<Task>) => {
     try {
       const { error } = await supabase
         .from('tasks_new')
-        .update({ status })
+        .update(updates)
         .eq('id', taskId);
 
       if (error) throw error;
 
       setTasks(tasks.map(task => 
-        task.id === taskId ? { ...task, status } : task
+        task.id === taskId ? { ...task, ...updates } : task
       ));
 
       toast({
         title: "Task updated",
-        description: "Task status has been updated.",
+        description: "Task has been updated successfully.",
       });
     } catch (error) {
       toast({
         title: "Error updating task",
-        description: "Failed to update task status.",
+        description: "Failed to update task.",
         variant: "destructive",
       });
     }
@@ -327,11 +327,17 @@ export function TaskManager({ eventId }: TaskManagerProps) {
               <CardHeader className="pb-2">
                 <div className="flex items-start justify-between">
                   <CardTitle className="text-lg">{task.title}</CardTitle>
-                  <div className="flex flex-col gap-2">
-                    <Badge className={priorityColors[task.priority]}>
-                      {task.priority}
-                    </Badge>
-                  </div>
+                  <Select value={task.priority} onValueChange={(value: any) => updateTask(task.id, { priority: value })}>
+                    <SelectTrigger className={`h-8 w-28 ${priorityColors[task.priority]}`}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">Low</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="urgent">Urgent</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -341,7 +347,7 @@ export function TaskManager({ eventId }: TaskManagerProps) {
 
                 <div className="flex items-center gap-2">
                   <StatusIcon className="h-4 w-4" />
-                  <Select value={task.status} onValueChange={(value: any) => updateTaskStatus(task.id, value)}>
+                  <Select value={task.status} onValueChange={(value: any) => updateTask(task.id, { status: value })}>
                     <SelectTrigger className="h-8">
                       <SelectValue />
                     </SelectTrigger>
@@ -362,23 +368,33 @@ export function TaskManager({ eventId }: TaskManagerProps) {
                   </div>
                 )}
 
-                {task.estimated_hours && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Clock className="h-3 w-3" />
-                    <span>{task.estimated_hours}h estimated</span>
-                  </div>
-                )}
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Clock className="h-3 w-3" />
+                  <Input
+                    type="number"
+                    step="0.5"
+                    value={task.estimated_hours || ''}
+                    onChange={(e) => updateTask(task.id, { estimated_hours: e.target.value ? parseFloat(e.target.value) : undefined })}
+                    className="h-8 w-24"
+                    placeholder="Hours"
+                  />
+                  <span>h estimated</span>
+                </div>
 
-                {task.due_date && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Calendar className="h-3 w-3" />
-                    <span>Due: {format(new Date(task.due_date), 'MMM d, yyyy')}</span>
-                  </div>
-                )}
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Calendar className="h-3 w-3" />
+                  <Input
+                    type="datetime-local"
+                    value={task.due_date ? format(new Date(task.due_date), "yyyy-MM-dd'T'HH:mm") : ''}
+                    onChange={(e) => updateTask(task.id, { due_date: e.target.value || undefined })}
+                    className="h-8"
+                  />
+                </div>
               </CardContent>
             </Card>
           );
         })}
+
       </div>
 
       {tasks.length === 0 && (
