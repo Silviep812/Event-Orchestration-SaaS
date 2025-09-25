@@ -83,6 +83,14 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
     onConfirm: () => {},
     onCancel: () => {}
   });
+  const [dependentTasksConflictDialog, setDependentTasksConflictDialog] = useState({
+    isOpen: false,
+    currentDate: "",
+    newDate: "",
+    affectedTasks: [] as Array<{id: string, title: string, currentDueDate: string, newDueDate: string}>,
+    onConfirm: () => {},
+    onCancel: () => {}
+  });
   const [newTask, setNewTask] = useState({
     title: "",
     description: "",
@@ -312,6 +320,97 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
     }
   };
 
+  const findDependentTasks = async (taskId: string): Promise<Task[]> => {
+    try {
+      // Find all task IDs that depend on this task
+      const { data: dependentTaskIds, error: depsError } = await supabase
+        .from('tasks_dependencies')
+        .select('task_id')
+        .eq('depends_on_task_id', taskId);
+
+      if (depsError) throw depsError;
+
+      if (!dependentTaskIds || dependentTaskIds.length === 0) {
+        return [];
+      }
+
+      // Get the actual task details
+      const { data: dependentTasks, error: tasksError } = await supabase
+        .from('tasks')
+        .select('*')
+        .in('id', dependentTaskIds.map(dep => dep.task_id));
+
+      if (tasksError) throw tasksError;
+
+      return dependentTasks || [];
+    } catch (error) {
+      console.error('Error finding dependent tasks:', error);
+      return [];
+    }
+  };
+
+  const checkDependentTasksConflict = async (taskId: string, newDueDate: string): Promise<{hasConflict: boolean, affectedTasks?: Array<{id: string, title: string, currentDueDate: string, newDueDate: string}>}> => {
+    try {
+      const dependentTasks = await findDependentTasks(taskId);
+      
+      if (dependentTasks.length === 0) {
+        return { hasConflict: false };
+      }
+
+      const newDate = new Date(newDueDate);
+      const affectedTasks = [];
+
+      for (const task of dependentTasks) {
+        if (task.due_date) {
+          const taskDueDate = new Date(task.due_date);
+          // If dependent task has earlier due date than the new due date
+          if (taskDueDate <= newDate) {
+            const suggestedDate = new Date(newDate);
+            suggestedDate.setDate(suggestedDate.getDate() + 1);
+            
+            affectedTasks.push({
+              id: task.id,
+              title: task.title,
+              currentDueDate: task.due_date,
+              newDueDate: suggestedDate.toISOString().split('T')[0]
+            });
+          }
+        }
+      }
+
+      return {
+        hasConflict: affectedTasks.length > 0,
+        affectedTasks
+      };
+    } catch (error) {
+      console.error('Error checking dependent tasks conflict:', error);
+      return { hasConflict: false };
+    }
+  };
+
+  const handleDependentTasksConflictConfirmation = (
+    currentDate: string,
+    newDate: string,
+    affectedTasks: Array<{id: string, title: string, currentDueDate: string, newDueDate: string}>,
+    onConfirm: () => void,
+    onCancel: () => void
+  ) => {
+    setDependentTasksConflictDialog({
+      isOpen: true,
+      currentDate,
+      newDate,
+      affectedTasks,
+      onConfirm: () => {
+        setDependentTasksConflictDialog(prev => ({ ...prev, isOpen: false }));
+        onConfirm();
+      },
+      onCancel: () => {
+        setDependentTasksConflictDialog(prev => ({ ...prev, isOpen: false }));
+        onCancel();
+      }
+    });
+  };
+
   const handleDueDateConflictConfirmation = (
     currentDate: string,
     suggestedDate: string,
@@ -447,7 +546,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
   const handleUpdateTask = async () => {
     if (!selectedTask) return;
     
-    // Check for due date conflicts with dependencies
+    // Check for due date conflicts with dependencies first
     if (selectedTask.due_date && selectedDependencies.length > 0) {
       const conflict = await checkDueDateConflict(selectedTask.due_date, selectedDependencies);
       if (conflict.hasConflict && conflict.suggestedDate) {
@@ -469,7 +568,77 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
       }
     }
 
+    // Check if updating this task's due date affects dependent tasks
+    if (selectedTask.due_date) {
+      const dependentConflict = await checkDependentTasksConflict(selectedTask.id, selectedTask.due_date);
+      if (dependentConflict.hasConflict && dependentConflict.affectedTasks) {
+        handleDependentTasksConflictConfirmation(
+          selectedTask.due_date,
+          selectedTask.due_date,
+          dependentConflict.affectedTasks,
+          () => {
+            // User confirmed, update task and dependent tasks
+            executeUpdateTaskWithDependents(selectedTask, dependentConflict.affectedTasks);
+          },
+          () => {
+            // User cancelled, do nothing
+            return;
+          }
+        );
+        return;
+      }
+    }
+
     executeUpdateTask(selectedTask);
+  };
+
+  const executeUpdateTaskWithDependents = async (
+    taskToUpdate: Task, 
+    affectedTasks: Array<{id: string, title: string, currentDueDate: string, newDueDate: string}>
+  ) => {
+    try {
+      // Update the main task first
+      await updateTask(taskToUpdate.id, {
+        title: taskToUpdate.title,
+        description: taskToUpdate.description,
+        priority: taskToUpdate.priority,
+        assigned_role: taskToUpdate.assigned_role,
+        estimated_hours: taskToUpdate.estimated_hours,
+        due_date: taskToUpdate.due_date,
+      });
+
+      // Update dependent tasks' due dates
+      for (const affectedTask of affectedTasks) {
+        await updateTask(affectedTask.id, {
+          due_date: affectedTask.newDueDate
+        });
+      }
+
+      // Save dependencies
+      if (selectedDependencies.length !== (taskToUpdate.dependencies?.length || 0) || 
+          !selectedDependencies.every(dep => taskToUpdate.dependencies?.includes(dep))) {
+        await saveDependencies(taskToUpdate.id, selectedDependencies);
+      }
+
+      toast({
+        title: "Tasks updated",
+        description: `Updated main task and ${affectedTasks.length} dependent task${affectedTasks.length > 1 ? 's' : ''}.`,
+      });
+
+      setIsEditDialogOpen(false);
+      setSelectedTask(null);
+      setSelectedDependencies([]);
+      fetchTasks();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to update tasks. Please try again.";
+      const isCircularDependency = errorMessage.includes("Circular dependency detected");
+      
+      toast({
+        title: "Error updating tasks",
+        description: isCircularDependency ? errorMessage : "Failed to update tasks. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const executeUpdateTask = async (taskToUpdate: Task, overrideDueDate?: string) => {
@@ -946,6 +1115,49 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
               </Button>
               <Button onClick={dueDateConflictDialog.onConfirm}>
                 Continue with Suggested Date
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dependent Tasks Conflict Dialog */}
+      <Dialog 
+        open={dependentTasksConflictDialog.isOpen} 
+        onOpenChange={(open) => {
+          if (!open) {
+            dependentTasksConflictDialog.onCancel();
+          }
+        }}
+      >
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Dependent Tasks Update Required</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Updating this task's due date will affect {dependentTasksConflictDialog.affectedTasks.length} dependent task{dependentTasksConflictDialog.affectedTasks.length > 1 ? 's' : ''} that currently have earlier due dates. These tasks will be automatically updated to maintain proper dependency order.
+            </p>
+            
+            <div className="space-y-3">
+              <h4 className="font-medium">Tasks that will be updated:</h4>
+              {dependentTasksConflictDialog.affectedTasks.map((task) => (
+                <div key={task.id} className="p-3 border rounded-lg space-y-1">
+                  <p className="font-medium">{task.title}</p>
+                  <div className="text-sm text-muted-foreground">
+                    <p>Current due date: {format(new Date(task.currentDueDate), 'PPP')}</p>
+                    <p>New due date: {format(new Date(task.newDueDate), 'PPP')}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={dependentTasksConflictDialog.onCancel}>
+                Cancel
+              </Button>
+              <Button onClick={dependentTasksConflictDialog.onConfirm}>
+                Continue and Update All Tasks
               </Button>
             </div>
           </div>
