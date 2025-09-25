@@ -314,10 +314,11 @@ export default function Collaborate() {
                     <SelectValue placeholder="Select a role" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="event_manager">Event Manager</SelectItem>
-                    <SelectItem value="coordinator">Coordinator</SelectItem>
-                    <SelectItem value="vendor_manager">Vendor Manager</SelectItem>
-                    <SelectItem value="assistant">Assistant</SelectItem>
+                    <SelectItem value="host">Host</SelectItem>
+                    <SelectItem value="organizer">Organizer</SelectItem>
+                    <SelectItem value="event_planner">Event Planner</SelectItem>
+                    <SelectItem value="venue_owner">Venue Owner</SelectItem>
+                    <SelectItem value="hospitality_provider">Hospitality Provider</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
