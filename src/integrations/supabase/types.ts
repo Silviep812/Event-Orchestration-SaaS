@@ -1340,7 +1340,6 @@ export type Database = {
       tasks: {
         Row: {
           actual_hours: number | null
-          assigned_hosp_role: Database["public"]["Enums"]["app_role"] | null
           assigned_service_vendor_role: string | null
           assigned_supplier_vendor_role: string | null
           assigned_to: string | null
@@ -1360,7 +1359,6 @@ export type Database = {
         }
         Insert: {
           actual_hours?: number | null
-          assigned_hosp_role?: Database["public"]["Enums"]["app_role"] | null
           assigned_service_vendor_role?: string | null
           assigned_supplier_vendor_role?: string | null
           assigned_to?: string | null
@@ -1380,7 +1378,6 @@ export type Database = {
         }
         Update: {
           actual_hours?: number | null
-          assigned_hosp_role?: Database["public"]["Enums"]["app_role"] | null
           assigned_service_vendor_role?: string | null
           assigned_supplier_vendor_role?: string | null
           assigned_to?: string | null
@@ -1403,7 +1400,6 @@ export type Database = {
       tasks_new: {
         Row: {
           actual_hours: number | null
-          assigned_hosp_role: Database["public"]["Enums"]["app_role"] | null
           assigned_service_vendor_role: string | null
           assigned_supplier_vendor_role: string | null
           assigned_to: string | null
@@ -1427,7 +1423,6 @@ export type Database = {
         }
         Insert: {
           actual_hours?: number | null
-          assigned_hosp_role?: Database["public"]["Enums"]["app_role"] | null
           assigned_service_vendor_role?: string | null
           assigned_supplier_vendor_role?: string | null
           assigned_to?: string | null
@@ -1451,7 +1446,6 @@ export type Database = {
         }
         Update: {
           actual_hours?: number | null
-          assigned_hosp_role?: Database["public"]["Enums"]["app_role"] | null
           assigned_service_vendor_role?: string | null
           assigned_supplier_vendor_role?: string | null
           assigned_to?: string | null
@@ -1739,19 +1733,19 @@ export type Database = {
         Row: {
           created_at: string
           id: string
-          role: Database["public"]["Enums"]["app_role_new"]
+          role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Insert: {
           created_at?: string
           id?: string
-          role: Database["public"]["Enums"]["app_role_new"]
+          role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Update: {
           created_at?: string
           id?: string
-          role?: Database["public"]["Enums"]["app_role_new"]
+          role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
         }
         Relationships: []
@@ -2125,12 +2119,6 @@ export type Database = {
     }
     Enums: {
       app_role:
-        | "admin"
-        | "event_manager"
-        | "vendor_coordinator"
-        | "budget_manager"
-        | "task_coordinator"
-        | "client"
         | "host"
         | "organizer"
         | "event_planner"
@@ -2289,12 +2277,6 @@ export const Constants = {
   public: {
     Enums: {
       app_role: [
-        "admin",
-        "event_manager",
-        "vendor_coordinator",
-        "budget_manager",
-        "task_coordinator",
-        "client",
         "host",
         "organizer",
         "event_planner",
