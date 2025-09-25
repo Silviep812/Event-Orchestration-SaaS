@@ -9,6 +9,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useEventFilter } from "@/hooks/useEventFilter";
 import { 
   TrendingUp, 
   Calendar as CalendarIcon, 
@@ -29,16 +31,14 @@ import {
 interface Task {
   id: string;
   title: string;
-  description: string;
-  status: 'not_started' | 'in_progress' | 'completed' | 'blocked' | 'overdue';
+  description: string | null;
+  status: 'not_started' | 'in_progress' | 'completed' | 'cancelled' | 'on_hold';
   priority: 'low' | 'medium' | 'high' | 'urgent';
-  assignee: string;
-  assigneeName: string;
-  dueDate: string;
-  progress: number;
-  estimatedHours: number;
-  actualHours: number;
-  category: string;
+  due_date: string | null;
+  estimated_hours: number | null;
+  actual_hours: number | null;
+  event_id: string;
+  assigned_role?: string | null;
 }
 
 interface Milestone {
@@ -64,11 +64,12 @@ interface ProjectStats {
 
 export default function TrackProgress() {
   const { toast } = useToast();
+  const { selectedEventFilter, events, eventsLoading } = useEventFilter();
   
   const [selectedFilter, setSelectedFilter] = useState("all");
-  const [selectedProject, setSelectedProject] = useState("current");
   const [tasks, setTasks] = useState<Task[]>([]);
   const [milestones, setMilestones] = useState<Milestone[]>([]);
+  const [loading, setLoading] = useState(false);
   const [projectStats, setProjectStats] = useState<ProjectStats>({
     totalTasks: 0,
     completedTasks: 0,
@@ -80,81 +81,105 @@ export default function TrackProgress() {
     onTimeCompletion: 0
   });
 
-  // Mock data initialization
-  useEffect(() => {
-    const mockTasks: Task[] = [
-      {
-        id: "1",
-        title: "Venue Contract Finalization",
-        description: "Complete venue booking and contract signing",
-        status: "completed",
-        priority: "high",
-        assignee: "1",
-        assigneeName: "John Doe",
-        dueDate: "2024-08-10",
-        progress: 100,
-        estimatedHours: 8,
-        actualHours: 6,
-        category: "Venue"
-      },
-      {
-        id: "2",
-        title: "Catering Menu Selection",
-        description: "Choose final menu and finalize catering details",
-        status: "in_progress",
-        priority: "high",
-        assignee: "2",
-        assigneeName: "Sarah Wilson",
-        dueDate: "2024-08-20",
-        progress: 75,
-        estimatedHours: 12,
-        actualHours: 9,
-        category: "Catering"
-      },
-      {
-        id: "3",
-        title: "Audio/Visual Setup",
-        description: "Coordinate AV equipment and technical setup",
-        status: "not_started",
-        priority: "medium",
-        assignee: "3",
-        assigneeName: "Mike Johnson",
-        dueDate: "2024-08-25",
-        progress: 0,
-        estimatedHours: 16,
-        actualHours: 0,
-        category: "Technical"
-      },
-      {
-        id: "4",
-        title: "Guest List Management",
-        description: "Finalize guest list and send invitations",
-        status: "overdue",
-        priority: "urgent",
-        assignee: "2",
-        assigneeName: "Sarah Wilson",
-        dueDate: "2024-08-12",
-        progress: 40,
-        estimatedHours: 6,
-        actualHours: 4,
-        category: "Guests"
-      },
-      {
-        id: "5",
-        title: "Decorations & Themes",
-        description: "Setup event decorations and theme elements",
-        status: "blocked",
-        priority: "medium",
-        assignee: "1",
-        assigneeName: "John Doe",
-        dueDate: "2024-08-22",
-        progress: 25,
-        estimatedHours: 20,
-        actualHours: 5,
-        category: "Decorations"
-      }
-    ];
+  const fetchTasks = async () => {
+    setLoading(true);
+    try {
+      let query = supabase
+        .from('tasks')
+        .select('*')
+        .eq('archived', false)
+        .order('created_at', { ascending: false });
 
+      if (selectedEventFilter !== "all") {
+        query = query.eq('event_id', selectedEventFilter);
+      }
+
+      const { data: tasksData, error } = await query;
+      
+      if (error) throw error;
+
+      // Fetch assigned roles for each task
+      const tasksWithRoles = await Promise.all(
+        (tasksData || []).map(async (task) => {
+          const { data: assignmentData } = await supabase
+            .from('task_assignments')
+            .select('assigned_role')
+            .eq('task_id', task.id)
+            .limit(1)
+            .maybeSingle();
+
+          return {
+            ...task,
+            assigned_role: assignmentData?.assigned_role || null
+          };
+        })
+      );
+      
+      setTasks(tasksWithRoles);
+    } catch (error) {
+      console.error('Error fetching tasks:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch tasks",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const calculateProjectStats = (taskList: Task[]) => {
+    const completed = taskList.filter(t => t.status === 'completed').length;
+    const overdue = taskList.filter(t => 
+      t.due_date && new Date(t.due_date) < new Date() && t.status !== 'completed'
+    ).length;
+    const inProgress = taskList.filter(t => t.status === 'in_progress').length;
+    const totalHours = taskList.reduce((sum, t) => sum + (t.estimated_hours || 0), 0);
+    const completedHours = taskList.reduce((sum, t) => sum + (t.actual_hours || 0), 0);
+    
+    // Calculate progress based on status
+    const getTaskProgress = (task: Task) => {
+      switch (task.status) {
+        case 'completed': return 100;
+        case 'in_progress': return 50;
+        case 'on_hold': return 25;
+        case 'not_started': return 0;
+        case 'cancelled': return 0;
+        default: return 0;
+      }
+    };
+    
+    const avgProgress = taskList.length > 0 
+      ? taskList.reduce((sum, t) => sum + getTaskProgress(t), 0) / taskList.length 
+      : 0;
+    
+    const onTimeComplete = taskList.filter(t => 
+      t.status === 'completed' && 
+      (!t.due_date || new Date(t.due_date) >= new Date())
+    ).length;
+
+    setProjectStats({
+      totalTasks: taskList.length,
+      completedTasks: completed,
+      overdueTasks: overdue,
+      inProgressTasks: inProgress,
+      totalHours,
+      completedHours,
+      averageCompletion: Math.round(avgProgress),
+      onTimeCompletion: completed > 0 ? Math.round((onTimeComplete / completed) * 100) : 0
+    });
+  };
+
+  useEffect(() => {
+    fetchTasks();
+  }, [selectedEventFilter]);
+
+  useEffect(() => {
+    calculateProjectStats(tasks);
+  }, [tasks]);
+
+  useEffect(() => {
+    // Keep mock milestones for now since they're not directly connected to real data
     const mockMilestones: Milestone[] = [
       {
         id: "1",
@@ -163,7 +188,7 @@ export default function TrackProgress() {
         targetDate: "2024-08-20",
         status: "on_track",
         progress: 85,
-        tasks: ["1", "2"]
+        tasks: []
       },
       {
         id: "2",
@@ -172,43 +197,10 @@ export default function TrackProgress() {
         targetDate: "2024-08-25",
         status: "at_risk",
         progress: 40,
-        tasks: ["4"]
-      },
-      {
-        id: "3",
-        title: "Technical Setup Ready",
-        description: "All technical and AV requirements in place",
-        targetDate: "2024-08-28",
-        status: "upcoming",
-        progress: 15,
-        tasks: ["3", "5"]
+        tasks: []
       }
     ];
-
-    setTasks(mockTasks);
     setMilestones(mockMilestones);
-
-    // Calculate project stats
-    const completed = mockTasks.filter(t => t.status === 'completed').length;
-    const overdue = mockTasks.filter(t => t.status === 'overdue').length;
-    const inProgress = mockTasks.filter(t => t.status === 'in_progress').length;
-    const totalHours = mockTasks.reduce((sum, t) => sum + t.estimatedHours, 0);
-    const completedHours = mockTasks.reduce((sum, t) => sum + t.actualHours, 0);
-    const avgProgress = mockTasks.reduce((sum, t) => sum + t.progress, 0) / mockTasks.length;
-    const onTimeComplete = mockTasks.filter(t => 
-      t.status === 'completed' && new Date(t.dueDate) >= new Date()
-    ).length;
-
-    setProjectStats({
-      totalTasks: mockTasks.length,
-      completedTasks: completed,
-      overdueTasks: overdue,
-      inProgressTasks: inProgress,
-      totalHours,
-      completedHours,
-      averageCompletion: Math.round(avgProgress),
-      onTimeCompletion: Math.round((onTimeComplete / (completed || 1)) * 100)
-    });
   }, []);
 
   const getStatusColor = (status: string) => {
@@ -216,8 +208,8 @@ export default function TrackProgress() {
       case 'completed': return 'bg-green-500';
       case 'in_progress': return 'bg-blue-500';
       case 'not_started': return 'bg-gray-400';
-      case 'blocked': return 'bg-red-500';
-      case 'overdue': return 'bg-orange-500';
+      case 'cancelled': return 'bg-red-500';
+      case 'on_hold': return 'bg-yellow-500';
       case 'on_track': return 'bg-green-500';
       case 'at_risk': return 'bg-yellow-500';
       case 'upcoming': return 'bg-blue-500';
@@ -230,8 +222,8 @@ export default function TrackProgress() {
       case 'completed': return CheckCircle;
       case 'in_progress': return PlayCircle;
       case 'not_started': return Clock;
-      case 'blocked': return XCircle;
-      case 'overdue': return AlertTriangle;
+      case 'cancelled': return XCircle;
+      case 'on_hold': return PauseCircle;
       default: return Clock;
     }
   };
@@ -252,6 +244,7 @@ export default function TrackProgress() {
   });
 
   const handleRefresh = () => {
+    fetchTasks();
     toast({
       title: "Progress Updated",
       description: "Latest progress data has been refreshed.",
@@ -358,8 +351,8 @@ export default function TrackProgress() {
                 <SelectItem value="not_started">Not Started</SelectItem>
                 <SelectItem value="in_progress">In Progress</SelectItem>
                 <SelectItem value="completed">Completed</SelectItem>
-                <SelectItem value="blocked">Blocked</SelectItem>
-                <SelectItem value="overdue">Overdue</SelectItem>
+                <SelectItem value="cancelled">Cancelled</SelectItem>
+                <SelectItem value="on_hold">On Hold</SelectItem>
               </SelectContent>
             </Select>
             
@@ -386,39 +379,60 @@ export default function TrackProgress() {
                             <Badge variant={getPriorityColor(task.priority) as any}>
                               {task.priority}
                             </Badge>
-                            <Badge variant="outline">{task.category}</Badge>
+                            {task.assigned_role && (
+                              <Badge variant="outline">
+                                {task.assigned_role.replace('_', ' ')}
+                              </Badge>
+                            )}
                           </div>
                           
-                          <p className="text-sm text-muted-foreground">{task.description}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {task.description || 'No description provided'}
+                          </p>
                           
                           <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                            <div className="flex items-center gap-1">
-                              <CalendarIcon className="w-4 h-4" />
-                              Due: {new Date(task.dueDate).toLocaleDateString()}
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Users className="w-4 h-4" />
-                              {task.assigneeName}
-                            </div>
+                            {task.due_date && (
+                              <div className="flex items-center gap-1">
+                                <CalendarIcon className="w-4 h-4" />
+                                Due: {new Date(task.due_date).toLocaleDateString()}
+                              </div>
+                            )}
+                            {task.assigned_role && (
+                              <div className="flex items-center gap-1">
+                                <Users className="w-4 h-4" />
+                                {task.assigned_role.replace('_', ' ')}
+                              </div>
+                            )}
                             <div className="flex items-center gap-1">
                               <Clock className="w-4 h-4" />
-                              {task.actualHours}h / {task.estimatedHours}h
+                              {task.actual_hours || 0}h / {task.estimated_hours || 0}h
                             </div>
                           </div>
                           
                           <div className="space-y-1">
                             <div className="flex justify-between text-sm">
                               <span>Progress</span>
-                              <span>{task.progress}%</span>
+                              <span>
+                                {task.status === 'completed' ? 100 : 
+                                 task.status === 'in_progress' ? 50 : 
+                                 task.status === 'on_hold' ? 25 : 0}%
+                              </span>
                             </div>
-                            <Progress value={task.progress} />
+                            <Progress value={
+                              task.status === 'completed' ? 100 : 
+                              task.status === 'in_progress' ? 50 : 
+                              task.status === 'on_hold' ? 25 : 0
+                            } />
                           </div>
                         </div>
                       </div>
                       
                       <Avatar className="w-8 h-8">
                         <AvatarFallback className="text-xs">
-                          {task.assigneeName.split(' ').map(n => n[0]).join('')}
+                          {task.assigned_role ? 
+                            task.assigned_role.split('_').map(w => w[0].toUpperCase()).join('') : 
+                            'UN'
+                          }
                         </AvatarFallback>
                       </Avatar>
                     </div>
