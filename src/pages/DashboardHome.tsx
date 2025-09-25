@@ -273,7 +273,7 @@ const DashboardHome = () => {
                 <Button 
                   variant="outline" 
                   className="w-full justify-start bg-gradient-primary bg-opacity-10 border-primary/20 hover:text-white transition-all duration-300"
-                  onClick={() => window.location.href = '/dashboard/project-management'}
+                  onClick={() => window.location.href = '/dashboard/create-event'}
                 >
                   <Calendar className="mr-2 h-4 w-4" />
                   Schedule New Event
@@ -281,7 +281,7 @@ const DashboardHome = () => {
                 <Button 
                   variant="outline" 
                   className="w-full justify-start bg-gradient-secondary bg-opacity-10 border-secondary/20 hover:text-white transition-all duration-300"
-                  onClick={() => window.location.href = '/dashboard/workflow'}
+                  onClick={() => window.location.href = '/dashboard/collaborate'}
                 >
                   <Users className="mr-2 h-4 w-4" />
                   Manage Team
@@ -289,10 +289,7 @@ const DashboardHome = () => {
                 <Button 
                   variant="outline" 
                   className="w-full justify-start bg-gradient-accent bg-opacity-10 border-accent/20 hover:text-white transition-all duration-300"
-                  onClick={() => {
-                    const analyticsTab = document.querySelector('[value="analytics"]') as HTMLElement;
-                    analyticsTab?.click();
-                  }}
+                  onClick={() => window.location.href = '/dashboard/analytics'}
                 >
                   <BarChart3 className="mr-2 h-4 w-4" />
                   View Full Analytics
