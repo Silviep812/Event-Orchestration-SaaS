@@ -1,14 +1,10 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, Plus, Users, UserCheck } from "lucide-react";
+import { Shield, Users, UserCheck } from "lucide-react";
 
 interface UserRole {
   id: string;
@@ -31,9 +27,6 @@ export function RoleManager() {
   const [userRoles, setUserRoles] = useState<UserRole[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState("");
-  const [selectedRole, setSelectedRole] = useState("");
   const { toast } = useToast();
 
   const roles = [
@@ -106,36 +99,7 @@ export function RoleManager() {
     }
   };
 
-  const assignRole = async () => {
-    if (!selectedUser || !selectedRole) return;
-
-    try {
-      // Delegate to secure edge function to bypass RLS safely
-      const { error } = await supabase.functions.invoke('assign-user-role', {
-        body: { userId: selectedUser, role: selectedRole },
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Role assigned",
-        description: "User role has been assigned successfully.",
-      });
-
-      setSelectedUser("");
-      setSelectedRole("");
-      setIsAssignDialogOpen(false);
-      fetchUsers(); // Refresh the data
-    } catch (error: any) {
-      toast({
-        title: "Error assigning role",
-        description: error?.message || "Failed to assign role. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const changeRole = async (userId: string, newRole: string) => {
+  const changeRole = async (userId: string, newRole: 'host' | 'organizer' | 'event_planner' | 'venue_owner' | 'hospitality_provider') => {
     try {
       // Update existing role in user_roles table
       const { error } = await supabase
@@ -181,59 +145,6 @@ export function RoleManager() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">Role Management</h2>
-        <Dialog open={isAssignDialogOpen} onOpenChange={setIsAssignDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Assign Role
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Assign User Role</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="user">Select User</Label>
-                <Select value={selectedUser} onValueChange={setSelectedUser}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose a user" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {users.filter(user => user.status !== 'invited').map((user) => (
-                      <SelectItem key={user.id} value={user.id}>
-                        {user.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="role">Select Role</Label>
-                <Select value={selectedRole} onValueChange={setSelectedRole}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose a role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {roles.map((role) => (
-                      <SelectItem key={role.value} value={role.value}>
-                        <div>
-                          <div className="font-medium">{role.label}</div>
-                          <div className="text-sm text-muted-foreground">{role.description}</div>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <Button onClick={assignRole} className="w-full" disabled={!selectedUser || !selectedRole}>
-                Assign Role
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
       </div>
 
       {/* Role Overview */}
@@ -302,7 +213,7 @@ export function RoleManager() {
                   </div>
                   <Select 
                     value={userRole.role} 
-                    onValueChange={(newRole) => changeRole(userRole.user_id, newRole)}
+                    onValueChange={(newRole) => changeRole(userRole.user_id, newRole as 'host' | 'organizer' | 'event_planner' | 'venue_owner' | 'hospitality_provider')}
                   >
                     <SelectTrigger className="w-32">
                       <SelectValue />
