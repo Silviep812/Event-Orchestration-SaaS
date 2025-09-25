@@ -44,7 +44,7 @@ interface TimelineViewProps {
 const TimelineView = ({ eventId }: TimelineViewProps) => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-  const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('week');
+  const [viewMode, setViewMode] = useState<'all' | 'day' | 'week' | 'month'>('all');
   const [conflicts, setConflicts] = useState<string[]>([]);
   const [overdueFlags, setOverdueFlags] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -389,11 +389,12 @@ const TimelineView = ({ eventId }: TimelineViewProps) => {
         </div>
         
         <div className="flex items-center gap-2">
-          <Select value={viewMode} onValueChange={(value: 'day' | 'week' | 'month') => setViewMode(value)}>
+          <Select value={viewMode} onValueChange={(value: 'all'| 'day' | 'week' | 'month' ) => setViewMode(value)}>
             <SelectTrigger className="w-32">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="all">All</SelectItem>
               <SelectItem value="day">Day</SelectItem>
               <SelectItem value="week">Week</SelectItem>
               <SelectItem value="month">Month</SelectItem>
