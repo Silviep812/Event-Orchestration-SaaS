@@ -597,12 +597,11 @@ const TimelineView = ({ eventId }: TimelineViewProps) => {
                     <span className="text-xs">Depends on: {task.dependencies.join(', ')}</span>
                   )}
                 </div>
-                
-                <div className="flex items-center gap-2 text-xs">
-                  <span>
-                    {task.start_date} {task.start_time} → {task.end_date} {task.end_time}
-                  </span>
-                </div>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span>
+                  {task.start_date} {task.start_time} → {task.end_date} {task.end_time}
+                </span>
               </div>
             </CardContent>
           </Card>
