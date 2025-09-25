@@ -53,26 +53,12 @@ export function RoleManager() {
   };
 
   useEffect(() => {
-    fetchUserRoles();
     fetchUsers();
   }, []);
 
   const fetchUserRoles = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setUserRoles(data || []);
-    } catch (error) {
-      toast({
-        title: "Error fetching roles",
-        description: "Failed to load user roles. Please try again.",
-        variant: "destructive",
-      });
-    }
+    // No longer needed as roles are now managed via auth metadata
+    setUserRoles([]);
   };
 
   const fetchUsers = async () => {
@@ -81,9 +67,21 @@ export function RoleManager() {
 
       if (error) throw error;
       
-      // Only get confirmed users (not pending invitations)
-      const confirmedUsers = data?.teamMembers?.filter((member: any) => member.status !== 'invited') || [];
-      setUsers(confirmedUsers);
+      // Get all users including their roles from auth metadata
+      const allUsers = data?.teamMembers || [];
+      setUsers(allUsers);
+      
+      // Convert users to role assignments for display
+      const roleAssignments = allUsers
+        .filter((user: any) => user.role && user.role !== 'Member' && user.status !== 'invited')
+        .map((user: any) => ({
+          id: user.id,
+          user_id: user.id,
+          role: user.role,
+          created_at: user.joinedAt
+        }));
+      
+      setUserRoles(roleAssignments);
     } catch (error) {
       toast({
         title: "Error fetching users",
@@ -99,12 +97,10 @@ export function RoleManager() {
     if (!selectedUser || !selectedRole) return;
 
     try {
-      const { error } = await supabase
-        .from('user_roles')
-        .insert({
-          user_id: selectedUser,
-          role: selectedRole as any
-        });
+      // Update user metadata with the new role
+      const { error } = await supabase.auth.admin.updateUserById(selectedUser, {
+        user_metadata: { role: selectedRole }
+      });
 
       if (error) throw error;
 
@@ -116,30 +112,22 @@ export function RoleManager() {
       setSelectedUser("");
       setSelectedRole("");
       setIsAssignDialogOpen(false);
-      fetchUserRoles();
+      fetchUsers(); // Refresh the data
     } catch (error: any) {
-      if (error.code === '23505') {
-        toast({
-          title: "Role already assigned",
-          description: "This user already has this role assigned.",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Error assigning role",
-          description: "Failed to assign role. Please try again.",
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "Error assigning role",
+        description: "Failed to assign role. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
-  const removeRole = async (roleId: string) => {
+  const removeRole = async (userId: string) => {
     try {
-      const { error } = await supabase
-        .from('user_roles')
-        .delete()
-        .eq('id', roleId);
+      // Remove role from user metadata
+      const { error } = await supabase.auth.admin.updateUserById(userId, {
+        user_metadata: { role: 'Member' }
+      });
 
       if (error) throw error;
 
@@ -148,7 +136,7 @@ export function RoleManager() {
         description: "User role has been removed successfully.",
       });
 
-      fetchUserRoles();
+      fetchUsers(); // Refresh the data
     } catch (error) {
       toast({
         title: "Error removing role",
@@ -189,7 +177,7 @@ export function RoleManager() {
                     <SelectValue placeholder="Choose a user" />
                   </SelectTrigger>
                   <SelectContent>
-                    {users.map((user) => (
+                    {users.filter(user => user.status !== 'invited').map((user) => (
                       <SelectItem key={user.id} value={user.id}>
                         {user.name}
                       </SelectItem>
@@ -292,7 +280,7 @@ export function RoleManager() {
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={() => removeRole(userRole.id)}
+                    onClick={() => removeRole(userRole.user_id)}
                   >
                     Remove
                   </Button>
