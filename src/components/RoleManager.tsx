@@ -63,38 +63,32 @@ export function RoleManager() {
 
   const fetchUsers = async () => {
     try {
-      // Get users from get-invited-users function
-      const { data, error } = await supabase.functions.invoke('get-invited-users');
-
-      if (error) throw error;
-      
-      // Get all users from the function
-      const allUsers = data?.teamMembers || [];
-      
-      // Get roles from user_roles table
+      // Get all role assignments from user_roles table
       const { data: userRolesData, error: rolesError } = await supabase
         .from('user_roles')
         .select('user_id, role, created_at');
 
       if (rolesError) throw rolesError;
 
-      // Create a map of user roles for quick lookup
-      const rolesMap = new Map();
-      userRolesData?.forEach(role => {
-        rolesMap.set(role.user_id, role);
+      // Get users from get-invited-users function for the dropdown
+      const { data: invitedData, error: invitedError } = await supabase.functions.invoke('get-invited-users');
+      
+      const invitedUsers = invitedData?.teamMembers || [];
+      
+      // Create users list with role information
+      const usersWithRoles = invitedUsers.map((user: any) => {
+        const userRole = userRolesData?.find(role => role.user_id === user.id);
+        return {
+          ...user,
+          role: userRole?.role || 'Member'
+        };
       });
-
-      // Add role information to users
-      const usersWithRoles = allUsers.map((user: any) => ({
-        ...user,
-        role: rolesMap.get(user.id)?.role || 'Member'
-      }));
 
       setUsers(usersWithRoles);
       
-      // Convert roles to role assignments for display
+      // Set all role assignments for display (including those not in invited users)
       const roleAssignments = userRolesData?.map((role: any) => ({
-        id: role.user_id, // Use user_id as id for consistency
+        id: role.user_id,
         user_id: role.user_id,
         role: role.role,
         created_at: role.created_at
@@ -166,7 +160,16 @@ export function RoleManager() {
   };
 
   const getUserInfo = (userId: string) => {
-    return users.find(user => user.id === userId);
+    const user = users.find(user => user.id === userId);
+    if (user) return user;
+    
+    // For users not in the invited list, return basic info
+    return {
+      id: userId,
+      name: `User ${userId.slice(0, 8)}...`,
+      email: 'Unknown',
+      status: 'active'
+    };
   };
 
   if (loading) {
