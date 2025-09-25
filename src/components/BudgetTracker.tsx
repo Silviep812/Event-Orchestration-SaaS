@@ -304,7 +304,18 @@ export function BudgetTracker({ eventId, selectedEventFilter }: BudgetTrackerPro
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Budget Tracking</h2>
+        <div className="flex items-center gap-4">
+          <h2 className="text-2xl font-bold">Budget Tracking</h2>
+          {/* Archive Filter */}
+          <Button
+            variant="outline"
+            onClick={() => setShowArchived(!showArchived)}
+            className="flex items-center gap-2"
+          >
+            {showArchived ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            {showArchived ? "Hide Archived" : "Show Archived"}
+          </Button>
+        </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
             <Button>
@@ -428,18 +439,6 @@ export function BudgetTracker({ eventId, selectedEventFilter }: BudgetTrackerPro
             </div>
           </DialogContent>
         </Dialog>
-      </div>
-
-      {/* Archive Filter */}
-      <div className="flex items-center gap-4">
-        <Button
-          variant="outline"
-          onClick={() => setShowArchived(!showArchived)}
-          className="flex items-center gap-2"
-        >
-          {showArchived ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          {showArchived ? "Hide Archived" : "Show Archived"}
-        </Button>
       </div>
 
       {/* Budget Summary */}
