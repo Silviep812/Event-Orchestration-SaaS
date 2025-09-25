@@ -1337,6 +1337,38 @@ export type Database = {
         }
         Relationships: []
       }
+      task_assignments: {
+        Row: {
+          assigned_role: Database["public"]["Enums"]["app_role"]
+          created_at: string
+          created_by: string
+          id: string
+          task_id: string
+        }
+        Insert: {
+          assigned_role: Database["public"]["Enums"]["app_role"]
+          created_at?: string
+          created_by: string
+          id?: string
+          task_id: string
+        }
+        Update: {
+          assigned_role?: Database["public"]["Enums"]["app_role"]
+          created_at?: string
+          created_by?: string
+          id?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_assignments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           actual_hours: number | null
