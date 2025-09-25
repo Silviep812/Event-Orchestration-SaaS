@@ -61,7 +61,6 @@ const handler = async (req: Request): Promise<Response> => {
         id: u.id,
         name: u.user_metadata?.full_name || u.email?.split('@')[0] || 'Unknown User',
         email: u.email,
-        role: 'Member', // Default role - will be overridden by user_roles table
         status: 'invited' as const,
         joinedAt: u.invited_at,
         avatar: u.user_metadata?.avatar_url
@@ -77,7 +76,6 @@ const handler = async (req: Request): Promise<Response> => {
         id: u.id,
         name: u.user_metadata?.full_name || u.email?.split('@')[0] || 'Unknown User',
         email: u.email,
-        role: 'Member', // Default role - will be overridden by user_roles table
         status: 'online' as const, // Default to online for confirmed users
         joinedAt: u.created_at,
         avatar: u.user_metadata?.avatar_url
