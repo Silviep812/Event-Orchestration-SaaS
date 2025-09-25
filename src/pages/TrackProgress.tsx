@@ -178,6 +178,80 @@ export default function TrackProgress() {
     calculateProjectStats(tasks);
   }, [tasks]);
 
+  // Old mock data for reference
+  //  const mockTasks: Task[] = [
+  //     {
+  //       id: "1",
+  //       title: "Venue Contract Finalization",
+  //       description: "Complete venue booking and contract signing",
+  //       status: "completed",
+  //       priority: "high",
+  //       assignee: "1",
+  //       assigneeName: "John Doe",
+  //       dueDate: "2024-08-10",
+  //       progress: 100,
+  //       estimatedHours: 8,
+  //       actualHours: 6,
+  //       category: "Venue"
+  //     },
+  //     {
+  //       id: "2",
+  //       title: "Catering Menu Selection",
+  //       description: "Choose final menu and finalize catering details",
+  //       status: "in_progress",
+  //       priority: "high",
+  //       assignee: "2",
+  //       assigneeName: "Sarah Wilson",
+  //       dueDate: "2024-08-20",
+  //       progress: 75,
+  //       estimatedHours: 12,
+  //       actualHours: 9,
+  //       category: "Catering"
+  //     },
+  //     {
+  //       id: "3",
+  //       title: "Audio/Visual Setup",
+  //       description: "Coordinate AV equipment and technical setup",
+  //       status: "not_started",
+  //       priority: "medium",
+  //       assignee: "3",
+  //       assigneeName: "Mike Johnson",
+  //       dueDate: "2024-08-25",
+  //       progress: 0,
+  //       estimatedHours: 16,
+  //       actualHours: 0,
+  //       category: "Technical"
+  //     },
+  //     {
+  //       id: "4",
+  //       title: "Guest List Management",
+  //       description: "Finalize guest list and send invitations",
+  //       status: "overdue",
+  //       priority: "urgent",
+  //       assignee: "2",
+  //       assigneeName: "Sarah Wilson",
+  //       dueDate: "2024-08-12",
+  //       progress: 40,
+  //       estimatedHours: 6,
+  //       actualHours: 4,
+  //       category: "Guests"
+  //     },
+  //     {
+  //       id: "5",
+  //       title: "Decorations & Themes",
+  //       description: "Setup event decorations and theme elements",
+  //       status: "blocked",
+  //       priority: "medium",
+  //       assignee: "1",
+  //       assigneeName: "John Doe",
+  //       dueDate: "2024-08-22",
+  //       progress: 25,
+  //       estimatedHours: 20,
+  //       actualHours: 5,
+  //       category: "Decorations"
+  //     }
+  //  ]
+
   useEffect(() => {
     // Keep mock milestones for now since they're not directly connected to real data
     const mockMilestones: Milestone[] = [
