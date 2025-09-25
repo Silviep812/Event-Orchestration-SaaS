@@ -1739,19 +1739,19 @@ export type Database = {
         Row: {
           created_at: string
           id: string
-          role: Database["public"]["Enums"]["app_role"]
+          role: Database["public"]["Enums"]["app_role_new"]
           user_id: string
         }
         Insert: {
           created_at?: string
           id?: string
-          role: Database["public"]["Enums"]["app_role"]
+          role: Database["public"]["Enums"]["app_role_new"]
           user_id: string
         }
         Update: {
           created_at?: string
           id?: string
-          role?: Database["public"]["Enums"]["app_role"]
+          role?: Database["public"]["Enums"]["app_role_new"]
           user_id?: string
         }
         Relationships: []
@@ -2136,6 +2136,12 @@ export type Database = {
         | "event_planner"
         | "venue_owner"
         | "hospitality_provider"
+      app_role_new:
+        | "host"
+        | "organizer"
+        | "event_planner"
+        | "venue_owner"
+        | "hospitality_provider"
       budget_category:
         | "venue"
         | "catering"
@@ -2289,6 +2295,13 @@ export const Constants = {
         "budget_manager",
         "task_coordinator",
         "client",
+        "host",
+        "organizer",
+        "event_planner",
+        "venue_owner",
+        "hospitality_provider",
+      ],
+      app_role_new: [
         "host",
         "organizer",
         "event_planner",
