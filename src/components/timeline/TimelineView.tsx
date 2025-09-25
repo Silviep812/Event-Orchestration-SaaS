@@ -31,6 +31,7 @@ interface Task {
   priority: 'low' | 'medium' | 'high' | 'urgent';
   assigned_to?: string;
   estimated_hours?: number;
+  actual_hours?: number;
   dependencies?: string[];
   event_id?: string;
   due_date?: string;
@@ -531,18 +532,73 @@ const TimelineView = ({ eventId }: TimelineViewProps) => {
                 onUpdate={(updates) => updateTask(task.id, updates)}
               />
               
-              <div className="flex items-center justify-between text-sm text-muted-foreground">
-                <div className="flex items-center gap-4">
-                  <span className="flex items-center gap-1">
-                    <Clock className="h-4 w-4" />
-                    {task.estimated_hours}h estimated
-                  </span>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-sm text-muted-foreground">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                  <div className="flex items-center gap-4">
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-4 w-4" />
+                      {task.estimated_hours || 0}h estimated
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-4 w-4 text-blue-500" />
+                      {task.actual_hours || 0}h logged
+                    </span>
+                  </div>
+                  
+                  {/* Hour Logging Section */}
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor={`hours-${task.id}`} className="text-xs">Log hours:</Label>
+                    <Input
+                      id={`hours-${task.id}`}
+                      type="number"
+                      min="0"
+                      step="0.5"
+                      placeholder="0"
+                      className="w-20 h-8 text-xs"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          const input = e.target as HTMLInputElement;
+                          const hoursToAdd = parseFloat(input.value);
+                          if (hoursToAdd > 0) {
+                            const newActualHours = (task.actual_hours || 0) + hoursToAdd;
+                            updateTask(task.id, { actual_hours: newActualHours });
+                            input.value = '';
+                            toast({
+                              title: "Hours Logged",
+                              description: `Added ${hoursToAdd}h to ${task.title}`,
+                            });
+                          }
+                        }
+                      }}
+                    />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 px-2 text-xs"
+                      onClick={() => {
+                        const input = document.getElementById(`hours-${task.id}`) as HTMLInputElement;
+                        const hoursToAdd = parseFloat(input.value);
+                        if (hoursToAdd > 0) {
+                          const newActualHours = (task.actual_hours || 0) + hoursToAdd;
+                          updateTask(task.id, { actual_hours: newActualHours });
+                          input.value = '';
+                          toast({
+                            title: "Hours Logged",
+                            description: `Added ${hoursToAdd}h to ${task.title}`,
+                          });
+                        }
+                      }}
+                    >
+                      Add
+                    </Button>
+                  </div>
+                  
                   {task.dependencies && task.dependencies.length > 0 && (
-                    <span>Depends on: {task.dependencies.join(', ')}</span>
+                    <span className="text-xs">Depends on: {task.dependencies.join(', ')}</span>
                   )}
                 </div>
                 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 text-xs">
                   <span>
                     {task.start_date} {task.start_time} → {task.end_date} {task.end_time}
                   </span>
