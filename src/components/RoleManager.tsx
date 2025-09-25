@@ -116,15 +116,10 @@ export function RoleManager() {
     if (!selectedUser || !selectedRole) return;
 
     try {
-      // Insert or update role in user_roles table
-      const { error } = await supabase
-        .from('user_roles')
-        .upsert({
-          user_id: selectedUser,
-          role: selectedRole as any
-        }, {
-          onConflict: 'user_id,role'
-        });
+      // Delegate to secure edge function to bypass RLS safely
+      const { error } = await supabase.functions.invoke('assign-user-role', {
+        body: { userId: selectedUser, role: selectedRole },
+      });
 
       if (error) throw error;
 
@@ -140,7 +135,7 @@ export function RoleManager() {
     } catch (error: any) {
       toast({
         title: "Error assigning role",
-        description: "Failed to assign role. Please try again.",
+        description: error?.message || "Failed to assign role. Please try again.",
         variant: "destructive",
       });
     }
@@ -148,15 +143,10 @@ export function RoleManager() {
 
   const changeRole = async (userId: string, newRole: string) => {
     try {
-      // Update role in user_roles table
-      const { error } = await supabase
-        .from('user_roles')
-        .upsert({
-          user_id: userId,
-          role: newRole as any
-        }, {
-          onConflict: 'user_id,role'
-        });
+      // Delegate to secure edge function to bypass RLS safely
+      const { error } = await supabase.functions.invoke('assign-user-role', {
+        body: { userId, role: newRole },
+      });
 
       if (error) throw error;
 
@@ -166,10 +156,10 @@ export function RoleManager() {
       });
 
       fetchUsers(); // Refresh the data
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error updating role",
-        description: "Failed to update role. Please try again.",
+        description: error?.message || "Failed to update role. Please try again.",
         variant: "destructive",
       });
     }
