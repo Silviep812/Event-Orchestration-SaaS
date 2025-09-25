@@ -251,10 +251,10 @@ const TimelineView = ({ eventId }: TimelineViewProps) => {
 
   const DateTimePicker = ({ task, onUpdate }: { task: Task; onUpdate: (updates: Partial<Task>) => void }) => {
     const [startDate, setStartDate] = useState<Date | undefined>(
-      task.start_date ? new Date(task.start_date) : undefined
+      task.start_date ? new Date(task.start_date.replace(/-/g, '/')) : undefined
     );
     const [endDate, setEndDate] = useState<Date | undefined>(
-      task.end_date ? new Date(task.end_date) : undefined
+      task.end_date ? new Date(task.end_date.replace(/-/g, '/')) : undefined
     );
 
     return (
@@ -318,8 +318,16 @@ const TimelineView = ({ eventId }: TimelineViewProps) => {
                   mode="single"
                   selected={endDate}
                   onSelect={(date) => {
-                    setEndDate(date);
-                    onUpdate({ end_date: date ? format(date, 'yyyy-MM-dd') : '' });
+                    if (startDate && date && isBefore(date, startDate)) {
+                      toast({
+                        title: "Invalid End Date",
+                        description: "End date cannot be before the start date.",
+                        variant: "destructive",
+                      });
+                    } else {
+                      setEndDate(date);
+                      onUpdate({ end_date: date ? format(date, 'yyyy-MM-dd') : '' });
+                    }
                   }}
                   initialFocus
                   className="p-3 pointer-events-auto"
