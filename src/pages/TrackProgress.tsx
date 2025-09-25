@@ -41,15 +41,6 @@ interface Task {
   assigned_role?: string | null;
 }
 
-interface Milestone {
-  id: string;
-  title: string;
-  description: string;
-  targetDate: string;
-  status: 'upcoming' | 'on_track' | 'at_risk' | 'completed' | 'overdue';
-  progress: number;
-  tasks: string[];
-}
 
 interface ProjectStats {
   totalTasks: number;
@@ -69,7 +60,7 @@ export default function TrackProgress() {
   
   const [selectedFilter, setSelectedFilter] = useState("all");
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [milestones, setMilestones] = useState<Milestone[]>([]);
+  
   const [loading, setLoading] = useState(false);
   const [projectStats, setProjectStats] = useState<ProjectStats>({
     totalTasks: 0,
@@ -256,30 +247,6 @@ export default function TrackProgress() {
   //     }
   //  ]
 
-  useEffect(() => {
-    // Keep mock milestones for now since they're not directly connected to real data
-    const mockMilestones: Milestone[] = [
-      {
-        id: "1",
-        title: "Venue & Catering Secured",
-        description: "All major venue and catering arrangements finalized",
-        targetDate: "2024-08-20",
-        status: "on_track",
-        progress: 85,
-        tasks: []
-      },
-      {
-        id: "2",
-        title: "Guest Management Complete",
-        description: "All guest-related tasks completed",
-        targetDate: "2024-08-25",
-        status: "at_risk",
-        progress: 40,
-        tasks: []
-      }
-    ];
-    setMilestones(mockMilestones);
-  }, []);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -412,9 +379,8 @@ export default function TrackProgress() {
       </div>
 
       <Tabs defaultValue="tasks" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="tasks">Tasks</TabsTrigger>
-          <TabsTrigger value="milestones">Milestones</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
         </TabsList>
 
@@ -521,48 +487,6 @@ export default function TrackProgress() {
           </div>
         </TabsContent>
 
-        <TabsContent value="milestones" className="space-y-4">
-          <div className="grid gap-4">
-            {milestones.map((milestone) => (
-              <Card key={milestone.id}>
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1 space-y-3">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-semibold">{milestone.title}</h3>
-                        <div className={`w-3 h-3 rounded-full ${getStatusColor(milestone.status)}`} />
-                        <Badge variant="outline" className="capitalize">
-                          {milestone.status.replace('_', ' ')}
-                        </Badge>
-                      </div>
-                      
-                      <p className="text-sm text-muted-foreground">{milestone.description}</p>
-                      
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <Target className="w-4 h-4" />
-                          Target: {new Date(milestone.targetDate).toLocaleDateString()}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <CheckCircle className="w-4 h-4" />
-                          {milestone.tasks.length} tasks
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-1">
-                        <div className="flex justify-between text-sm">
-                          <span>Milestone Progress</span>
-                          <span>{milestone.progress}%</span>
-                        </div>
-                        <Progress value={milestone.progress} />
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
 
         <TabsContent value="analytics" className="space-y-6">
           <div className="grid gap-6 md:grid-cols-2">
