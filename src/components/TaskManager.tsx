@@ -7,11 +7,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useEventFilter } from "@/hooks/useEventFilter";
-import { CheckCircle2, Clock, AlertCircle, Plus, Calendar, User, Archive, ArchiveRestore, Eye, EyeOff } from "lucide-react";
+import { CheckCircle2, Clock, AlertCircle, Plus, Calendar, User, Archive, ArchiveRestore, Eye, EyeOff, Link } from "lucide-react";
 import { format } from "date-fns";
 
 interface Task {
@@ -28,6 +29,14 @@ interface Task {
   archived: boolean;
   created_at: string;
   updated_at: string;
+  event_id?: string;
+  dependencies?: string[]; // Array of task IDs this task depends on
+}
+
+interface AvailableTask {
+  id: string;
+  title: string;
+  status: 'not_started' | 'in_progress' | 'completed' | 'on_hold' | 'cancelled';
 }
 
 interface TaskManagerProps {
@@ -60,11 +69,13 @@ const statusIcons = {
 
 export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [availableTasks, setAvailableTasks] = useState<AvailableTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [showArchived, setShowArchived] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [selectedDependencies, setSelectedDependencies] = useState<string[]>([]);
   const [newTask, setNewTask] = useState({
     title: "",
     description: "",
@@ -72,7 +83,8 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
     priority: "medium" as const,
     estimated_hours: "",
     due_date: "",
-    selected_event_id: ""
+    selected_event_id: "",
+    dependencies: [] as string[]
   });
   const { toast } = useToast();
   const { user } = useAuth();
@@ -97,7 +109,24 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
       const { data, error } = await query;
       if (error) throw error;
       
-      setTasks(data || []);
+      const tasksWithDependencies = await Promise.all(
+        (data || []).map(async (task) => {
+          const { data: deps } = await supabase
+            .from('tasks_dependencies')
+            .select('depends_on_task_id')
+            .eq('task_id', task.id);
+          
+          return {
+            ...task,
+            dependencies: deps?.map(d => d.depends_on_task_id) || []
+          };
+        })
+      );
+      
+      setTasks(tasksWithDependencies);
+      
+      // Fetch available tasks for dependency selection
+      await fetchAvailableTasks();
     } catch (error) {
       toast({
         title: "Error fetching tasks",
@@ -106,6 +135,52 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAvailableTasks = async () => {
+    try {
+      let query = supabase.from('tasks').select('id, title, status').eq('archived', false);
+      
+      if (eventId) {
+        query = query.eq('event_id', eventId);
+      } else if (selectedEventFilter && selectedEventFilter !== "all") {
+        query = query.eq('event_id', selectedEventFilter);
+      }
+      
+      const { data, error } = await query;
+      if (error) throw error;
+      
+      setAvailableTasks(data || []);
+    } catch (error) {
+      console.error('Error fetching available tasks:', error);
+    }
+  };
+
+  const saveDependencies = async (taskId: string, dependencyIds: string[]) => {
+    try {
+      // First, remove existing dependencies
+      await supabase
+        .from('tasks_dependencies')
+        .delete()
+        .eq('task_id', taskId);
+
+      // Then add new dependencies
+      if (dependencyIds.length > 0) {
+        const dependencies = dependencyIds.map(depId => ({
+          task_id: taskId,
+          depends_on_task_id: depId
+        }));
+
+        const { error } = await supabase
+          .from('tasks_dependencies')
+          .insert(dependencies);
+
+        if (error) throw error;
+      }
+    } catch (error) {
+      console.error('Error saving dependencies:', error);
+      throw error;
     }
   };
 
@@ -127,8 +202,18 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         created_by: user.id
       };
 
-      const { error } = await supabase.from('tasks').insert(taskData);
+      const { data: createdTask, error } = await supabase
+        .from('tasks')
+        .insert(taskData)
+        .select('id')
+        .single();
+
       if (error) throw error;
+
+      // Save dependencies if any
+      if (newTask.dependencies.length > 0) {
+        await saveDependencies(createdTask.id, newTask.dependencies);
+      }
 
       toast({
         title: "Task created",
@@ -142,7 +227,8 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         priority: "medium",
         estimated_hours: "",
         due_date: "",
-        selected_event_id: ""
+        selected_event_id: "",
+        dependencies: []
       });
       setIsCreateDialogOpen(false);
       fetchTasks();
@@ -183,16 +269,34 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
 
   const handleUpdateTask = async () => {
     if (!selectedTask) return;
-    await updateTask(selectedTask.id, {
-      title: selectedTask.title,
-      description: selectedTask.description,
-      priority: selectedTask.priority,
-      assigned_role: selectedTask.assigned_role,
-      estimated_hours: selectedTask.estimated_hours,
-      due_date: selectedTask.due_date,
-    });
-    setIsEditDialogOpen(false);
-    setSelectedTask(null);
+    
+    try {
+      await updateTask(selectedTask.id, {
+        title: selectedTask.title,
+        description: selectedTask.description,
+        priority: selectedTask.priority,
+        assigned_role: selectedTask.assigned_role,
+        estimated_hours: selectedTask.estimated_hours,
+        due_date: selectedTask.due_date,
+      });
+
+      // Save dependencies
+      if (selectedDependencies.length !== (selectedTask.dependencies?.length || 0) || 
+          !selectedDependencies.every(dep => selectedTask.dependencies?.includes(dep))) {
+        await saveDependencies(selectedTask.id, selectedDependencies);
+      }
+
+      setIsEditDialogOpen(false);
+      setSelectedTask(null);
+      setSelectedDependencies([]);
+      fetchTasks();
+    } catch (error) {
+      toast({
+        title: "Error updating task",
+        description: "Failed to update task. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const archiveTask = async (taskId: string, archived: boolean) => {
@@ -343,6 +447,40 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                 </div>
               </div>
 
+              {/* Dependencies selection */}
+              {availableTasks.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Task Dependencies</Label>
+                  <p className="text-sm text-muted-foreground">Select tasks that must be completed before this task can start:</p>
+                  <div className="max-h-32 overflow-y-auto space-y-2 border rounded-md p-2">
+                    {availableTasks.map((task) => (
+                      <div key={task.id} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`dep-${task.id}`}
+                          checked={newTask.dependencies.includes(task.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setNewTask({
+                                ...newTask,
+                                dependencies: [...newTask.dependencies, task.id]
+                              });
+                            } else {
+                              setNewTask({
+                                ...newTask,
+                                dependencies: newTask.dependencies.filter(id => id !== task.id)
+                              });
+                            }
+                          }}
+                        />
+                        <label htmlFor={`dep-${task.id}`} className="text-sm font-medium leading-none">
+                          {task.title}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <Button onClick={createTask} className="w-full">
                 Create Task
               </Button>
@@ -361,6 +499,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
               className="hover:shadow-md transition-shadow cursor-pointer"
               onClick={() => {
                 setSelectedTask(task);
+                setSelectedDependencies(task.dependencies || []);
                 setIsEditDialogOpen(true);
               }}
             >
@@ -414,6 +553,13 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     </div>
                   )}
 
+                  {task.dependencies && task.dependencies.length > 0 && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Link className="h-3 w-3" />
+                      <span>Depends on {task.dependencies.length} task{task.dependencies.length > 1 ? 's' : ''}</span>
+                    </div>
+                  )}
+
                   <div className="flex items-center gap-2 pt-2" onClick={(e) => e.stopPropagation()}>
                     <Button
                       variant="outline"
@@ -442,7 +588,12 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
 
       {/* Edit Task Dialog */}
       {selectedTask && (
-        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <Dialog open={isEditDialogOpen} onOpenChange={(open) => {
+          if (!open) {
+            setSelectedDependencies([]);
+          }
+          setIsEditDialogOpen(open);
+        }}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Edit Task</DialogTitle>
@@ -521,6 +672,36 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                   />
                 </div>
               </div>
+
+              {/* Dependencies selection for editing */}
+              {availableTasks.filter(task => task.id !== selectedTask.id).length > 0 && (
+                <div className="space-y-2">
+                  <Label>Task Dependencies</Label>
+                  <p className="text-sm text-muted-foreground">Select tasks that must be completed before this task can start:</p>
+                  <div className="max-h-32 overflow-y-auto space-y-2 border rounded-md p-2">
+                    {availableTasks
+                      .filter(task => task.id !== selectedTask.id)
+                      .map((task) => (
+                      <div key={task.id} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`edit-dep-${task.id}`}
+                          checked={selectedDependencies.includes(task.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedDependencies([...selectedDependencies, task.id]);
+                            } else {
+                              setSelectedDependencies(selectedDependencies.filter(id => id !== task.id));
+                            }
+                          }}
+                        />
+                        <label htmlFor={`edit-dep-${task.id}`} className="text-sm font-medium leading-none">
+                          {task.title}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               <Button onClick={handleUpdateTask} className="w-full">
                 Save Changes
               </Button>
