@@ -337,7 +337,21 @@ const TimelineView = ({ eventId }: TimelineViewProps) => {
             <Input
               type="time"
               value={task.end_time || ''}
-              onChange={(e) => onUpdate({ end_time: e.target.value })}
+              onChange={(e) => {
+                const newEndTime = e.target.value;
+                const startTime = task.start_time;
+                const isSameDay = startDate && endDate && format(startDate, 'yyyy-MM-dd') === format(endDate, 'yyyy-MM-dd');
+
+                if (isSameDay && startTime && newEndTime && newEndTime < startTime) {
+                  toast({
+                    title: "Invalid End Time",
+                    description: "End time cannot be before start time on the same day.",
+                    variant: "destructive",
+                  });
+                } else {
+                  onUpdate({ end_time: newEndTime });
+                }
+              }}
               className="w-32"
             />
           </div>
