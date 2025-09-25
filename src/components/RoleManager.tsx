@@ -122,25 +122,25 @@ export function RoleManager() {
     }
   };
 
-  const removeRole = async (userId: string) => {
+  const changeRole = async (userId: string, newRole: string) => {
     try {
-      // Remove role from user metadata
+      // Update user metadata with the new role
       const { error } = await supabase.auth.admin.updateUserById(userId, {
-        user_metadata: { role: 'Member' }
+        user_metadata: { role: newRole }
       });
 
       if (error) throw error;
 
       toast({
-        title: "Role removed",
-        description: "User role has been removed successfully.",
+        title: "Role updated",
+        description: "User role has been updated successfully.",
       });
 
       fetchUsers(); // Refresh the data
     } catch (error) {
       toast({
-        title: "Error removing role",
-        description: "Failed to remove role. Please try again.",
+        title: "Error updating role",
+        description: "Failed to update role. Please try again.",
         variant: "destructive",
       });
     }
@@ -277,13 +277,21 @@ export function RoleManager() {
                       {roleInfo?.label || userRole.role}
                     </Badge>
                   </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => removeRole(userRole.user_id)}
+                  <Select 
+                    value={userRole.role} 
+                    onValueChange={(newRole) => changeRole(userRole.user_id, newRole)}
                   >
-                    Remove
-                  </Button>
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {roles.map((role) => (
+                        <SelectItem key={role.value} value={role.value}>
+                          {role.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 {roleInfo?.description && (
                   <p className="text-sm text-muted-foreground mt-2">{roleInfo.description}</p>
