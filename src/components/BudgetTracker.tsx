@@ -32,6 +32,7 @@ interface BudgetItem {
 
 interface BudgetTrackerProps {
   eventId?: string;
+  selectedEventFilter?: string;
 }
 
 const categoryColors = {
@@ -53,7 +54,7 @@ const paymentStatusColors = {
   partial: "bg-orange-100 text-orange-800"
 };
 
-export function BudgetTracker({ eventId }: BudgetTrackerProps) {
+export function BudgetTracker({ eventId, selectedEventFilter }: BudgetTrackerProps) {
   const [budgetItems, setBudgetItems] = useState<BudgetItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -74,7 +75,7 @@ export function BudgetTracker({ eventId }: BudgetTrackerProps) {
     item_name: ""
   });
   const { toast } = useToast();
-  const { selectedEventFilter, setSelectedEventFilter, events, applyEventFilter } = useEventFilter();
+  const { events } = useEventFilter();
 
   useEffect(() => {
     fetchBudgetItems();
@@ -84,8 +85,12 @@ export function BudgetTracker({ eventId }: BudgetTrackerProps) {
     try {
       let query = supabase.from('budget_items').select('*').order('created_at', { ascending: false });
       
-      // Apply event filter using shared hook
-      query = applyEventFilter(query, eventId);
+      // Apply event filter
+      if (eventId) {
+        query = query.eq('event_id', eventId);
+      } else if (selectedEventFilter && selectedEventFilter !== "all") {
+        query = query.eq('event_id', selectedEventFilter);
+      }
       
       // Filter by archived status
       query = query.eq('archived', showArchived);
@@ -425,27 +430,8 @@ export function BudgetTracker({ eventId }: BudgetTrackerProps) {
         </Dialog>
       </div>
 
-      {/* Filters */}
-      <div className="flex items-center gap-4 flex-wrap">
-        {!eventId && (
-          <>
-            <Label htmlFor="event-filter">Filter by Event:</Label>
-            <Select value={selectedEventFilter} onValueChange={setSelectedEventFilter}>
-              <SelectTrigger className="w-64">
-                <SelectValue placeholder="Select event to filter" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Events</SelectItem>
-                {events.map((event) => (
-                  <SelectItem key={event.id} value={event.id}>
-                    {event.title} {event.start_date && `(${format(new Date(event.start_date), 'MMM d, yyyy')})`}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </>
-        )}
-        
+      {/* Archive Filter */}
+      <div className="flex items-center gap-4">
         <Button
           variant="outline"
           onClick={() => setShowArchived(!showArchived)}

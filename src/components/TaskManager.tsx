@@ -31,6 +31,7 @@ interface Task {
 
 interface TaskManagerProps {
   eventId?: string;
+  selectedEventFilter?: string;
 }
 
 const statusColors = {
@@ -56,7 +57,7 @@ const statusIcons = {
   cancelled: AlertCircle
 };
 
-export function TaskManager({ eventId }: TaskManagerProps) {
+export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -73,7 +74,7 @@ export function TaskManager({ eventId }: TaskManagerProps) {
   });
   const { toast } = useToast();
   const { user } = useAuth();
-  const { selectedEventFilter, setSelectedEventFilter, events, applyEventFilter } = useEventFilter();
+  const { events, applyEventFilter } = useEventFilter();
 
   useEffect(() => {
     fetchTasks();
@@ -82,7 +83,11 @@ export function TaskManager({ eventId }: TaskManagerProps) {
   const fetchTasks = async () => {
     try {
       let query = supabase.from('tasks').select('*').order('created_at', { ascending: false });
-      query = applyEventFilter(query, eventId);
+      if (eventId) {
+        query = query.eq('event_id', eventId);
+      } else if (selectedEventFilter && selectedEventFilter !== "all") {
+        query = query.eq('event_id', selectedEventFilter);
+      }
       
       const { data, error } = await query;
       if (error) throw error;
@@ -307,26 +312,6 @@ export function TaskManager({ eventId }: TaskManagerProps) {
         </Dialog>
       </div>
 
-      {!eventId && events.length > 0 && (
-        <div className="flex items-center gap-4">
-          <Label htmlFor="event-filter" className="text-sm font-medium">
-            Filter by Event:
-          </Label>
-          <Select value={selectedEventFilter} onValueChange={setSelectedEventFilter}>
-            <SelectTrigger className="w-64">
-              <SelectValue placeholder="Select an event to filter" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Events</SelectItem>
-              {events.map((event) => (
-                <SelectItem key={event.id} value={event.id}>
-                  {event.title} {event.start_date && `(${format(new Date(event.start_date), 'MMM d, yyyy')})`}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {tasks.map((task) => {
