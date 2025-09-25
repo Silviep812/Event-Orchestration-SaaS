@@ -357,7 +357,7 @@ export default function Collaborate() {
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">Role</label>
                     <div className="mt-1">
-                      <Badge variant="secondary" className="text-sm">{selectedMember.role}</Badge>
+                      <Badge variant="secondary" className="text-sm">{selectedMember.role.replace('_', ' ')}</Badge>
                     </div>
                   </div>
                   
@@ -433,7 +433,7 @@ export default function Collaborate() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    <Badge variant="secondary">{member.role}</Badge>
+                    <Badge variant="secondary">{member.role.replace('_', ' ')}</Badge>
                     <p className="text-sm text-muted-foreground">
                       Joined {new Date(member.joinedAt).toLocaleDateString()}
                     </p>
