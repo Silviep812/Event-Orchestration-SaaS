@@ -843,12 +843,12 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
 
                 <div className="space-y-2">
                   <Label htmlFor="assigned-role">Assigned Role</Label>
-                  <Select value={newTask.assigned_role} onValueChange={(value) => setNewTask({ ...newTask, assigned_role: value })}>
+                  <Select value={newTask.assigned_role} onValueChange={(value) => setNewTask({ ...newTask, assigned_role: value === "none" ? "" : value })}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select a role" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No assignment</SelectItem>
+                      <SelectItem value="none">No assignment</SelectItem>
                       <SelectItem value="host">Host</SelectItem>
                       <SelectItem value="organizer">Organizer</SelectItem>
                       <SelectItem value="event_planner">Event Planner</SelectItem>
@@ -1073,12 +1073,12 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="edit-assigned-role">Assigned Role</Label>
-                  <Select value={selectedTask.assigned_role || ""} onValueChange={(value) => setSelectedTask({ ...selectedTask, assigned_role: value || undefined })}>
+                  <Select value={selectedTask.assigned_role || "none"} onValueChange={(value) => setSelectedTask({ ...selectedTask, assigned_role: value === "none" ? undefined : value })}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select a role" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No assignment</SelectItem>
+                      <SelectItem value="none">No assignment</SelectItem>
                       <SelectItem value="host">Host</SelectItem>
                       <SelectItem value="organizer">Organizer</SelectItem>
                       <SelectItem value="event_planner">Event Planner</SelectItem>
