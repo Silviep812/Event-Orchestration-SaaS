@@ -2124,12 +2124,6 @@ export type Database = {
         | "event_planner"
         | "venue_owner"
         | "hospitality_provider"
-      app_role_new:
-        | "host"
-        | "organizer"
-        | "event_planner"
-        | "venue_owner"
-        | "hospitality_provider"
       budget_category:
         | "venue"
         | "catering"
@@ -2277,13 +2271,6 @@ export const Constants = {
   public: {
     Enums: {
       app_role: [
-        "host",
-        "organizer",
-        "event_planner",
-        "venue_owner",
-        "hospitality_provider",
-      ],
-      app_role_new: [
         "host",
         "organizer",
         "event_planner",
