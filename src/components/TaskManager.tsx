@@ -20,7 +20,7 @@ interface Task {
   title: string;
   description?: string;
   assigned_to?: string;
-  assigned_roles?: string[]; // Array of app_role enum values
+  assigned_role?: string; // Single app_role enum value
   status: 'not_started' | 'in_progress' | 'completed' | 'on_hold' | 'cancelled';
   priority: 'low' | 'medium' | 'high' | 'urgent';
   estimated_hours?: number;
@@ -94,7 +94,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
   const [newTask, setNewTask] = useState({
     title: "",
     description: "",
-    assigned_roles: [] as string[],
+    assigned_role: "",
     priority: "medium" as const,
     estimated_hours: "",
     due_date: "",
@@ -132,16 +132,17 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
             .select('depends_on_task_id')
             .eq('task_id', task.id);
           
-          // Fetch role assignments
+          // Fetch role assignment (single)
           const { data: assignments } = await supabase
             .from('task_assignments')
             .select('assigned_role')
-            .eq('task_id', task.id);
+            .eq('task_id', task.id)
+            .limit(1);
           
           return {
             ...task,
             dependencies: deps?.map(d => d.depends_on_task_id) || [],
-            assigned_roles: assignments?.map(a => a.assigned_role) || []
+            assigned_role: assignments?.[0]?.assigned_role || undefined
           };
         })
       );
@@ -490,17 +491,15 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
 
       if (error) throw error;
 
-      // Save role assignments if any
-      if (newTask.assigned_roles.length > 0) {
-        const assignments = newTask.assigned_roles.map(role => ({
-          task_id: createdTask.id,
-          assigned_role: role as 'host' | 'organizer' | 'event_planner' | 'venue_owner' | 'hospitality_provider',
-          created_by: user.id
-        }));
-
+      // Save role assignment if provided
+      if (newTask.assigned_role) {
         const { error: assignmentError } = await supabase
           .from('task_assignments')
-          .insert(assignments);
+          .insert({
+            task_id: createdTask.id,
+            assigned_role: newTask.assigned_role as 'host' | 'organizer' | 'event_planner' | 'venue_owner' | 'hospitality_provider',
+            created_by: user.id
+          });
 
         if (assignmentError) throw assignmentError;
       }
@@ -518,7 +517,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
       setNewTask({
         title: "",
         description: "",
-        assigned_roles: [],
+        assigned_role: "",
         priority: "medium",
         estimated_hours: "",
         due_date: "",
@@ -539,7 +538,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
     }
   };
 
-  const updateTaskAssignments = async (taskId: string, assignedRoles: string[]) => {
+  const updateTaskAssignment = async (taskId: string, assignedRole?: string) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
@@ -550,30 +549,28 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         .delete()
         .eq('task_id', taskId);
 
-      // Then add new assignments
-      if (assignedRoles.length > 0) {
-        const assignments = assignedRoles.map(role => ({
-          task_id: taskId,
-          assigned_role: role as 'host' | 'organizer' | 'event_planner' | 'venue_owner' | 'hospitality_provider',
-          created_by: user.id
-        }));
-
+      // Then add new assignment if provided
+      if (assignedRole) {
         const { error } = await supabase
           .from('task_assignments')
-          .insert(assignments);
+          .insert({
+            task_id: taskId,
+            assigned_role: assignedRole as 'host' | 'organizer' | 'event_planner' | 'venue_owner' | 'hospitality_provider',
+            created_by: user.id
+          });
 
         if (error) throw error;
       }
     } catch (error) {
-      console.error('Error updating task assignments:', error);
+      console.error('Error updating task assignment:', error);
       throw error;
     }
   };
 
   const updateTask = async (taskId: string, updates: Partial<Task>) => {
     try {
-      // Remove assigned_roles from updates as it's handled separately
-      const { assigned_roles, ...taskUpdates } = updates;
+      // Remove assigned_role from updates as it's handled separately
+      const { assigned_role, ...taskUpdates } = updates;
       
       const { error } = await supabase
         .from('tasks')
@@ -582,9 +579,9 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
 
       if (error) throw error;
 
-      // Handle role assignments if provided
-      if (assigned_roles !== undefined) {
-        await updateTaskAssignments(taskId, assigned_roles);
+      // Handle role assignment if provided
+      if (assigned_role !== undefined) {
+        await updateTaskAssignment(taskId, assigned_role);
       }
 
       setTasks(tasks.map(task => 
@@ -664,7 +661,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         title: taskToUpdate.title,
         description: taskToUpdate.description,
         priority: taskToUpdate.priority,
-        assigned_roles: taskToUpdate.assigned_roles,
+        assigned_role: taskToUpdate.assigned_role,
         estimated_hours: taskToUpdate.estimated_hours,
         due_date: taskToUpdate.due_date,
       });
@@ -709,7 +706,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         title: taskToUpdate.title,
         description: taskToUpdate.description,
         priority: taskToUpdate.priority,
-        assigned_roles: taskToUpdate.assigned_roles,
+        assigned_role: taskToUpdate.assigned_role,
         estimated_hours: taskToUpdate.estimated_hours,
         due_date: overrideDueDate || taskToUpdate.due_date,
       });
@@ -845,27 +842,20 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Assigned Roles</Label>
-                  <div className="space-y-2">
-                    {['host', 'organizer', 'event_planner', 'venue_owner', 'hospitality_provider'].map((role) => (
-                      <div key={role} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`role-${role}`}
-                          checked={newTask.assigned_roles.includes(role)}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setNewTask({ ...newTask, assigned_roles: [...newTask.assigned_roles, role] });
-                            } else {
-                              setNewTask({ ...newTask, assigned_roles: newTask.assigned_roles.filter(r => r !== role) });
-                            }
-                          }}
-                        />
-                        <Label htmlFor={`role-${role}`} className="capitalize">
-                          {role.replace('_', ' ')}
-                        </Label>
-                      </div>
-                    ))}
-                  </div>
+                  <Label htmlFor="assigned-role">Assigned Role</Label>
+                  <Select value={newTask.assigned_role} onValueChange={(value) => setNewTask({ ...newTask, assigned_role: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">No assignment</SelectItem>
+                      <SelectItem value="host">Host</SelectItem>
+                      <SelectItem value="organizer">Organizer</SelectItem>
+                      <SelectItem value="event_planner">Event Planner</SelectItem>
+                      <SelectItem value="venue_owner">Venue Owner</SelectItem>
+                      <SelectItem value="hospitality_provider">Hospitality Provider</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
@@ -978,11 +968,11 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                   </Select>
                 </div>
 
-                {task.assigned_roles && task.assigned_roles.length > 0 && (
+                {task.assigned_role && (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <User className="h-3 w-3" />
                     <span className="capitalize">
-                      {task.assigned_roles.map(role => role.replace('_', ' ')).join(', ')}
+                      {task.assigned_role.replace('_', ' ')}
                     </span>
                   </div>
                 )}
@@ -1082,28 +1072,20 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Assigned Roles</Label>
-                  <div className="space-y-2">
-                    {['host', 'organizer', 'event_planner', 'venue_owner', 'hospitality_provider'].map((role) => (
-                      <div key={role} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`edit-role-${role}`}
-                          checked={selectedTask.assigned_roles?.includes(role) || false}
-                          onCheckedChange={(checked) => {
-                            const currentRoles = selectedTask.assigned_roles || [];
-                            if (checked) {
-                              setSelectedTask({ ...selectedTask, assigned_roles: [...currentRoles, role] });
-                            } else {
-                              setSelectedTask({ ...selectedTask, assigned_roles: currentRoles.filter(r => r !== role) });
-                            }
-                          }}
-                        />
-                        <Label htmlFor={`edit-role-${role}`} className="capitalize">
-                          {role.replace('_', ' ')}
-                        </Label>
-                      </div>
-                    ))}
-                  </div>
+                  <Label htmlFor="edit-assigned-role">Assigned Role</Label>
+                  <Select value={selectedTask.assigned_role || ""} onValueChange={(value) => setSelectedTask({ ...selectedTask, assigned_role: value || undefined })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">No assignment</SelectItem>
+                      <SelectItem value="host">Host</SelectItem>
+                      <SelectItem value="organizer">Organizer</SelectItem>
+                      <SelectItem value="event_planner">Event Planner</SelectItem>
+                      <SelectItem value="venue_owner">Venue Owner</SelectItem>
+                      <SelectItem value="hospitality_provider">Hospitality Provider</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
