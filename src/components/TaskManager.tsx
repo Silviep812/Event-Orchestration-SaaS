@@ -789,11 +789,10 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                       <SelectValue placeholder="Select role" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="host">Host</SelectItem>
-                      <SelectItem value="organizer">Organizer</SelectItem>
-                      <SelectItem value="event_planner">Event Planner</SelectItem>
-                      <SelectItem value="venue_owner">Venue Owner</SelectItem>
-                      <SelectItem value="hospitality_provider">Hospitality Provider</SelectItem>
+                      <SelectItem value="event_manager">Event Manager</SelectItem>
+                      <SelectItem value="vendor_coordinator">Vendor Coordinator</SelectItem>
+                      <SelectItem value="budget_manager">Budget Manager</SelectItem>
+                      <SelectItem value="task_coordinator">Task Coordinator</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1019,11 +1018,10 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                       <SelectValue placeholder="Select role" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="host">Host</SelectItem>
-                      <SelectItem value="organizer">Organizer</SelectItem>
-                      <SelectItem value="event_planner">Event Planner</SelectItem>
-                      <SelectItem value="venue_owner">Venue Owner</SelectItem>
-                      <SelectItem value="hospitality_provider">Hospitality Provider</SelectItem>
+                      <SelectItem value="event_manager">Event Manager</SelectItem>
+                      <SelectItem value="vendor_coordinator">Vendor Coordinator</SelectItem>
+                      <SelectItem value="budget_manager">Budget Manager</SelectItem>
+                      <SelectItem value="task_coordinator">Task Coordinator</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
