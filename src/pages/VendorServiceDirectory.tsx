@@ -272,15 +272,6 @@ const VendorServiceDirectory = () => {
                           </div>
                         </div>
                       )}
-                      
-                      <div className="flex gap-2 pt-2">
-                        <Button size="sm" className="flex-1">
-                          Request Quote
-                        </Button>
-                        <Button size="sm" variant="outline" className="flex-1">
-                          View Catalog
-                        </Button>
-                      </div>
                     </CardContent>
                   </Card>
                 );
