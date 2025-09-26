@@ -103,9 +103,9 @@ export default function SupplierDirectory() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Select Supplier Types</CardTitle>
+          <CardTitle>Select Supplier Categories</CardTitle>
           <CardDescription>
-            Choose all supplier types that apply to your event requirements
+            Choose all supplier categories that apply to your event requirements
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -120,33 +120,8 @@ export default function SupplierDirectory() {
             />
           </div>
 
-          {/* Supplier Types */}
-          <div className="space-y-2">
-            <Label>Filter by Supplier Type:</Label>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {uniqueSupplierTypes.map((type) => (
-                <div key={type} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={type}
-                    checked={selectedSupplierTypes.includes(type)}
-                    onCheckedChange={(checked) => 
-                      handleSupplierTypeChange(type, checked as boolean)
-                    }
-                  />
-                  <label
-                    htmlFor={type}
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                  >
-                    {type}
-                  </label>
-                </div>
-              ))}
-            </div>
-          </div>
-
           {/* Categories */}
           <div className="space-y-2">
-            <Label>Filter by Category:</Label>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {uniqueCategories.map((category) => (
                 <div key={category} className="flex items-center space-x-2">
