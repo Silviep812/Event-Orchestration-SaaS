@@ -48,7 +48,6 @@ const HospitalityDirectory = () => {
       hosp_biz_name: "Grand Plaza Hotel",
       hosp_contact_name: "John Smith",
       hosp_contact_nbr: "555-0123",
-      hosp_price: 250,
       hosp_location: ["Downtown", "New York", "NY"],
       hosp_amendities: ["WiFi", "Pool", "Spa", "Restaurant", "Gym"],
       hosp_website: "www.grandplaza.com",
@@ -59,7 +58,6 @@ const HospitalityDirectory = () => {
       hosp_biz_name: "Ocean View Resort",
       hosp_contact_name: "Sarah Johnson",
       hosp_contact_nbr: "555-0456",
-      hosp_price: 450,
       hosp_location: ["Beachfront", "Miami", "FL"],
       hosp_amendities: ["Private Beach", "Golf Course", "Multiple Restaurants", "Spa", "Kids Club"],
       hosp_website: "www.oceanviewresort.com",
@@ -70,7 +68,6 @@ const HospitalityDirectory = () => {
       hosp_biz_name: "Cozy Mountain Cabin",
       hosp_contact_name: "Mike Wilson",
       hosp_contact_nbr: "555-0789",
-      hosp_price: 120,
       hosp_location: ["Mountain View", "Aspen", "CO"],
       hosp_amendities: ["Fireplace", "Kitchen", "Hot Tub", "WiFi"],
       hosp_website: "www.airbnb.com/mountain-cabin",
@@ -81,7 +78,6 @@ const HospitalityDirectory = () => {
       hosp_biz_name: "Budget Inn & Suites",
       hosp_contact_name: "Lisa Brown",
       hosp_contact_nbr: "555-0321",
-      hosp_price: 85,
       hosp_location: ["Highway 101", "Phoenix", "AZ"],
       hosp_amendities: ["Free Parking", "Continental Breakfast", "WiFi", "Pool"],
       hosp_website: "www.budgetinn.com",
@@ -92,7 +88,6 @@ const HospitalityDirectory = () => {
       hosp_biz_name: "Luxury Downtown Loft",
       hosp_contact_name: "David Chen",
       hosp_contact_nbr: "555-0654",
-      hosp_price: 180,
       hosp_location: ["Financial District", "San Francisco", "CA"],
       hosp_amendities: ["City View", "Modern Kitchen", "Rooftop Access", "WiFi"],
       hosp_website: "www.airbnb.com/luxury-loft",
@@ -103,7 +98,6 @@ const HospitalityDirectory = () => {
       hosp_biz_name: "The Riverside Inn",
       hosp_contact_name: "Emily Davis",
       hosp_contact_nbr: "555-0987",
-      hosp_price: 195,
       hosp_location: ["River District", "Portland", "OR"],
       hosp_amendities: ["River View", "Restaurant", "Bar", "WiFi", "Pet Friendly"],
       hosp_website: "www.riversideinn.com",
@@ -220,12 +214,7 @@ const HospitalityDirectory = () => {
                         <MapPin size={16} className="text-muted-foreground" />
                         <span>{profile.hosp_location.join(", ")}</span>
                       </div>
-                      
-                      <div className="flex items-center gap-2 text-sm">
-                        <DollarSign size={16} className="text-muted-foreground" />
-                        <span className="font-semibold">${profile.hosp_price}/night</span>
-                      </div>
-                      
+
                       {profile.hosp_website && (
                         <div className="flex items-center gap-2 text-sm">
                           <Globe size={16} className="text-muted-foreground" />

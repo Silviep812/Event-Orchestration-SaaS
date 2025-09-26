@@ -769,7 +769,6 @@ export type Database = {
           hosp_contact_name: string | null
           hosp_contact_nbr: number | null
           hosp_location: string[] | null
-          hosp_price: number | null
           hosp_type_id: Database["public"]["Enums"]["budget_category"]
           hosp_website: string | null
         }
@@ -780,7 +779,6 @@ export type Database = {
           hosp_contact_name?: string | null
           hosp_contact_nbr?: number | null
           hosp_location?: string[] | null
-          hosp_price?: number | null
           hosp_type_id: Database["public"]["Enums"]["budget_category"]
           hosp_website?: string | null
         }
@@ -791,7 +789,6 @@ export type Database = {
           hosp_contact_name?: string | null
           hosp_contact_nbr?: number | null
           hosp_location?: string[] | null
-          hosp_price?: number | null
           hosp_type_id?: Database["public"]["Enums"]["budget_category"]
           hosp_website?: string | null
         }
