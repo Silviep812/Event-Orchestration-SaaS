@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      amenity_types: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: number
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: number
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: number
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       Authorization: {
         Row: {
           create_password: string | null
@@ -769,6 +793,7 @@ export type Database = {
           hosp_contact_name: string | null
           hosp_contact_nbr: number | null
           hosp_location: string[] | null
+          hosp_price: number | null
           hosp_type_id: Database["public"]["Enums"]["budget_category"]
           hosp_website: string | null
         }
@@ -779,6 +804,7 @@ export type Database = {
           hosp_contact_name?: string | null
           hosp_contact_nbr?: number | null
           hosp_location?: string[] | null
+          hosp_price?: number | null
           hosp_type_id: Database["public"]["Enums"]["budget_category"]
           hosp_website?: string | null
         }
@@ -789,8 +815,87 @@ export type Database = {
           hosp_contact_name?: string | null
           hosp_contact_nbr?: number | null
           hosp_location?: string[] | null
+          hosp_price?: number | null
           hosp_type_id?: Database["public"]["Enums"]["budget_category"]
           hosp_website?: string | null
+        }
+        Relationships: []
+      }
+      hospitality_profile_amenities: {
+        Row: {
+          amenity_type_id: number
+          created_at: string
+          hospitality_profile_id: string
+          id: string
+        }
+        Insert: {
+          amenity_type_id: number
+          created_at?: string
+          hospitality_profile_id: string
+          id?: string
+        }
+        Update: {
+          amenity_type_id?: number
+          created_at?: string
+          hospitality_profile_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hospitality_profile_amenities_amenity_type_id_fkey"
+            columns: ["amenity_type_id"]
+            isOneToOne: false
+            referencedRelation: "amenity_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hospitality_profile_amenities_hospitality_profile_id_fkey"
+            columns: ["hospitality_profile_id"]
+            isOneToOne: false
+            referencedRelation: "hospitality_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hospitality_profiles: {
+        Row: {
+          business_name: string
+          city: string | null
+          contact_name: string | null
+          created_at: string
+          email: string | null
+          id: string
+          phone_number: string | null
+          state: string | null
+          updated_at: string
+          website: string | null
+          zip: string | null
+        }
+        Insert: {
+          business_name: string
+          city?: string | null
+          contact_name?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          phone_number?: string | null
+          state?: string | null
+          updated_at?: string
+          website?: string | null
+          zip?: string | null
+        }
+        Update: {
+          business_name?: string
+          city?: string | null
+          contact_name?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          phone_number?: string | null
+          state?: string | null
+          updated_at?: string
+          website?: string | null
+          zip?: string | null
         }
         Relationships: []
       }
