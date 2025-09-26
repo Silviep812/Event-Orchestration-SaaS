@@ -59,7 +59,7 @@ const HospitalityDirectory = () => {
       hosp_contact_name: "Sarah Johnson",
       hosp_contact_nbr: "555-0456",
       hosp_location: ["Beachfront", "Miami", "FL"],
-      hosp_amendities: ["Private Beach", "Golf Course", "Multiple Restaurants", "Spa", "Kids Club"],
+      hosp_amendities: ["Golf Course", "Spa", "Kids Club"],
       hosp_website: "www.oceanviewresort.com",
       hosp_type_id: "resort"
     },
@@ -69,7 +69,7 @@ const HospitalityDirectory = () => {
       hosp_contact_name: "Mike Wilson",
       hosp_contact_nbr: "555-0789",
       hosp_location: ["Mountain View", "Aspen", "CO"],
-      hosp_amendities: ["Fireplace", "Kitchen", "Hot Tub", "WiFi"],
+      hosp_amendities: ["Hot Tub", "WiFi"],
       hosp_website: "www.airbnb.com/mountain-cabin",
       hosp_type_id: "airbnb"
     },
@@ -79,7 +79,7 @@ const HospitalityDirectory = () => {
       hosp_contact_name: "Lisa Brown",
       hosp_contact_nbr: "555-0321",
       hosp_location: ["Highway 101", "Phoenix", "AZ"],
-      hosp_amendities: ["Free Parking", "Continental Breakfast", "WiFi", "Pool"],
+      hosp_amendities: ["Parking", "WiFi", "Pool"],
       hosp_website: "www.budgetinn.com",
       hosp_type_id: "motel"
     },
@@ -89,7 +89,7 @@ const HospitalityDirectory = () => {
       hosp_contact_name: "David Chen",
       hosp_contact_nbr: "555-0654",
       hosp_location: ["Financial District", "San Francisco", "CA"],
-      hosp_amendities: ["City View", "Modern Kitchen", "Rooftop Access", "WiFi"],
+      hosp_amendities: ["WiFi"],
       hosp_website: "www.airbnb.com/luxury-loft",
       hosp_type_id: "airbnb"
     },
@@ -99,7 +99,7 @@ const HospitalityDirectory = () => {
       hosp_contact_name: "Emily Davis",
       hosp_contact_nbr: "555-0987",
       hosp_location: ["River District", "Portland", "OR"],
-      hosp_amendities: ["River View", "Restaurant", "Bar", "WiFi", "Pet Friendly"],
+      hosp_amendities: ["Restaurant", "Bar", "WiFi"],
       hosp_website: "www.riversideinn.com",
       hosp_type_id: "hotel"
     }
