@@ -23,7 +23,6 @@ interface Supplier {
 
 export default function SupplierDirectory() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [selectedSupplierTypes, setSelectedSupplierTypes] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [locationFilter, setLocationFilter] = useState("");
   const [loading, setLoading] = useState(true);
@@ -39,7 +38,6 @@ export default function SupplierDirectory() {
         .from('suppliers')
         .select(`
           *,
-          supplier_types(name),
           supplier_categories(name)
         `);
 
@@ -55,7 +53,7 @@ export default function SupplierDirectory() {
     }
   };
 
-  const supplierTypeOptions = [
+  const supplierCategoryOptions = [
     { value: "distributor", label: "Distributor", icon: Truck },
     { value: "wholesaler", label: "Wholesaler", icon: Package },
     { value: "online", label: "Online Market", icon: ShoppingCart },
@@ -66,15 +64,13 @@ export default function SupplierDirectory() {
   const uniqueCategories = [...new Set(suppliers.map(s => s.supplier_categories?.name).filter(Boolean))];
 
   const filteredSuppliers = suppliers.filter(supplier => {
-    const matchesType = selectedSupplierTypes.length === 0 || 
-      (supplier.supplier_types?.name && selectedSupplierTypes.includes(supplier.supplier_types.name));
     const matchesCategory = selectedCategories.length === 0 || 
       (supplier.supplier_categories?.name && selectedCategories.includes(supplier.supplier_categories.name));
     const matchesLocation = !locationFilter || 
       [supplier.city, supplier.state, supplier.zip].some(field => 
         field?.toLowerCase().includes(locationFilter.toLowerCase())
       );
-    return matchesType && matchesCategory && matchesLocation;
+    return matchesCategory && matchesLocation;
   });
 
   const handleCategoryChange = (value: string, checked: boolean) => {
@@ -85,16 +81,7 @@ export default function SupplierDirectory() {
     }
   };
 
-  const handleSupplierTypeChange = (value: string, checked: boolean) => {
-    if (checked) {
-      setSelectedSupplierTypes([...selectedSupplierTypes, value]);
-    } else {
-      setSelectedSupplierTypes(selectedSupplierTypes.filter(type => type !== value));
-    }
-  };
-
   const clearAllSelections = () => {
-    setSelectedSupplierTypes([]);
     setSelectedCategories([]);
     setLocationFilter("");
   };
@@ -127,19 +114,18 @@ export default function SupplierDirectory() {
             />
           </div>
 
-          {/* Supplier Types */}
+          {/* Supplier Categories */}
           <div className="space-y-2">
-            <Label>Supplier Types</Label>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {supplierTypeOptions.map((option) => {
+              {supplierCategoryOptions.map((option) => {
                 const Icon = option.icon;
                 return (
                   <div key={option.value} className="flex items-center space-x-2">
                     <Checkbox
                       id={option.value}
-                      checked={selectedSupplierTypes.includes(option.value)}
+                      checked={selectedCategories.includes(option.value)}
                       onCheckedChange={(checked) => 
-                        handleSupplierTypeChange(option.value, checked as boolean)
+                        handleCategoryChange(option.value, checked as boolean)
                       }
                     />
                     <label
@@ -155,30 +141,7 @@ export default function SupplierDirectory() {
             </div>
           </div>
 
-          {/* Categories */}
-          <div className="space-y-2">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {uniqueCategories.map((category) => (
-                <div key={category} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={category}
-                    checked={selectedCategories.includes(category)}
-                    onCheckedChange={(checked) => 
-                      handleCategoryChange(category, checked as boolean)
-                    }
-                  />
-                  <label
-                    htmlFor={category}
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                  >
-                    {category}
-                  </label>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {(selectedSupplierTypes.length > 0 || selectedCategories.length > 0 || locationFilter) && (
+          {(selectedCategories.length > 0 || selectedCategories.length > 0 || locationFilter) && (
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
                 Showing {filteredSuppliers.length} of {suppliers.length} suppliers
@@ -211,11 +174,6 @@ export default function SupplierDirectory() {
                       <div className="flex items-start justify-between">
                         <h4 className="font-semibold text-sm">{supplier.business_name}</h4>
                         <div className="flex flex-col gap-1">
-                          {supplier.supplier_types?.name && (
-                            <Badge variant="secondary" className="text-xs">
-                              {supplier.supplier_types.name}
-                            </Badge>
-                          )}
                           {supplier.supplier_categories?.name && (
                             <Badge variant="outline" className="text-xs">
                               {supplier.supplier_categories.name}
