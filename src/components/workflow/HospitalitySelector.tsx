@@ -26,8 +26,6 @@ interface HospitalityOption {
   hosp_contact_nbr: number;
   hosp_website: string;
   hosp_location: string[];
-  hosp_price: number;
-  hosp_amendities: string[];
 }
 
 interface HospitalitySelectorProps {
@@ -93,13 +91,6 @@ export const HospitalitySelector = ({ onSelectHospitality, selectedHospitality }
     if (typeFilter && typeFilter !== "all") {
       filtered = filtered.filter(item => 
         item.hosp_type_id?.toLowerCase().includes(typeFilter.toLowerCase())
-      );
-    }
-
-    if (maxBudget) {
-      const budget = parseFloat(maxBudget);
-      filtered = filtered.filter(item => 
-        item.hosp_price <= budget
       );
     }
 
@@ -246,31 +237,7 @@ export const HospitalitySelector = ({ onSelectHospitality, selectedHospitality }
                       <span className="truncate">{hospitality.hosp_website}</span>
                     </div>
                   )}
-                  {hospitality.hosp_price && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <DollarSign className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-semibold">${hospitality.hosp_price}</span>
-                    </div>
-                  )}
                 </div>
-
-                {hospitality.hosp_amendities && hospitality.hosp_amendities.length > 0 && (
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">Amenities</Label>
-                    <div className="flex flex-wrap gap-1">
-                      {hospitality.hosp_amendities.slice(0, 3).map((amenity, index) => (
-                        <Badge key={index} variant="outline" className="text-xs">
-                          {amenity}
-                        </Badge>
-                      ))}
-                      {hospitality.hosp_amendities.length > 3 && (
-                        <Badge variant="outline" className="text-xs">
-                          +{hospitality.hosp_amendities.length - 3} more
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                )}
 
                 <Button 
                   className="w-full" 

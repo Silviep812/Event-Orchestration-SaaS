@@ -764,34 +764,28 @@ export type Database = {
       "Hospitality Profile": {
         Row: {
           created_at: string
-          hosp_amendities: string[] | null
           hosp_biz_name: string | null
           hosp_contact_name: string | null
           hosp_contact_nbr: number | null
           hosp_location: string[] | null
-          hosp_price: number | null
           hosp_type_id: Database["public"]["Enums"]["budget_category"]
           hosp_website: string | null
         }
         Insert: {
           created_at?: string
-          hosp_amendities?: string[] | null
           hosp_biz_name?: string | null
           hosp_contact_name?: string | null
           hosp_contact_nbr?: number | null
           hosp_location?: string[] | null
-          hosp_price?: number | null
           hosp_type_id: Database["public"]["Enums"]["budget_category"]
           hosp_website?: string | null
         }
         Update: {
           created_at?: string
-          hosp_amendities?: string[] | null
           hosp_biz_name?: string | null
           hosp_contact_name?: string | null
           hosp_contact_nbr?: number | null
           hosp_location?: string[] | null
-          hosp_price?: number | null
           hosp_type_id?: Database["public"]["Enums"]["budget_category"]
           hosp_website?: string | null
         }
