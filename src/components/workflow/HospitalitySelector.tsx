@@ -256,7 +256,7 @@ export const HospitalitySelector = ({ onSelectHospitality, selectedHospitality }
                   variant={isSelected ? "default" : "outline"}
                   onClick={() => handleBooking(hospitality)}
                 >
-                  {isSelected ? "Selected" : "Select & Book"}
+                  {isSelected ? "Selected" : "Select"}
                 </Button>
               </CardContent>
             </Card>
