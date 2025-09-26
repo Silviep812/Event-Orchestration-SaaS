@@ -1,9 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Hotel, Home, MapPin, Coffee } from "lucide-react";
+import { Hotel, Home, MapPin, Coffee, Phone, Mail, Globe, DollarSign } from "lucide-react";
 
 const HospitalityDirectory = () => {
   const [hospitalityTypes, setHospitalityTypes] = useState<any[]>([]);
@@ -39,6 +40,83 @@ const HospitalityDirectory = () => {
     { value: "resort", label: "Resort", icon: MapPin },
     { value: "other", label: "Other", icon: Coffee }
   ];
+
+  // Mock data for hospitality profiles
+  const mockHospitalityProfiles = [
+    {
+      id: "1",
+      hosp_biz_name: "Grand Plaza Hotel",
+      hosp_contact_name: "John Smith",
+      hosp_contact_nbr: "555-0123",
+      hosp_price: 250,
+      hosp_location: ["Downtown", "New York", "NY"],
+      hosp_amendities: ["WiFi", "Pool", "Spa", "Restaurant", "Gym"],
+      hosp_website: "www.grandplaza.com",
+      hosp_type_id: "hotel"
+    },
+    {
+      id: "2",
+      hosp_biz_name: "Ocean View Resort",
+      hosp_contact_name: "Sarah Johnson",
+      hosp_contact_nbr: "555-0456",
+      hosp_price: 450,
+      hosp_location: ["Beachfront", "Miami", "FL"],
+      hosp_amendities: ["Private Beach", "Golf Course", "Multiple Restaurants", "Spa", "Kids Club"],
+      hosp_website: "www.oceanviewresort.com",
+      hosp_type_id: "resort"
+    },
+    {
+      id: "3",
+      hosp_biz_name: "Cozy Mountain Cabin",
+      hosp_contact_name: "Mike Wilson",
+      hosp_contact_nbr: "555-0789",
+      hosp_price: 120,
+      hosp_location: ["Mountain View", "Aspen", "CO"],
+      hosp_amendities: ["Fireplace", "Kitchen", "Hot Tub", "WiFi"],
+      hosp_website: "www.airbnb.com/mountain-cabin",
+      hosp_type_id: "airbnb"
+    },
+    {
+      id: "4",
+      hosp_biz_name: "Budget Inn & Suites",
+      hosp_contact_name: "Lisa Brown",
+      hosp_contact_nbr: "555-0321",
+      hosp_price: 85,
+      hosp_location: ["Highway 101", "Phoenix", "AZ"],
+      hosp_amendities: ["Free Parking", "Continental Breakfast", "WiFi", "Pool"],
+      hosp_website: "www.budgetinn.com",
+      hosp_type_id: "motel"
+    },
+    {
+      id: "5",
+      hosp_biz_name: "Luxury Downtown Loft",
+      hosp_contact_name: "David Chen",
+      hosp_contact_nbr: "555-0654",
+      hosp_price: 180,
+      hosp_location: ["Financial District", "San Francisco", "CA"],
+      hosp_amendities: ["City View", "Modern Kitchen", "Rooftop Access", "WiFi"],
+      hosp_website: "www.airbnb.com/luxury-loft",
+      hosp_type_id: "airbnb"
+    },
+    {
+      id: "6",
+      hosp_biz_name: "The Riverside Inn",
+      hosp_contact_name: "Emily Davis",
+      hosp_contact_nbr: "555-0987",
+      hosp_price: 195,
+      hosp_location: ["River District", "Portland", "OR"],
+      hosp_amendities: ["River View", "Restaurant", "Bar", "WiFi", "Pet Friendly"],
+      hosp_website: "www.riversideinn.com",
+      hosp_type_id: "hotel"
+    }
+  ];
+
+  // Filter profiles based on selected types
+  const filteredProfiles = selectedHospitalityTypes.length > 0 
+    ? mockHospitalityProfiles.filter(profile => 
+        selectedHospitalityTypes.includes(profile.hosp_type_id)
+      )
+    : mockHospitalityProfiles;
 
   return (
     <div className="space-y-6">
@@ -108,12 +186,84 @@ const HospitalityDirectory = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>Hospitality Profiles</CardTitle>
+          <CardTitle>
+            Hospitality Profiles ({filteredProfiles.length} {selectedHospitalityTypes.length > 0 ? 'filtered' : 'total'} results)
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground">
-            {loading ? 'Loading hospitality data...' : 'No hospitality profiles found. Add providers to see them here.'}
-          </p>
+          {filteredProfiles.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredProfiles.map((profile) => {
+                const typeOption = hospitalityTypeOptions.find(opt => opt.value === profile.hosp_type_id);
+                const IconComponent = typeOption?.icon || Hotel;
+                
+                return (
+                  <Card key={profile.id} className="hover:shadow-md transition-shadow">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          <IconComponent size={20} />
+                          {profile.hosp_biz_name}
+                        </CardTitle>
+                        <Badge variant="secondary">{typeOption?.label}</Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex items-center gap-2 text-sm">
+                        <Phone size={16} className="text-muted-foreground" />
+                        <span>{profile.hosp_contact_name}</span>
+                        <span className="text-muted-foreground">•</span>
+                        <span>{profile.hosp_contact_nbr}</span>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 text-sm">
+                        <MapPin size={16} className="text-muted-foreground" />
+                        <span>{profile.hosp_location.join(", ")}</span>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 text-sm">
+                        <DollarSign size={16} className="text-muted-foreground" />
+                        <span className="font-semibold">${profile.hosp_price}/night</span>
+                      </div>
+                      
+                      {profile.hosp_website && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <Globe size={16} className="text-muted-foreground" />
+                          <a 
+                            href={`https://${profile.hosp_website}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-primary hover:underline"
+                          >
+                            {profile.hosp_website}
+                          </a>
+                        </div>
+                      )}
+                      
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-medium">Amenities:</h4>
+                        <div className="flex flex-wrap gap-1">
+                          {profile.hosp_amendities.map((amenity, index) => (
+                            <Badge key={index} variant="outline" className="text-xs">
+                              {amenity}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      <Button className="w-full mt-4">
+                        View Details & Book
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-muted-foreground text-center py-8">
+              No hospitality profiles match your selected criteria.
+            </p>
+          )}
         </CardContent>
       </Card>
     </div>
