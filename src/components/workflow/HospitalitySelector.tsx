@@ -20,13 +20,14 @@ import {
 import { useToast } from "@/hooks/use-toast";
 
 interface HospitalityOption {
-  hosp_type_id: string;
-  hosp_biz_name: string;
-  hosp_contact_name: string;
-  hosp_contact_nbr: number;
-  hosp_website: string;
-  hosp_location: string[];
-  hosp_amendities: string[];
+  business_name: string;
+  contact_name: string;
+  phone_number: string;
+  website: string;
+  city: string;
+  state: string;
+  zip: string;
+  hospitality_type: number;
 }
 
 interface HospitalitySelectorProps {
@@ -55,7 +56,7 @@ export const HospitalitySelector = ({ onSelectHospitality, selectedHospitality }
   const fetchHospitalities = async () => {
     try {
       const { data, error } = await supabase
-        .from('Hospitality Profile')
+        .from('hospitality_profiles')
         .select('*');
 
       if (error) throw error;
@@ -76,14 +77,14 @@ export const HospitalitySelector = ({ onSelectHospitality, selectedHospitality }
 
     if (searchTerm) {
       filtered = filtered.filter(item => 
-        item.hosp_biz_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.hosp_contact_name?.toLowerCase().includes(searchTerm.toLowerCase())
+        item.business_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.contact_name?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
     if (locationFilter) {
       filtered = filtered.filter(item => 
-        item.hosp_location?.some(loc => 
+        [item.city, item.state, item.zip].filter(Boolean).join(', ')?.some(loc => 
           loc.toLowerCase().includes(locationFilter.toLowerCase())
         )
       );
@@ -91,7 +92,7 @@ export const HospitalitySelector = ({ onSelectHospitality, selectedHospitality }
 
     if (typeFilter && typeFilter !== "all") {
       filtered = filtered.filter(item => 
-        item.hosp_type_id?.toLowerCase().includes(typeFilter.toLowerCase())
+        item.hospitality_type?.toLowerCase().includes(typeFilter.toLowerCase())
       );
     }
 
@@ -104,7 +105,7 @@ export const HospitalitySelector = ({ onSelectHospitality, selectedHospitality }
       onSelectHospitality(hospitality);
       toast({
         title: "Success",
-        description: `Selected ${hospitality.hosp_biz_name} for your event`,
+        description: `Selected ${hospitality.business_name} for your event`,
       });
     } catch (error) {
       toast({
@@ -143,7 +144,7 @@ export const HospitalitySelector = ({ onSelectHospitality, selectedHospitality }
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="search">Search</Label>
               <div className="relative">
@@ -181,16 +182,6 @@ export const HospitalitySelector = ({ onSelectHospitality, selectedHospitality }
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="budget">Max Budget</Label>
-              <Input
-                id="budget"
-                type="number"
-                placeholder="$0"
-                value={maxBudget}
-                onChange={(e) => setMaxBudget(e.target.value)}
-              />
-            </div>
           </div>
         </CardContent>
       </Card>
@@ -198,11 +189,11 @@ export const HospitalitySelector = ({ onSelectHospitality, selectedHospitality }
       {/* Results */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredHospitalities.map((hospitality) => {
-          const isSelected = selectedHospitality?.hosp_type_id === hospitality.hosp_type_id;
+          const isSelected = selectedHospitality?.hospitality_type === hospitality.hospitality_type;
           
           return (
             <Card 
-              key={hospitality.hosp_type_id}
+              key={hospitality.hospitality_type}
               className={`cursor-pointer transition-all duration-300 hover:scale-105 border-2 ${
                 isSelected ? 'border-primary shadow-lg' : 'border-border'
               }`}
@@ -210,37 +201,39 @@ export const HospitalitySelector = ({ onSelectHospitality, selectedHospitality }
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <div>
-                    <CardTitle className="text-lg">{hospitality.hosp_biz_name}</CardTitle>
+                    <CardTitle className="text-lg">{hospitality.business_name}</CardTitle>
+                    {hospitality.contact_name && (
                     <p className="text-sm text-muted-foreground">
-                      Contact: {hospitality.hosp_contact_name}
+                      Contact: {hospitality.contact_name}
                     </p>
+                    )}
                   </div>
                   {isSelected && <CheckCircle2 className="h-5 w-5 text-primary" />}
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  {hospitality.hosp_location && (
+                  {[hospitality.city, hospitality.state, hospitality.zip].filter(Boolean).join(', ') && (
                     <div className="flex items-center gap-2 text-sm">
                       <MapPin className="h-4 w-4 text-muted-foreground" />
-                      <span>{hospitality.hosp_location.join(", ")}</span>
+                      <span>{[hospitality.city, hospitality.state, hospitality.zip].filter(Boolean).join(', ')}</span>
                     </div>
                   )}
-                  {hospitality.hosp_contact_nbr && (
+                  {hospitality.phone_number && (
                     <div className="flex items-center gap-2 text-sm">
                       <Phone className="h-4 w-4 text-muted-foreground" />
-                      <span>{hospitality.hosp_contact_nbr}</span>
+                      <span>{hospitality.phone_number}</span>
                     </div>
                   )}
-                  {hospitality.hosp_website && (
+                  {hospitality.website && (
                     <div className="flex items-center gap-2 text-sm">
                       <Mail className="h-4 w-4 text-muted-foreground" />
-                      <span className="truncate">{hospitality.hosp_website}</span>
+                      <span className="truncate">{hospitality.website}</span>
                     </div>
                   )}
                 </div>
 
-                {hospitality.hosp_amendities && hospitality.hosp_amendities.length > 0 && (
+                {/* {hospitality.hosp_amendities && hospitality.hosp_amendities.length > 0 && (
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">Amenities</Label>
                     <div className="flex flex-wrap gap-1">
@@ -256,7 +249,7 @@ export const HospitalitySelector = ({ onSelectHospitality, selectedHospitality }
                       )}
                     </div>
                   </div>
-                )}
+                )} */}
 
                 <Button 
                   className="w-full" 
