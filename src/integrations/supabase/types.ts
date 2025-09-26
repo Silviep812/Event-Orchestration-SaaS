@@ -899,6 +899,27 @@ export type Database = {
         }
         Relationships: []
       }
+      hospitality_types: {
+        Row: {
+          created_at: string
+          id: number
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       "Manage Event": {
         Row: {
           created_at: string
