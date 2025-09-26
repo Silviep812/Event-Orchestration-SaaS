@@ -74,7 +74,7 @@ export function VendorSelector({ onSelectVendor, selectedVendor }: VendorSelecto
       vendor.vendor_location.toLowerCase().includes(locationFilter.toLowerCase());
     const matchesType = !typeFilter || 
       vendor.vendor_type.toLowerCase().includes(typeFilter.toLowerCase());
-    const matchesCategory = !categoryFilter || 
+    const matchesCategory = !categoryFilter || categoryFilter === "all" || 
       vendor.vendor_category.toLowerCase().includes(categoryFilter.toLowerCase());
     return matchesLocation && matchesType && matchesCategory;
   });
@@ -119,7 +119,7 @@ export function VendorSelector({ onSelectVendor, selectedVendor }: VendorSelecto
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Categories</SelectItem>
+                  <SelectItem value="all">All Categories</SelectItem>
                   {vendorCategories.map((category) => (
                     <SelectItem key={category} value={category}>
                       {category}
