@@ -55,6 +55,14 @@ export default function SupplierDirectory() {
     }
   };
 
+  const supplierTypeOptions = [
+    { value: "distributor", label: "Distributor", icon: Truck },
+    { value: "wholesaler", label: "Wholesaler", icon: Package },
+    { value: "online", label: "Online Market", icon: ShoppingCart },
+    { value: "merchandizer", label: "Merchandizer", icon: Store },
+    { value: "other", label: "Other", icon: Building },
+  ];
+
   const uniqueCategories = [...new Set(suppliers.map(s => s.supplier_categories?.name).filter(Boolean))];
 
   const filteredSuppliers = suppliers.filter(supplier => {
@@ -74,6 +82,14 @@ export default function SupplierDirectory() {
       setSelectedCategories([...selectedCategories, value]);
     } else {
       setSelectedCategories(selectedCategories.filter(cat => cat !== value));
+    }
+  };
+
+  const handleSupplierTypeChange = (value: string, checked: boolean) => {
+    if (checked) {
+      setSelectedSupplierTypes([...selectedSupplierTypes, value]);
+    } else {
+      setSelectedSupplierTypes(selectedSupplierTypes.filter(type => type !== value));
     }
   };
 
@@ -109,6 +125,34 @@ export default function SupplierDirectory() {
               value={locationFilter}
               onChange={(e) => setLocationFilter(e.target.value)}
             />
+          </div>
+
+          {/* Supplier Types */}
+          <div className="space-y-2">
+            <Label>Supplier Types</Label>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {supplierTypeOptions.map((option) => {
+                const Icon = option.icon;
+                return (
+                  <div key={option.value} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={option.value}
+                      checked={selectedSupplierTypes.includes(option.value)}
+                      onCheckedChange={(checked) => 
+                        handleSupplierTypeChange(option.value, checked as boolean)
+                      }
+                    />
+                    <label
+                      htmlFor={option.value}
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex items-center gap-2"
+                    >
+                      <Icon className="h-4 w-4" />
+                      {option.label}
+                    </label>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           {/* Categories */}
