@@ -250,10 +250,6 @@ const HospitalityDirectory = () => {
                           ))}
                         </div>
                       </div>
-                      
-                      <Button className="w-full mt-4">
-                        View Details & Book
-                      </Button>
                     </CardContent>
                   </Card>
                 );
