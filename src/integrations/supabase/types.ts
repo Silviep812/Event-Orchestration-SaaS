@@ -875,6 +875,7 @@ export type Database = {
           contact_name: string | null
           created_at: string
           email: string | null
+          hospitality_type: number | null
           id: string
           phone_number: string | null
           state: string | null
@@ -888,6 +889,7 @@ export type Database = {
           contact_name?: string | null
           created_at?: string
           email?: string | null
+          hospitality_type?: number | null
           id?: string
           phone_number?: string | null
           state?: string | null
@@ -901,6 +903,7 @@ export type Database = {
           contact_name?: string | null
           created_at?: string
           email?: string | null
+          hospitality_type?: number | null
           id?: string
           phone_number?: string | null
           state?: string | null
@@ -908,7 +911,15 @@ export type Database = {
           website?: string | null
           zip?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "hospitality_profiles_hospitality_type_fkey"
+            columns: ["hospitality_type"]
+            isOneToOne: false
+            referencedRelation: "hospitality_types"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       hospitality_types: {
         Row: {
