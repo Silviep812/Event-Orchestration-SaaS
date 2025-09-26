@@ -796,6 +796,7 @@ export type Database = {
           hosp_price: number | null
           hosp_type_id: Database["public"]["Enums"]["budget_category"]
           hosp_website: string | null
+          hospitality_type: number | null
         }
         Insert: {
           created_at?: string
@@ -807,6 +808,7 @@ export type Database = {
           hosp_price?: number | null
           hosp_type_id: Database["public"]["Enums"]["budget_category"]
           hosp_website?: string | null
+          hospitality_type?: number | null
         }
         Update: {
           created_at?: string
@@ -818,29 +820,35 @@ export type Database = {
           hosp_price?: number | null
           hosp_type_id?: Database["public"]["Enums"]["budget_category"]
           hosp_website?: string | null
+          hospitality_type?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "Hospitality Profile_hospitality_type_fkey"
+            columns: ["hospitality_type"]
+            isOneToOne: false
+            referencedRelation: "hospitality_types"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       hospitality_profile_amenities: {
         Row: {
           amenity_type_id: number
           created_at: string
           hospitality_profile_id: string
-          hospitality_type: number | null
           id: string
         }
         Insert: {
           amenity_type_id: number
           created_at?: string
           hospitality_profile_id: string
-          hospitality_type?: number | null
           id?: string
         }
         Update: {
           amenity_type_id?: number
           created_at?: string
           hospitality_profile_id?: string
-          hospitality_type?: number | null
           id?: string
         }
         Relationships: [
@@ -856,13 +864,6 @@ export type Database = {
             columns: ["hospitality_profile_id"]
             isOneToOne: false
             referencedRelation: "hospitality_profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "hospitality_profile_amenities_hospitality_type_fkey"
-            columns: ["hospitality_type"]
-            isOneToOne: false
-            referencedRelation: "hospitality_types"
             referencedColumns: ["id"]
           },
         ]
