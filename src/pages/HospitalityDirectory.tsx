@@ -15,11 +15,25 @@ const HospitalityDirectory = () => {
     fetchHospitalityProfiles();
   }, []);
 
+  const [hospitalityTypes, setHospitalityTypes] = useState<any[]>([]);
+
   const fetchHospitalityProfiles = async () => {
     try {
+      // Fetch hospitality types first
+      const { data: typesData, error: typesError } = await supabase
+        .from('hospitality_types')
+        .select('*');
+
+      if (typesError) throw typesError;
+      setHospitalityTypes(typesData || []);
+
+      // Fetch profiles with joined hospitality type info
       const { data, error } = await supabase
         .from('hospitality_profiles')
-        .select('*');
+        .select(`
+          *,
+          hospitality_type:hospitality_types(*)
+        `);
       
       if (error) {
         console.error('Error fetching hospitality profiles:', error);
@@ -34,18 +48,26 @@ const HospitalityDirectory = () => {
     }
   };
 
-  const hospitalityTypeOptions = [
-    { value: "hotel", label: "Hotel", icon: Hotel },
-    { value: "motel", label: "Motel", icon: Home },
-    { value: "airbnb", label: "Airbnb", icon: Home },
-    { value: "resort", label: "Resort", icon: MapPin },
-    { value: "other", label: "Other", icon: Coffee }
-  ];
+  const getIconForType = (type: string) => {
+    switch (type.toLowerCase()) {
+      case 'hotel': return Hotel;
+      case 'motel': return Home;
+      case 'airbnb': return Home;
+      case 'resort': return MapPin;
+      default: return Coffee;
+    }
+  };
+
+  const hospitalityTypeOptions = hospitalityTypes.map(type => ({
+    value: type.id,
+    label: type.name,
+    icon: getIconForType(type.name)
+  }));
 
   // Filter profiles based on selected types
   const filteredProfiles = selectedHospitalityTypes.length > 0 
     ? hospitalityProfiles.filter(profile => 
-        selectedHospitalityTypes.includes(profile.hosp_type_id)
+        selectedHospitalityTypes.includes(profile.hospitality_type?.id)
       )
     : hospitalityProfiles;
 
@@ -125,7 +147,7 @@ const HospitalityDirectory = () => {
           {filteredProfiles.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredProfiles.map((profile) => {
-                const typeOption = hospitalityTypeOptions.find(opt => opt.value === profile.hosp_type_id);
+                const typeOption = hospitalityTypeOptions.find(opt => opt.value === profile.hospitality_type?.id);
                 const IconComponent = typeOption?.icon || Hotel;
                 
                 return (
