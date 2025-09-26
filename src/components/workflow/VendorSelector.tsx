@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MapPin, Phone, Mail, Building2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -12,7 +11,6 @@ interface Vendor {
   id: string;
   vendor_biz_name: string;
   vendor_type: string;
-  vendor_category: string;
   vendor_contact_name: string;
   vendor_email: string;
   vendor_contact_nbr: string;
@@ -27,7 +25,6 @@ interface VendorSelectorProps {
 export function VendorSelector({ onSelectVendor, selectedVendor }: VendorSelectorProps) {
   const [locationFilter, setLocationFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("");
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -54,7 +51,6 @@ export function VendorSelector({ onSelectVendor, selectedVendor }: VendorSelecto
           id: supplier.id,
           vendor_biz_name: supplier.business_name,
           vendor_type: supplier.supplier_types?.name || 'Unknown',
-          vendor_category: supplier.supplier_categories?.name || 'Unknown',
           vendor_contact_name: supplier.contact_name || '',
           vendor_email: supplier.email || '',
           vendor_contact_nbr: supplier.phone_number || '',
@@ -74,13 +70,10 @@ export function VendorSelector({ onSelectVendor, selectedVendor }: VendorSelecto
       vendor.vendor_location.toLowerCase().includes(locationFilter.toLowerCase());
     const matchesType = !typeFilter || 
       vendor.vendor_type.toLowerCase().includes(typeFilter.toLowerCase());
-    const matchesCategory = !categoryFilter || categoryFilter === "all" || 
-      vendor.vendor_category.toLowerCase().includes(categoryFilter.toLowerCase());
-    return matchesLocation && matchesType && matchesCategory;
+    return matchesLocation && matchesType;
   });
 
   const vendorTypes = [...new Set(vendors.map(vendor => vendor.vendor_type))];
-  const vendorCategories = [...new Set(vendors.map(vendor => vendor.vendor_category))];
 
   return (
     <div className="space-y-6">
@@ -93,7 +86,7 @@ export function VendorSelector({ onSelectVendor, selectedVendor }: VendorSelecto
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Filters */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="location">Filter by Location (City, State, ZIP)</Label>
               <Input
@@ -111,22 +104,6 @@ export function VendorSelector({ onSelectVendor, selectedVendor }: VendorSelecto
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value)}
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="vendor-category">Filter by Category</Label>
-              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
-                  {vendorCategories.map((category) => (
-                    <SelectItem key={category} value={category}>
-                      {category}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
           </div>
 
