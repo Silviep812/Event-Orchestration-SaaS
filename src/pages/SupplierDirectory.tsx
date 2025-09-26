@@ -141,7 +141,7 @@ export default function SupplierDirectory() {
             />
           </div>
 
-          {(selectedCategories.length > 0 || selectedCategories.length > 0 || locationFilter) && (
+          {(selectedCategories.length > 0 || locationFilter) && (
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
                 Showing {filteredSuppliers.length} of {suppliers.length} suppliers

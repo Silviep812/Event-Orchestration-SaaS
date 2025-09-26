@@ -2,6 +2,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Hotel, Home, MapPin, Coffee, Phone, Mail, Globe, DollarSign } from "lucide-react";
@@ -9,6 +11,7 @@ import { Hotel, Home, MapPin, Coffee, Phone, Mail, Globe, DollarSign } from "luc
 const HospitalityDirectory = () => {
   const [hospitalityProfiles, setHospitalityProfiles] = useState<any[]>([]);
   const [selectedHospitalityTypes, setSelectedHospitalityTypes] = useState<string[]>([]);
+  const [locationFilter, setLocationFilter] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -71,6 +74,12 @@ const HospitalityDirectory = () => {
       )
     : hospitalityProfiles;
 
+  const clearAllSelections = () => {
+    setSelectedHospitalityTypes([]);
+    setLocationFilter("");
+  };
+
+
   return (
     <div className="space-y-6">
       <div>
@@ -114,26 +123,31 @@ const HospitalityDirectory = () => {
             </div>
           </div>
           
-          {selectedHospitalityTypes.length > 0 && (
-            <div className="p-4 bg-muted rounded-lg">
-              <h3 className="font-medium mb-2">Selected Hospitality Types:</h3>
-              <div className="flex flex-wrap gap-2">
-                {selectedHospitalityTypes.map(type => (
-                  <span key={type} className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
-                    {hospitalityTypeOptions.find(opt => opt.value === type)?.label}
-                  </span>
-                ))}
-              </div>
+          {/* Location Filter */}
+          <div className="space-y-2">
+            <Label htmlFor="location">Filter by Location</Label>
+            <Input
+              id="location"
+              placeholder="Enter city, state, or ZIP code"
+              value={locationFilter}
+              onChange={(e) => setLocationFilter(e.target.value)}
+            />
+          </div>
+
+          {(selectedHospitalityTypes.length > 0 || locationFilter) && (
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                Showing {filteredProfiles.length} of {hospitalityProfiles.length} suppliers
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={clearAllSelections}
+              >
+                Clear All Filters
+              </Button>
             </div>
           )}
-
-          <Button 
-            onClick={() => setSelectedHospitalityTypes([])} 
-            variant="outline"
-            disabled={selectedHospitalityTypes.length === 0}
-          >
-            Clear All Selections
-          </Button>
         </CardContent>
       </Card>
 
