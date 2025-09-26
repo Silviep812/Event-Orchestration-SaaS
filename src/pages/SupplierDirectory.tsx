@@ -103,17 +103,6 @@ export default function SupplierDirectory() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Location Filter */}
-          <div className="space-y-2">
-            <Label htmlFor="location">Filter by Location</Label>
-            <Input
-              id="location"
-              placeholder="Enter city, state, or ZIP code"
-              value={locationFilter}
-              onChange={(e) => setLocationFilter(e.target.value)}
-            />
-          </div>
-
           {/* Supplier Categories */}
           <div className="space-y-2">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -139,6 +128,17 @@ export default function SupplierDirectory() {
                 );
               })}
             </div>
+          </div>
+
+          {/* Location Filter */}
+          <div className="space-y-2">
+            <Label htmlFor="location">Filter by Location</Label>
+            <Input
+              id="location"
+              placeholder="Enter city, state, or ZIP code"
+              value={locationFilter}
+              onChange={(e) => setLocationFilter(e.target.value)}
+            />
           </div>
 
           {(selectedCategories.length > 0 || selectedCategories.length > 0 || locationFilter) && (
