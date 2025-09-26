@@ -103,9 +103,9 @@ export default function SupplierDirectory() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Filter Suppliers</CardTitle>
+          <CardTitle>Select Supplier Types</CardTitle>
           <CardDescription>
-            Filter suppliers by type, category, and location
+            Choose all supplier types that apply to your event requirements
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
