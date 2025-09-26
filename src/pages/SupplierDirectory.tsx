@@ -55,7 +55,6 @@ export default function SupplierDirectory() {
     }
   };
 
-  const uniqueSupplierTypes = [...new Set(suppliers.map(s => s.supplier_types?.name).filter(Boolean))];
   const uniqueCategories = [...new Set(suppliers.map(s => s.supplier_categories?.name).filter(Boolean))];
 
   const filteredSuppliers = suppliers.filter(supplier => {
@@ -69,14 +68,6 @@ export default function SupplierDirectory() {
       );
     return matchesType && matchesCategory && matchesLocation;
   });
-
-  const handleSupplierTypeChange = (value: string, checked: boolean) => {
-    if (checked) {
-      setSelectedSupplierTypes([...selectedSupplierTypes, value]);
-    } else {
-      setSelectedSupplierTypes(selectedSupplierTypes.filter(type => type !== value));
-    }
-  };
 
   const handleCategoryChange = (value: string, checked: boolean) => {
     if (checked) {
