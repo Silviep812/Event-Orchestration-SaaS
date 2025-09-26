@@ -1,20 +1,23 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Phone, Mail, Package, Building } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Supplier {
   id: string;
-  supplier_type: string;
   business_name: string;
-  contact_name: string;
-  email: string;
-  contact_nbr: string;
-  location: string;
-  category: "online" | "wholesaler" | "distributor" | "merchandizer";
+  contact_name?: string;
+  email?: string;
+  phone_number?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  supplier_types?: { name: string };
+  supplier_categories?: { name: string };
 }
 
 interface SupplierSelectorProps {
@@ -22,73 +25,9 @@ interface SupplierSelectorProps {
   selectedSupplier: Supplier | null;
 }
 
-// Mock supplier data - in real app, this would come from the Supplier Directory table
-const mockSuppliers: Supplier[] = [
-  {
-    id: "1",
-    supplier_type: "Party Supplies",
-    business_name: "Party Central Online",
-    contact_name: "Amanda Wilson",
-    email: "amanda@partycentral.com",
-    contact_nbr: "555-0201",
-    location: "Orlando, FL 32801",
-    category: "online"
-  },
-  {
-    id: "2",
-    supplier_type: "Decorations",
-    business_name: "Wholesale Decorations Inc",
-    contact_name: "Michael Brown",
-    email: "michael@wholesaledecorations.com",
-    contact_nbr: "555-0202",
-    location: "Los Angeles, CA 90015",
-    category: "wholesaler"
-  },
-  {
-    id: "3",
-    supplier_type: "Flowers & Plants",
-    business_name: "Garden Supply Distributors",
-    contact_name: "Lisa Green",
-    email: "lisa@gardensupply.com",
-    contact_nbr: "555-0203",
-    location: "Portland, OR 97201",
-    category: "distributor"
-  },
-  {
-    id: "4",
-    supplier_type: "Linens & Fabrics",
-    business_name: "Textile Merchants Corp",
-    contact_name: "James Taylor",
-    email: "james@textilemerchants.com",
-    contact_nbr: "555-0204",
-    location: "New York, NY 10018",
-    category: "merchandizer"
-  },
-  {
-    id: "5",
-    supplier_type: "Catering Supplies",
-    business_name: "Food Service Wholesale",
-    contact_name: "Rachel Martinez",
-    email: "rachel@foodservicewholesale.com",
-    contact_nbr: "555-0205",
-    location: "Chicago, IL 60661",
-    category: "wholesaler"
-  },
-  {
-    id: "6",
-    supplier_type: "Event Furniture",
-    business_name: "Online Event Rentals",
-    contact_name: "Kevin Park",
-    email: "kevin@onlineeventrentals.com",
-    contact_nbr: "555-0206",
-    location: "Dallas, TX 75201",
-    category: "online"
-  }
-];
-
 const getCategoryIcon = (category: string) => {
   const iconClass = "h-3 w-3";
-  switch (category) {
+  switch (category?.toLowerCase()) {
     case "online": return <Package className={iconClass} />;
     case "wholesaler": return <Building className={iconClass} />;
     case "distributor": return <MapPin className={iconClass} />;
@@ -98,7 +37,7 @@ const getCategoryIcon = (category: string) => {
 };
 
 const getCategoryColor = (category: string) => {
-  switch (category) {
+  switch (category?.toLowerCase()) {
     case "online": return "bg-blue-100 text-blue-800";
     case "wholesaler": return "bg-green-100 text-green-800";
     case "distributor": return "bg-purple-100 text-purple-800";
@@ -111,18 +50,49 @@ export function SupplierSelector({ onSelectSupplier, selectedSupplier }: Supplie
   const [locationFilter, setLocationFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredSuppliers = mockSuppliers.filter(supplier => {
+  useEffect(() => {
+    fetchSuppliers();
+  }, []);
+
+  const fetchSuppliers = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('suppliers')
+        .select(`
+          *,
+          supplier_types(name),
+          supplier_categories(name)
+        `);
+
+      if (error) {
+        console.error('Error fetching suppliers:', error);
+      } else {
+        setSuppliers(data || []);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredSuppliers = suppliers.filter(supplier => {
+    const location = [supplier.city, supplier.state, supplier.zip].filter(Boolean).join(', ');
     const matchesLocation = !locationFilter || 
-      supplier.location.toLowerCase().includes(locationFilter.toLowerCase());
+      location.toLowerCase().includes(locationFilter.toLowerCase());
     const matchesType = !typeFilter || 
-      supplier.supplier_type.toLowerCase().includes(typeFilter.toLowerCase());
-    const matchesCategory = !categoryFilter || supplier.category === categoryFilter;
+      supplier.supplier_types?.name?.toLowerCase().includes(typeFilter.toLowerCase());
+    const matchesCategory = !categoryFilter || 
+      supplier.supplier_categories?.name?.toLowerCase() === categoryFilter.toLowerCase();
     return matchesLocation && matchesType && matchesCategory;
   });
 
-  const supplierTypes = [...new Set(mockSuppliers.map(supplier => supplier.supplier_type))];
-  const categories = [...new Set(mockSuppliers.map(supplier => supplier.category))];
+  const supplierTypes = [...new Set(suppliers.map(s => s.supplier_types?.name).filter(Boolean))];
+  const categories = [...new Set(suppliers.map(s => s.supplier_categories?.name).filter(Boolean))];
 
   return (
     <div className="space-y-6">
@@ -211,55 +181,75 @@ export function SupplierSelector({ onSelectSupplier, selectedSupplier }: Supplie
 
           {/* Supplier List */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto">
-            {filteredSuppliers.map((supplier) => (
-              <Card 
-                key={supplier.id}
-                className={`cursor-pointer transition-all hover:shadow-md ${
-                  selectedSupplier?.id === supplier.id ? 'ring-2 ring-primary' : ''
-                }`}
-                onClick={() => onSelectSupplier(supplier)}
-              >
-                <CardContent className="p-4">
-                  <div className="space-y-2">
-                    <div className="flex items-start justify-between">
-                      <h4 className="font-semibold text-sm">{supplier.business_name}</h4>
-                      <Badge 
-                        variant="outline" 
-                        className={`text-xs ${getCategoryColor(supplier.category)}`}
-                      >
-                        <span className="flex items-center gap-1">
-                          {getCategoryIcon(supplier.category)}
-                          {supplier.category}
-                        </span>
-                      </Badge>
-                    </div>
+            {loading ? (
+              <div className="col-span-2 text-center py-8 text-muted-foreground">
+                <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>Loading suppliers...</p>
+              </div>
+            ) : filteredSuppliers.map((supplier) => {
+              const location = [supplier.city, supplier.state, supplier.zip].filter(Boolean).join(', ');
+              return (
+                <Card 
+                  key={supplier.id}
+                  className={`cursor-pointer transition-all hover:shadow-md ${
+                    selectedSupplier?.id === supplier.id ? 'ring-2 ring-primary' : ''
+                  }`}
+                  onClick={() => onSelectSupplier(supplier)}
+                >
+                  <CardContent className="p-4">
+                    <div className="space-y-2">
+                      <div className="flex items-start justify-between">
+                        <h4 className="font-semibold text-sm">{supplier.business_name}</h4>
+                        {supplier.supplier_categories?.name && (
+                          <Badge 
+                            variant="outline" 
+                            className={`text-xs ${getCategoryColor(supplier.supplier_categories.name)}`}
+                          >
+                            <span className="flex items-center gap-1">
+                              {getCategoryIcon(supplier.supplier_categories.name)}
+                              {supplier.supplier_categories.name}
+                            </span>
+                          </Badge>
+                        )}
+                      </div>
 
-                    <Badge variant="secondary" className="text-xs">
-                      {supplier.supplier_type}
-                    </Badge>
-                    
-                    <div className="space-y-1 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <MapPin className="h-3 w-3" />
-                        <span className="text-xs">{supplier.location}</span>
+                      {supplier.supplier_types?.name && (
+                        <Badge variant="secondary" className="text-xs">
+                          {supplier.supplier_types.name}
+                        </Badge>
+                      )}
+                      
+                      <div className="space-y-1 text-sm text-muted-foreground">
+                        {location && (
+                          <div className="flex items-center gap-1">
+                            <MapPin className="h-3 w-3" />
+                            <span className="text-xs">{location}</span>
+                          </div>
+                        )}
+                        {supplier.phone_number && (
+                          <div className="flex items-center gap-1">
+                            <Phone className="h-3 w-3" />
+                            <span className="text-xs">{supplier.phone_number}</span>
+                          </div>
+                        )}
+                        {supplier.email && (
+                          <div className="flex items-center gap-1">
+                            <Mail className="h-3 w-3" />
+                            <span className="text-xs">{supplier.email}</span>
+                          </div>
+                        )}
+                        {supplier.contact_name && (
+                          <p className="text-xs"><strong>Contact:</strong> {supplier.contact_name}</p>
+                        )}
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Phone className="h-3 w-3" />
-                        <span className="text-xs">{supplier.contact_nbr}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Mail className="h-3 w-3" />
-                        <span className="text-xs">{supplier.email}</span>
-                      </div>
-                      <p className="text-xs"><strong>Contact:</strong> {supplier.contact_name}</p>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
 
-          {filteredSuppliers.length === 0 && (
+          {!loading && filteredSuppliers.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
               <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>No suppliers found matching your criteria.</p>
@@ -272,8 +262,12 @@ export function SupplierSelector({ onSelectSupplier, selectedSupplier }: Supplie
               <h4 className="font-semibold text-primary mb-2">Selected Supplier</h4>
               <div className="text-sm">
                 <p><strong>{selectedSupplier.business_name}</strong></p>
-                <p>{selectedSupplier.supplier_type} ({selectedSupplier.category})</p>
-                <p className="text-muted-foreground">{selectedSupplier.location}</p>
+                {selectedSupplier.supplier_types?.name && (
+                  <p>{selectedSupplier.supplier_types.name} {selectedSupplier.supplier_categories?.name && `(${selectedSupplier.supplier_categories.name})`}</p>
+                )}
+                <p className="text-muted-foreground">
+                  {[selectedSupplier.city, selectedSupplier.state, selectedSupplier.zip].filter(Boolean).join(', ')}
+                </p>
               </div>
             </div>
           )}

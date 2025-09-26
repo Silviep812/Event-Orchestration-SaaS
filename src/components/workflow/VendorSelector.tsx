@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Phone, Mail, Building2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Vendor {
   id: string;
@@ -21,51 +22,50 @@ interface VendorSelectorProps {
   selectedVendor: Vendor | null;
 }
 
-// Mock vendor data - in real app, this would come from the Vendor Directory table
-const mockVendors: Vendor[] = [
-  {
-    id: "1",
-    vendor_biz_name: "Elite Audio Visual",
-    vendor_type: "Audio/Visual Equipment",
-    vendor_contact_name: "Sarah Johnson",
-    vendor_email: "sarah@eliteav.com",
-    vendor_contact_nbr: "555-0123",
-    vendor_location: "New York, NY 10001"
-  },
-  {
-    id: "2",
-    vendor_biz_name: "Perfect Events Photography",
-    vendor_type: "Photography",
-    vendor_contact_name: "Mike Chen",
-    vendor_email: "mike@perfectevents.com",
-    vendor_contact_nbr: "555-0124",
-    vendor_location: "Los Angeles, CA 90210"
-  },
-  {
-    id: "3",
-    vendor_biz_name: "Sound & Lights Co",
-    vendor_type: "Lighting & Sound",
-    vendor_contact_name: "Jennifer Davis",
-    vendor_email: "jen@soundlights.com",
-    vendor_contact_nbr: "555-0125",
-    vendor_location: "Chicago, IL 60601"
-  },
-  {
-    id: "4",
-    vendor_biz_name: "Creative Decor Solutions",
-    vendor_type: "Decorations",
-    vendor_contact_name: "Robert Kim",
-    vendor_email: "robert@creativedecor.com",
-    vendor_contact_nbr: "555-0126",
-    vendor_location: "Miami, FL 33101"
-  }
-];
-
 export function VendorSelector({ onSelectVendor, selectedVendor }: VendorSelectorProps) {
   const [locationFilter, setLocationFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredVendors = mockVendors.filter(vendor => {
+  useEffect(() => {
+    fetchVendors();
+  }, []);
+
+  const fetchVendors = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('suppliers')
+        .select(`
+          *,
+          supplier_types(name),
+          supplier_categories(name)
+        `);
+
+      if (error) {
+        console.error('Error fetching suppliers:', error);
+      } else {
+        // Transform supplier data to vendor format for compatibility
+        const transformedData = (data || []).map(supplier => ({
+          id: supplier.id,
+          vendor_biz_name: supplier.business_name,
+          vendor_type: supplier.supplier_types?.name || 'Unknown',
+          vendor_contact_name: supplier.contact_name || '',
+          vendor_email: supplier.email || '',
+          vendor_contact_nbr: supplier.phone_number || '',
+          vendor_location: [supplier.city, supplier.state, supplier.zip].filter(Boolean).join(', ')
+        }));
+        setVendors(transformedData);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredVendors = vendors.filter(vendor => {
     const matchesLocation = !locationFilter || 
       vendor.vendor_location.toLowerCase().includes(locationFilter.toLowerCase());
     const matchesType = !typeFilter || 
@@ -73,7 +73,7 @@ export function VendorSelector({ onSelectVendor, selectedVendor }: VendorSelecto
     return matchesLocation && matchesType;
   });
 
-  const vendorTypes = [...new Set(mockVendors.map(vendor => vendor.vendor_type))];
+  const vendorTypes = [...new Set(vendors.map(vendor => vendor.vendor_type))];
 
   return (
     <div className="space-y-6">
@@ -126,7 +126,12 @@ export function VendorSelector({ onSelectVendor, selectedVendor }: VendorSelecto
 
           {/* Vendor List */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto">
-            {filteredVendors.map((vendor) => (
+            {loading ? (
+              <div className="col-span-2 text-center py-8 text-muted-foreground">
+                <Building2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>Loading vendors...</p>
+              </div>
+            ) : filteredVendors.map((vendor) => (
               <Card 
                 key={vendor.id}
                 className={`cursor-pointer transition-all hover:shadow-md ${
@@ -144,18 +149,27 @@ export function VendorSelector({ onSelectVendor, selectedVendor }: VendorSelecto
                     </div>
                     
                     <div className="space-y-1 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <MapPin className="h-3 w-3" />
-                        <span className="text-xs">{vendor.vendor_location}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Phone className="h-3 w-3" />
-                        <span className="text-xs">{vendor.vendor_contact_nbr}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Mail className="h-3 w-3" />
-                        <span className="text-xs">{vendor.vendor_email}</span>
-                      </div>
+                      {vendor.vendor_location && (
+                        <div className="flex items-center gap-1">
+                          <MapPin className="h-3 w-3" />
+                          <span className="text-xs">{vendor.vendor_location}</span>
+                        </div>
+                      )}
+                      {vendor.vendor_contact_nbr && (
+                        <div className="flex items-center gap-1">
+                          <Phone className="h-3 w-3" />
+                          <span className="text-xs">{vendor.vendor_contact_nbr}</span>
+                        </div>
+                      )}
+                      {vendor.vendor_email && (
+                        <div className="flex items-center gap-1">
+                          <Mail className="h-3 w-3" />
+                          <span className="text-xs">{vendor.vendor_email}</span>
+                        </div>
+                      )}
+                      {vendor.vendor_contact_name && (
+                        <p className="text-xs"><strong>Contact:</strong> {vendor.vendor_contact_name}</p>
+                      )}
                     </div>
                   </div>
                 </CardContent>
@@ -163,7 +177,7 @@ export function VendorSelector({ onSelectVendor, selectedVendor }: VendorSelecto
             ))}
           </div>
 
-          {filteredVendors.length === 0 && (
+          {!loading && filteredVendors.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
               <Building2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>No vendors found matching your criteria.</p>
