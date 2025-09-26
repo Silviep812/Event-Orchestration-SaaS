@@ -8,29 +8,88 @@ import { Music, Mic, Users, MessageCircle, Presentation, Theater, HelpCircle } f
 const EntertainmentDirectory = () => {
   const [entertainmentTypes, setEntertainmentTypes] = useState<any[]>([]);
   const [selectedEntertainmentTypes, setSelectedEntertainmentTypes] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    fetchEntertainmentTypes();
-  }, []);
-
-  const fetchEntertainmentTypes = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('Entertainment Directory')
-        .select('*');
-      
-      if (error) {
-        console.error('Error fetching entertainment types:', error);
-      } else {
-        setEntertainmentTypes(data || []);
-      }
-    } catch (error) {
-      console.error('Error:', error);
-    } finally {
-      setLoading(false);
+  // Mock entertainment profiles data
+  const mockEntertainmentProfiles = [
+    {
+      id: 1,
+      business_name: "Harmony Music Collective",
+      contact_name: "Sarah Johnson",
+      email: "sarah@harmonycollective.com",
+      contact_phone: "(555) 123-4567",
+      type: "musicians",
+      price: 2500,
+      location: "Los Angeles, CA",
+      available_dates: "2024-01-15 to 2024-12-31",
+      description: "Professional jazz and classical ensemble for weddings and corporate events"
+    },
+    {
+      id: 2,
+      business_name: "Beat Master Productions",
+      contact_name: "Mike Chen",
+      email: "mike@beatmaster.com",
+      contact_phone: "(555) 987-6543",
+      type: "dj_music",
+      price: 800,
+      location: "New York, NY",
+      available_dates: "2024-02-01 to 2024-11-30",
+      description: "Professional DJ services with state-of-the-art sound equipment"
+    },
+    {
+      id: 3,
+      business_name: "Spotlight Entertainment",
+      contact_name: "Emma Rodriguez",
+      email: "emma@spotlight.com",
+      contact_phone: "(555) 456-7890",
+      type: "performer",
+      price: 1500,
+      location: "Miami, FL",
+      available_dates: "2024-03-01 to 2024-10-31",
+      description: "Dancers, acrobats, and variety performers for all types of events"
+    },
+    {
+      id: 4,
+      business_name: "Laugh Track Comedy",
+      contact_name: "Dave Wilson",
+      email: "dave@laughtrack.com",
+      contact_phone: "(555) 321-0987",
+      type: "standup_comic",
+      price: 1200,
+      location: "Chicago, IL",
+      available_dates: "2024-01-01 to 2024-12-31",
+      description: "Clean comedy for corporate events and private parties"
+    },
+    {
+      id: 5,
+      business_name: "TED Speakers Bureau",
+      contact_name: "Dr. Lisa Park",
+      email: "lisa@tedspeakers.com",
+      contact_phone: "(555) 654-3210",
+      type: "speaker",
+      price: 5000,
+      location: "San Francisco, CA",
+      available_dates: "2024-04-01 to 2024-09-30",
+      description: "Motivational and keynote speakers for conferences and seminars"
+    },
+    {
+      id: 6,
+      business_name: "Broadway Dreams Productions",
+      contact_name: "Anthony Martinez",
+      email: "anthony@broadwaydreams.com",
+      contact_phone: "(555) 789-0123",
+      type: "stage_production",
+      price: 8000,
+      location: "Las Vegas, NV",
+      available_dates: "2024-05-01 to 2024-08-31",
+      description: "Full theatrical productions and musical performances"
     }
-  };
+  ];
+
+  // Filter profiles based on selected entertainment types
+  const filteredProfiles = selectedEntertainmentTypes.length > 0 
+    ? mockEntertainmentProfiles.filter(profile => selectedEntertainmentTypes.includes(profile.type))
+    : mockEntertainmentProfiles;
 
   const entertainmentTypeOptions = [
     { value: "musicians", label: "Musicians", icon: Music },
@@ -110,12 +169,62 @@ const EntertainmentDirectory = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>Entertainment Profiles</CardTitle>
+          <CardTitle>Entertainment Profiles ({filteredProfiles.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground">
-            {loading ? 'Loading entertainment data...' : 'No entertainment profiles found. Add entertainment providers to see them here.'}
-          </p>
+          {filteredProfiles.length === 0 ? (
+            <p className="text-muted-foreground text-center py-8">
+              No entertainment profiles match your selected criteria.
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredProfiles.map((profile) => {
+                const typeOption = entertainmentTypeOptions.find(opt => opt.value === profile.type);
+                const IconComponent = typeOption?.icon || HelpCircle;
+                
+                return (
+                  <Card key={profile.id} className="hover:shadow-lg transition-shadow">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center gap-2">
+                        <IconComponent className="h-5 w-5 text-primary" />
+                        <CardTitle className="text-lg">{profile.business_name}</CardTitle>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {typeOption?.label || 'Other'}
+                      </p>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div>
+                        <p className="font-semibold">{profile.contact_name}</p>
+                        <p className="text-sm text-muted-foreground">{profile.email}</p>
+                        <p className="text-sm text-muted-foreground">{profile.contact_phone}</p>
+                      </div>
+                      
+                      <div>
+                        <p className="text-sm"><strong>Location:</strong> {profile.location}</p>
+                        <p className="text-sm"><strong>Price:</strong> ${profile.price.toLocaleString()}</p>
+                      </div>
+                      
+                      <div>
+                        <p className="text-sm"><strong>Available:</strong> {profile.available_dates}</p>
+                      </div>
+                      
+                      <p className="text-sm text-muted-foreground">{profile.description}</p>
+                      
+                      <div className="flex gap-2 pt-2">
+                        <Button size="sm" className="flex-1">
+                          Contact
+                        </Button>
+                        <Button size="sm" variant="outline" className="flex-1">
+                          View Details
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
