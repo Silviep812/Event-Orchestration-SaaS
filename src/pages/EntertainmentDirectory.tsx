@@ -19,9 +19,7 @@ const EntertainmentDirectory = () => {
       email: "sarah@harmonycollective.com",
       contact_phone: "(555) 123-4567",
       type: "musicians",
-      price: 2500,
       location: "Los Angeles, CA",
-      available_dates: "2024-01-15 to 2024-12-31",
       description: "Professional jazz and classical ensemble for weddings and corporate events"
     },
     {
@@ -31,9 +29,7 @@ const EntertainmentDirectory = () => {
       email: "mike@beatmaster.com",
       contact_phone: "(555) 987-6543",
       type: "dj_music",
-      price: 800,
       location: "New York, NY",
-      available_dates: "2024-02-01 to 2024-11-30",
       description: "Professional DJ services with state-of-the-art sound equipment"
     },
     {
@@ -43,9 +39,7 @@ const EntertainmentDirectory = () => {
       email: "emma@spotlight.com",
       contact_phone: "(555) 456-7890",
       type: "performer",
-      price: 1500,
       location: "Miami, FL",
-      available_dates: "2024-03-01 to 2024-10-31",
       description: "Dancers, acrobats, and variety performers for all types of events"
     },
     {
@@ -55,9 +49,7 @@ const EntertainmentDirectory = () => {
       email: "dave@laughtrack.com",
       contact_phone: "(555) 321-0987",
       type: "standup_comic",
-      price: 1200,
       location: "Chicago, IL",
-      available_dates: "2024-01-01 to 2024-12-31",
       description: "Clean comedy for corporate events and private parties"
     },
     {
@@ -67,9 +59,7 @@ const EntertainmentDirectory = () => {
       email: "lisa@tedspeakers.com",
       contact_phone: "(555) 654-3210",
       type: "speaker",
-      price: 5000,
       location: "San Francisco, CA",
-      available_dates: "2024-04-01 to 2024-09-30",
       description: "Motivational and keynote speakers for conferences and seminars"
     },
     {
@@ -79,9 +69,7 @@ const EntertainmentDirectory = () => {
       email: "anthony@broadwaydreams.com",
       contact_phone: "(555) 789-0123",
       type: "stage_production",
-      price: 8000,
       location: "Las Vegas, NV",
-      available_dates: "2024-05-01 to 2024-08-31",
       description: "Full theatrical productions and musical performances"
     }
   ];
@@ -202,13 +190,7 @@ const EntertainmentDirectory = () => {
                       
                       <div>
                         <p className="text-sm"><strong>Location:</strong> {profile.location}</p>
-                        <p className="text-sm"><strong>Price:</strong> ${profile.price.toLocaleString()}</p>
                       </div>
-                      
-                      <div>
-                        <p className="text-sm"><strong>Available:</strong> {profile.available_dates}</p>
-                      </div>
-                      
                       <p className="text-sm text-muted-foreground">{profile.description}</p>
                     </CardContent>
                   </Card>

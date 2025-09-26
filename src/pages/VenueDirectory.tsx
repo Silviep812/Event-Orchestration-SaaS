@@ -20,9 +20,7 @@ const VenueDirectory = () => {
       contact_phone: "(555) 123-4567",
       type: "business_location",
       capacity: 300,
-      price: 5000,
       location: "Downtown Los Angeles, CA",
-      available_dates: "2024-01-15 to 2024-12-31",
       description: "Elegant ballroom with crystal chandeliers and marble floors, perfect for upscale events",
       amenities: ["Catering kitchen", "AV equipment", "Valet parking", "Bridal suite"],
       venue_type: "Ballroom"
@@ -35,9 +33,7 @@ const VenueDirectory = () => {
       contact_phone: "(555) 987-6543",
       type: "resort_location",
       capacity: 150,
-      price: 8000,
       location: "Malibu, CA",
-      available_dates: "2024-02-01 to 2024-11-30",
       description: "Beachfront resort with panoramic ocean views and outdoor ceremony spaces",
       amenities: ["Ocean view", "Outdoor terrace", "Beach access", "On-site catering"],
       venue_type: "Resort"
@@ -50,9 +46,7 @@ const VenueDirectory = () => {
       contact_phone: "(555) 456-7890",
       type: "private_resident",
       capacity: 80,
-      price: 3500,
       location: "Napa Valley, CA",
-      available_dates: "2024-03-01 to 2024-10-31",
       description: "Charming Victorian manor with beautiful gardens and vineyard views",
       amenities: ["Historic architecture", "Garden ceremony space", "Wine cellar", "Guest quarters"],
       venue_type: "Private Estate"
@@ -65,9 +59,7 @@ const VenueDirectory = () => {
       contact_phone: "(555) 321-0987",
       type: "sporting_facility",
       capacity: 500,
-      price: 2500,
       location: "Chicago, IL",
-      available_dates: "2024-01-01 to 2024-12-31",
       description: "Modern sports facility with multiple event spaces and state-of-the-art amenities",
       amenities: ["Multiple event rooms", "Concession stands", "Ample parking", "Sound system"],
       venue_type: "Sports Facility"
@@ -80,9 +72,7 @@ const VenueDirectory = () => {
       contact_phone: "(555) 654-3210",
       type: "restaurant_location",
       capacity: 120,
-      price: 2800,
       location: "Miami, FL",
-      available_dates: "2024-04-01 to 2024-09-30",
       description: "Upscale Italian restaurant with private dining rooms and rooftop terrace",
       amenities: ["Private dining room", "Rooftop terrace", "Full kitchen", "Wine selection"],
       venue_type: "Restaurant"
@@ -95,9 +85,7 @@ const VenueDirectory = () => {
       contact_phone: "(555) 789-0123",
       type: "agri_farming",
       capacity: 200,
-      price: 1800,
       location: "Austin, TX",
-      available_dates: "2024-05-01 to 2024-08-31",
       description: "Rustic barn venue surrounded by rolling hills and farmland, perfect for country weddings",
       amenities: ["Rustic barn", "Outdoor ceremony space", "Farmland views", "Vintage decor"],
       venue_type: "Farm Venue"
@@ -110,9 +98,7 @@ const VenueDirectory = () => {
       contact_phone: "(555) 111-2222",
       type: "private_club",
       capacity: 180,
-      price: 4500,
       location: "Scottsdale, AZ",
-      available_dates: "2024-06-01 to 2024-12-15",
       description: "Exclusive country club with golf course views and luxury amenities",
       amenities: ["Golf course views", "Clubhouse", "Professional staff", "Member privileges"],
       venue_type: "Country Club"
@@ -125,9 +111,7 @@ const VenueDirectory = () => {
       contact_phone: "(555) 333-4444",
       type: "warehouse",
       capacity: 400,
-      price: 2200,
       location: "Portland, OR",
-      available_dates: "2024-03-15 to 2024-11-15",
       description: "Converted warehouse with exposed brick walls and industrial charm",
       amenities: ["Exposed brick", "High ceilings", "Open floor plan", "Urban location"],
       venue_type: "Industrial Venue"
@@ -257,9 +241,7 @@ const VenueDirectory = () => {
                       
                       <div className="grid grid-cols-2 gap-2 text-sm">
                         <p><strong>Location:</strong> {profile.location}</p>
-                        <p><strong>Price:</strong> ${profile.price.toLocaleString()}</p>
                         <p><strong>Capacity:</strong> {profile.capacity} guests</p>
-                        <p><strong>Available:</strong> {profile.available_dates}</p>
                       </div>
                       
                       <p className="text-sm text-muted-foreground">{profile.description}</p>

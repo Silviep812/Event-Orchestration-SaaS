@@ -19,9 +19,7 @@ const VendorServiceDirectory = () => {
       email: "david@premierevent.com",
       contact_phone: "(555) 123-4567",
       type: "table_chairs",
-      price_per_day: 250,
       location: "Los Angeles, CA",
-      available_dates: "2024-01-15 to 2024-12-31",
       description: "Complete table and chair rental service for events of all sizes",
       items: ["Round tables", "Rectangular tables", "Chiavari chairs", "Linens"]
     },
@@ -32,9 +30,7 @@ const VendorServiceDirectory = () => {
       email: "sarah@illuminateevents.com",
       contact_phone: "(555) 987-6543",
       type: "lighting",
-      price_per_day: 800,
       location: "New York, NY",
-      available_dates: "2024-02-01 to 2024-11-30",
       description: "Professional lighting equipment and design for spectacular events",
       items: ["LED uplighting", "String lights", "Spotlights", "Dance floor lighting"]
     },
@@ -45,9 +41,7 @@ const VendorServiceDirectory = () => {
       email: "mike@soundvision.com",
       contact_phone: "(555) 456-7890",
       type: "audio_visual_equip",
-      price_per_day: 1200,
       location: "Chicago, IL",
-      available_dates: "2024-03-01 to 2024-10-31",
       description: "High-quality AV equipment and technical support for events",
       items: ["Sound systems", "Microphones", "Projectors", "Screens"]
     },
@@ -58,9 +52,7 @@ const VendorServiceDirectory = () => {
       email: "jennifer@sheltersolutions.com",
       contact_phone: "(555) 321-0987",
       type: "tents",
-      price_per_day: 600,
       location: "Miami, FL",
-      available_dates: "2024-01-01 to 2024-12-31",
       description: "Weather protection and elegant tent rentals for outdoor events",
       items: ["Party tents", "Canopies", "Market umbrellas", "Sidewalls"]
     },
@@ -71,9 +63,7 @@ const VendorServiceDirectory = () => {
       email: "lisa@capturemoments.com",
       contact_phone: "(555) 654-3210",
       type: "photo_both",
-      price_per_day: 450,
       location: "Seattle, WA",
-      available_dates: "2024-04-01 to 2024-09-30",
       description: "Fun and interactive photo booth experiences for memorable events",
       items: ["Open-air booth", "Props", "Custom backdrops", "Digital gallery"]
     },
@@ -84,9 +74,7 @@ const VendorServiceDirectory = () => {
       email: "amanda@bloomdecor.com",
       contact_phone: "(555) 789-0123",
       type: "flowers_plants",
-      price_per_day: 350,
       location: "Austin, TX",
-      available_dates: "2024-05-01 to 2024-08-31",
       description: "Beautiful floral arrangements and plant rentals for event decoration",
       items: ["Centerpieces", "Potted plants", "Floral walls", "Arch decorations"]
     },
@@ -97,9 +85,7 @@ const VendorServiceDirectory = () => {
       email: "robert@gamenight.com",
       contact_phone: "(555) 111-2222",
       type: "game_tables",
-      price_per_day: 300,
       location: "Denver, CO",
-      available_dates: "2024-06-01 to 2024-12-15",
       description: "Casino tables and game rentals for entertainment at events",
       items: ["Poker tables", "Blackjack tables", "Roulette wheels", "Dealers available"]
     },
@@ -110,9 +96,7 @@ const VendorServiceDirectory = () => {
       email: "emma@elitehousewares.com",
       contact_phone: "(555) 333-4444",
       type: "housewares",
-      price_per_day: 150,
       location: "San Francisco, CA",
-      available_dates: "2024-03-15 to 2024-11-15",
       description: "Premium housewares and serving equipment for elegant events",
       items: ["Fine china", "Glassware", "Silverware", "Serving platters"]
     },
@@ -123,9 +107,7 @@ const VendorServiceDirectory = () => {
       email: "mark@comfortstation.com",
       contact_phone: "(555) 555-6666",
       type: "potty_johns",
-      price_per_day: 120,
       location: "Phoenix, AZ",
-      available_dates: "2024-01-01 to 2024-12-31",
       description: "Clean and well-maintained portable restroom facilities",
       items: ["Standard units", "Luxury trailers", "Hand wash stations", "ADA compliant"]
     }
@@ -254,8 +236,6 @@ const VendorServiceDirectory = () => {
                       
                       <div className="grid grid-cols-2 gap-2 text-sm">
                         <p><strong>Location:</strong> {profile.location}</p>
-                        <p><strong>Price/Day:</strong> ${profile.price_per_day}</p>
-                        <p className="col-span-2"><strong>Available:</strong> {profile.available_dates}</p>
                       </div>
                       
                       <p className="text-sm text-muted-foreground">{profile.description}</p>

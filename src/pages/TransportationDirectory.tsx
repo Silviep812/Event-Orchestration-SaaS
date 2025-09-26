@@ -20,9 +20,7 @@ const TransportationDirectory = () => {
       contact_phone: "(555) 123-4567",
       type: "bus",
       seating_capacity: 56,
-      price: 1200,
       location: "Chicago, IL",
-      available_dates: "2024-01-15 to 2024-12-31",
       description: "Luxury charter buses for group transportation and events",
       special_accommodations: ["Wheelchair accessible", "WiFi", "Air conditioning"]
     },
@@ -34,9 +32,7 @@ const TransportationDirectory = () => {
       contact_phone: "(555) 987-6543",
       type: "van",
       seating_capacity: 12,
-      price: 450,
       location: "Los Angeles, CA",
-      available_dates: "2024-02-01 to 2024-11-30",
       description: "Spacious vans perfect for small group transportation",
       special_accommodations: ["GPS navigation", "Bluetooth audio"]
     },
@@ -48,9 +44,7 @@ const TransportationDirectory = () => {
       contact_phone: "(555) 456-7890",
       type: "limo",
       seating_capacity: 8,
-      price: 800,
       location: "New York, NY",
-      available_dates: "2024-03-01 to 2024-10-31",
       description: "Premium limousine service for special occasions and corporate events",
       special_accommodations: ["Mini bar", "Entertainment system", "Privacy partition"]
     },
@@ -62,9 +56,7 @@ const TransportationDirectory = () => {
       contact_phone: "(555) 321-0987",
       type: "car_suv",
       seating_capacity: 4,
-      price: 300,
       location: "Miami, FL",
-      available_dates: "2024-01-01 to 2024-12-31",
       description: "Professional car and SUV service for airport transfers and business travel",
       special_accommodations: ["Child car seats available", "Flight tracking"]
     },
@@ -76,9 +68,7 @@ const TransportationDirectory = () => {
       contact_phone: "(555) 654-3210",
       type: "truck",
       seating_capacity: 3,
-      price: 600,
       location: "Denver, CO",
-      available_dates: "2024-04-01 to 2024-09-30",
       description: "Truck rental for equipment transport and moving services",
       special_accommodations: ["Cargo insurance", "Loading equipment"]
     },
@@ -90,9 +80,7 @@ const TransportationDirectory = () => {
       contact_phone: "(555) 789-0123",
       type: "other",
       seating_capacity: 20,
-      price: 950,
       location: "Austin, TX",
-      available_dates: "2024-05-01 to 2024-08-31",
       description: "Custom transportation solutions including party buses and specialty vehicles",
       special_accommodations: ["Sound system", "LED lighting", "Custom branding"]
     }
@@ -213,9 +201,7 @@ const TransportationDirectory = () => {
                       
                       <div className="grid grid-cols-2 gap-2 text-sm">
                         <p><strong>Location:</strong> {profile.location}</p>
-                        <p><strong>Price:</strong> ${profile.price.toLocaleString()}</p>
                         <p><strong>Capacity:</strong> {profile.seating_capacity} seats</p>
-                        <p><strong>Available:</strong> {profile.available_dates}</p>
                       </div>
                       
                       <p className="text-sm text-muted-foreground">{profile.description}</p>

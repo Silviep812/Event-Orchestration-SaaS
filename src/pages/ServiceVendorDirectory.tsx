@@ -19,9 +19,7 @@ const ServiceVendorDirectory = () => {
       email: "maria@gourmetdelights.com",
       contact_phone: "(555) 123-4567",
       type: "caterer",
-      price: 3500,
       location: "San Francisco, CA",
-      available_dates: "2024-01-15 to 2024-12-31",
       description: "Full-service catering for weddings, corporate events, and special occasions",
       specialties: ["Italian cuisine", "Vegetarian options", "Custom menus"]
     },
@@ -32,9 +30,7 @@ const ServiceVendorDirectory = () => {
       email: "alex@chefalexander.com",
       contact_phone: "(555) 987-6543",
       type: "chef",
-      price: 2000,
       location: "New York, NY",
-      available_dates: "2024-02-01 to 2024-11-30",
       description: "Private chef services for intimate gatherings and exclusive events",
       specialties: ["French cuisine", "Molecular gastronomy", "Wine pairing"]
     },
@@ -45,9 +41,7 @@ const ServiceVendorDirectory = () => {
       email: "sarah@sweetdreams.com",
       contact_phone: "(555) 456-7890",
       type: "bakery",
-      price: 800,
       location: "Chicago, IL",
-      available_dates: "2024-03-01 to 2024-10-31",
       description: "Custom wedding cakes, desserts, and pastries for all occasions",
       specialties: ["Wedding cakes", "Gluten-free options", "Custom designs"]
     },
@@ -58,9 +52,7 @@ const ServiceVendorDirectory = () => {
       email: "david@cinematicmoments.com",
       contact_phone: "(555) 321-0987",
       type: "videographer",
-      price: 2500,
       location: "Los Angeles, CA",
-      available_dates: "2024-01-01 to 2024-12-31",
       description: "Professional videography for weddings and corporate events",
       specialties: ["4K filming", "Drone footage", "Same-day highlights"]
     },
@@ -71,9 +63,7 @@ const ServiceVendorDirectory = () => {
       email: "jennifer@bloomandpetal.com",
       contact_phone: "(555) 654-3210",
       type: "florist",
-      price: 1200,
       location: "Seattle, WA",
-      available_dates: "2024-04-01 to 2024-09-30",
       description: "Elegant floral arrangements and wedding decorations",
       specialties: ["Bridal bouquets", "Centerpieces", "Seasonal flowers"]
     },
@@ -84,9 +74,7 @@ const ServiceVendorDirectory = () => {
       email: "mike@rollingfeast.com",
       contact_phone: "(555) 789-0123",
       type: "food_truck",
-      price: 1500,
       location: "Austin, TX",
-      available_dates: "2024-05-01 to 2024-08-31",
       description: "Gourmet street food and mobile catering services",
       specialties: ["BBQ", "Tacos", "Vegan options"]
     },
@@ -97,9 +85,7 @@ const ServiceVendorDirectory = () => {
       email: "lisa@artisanbrew.com",
       contact_phone: "(555) 111-2222",
       type: "brewery",
-      price: 900,
       location: "Denver, CO",
-      available_dates: "2024-06-01 to 2024-12-15",
       description: "Craft beer services and mobile bar setup for events",
       specialties: ["Craft beer", "Custom labels", "Beer tasting"]
     },
@@ -110,9 +96,7 @@ const ServiceVendorDirectory = () => {
       email: "robert@tuscanyvineyards.com",
       contact_phone: "(555) 333-4444",
       type: "winery",
-      price: 1800,
       location: "Napa Valley, CA",
-      available_dates: "2024-03-15 to 2024-11-15",
       description: "Premium wine services and sommelier experiences",
       specialties: ["Wine tasting", "Sommelier service", "Custom wine selection"]
     }
@@ -241,8 +225,6 @@ const ServiceVendorDirectory = () => {
                       
                       <div className="grid grid-cols-2 gap-2 text-sm">
                         <p><strong>Location:</strong> {profile.location}</p>
-                        <p><strong>Price:</strong> ${profile.price.toLocaleString()}</p>
-                        <p className="col-span-2"><strong>Available:</strong> {profile.available_dates}</p>
                       </div>
                       
                       <p className="text-sm text-muted-foreground">{profile.description}</p>
