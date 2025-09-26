@@ -1337,6 +1337,102 @@ export type Database = {
         }
         Relationships: []
       }
+      supplier_categories: {
+        Row: {
+          created_at: string
+          id: number
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          name?: string
+        }
+        Relationships: []
+      }
+      supplier_types: {
+        Row: {
+          created_at: string
+          id: number
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          name?: string
+        }
+        Relationships: []
+      }
+      suppliers: {
+        Row: {
+          business_name: string
+          category_id: number | null
+          city: string | null
+          contact_name: string | null
+          created_at: string
+          email: string | null
+          id: string
+          phone_number: string | null
+          state: string | null
+          type_id: number | null
+          updated_at: string
+          zip: string | null
+        }
+        Insert: {
+          business_name: string
+          category_id?: number | null
+          city?: string | null
+          contact_name?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          phone_number?: string | null
+          state?: string | null
+          type_id?: number | null
+          updated_at?: string
+          zip?: string | null
+        }
+        Update: {
+          business_name?: string
+          category_id?: number | null
+          city?: string | null
+          contact_name?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          phone_number?: string | null
+          state?: string | null
+          type_id?: number | null
+          updated_at?: string
+          zip?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suppliers_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suppliers_type_id_fkey"
+            columns: ["type_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_assignments: {
         Row: {
           assigned_role: Database["public"]["Enums"]["app_role"]
