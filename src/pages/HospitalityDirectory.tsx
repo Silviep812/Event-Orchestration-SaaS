@@ -18,12 +18,13 @@ const HospitalityDirectory = () => {
   const fetchHospitalityProfiles = async () => {
     try {
       const { data, error } = await supabase
-        .from('Hospitality Profile')
+        .from('hospitality_profiles')
         .select('*');
       
       if (error) {
         console.error('Error fetching hospitality profiles:', error);
       } else {
+        console.log('data from hospitality profiles:', data);
         setHospitalityProfiles(data || []);
       }
     } catch (error) {
@@ -133,7 +134,7 @@ const HospitalityDirectory = () => {
                       <div className="flex items-center justify-between">
                         <CardTitle className="text-lg flex items-center gap-2">
                           <IconComponent size={20} />
-                          {profile.hosp_biz_name}
+                          {profile.business_name}
                         </CardTitle>
                         <Badge variant="secondary">{typeOption?.label}</Badge>
                       </div>
@@ -141,26 +142,29 @@ const HospitalityDirectory = () => {
                     <CardContent className="space-y-3">
                       <div className="flex items-center gap-2 text-sm">
                         <Phone size={16} className="text-muted-foreground" />
-                        <span>{profile.hosp_contact_name}</span>
-                        <span className="text-muted-foreground">•</span>
-                        <span>{profile.hosp_contact_nbr}</span>
+                        <span>{profile.contact_name}</span>
+                        {profile.contact_name && profile.phone_number && (
+                          <span className="text-muted-foreground">•</span>
+                        )}
+                        <span>{profile.phone_number}</span>
                       </div>
                       
                       <div className="flex items-center gap-2 text-sm">
                         <MapPin size={16} className="text-muted-foreground" />
-                        <span>{profile.hosp_location?.join(", ")}</span>
+                        <span>{[profile.city, profile.state, profile.zip].filter(Boolean).join(', ')}</span>
+                        
                       </div>
 
-                      {profile.hosp_website && (
+                      {profile.website && (
                         <div className="flex items-center gap-2 text-sm">
                           <Globe size={16} className="text-muted-foreground" />
                           <a 
-                            href={`https://${profile.hosp_website}`} 
+                            href={`https://${profile.website}`} 
                             target="_blank" 
                             rel="noopener noreferrer"
                             className="text-primary hover:underline"
                           >
-                            {profile.hosp_website}
+                            {profile.website}
                           </a>
                         </div>
                       )}
