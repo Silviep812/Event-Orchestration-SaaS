@@ -19,19 +19,20 @@ const Index = () => {
       bgColor: "bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/20"
     },
     {
-      icon: Calendar,
-      title: "Manage Events",
-      description: "Changes and Updates With ease",
-      color: "from-blue-500 to-cyan-500",
-      bgColor: "bg-gradient-to-br from-blue-100 to-cyan-100 dark:from-blue-900/20 dark:to-cyan-900/20"
-    },
-    {
       icon: FolderOpen,
       title: "Directories",
       description: "Find Venue Hospitality Vendors Entertainment",
       color: "from-yellow-500 to-orange-500",
       bgColor: "bg-gradient-to-br from-yellow-100 to-orange-100 dark:from-yellow-900/20 dark:to-orange-900/20"
     },
+    {
+      icon: Calendar,
+      title: "Manage Events",
+      description: "Changes and Updates With ease",
+      color: "from-blue-500 to-cyan-500",
+      bgColor: "bg-gradient-to-br from-blue-100 to-cyan-100 dark:from-blue-900/20 dark:to-cyan-900/20"
+    },
+
     {
       icon: Users,
       title: "Team Collaboration",
@@ -151,7 +152,7 @@ const Index = () => {
           <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-center mb-12">
             Everything You Need for Event Success
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {features.map((feature, index) => (
               <Card key={index} className={`text-center h-full border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 ${feature.bgColor}`}>
                 <CardHeader>
