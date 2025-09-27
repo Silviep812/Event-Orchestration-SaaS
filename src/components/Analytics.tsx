@@ -125,9 +125,6 @@ export default function Analytics({ onInteractionTrack }: AnalyticsProps = {}) {
 
       // Calculate resource utilization (placeholder calculation)
       const resourceUtilizationRate = '75.5'; // Replace with actual calculation
-      
-      // Calculate lead conversion rate (placeholder)
-      const leadConversionRate = '12.8'; // Replace with actual calculation
 
       const kpis: KPIData[] = [
         {
@@ -162,14 +159,6 @@ export default function Analytics({ onInteractionTrack }: AnalyticsProps = {}) {
           description: "Efficiency rate",
           trend: 'up'
         },
-        {
-          title: "Lead Conversion",
-          value: `${leadConversionRate}%`,
-          change: "+3%",
-          icon: Target,
-          description: "Leads to events",
-          trend: 'up'
-        }
       ];
 
       // Process event trends by month
@@ -239,7 +228,6 @@ export default function Analytics({ onInteractionTrack }: AnalyticsProps = {}) {
           event_count_update: 1,
           task_completion_rate: taskCompletionValue,
           resource_util_percent: parseFloat(analyticsData.kpis.find(k => k.title === 'Resource Utilization')?.value?.replace('%', '') || '0'),
-          lead_conversion_rate: parseFloat(analyticsData.kpis.find(k => k.title === 'Lead Conversion')?.value?.replace('%', '') || '0'),
           avg_task_duration: parseFloat(analyticsData.kpis.find(k => k.title === 'Avg Task Duration')?.value?.replace('h', '') || '0'),
           event_freq_by_location: JSON.stringify(analyticsData.eventsByLocation)
         });
@@ -324,7 +312,7 @@ export default function Analytics({ onInteractionTrack }: AnalyticsProps = {}) {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {analyticsData.kpis.map((kpi) => {
           const Icon = kpi.icon
           const isPositive = kpi.trend === 'up'
@@ -374,9 +362,6 @@ export default function Analytics({ onInteractionTrack }: AnalyticsProps = {}) {
           </TabsTrigger>
           <TabsTrigger value="behavior" onClick={() => trackInteraction('tab_viewed', { tab: 'behavior' })}>
             User Behavior
-          </TabsTrigger>
-          <TabsTrigger value="conversion" onClick={() => trackInteraction('tab_viewed', { tab: 'conversion' })}>
-            Lead Conversion
           </TabsTrigger>
         </TabsList>
 
