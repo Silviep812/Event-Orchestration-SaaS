@@ -7,98 +7,76 @@ import { Bus, Car, Truck, Crown, Package } from "lucide-react";
 
 const TransportationDirectory = () => {
   const [transportationTypes, setTransportationTypes] = useState<any[]>([]);
+  const [transportationProfiles, setTransportationProfiles] = useState<any[]>([]);
   const [selectedTransportationTypes, setSelectedTransportationTypes] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock transportation profiles data
-  const mockTransportationProfiles = [
-    {
-      id: 1,
-      business_name: "Elite Charter Bus Services",
-      contact_name: "Robert Johnson",
-      email: "robert@elitecharter.com",
-      contact_phone: "(555) 123-4567",
-      type: "bus",
-      seating_capacity: 56,
-      location: "Chicago, IL",
-      description: "Luxury charter buses for group transportation and events",
-      special_accommodations: ["Wheelchair accessible", "WiFi", "Air conditioning"]
-    },
-    {
-      id: 2,
-      business_name: "Premium Van Rentals",
-      contact_name: "Sarah Chen",
-      email: "sarah@premiumvans.com",
-      contact_phone: "(555) 987-6543",
-      type: "van",
-      seating_capacity: 12,
-      location: "Los Angeles, CA",
-      description: "Spacious vans perfect for small group transportation",
-      special_accommodations: ["GPS navigation", "Bluetooth audio"]
-    },
-    {
-      id: 3,
-      business_name: "Luxury Limousine Fleet",
-      contact_name: "Michael Rodriguez",
-      email: "michael@luxurylimo.com",
-      contact_phone: "(555) 456-7890",
-      type: "limo",
-      seating_capacity: 8,
-      location: "New York, NY",
-      description: "Premium limousine service for special occasions and corporate events",
-      special_accommodations: ["Mini bar", "Entertainment system", "Privacy partition"]
-    },
-    {
-      id: 4,
-      business_name: "Executive Car Service",
-      contact_name: "Jennifer Wilson",
-      email: "jennifer@executivecar.com",
-      contact_phone: "(555) 321-0987",
-      type: "car_suv",
-      seating_capacity: 4,
-      location: "Miami, FL",
-      description: "Professional car and SUV service for airport transfers and business travel",
-      special_accommodations: ["Child car seats available", "Flight tracking"]
-    },
-    {
-      id: 5,
-      business_name: "Heavy Duty Transport",
-      contact_name: "David Park",
-      email: "david@heavyduty.com",
-      contact_phone: "(555) 654-3210",
-      type: "truck",
-      seating_capacity: 3,
-      location: "Denver, CO",
-      description: "Truck rental for equipment transport and moving services",
-      special_accommodations: ["Cargo insurance", "Loading equipment"]
-    },
-    {
-      id: 6,
-      business_name: "Specialty Transport Solutions",
-      contact_name: "Lisa Martinez",
-      email: "lisa@specialtytransport.com",
-      contact_phone: "(555) 789-0123",
-      type: "other",
-      seating_capacity: 20,
-      location: "Austin, TX",
-      description: "Custom transportation solutions including party buses and specialty vehicles",
-      special_accommodations: ["Sound system", "LED lighting", "Custom branding"]
-    }
-  ];
+  // Fetch transportation types and profiles from Supabase
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Fetch transportation types
+        const { data: typesData, error: typesError } = await supabase
+          .from('transportation_types')
+          .select('*');
+
+        if (typesError) throw typesError;
+
+        // Fetch transportation profiles with their types
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('transportations')
+          .select(`
+            *,
+            transportation_types(*)
+          `);
+
+        if (profilesError) throw profilesError;
+
+        setTransportationTypes(typesData || []);
+        setTransportationProfiles(profilesData || []);
+      } catch (err: any) {
+        console.error('Error fetching data:', err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   // Filter profiles based on selected transportation types
   const filteredProfiles = selectedTransportationTypes.length > 0 
-    ? mockTransportationProfiles.filter(profile => selectedTransportationTypes.includes(profile.type))
-    : mockTransportationProfiles;
+    ? transportationProfiles.filter(profile => 
+        selectedTransportationTypes.includes(profile.transp_type_id?.toString())
+      )
+    : transportationProfiles;
 
-  const transportationTypeOptions = [
-    { value: "bus", label: "Bus", icon: Bus },
-    { value: "van", label: "Van", icon: Car },
-    { value: "car_suv", label: "Car/SUV", icon: Car },
-    { value: "limo", label: "Limousine", icon: Crown },
-    { value: "truck", label: "Truck", icon: Truck },
-    { value: "other", label: "Other", icon: Package }
-  ];
+  // Get icon for transportation type
+  const getTransportationIcon = (typeName: string) => {
+    const iconMap: { [key: string]: any } = {
+      'bus': Bus,
+      'van': Car,
+      'car': Car,
+      'suv': Car,
+      'limo': Crown,
+      'limousine': Crown,
+      'truck': Truck,
+      'other': Package
+    };
+
+    const lowerName = typeName.toLowerCase();
+    for (const [key, icon] of Object.entries(iconMap)) {
+      if (lowerName.includes(key)) {
+        return icon;
+      }
+    }
+    return Package;
+  };
 
   return (
     <div className="space-y-6">
@@ -114,46 +92,58 @@ const TransportationDirectory = () => {
           <CardTitle>Select Transportation Types</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-3">
-            <label className="text-sm font-medium">Transportation Types (select all that apply)</label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {transportationTypeOptions.map((option) => {
-                const IconComponent = option.icon;
-                const isChecked = selectedTransportationTypes.includes(option.value);
-                return (
-                  <div key={option.value} className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50">
-                    <Checkbox
-                      id={option.value}
-                      checked={isChecked}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setSelectedTransportationTypes([...selectedTransportationTypes, option.value]);
-                        } else {
-                          setSelectedTransportationTypes(selectedTransportationTypes.filter(type => type !== option.value));
-                        }
-                      }}
-                    />
-                    <label htmlFor={option.value} className="flex items-center gap-2 cursor-pointer text-sm font-medium">
-                      <IconComponent size={16} />
-                      {option.label}
-                    </label>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-          
-          {selectedTransportationTypes.length > 0 && (
-            <div className="p-4 bg-muted rounded-lg">
-              <h3 className="font-medium mb-2">Selected Transportation Types:</h3>
-              <div className="flex flex-wrap gap-2">
-                {selectedTransportationTypes.map(type => (
-                  <span key={type} className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
-                    {transportationTypeOptions.find(opt => opt.value === type)?.label}
-                  </span>
-                ))}
+          {loading ? (
+            <p className="text-center py-4">Loading transportation types...</p>
+          ) : error ? (
+            <p className="text-center py-4 text-destructive">Error loading data: {error}</p>
+          ) : (
+            <>
+              <div className="space-y-3">
+                <label className="text-sm font-medium">Transportation Types (select all that apply)</label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {transportationTypes.map((type) => {
+                    const IconComponent = getTransportationIcon(type.name || '');
+                    const isChecked = selectedTransportationTypes.includes(type.id?.toString());
+                    return (
+                      <div key={type.id} className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50">
+                        <Checkbox
+                          id={type.id?.toString()}
+                          checked={isChecked}
+                          onCheckedChange={(checked) => {
+                            const typeId = type.id?.toString();
+                            if (checked) {
+                              setSelectedTransportationTypes([...selectedTransportationTypes, typeId]);
+                            } else {
+                              setSelectedTransportationTypes(selectedTransportationTypes.filter(id => id !== typeId));
+                            }
+                          }}
+                        />
+                        <label htmlFor={type.id?.toString()} className="flex items-center gap-2 cursor-pointer text-sm font-medium">
+                          <IconComponent size={16} />
+                          {type.name}
+                        </label>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+              
+              {selectedTransportationTypes.length > 0 && (
+                <div className="p-4 bg-muted rounded-lg">
+                  <h3 className="font-medium mb-2">Selected Transportation Types:</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedTransportationTypes.map(typeId => {
+                      const type = transportationTypes.find(t => t.id?.toString() === typeId);
+                      return (
+                        <span key={typeId} className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
+                          {type?.name}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </>
           )}
 
           <Button 
@@ -171,46 +161,59 @@ const TransportationDirectory = () => {
           <CardTitle>Transportation Profiles ({filteredProfiles.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          {filteredProfiles.length === 0 ? (
+          {loading ? (
+            <p className="text-center py-8">Loading transportation profiles...</p>
+          ) : error ? (
+            <p className="text-center py-8 text-destructive">Error loading profiles: {error}</p>
+          ) : filteredProfiles.length === 0 ? (
             <p className="text-muted-foreground text-center py-8">
               No transportation profiles match your selected criteria.
             </p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredProfiles.map((profile) => {
-                const typeOption = transportationTypeOptions.find(opt => opt.value === profile.type);
-                const IconComponent = typeOption?.icon || Package;
+                const transportationType = profile.transportation_types?.name || 'Transportation';
+                const IconComponent = getTransportationIcon(transportationType);
                 
                 return (
                   <Card key={profile.id} className="hover:shadow-lg transition-shadow">
                     <CardHeader className="pb-3">
                       <div className="flex items-center gap-2">
                         <IconComponent className="h-5 w-5 text-primary" />
-                        <CardTitle className="text-lg">{profile.business_name}</CardTitle>
+                        <CardTitle className="text-lg">{profile.business_name || 'Transportation Service'}</CardTitle>
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        {typeOption?.label || 'Other'}
+                        {transportationType}
                       </p>
                     </CardHeader>
                     <CardContent className="space-y-3">
                       <div>
                         <p className="font-semibold">{profile.contact_name}</p>
                         <p className="text-sm text-muted-foreground">{profile.email}</p>
-                        <p className="text-sm text-muted-foreground">{profile.contact_phone}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {profile.phone_number ? `(${String(profile.phone_number).slice(0,3)}) ${String(profile.phone_number).slice(3,6)}-${String(profile.phone_number).slice(6)}` : 'No phone provided'}
+                        </p>
                       </div>
                       
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        <p><strong>Location:</strong> {profile.location}</p>
-                        <p><strong>Capacity:</strong> {profile.seating_capacity} seats</p>
+                      <div className="space-y-2 text-sm">
+                        {profile.seating_capacity && (
+                          <p><strong>Capacity:</strong> {profile.seating_capacity} seats</p>
+                        )}
+                        {profile.price && (
+                          <p><strong>Price:</strong> ${profile.price}</p>
+                        )}
+                        <p><strong>Location:</strong> {[profile.city, profile.state, profile.zip].filter(Boolean).join(', ') || 'Location not specified'}</p>
                       </div>
                       
-                      <p className="text-sm text-muted-foreground">{profile.description}</p>
+                      {profile.description && (
+                        <p className="text-sm text-muted-foreground">{profile.description}</p>
+                      )}
                       
-                      {profile.special_accommodations.length > 0 && (
+                      {profile.special_accommodations && profile.special_accommodations.length > 0 && (
                         <div>
                           <p className="text-sm font-medium mb-1">Accommodations:</p>
                           <div className="flex flex-wrap gap-1">
-                            {profile.special_accommodations.map((accommodation, index) => (
+                            {profile.special_accommodations.map((accommodation: string, index: number) => (
                               <span key={index} className="text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded">
                                 {accommodation}
                               </span>
