@@ -1221,6 +1221,56 @@ export type Database = {
         }
         Relationships: []
       }
+      serv_vendor_suppliers: {
+        Row: {
+          business_name: string
+          city: string | null
+          contact_name: string | null
+          created_at: string
+          email: string | null
+          id: string
+          phone_number: string | null
+          state: string | null
+          updated_at: string
+          vendor_sup_type_id: number | null
+          zip: string | null
+        }
+        Insert: {
+          business_name: string
+          city?: string | null
+          contact_name?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          phone_number?: string | null
+          state?: string | null
+          updated_at?: string
+          vendor_sup_type_id?: number | null
+          zip?: string | null
+        }
+        Update: {
+          business_name?: string
+          city?: string | null
+          contact_name?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          phone_number?: string | null
+          state?: string | null
+          updated_at?: string
+          vendor_sup_type_id?: number | null
+          zip?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "serv_vendor_suppliers_vendor_sup_type_id_fkey"
+            columns: ["vendor_sup_type_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_supplier_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       "Service Profile": {
         Row: {
           "Business Name": string | null
@@ -2152,6 +2202,27 @@ export type Database = {
           vendor_price?: number | null
           vendor_type?: string | null
           vendor_type_id?: string
+        }
+        Relationships: []
+      }
+      vendor_supplier_types: {
+        Row: {
+          created_at: string
+          id: number
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          name?: string
+          updated_at?: string
         }
         Relationships: []
       }
