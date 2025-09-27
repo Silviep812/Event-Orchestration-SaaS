@@ -70,7 +70,7 @@ const Index = () => {
             
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-4">
-              <Button variant="ghost">Features</Button>
+              <Button variant="ghost" onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}>Features</Button>
               <Button variant="ghost">Pricing</Button>
               <Button variant="ghost">Contact</Button>
               <Button 
@@ -103,7 +103,10 @@ const Index = () => {
           {mobileMenuOpen && (
             <div className="md:hidden border-t">
               <div className="px-2 pt-2 pb-3 space-y-1">
-                <Button variant="ghost" className="w-full justify-start">Features</Button>
+                <Button variant="ghost" className="w-full justify-start" onClick={() => {
+                  document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
+                  setMobileMenuOpen(false);
+                }}>Features</Button>
                 <Button variant="ghost" className="w-full justify-start">Pricing</Button>
                 <Button variant="ghost" className="w-full justify-start">Contact</Button>
                 <Button 
@@ -147,7 +150,7 @@ const Index = () => {
       </section>
 
       {/* Features Grid */}
-      <section className="px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+      <section id="features" className="px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
         <div className="max-w-7xl mx-auto">
           <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-center mb-12">
             Everything You Need for Event Success
