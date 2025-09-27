@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,6 +6,28 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Wrench, Users, Camera, UtensilsCrossed, Music, Car } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+
+interface VendorSupplier {
+  id: string;
+  business_name: string;
+  contact_name: string | null;
+  email: string;
+  phone_number: string;
+  city: string;
+  state: string;
+  zip: string;
+  vendor_sup_type_id: number;
+  created_at: string;
+  updated_at: string;
+}
+
+interface VendorSupplierType {
+  id: number;
+  name: string;
+  created_at: string;
+  updated_at: string;
+}
 
 interface Service {
   id: string;
@@ -100,13 +122,65 @@ const getServiceIcon = (type: string) => {
 
 export function ServiceSelector({ onSelectService, selectedService }: ServiceSelectorProps) {
   const [locationFilter, setLocationFilter] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
   const [activeTab, setActiveTab] = useState("vendor");
+  const [vendors, setVendors] = useState<VendorSupplier[]>([]);
+  const [vendorTypes, setVendorTypes] = useState<VendorSupplierType[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredServices = mockServices.filter(service => {
+  useEffect(() => {
+    fetchVendorsAndTypes();
+  }, []);
+
+  const fetchVendorsAndTypes = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Fetch vendor suppliers and types
+      const [vendorsResult, typesResult] = await Promise.all([
+        supabase.from('serv_vendor_suppliers').select('*'),
+        supabase.from('vendor_supplier_types').select('*')
+      ]);
+
+      if (vendorsResult.error) throw vendorsResult.error;
+      if (typesResult.error) throw typesResult.error;
+
+      setVendors(vendorsResult.data || []);
+      setVendorTypes(typesResult.data || []);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      setError('Failed to load services. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Convert vendors to Service format for compatibility
+  const convertedVendors: Service[] = vendors.map(vendor => {
+    const vendorType = vendorTypes.find(type => type.id === vendor.vendor_sup_type_id);
+    const location = `${vendor.city}, ${vendor.state} ${vendor.zip}`.trim();
+    return {
+      id: vendor.id,
+      category: "vendor" as const,
+      type: vendorType?.name || "Unknown",
+      business_name: vendor.business_name || "Unknown Business",
+      contact_name: vendor.contact_name || undefined,
+      location: location,
+      description: `Email: ${vendor.email} | Phone: ${vendor.phone_number}`
+    };
+  });
+
+  // Combine with mock rental services for now (rentals tab)
+  const allServices = [...convertedVendors, ...mockServices.filter(s => s.category === "rental")];
+
+  const filteredServices = allServices.filter(service => {
     const matchesCategory = service.category === activeTab;
     const matchesLocation = !locationFilter || 
       service.location.toLowerCase().includes(locationFilter.toLowerCase());
-    return matchesCategory && matchesLocation;
+    const matchesType = !typeFilter || service.type.toLowerCase().includes(typeFilter.toLowerCase());
+    return matchesCategory && matchesLocation && matchesType;
   });
 
   const serviceTypes = [...new Set(filteredServices.map(service => service.type))];
@@ -121,15 +195,26 @@ export function ServiceSelector({ onSelectService, selectedService }: ServiceSel
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Location Filter */}
-          <div className="space-y-2">
-            <Label htmlFor="location">Filter by Location (City, State, ZIP)</Label>
-            <Input
-              id="location"
-              placeholder="Enter city, state, or ZIP code"
-              value={locationFilter}
-              onChange={(e) => setLocationFilter(e.target.value)}
-            />
+          {/* Filters */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="location">Filter by Location</Label>
+              <Input
+                id="location"
+                placeholder="Enter city, state, or ZIP code"
+                value={locationFilter}
+                onChange={(e) => setLocationFilter(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="type">Filter by Type</Label>
+              <Input
+                id="type"
+                placeholder="Enter service type"
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+              />
+            </div>
           </div>
 
           {/* Service Category Tabs */}
@@ -140,49 +225,63 @@ export function ServiceSelector({ onSelectService, selectedService }: ServiceSel
             </TabsList>
 
             <TabsContent value="vendor" className="space-y-4">
-              <div className="space-y-2">
-                <Label>Available Service Types:</Label>
-                <div className="flex flex-wrap gap-2">
-                  {serviceTypes.map((type) => (
-                    <Badge key={type} variant="secondary" className="flex items-center gap-1">
-                      {getServiceIcon(type)}
-                      {type}
-                    </Badge>
-                  ))}
+              {loading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                  <p className="text-muted-foreground">Loading vendor services...</p>
                 </div>
-              </div>
+              ) : error ? (
+                <div className="text-center py-8 text-red-600">
+                  <p>{error}</p>
+                  <Button onClick={fetchVendorsAndTypes} className="mt-2">Try Again</Button>
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <Label>Available Vendor Types:</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {serviceTypes.map((type) => (
+                        <Badge key={type} variant="secondary" className="flex items-center gap-1">
+                          {getServiceIcon(type)}
+                          {type}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto">
-                {filteredServices.map((service) => (
-                  <Card 
-                    key={service.id}
-                    className={`cursor-pointer transition-all hover:shadow-md ${
-                      selectedService?.id === service.id ? 'ring-2 ring-primary' : ''
-                    }`}
-                    onClick={() => onSelectService(service)}
-                  >
-                    <CardContent className="p-4">
-                      <div className="space-y-2">
-                        <div className="flex items-start justify-between">
-                          <h4 className="font-semibold text-sm">{service.business_name}</h4>
-                          <Badge variant="outline" className="text-xs flex items-center gap-1">
-                            {getServiceIcon(service.type)}
-                            {service.type}
-                          </Badge>
-                        </div>
-                        
-                        <div className="space-y-1 text-sm text-muted-foreground">
-                          {service.contact_name && (
-                            <p className="text-xs"><strong>Contact:</strong> {service.contact_name}</p>
-                          )}
-                          <p className="text-xs"><strong>Location:</strong> {service.location}</p>
-                          <p className="text-xs">{service.description}</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto">
+                    {filteredServices.map((service) => (
+                      <Card 
+                        key={service.id}
+                        className={`cursor-pointer transition-all hover:shadow-md ${
+                          selectedService?.id === service.id ? 'ring-2 ring-primary' : ''
+                        }`}
+                        onClick={() => onSelectService(service)}
+                      >
+                        <CardContent className="p-4">
+                          <div className="space-y-2">
+                            <div className="flex items-start justify-between">
+                              <h4 className="font-semibold text-sm">{service.business_name}</h4>
+                              <Badge variant="outline" className="text-xs flex items-center gap-1">
+                                {getServiceIcon(service.type)}
+                                {service.type}
+                              </Badge>
+                            </div>
+                            
+                            <div className="space-y-1 text-sm text-muted-foreground">
+                              {service.contact_name && (
+                                <p className="text-xs"><strong>Contact:</strong> {service.contact_name}</p>
+                              )}
+                              <p className="text-xs"><strong>Location:</strong> {service.location}</p>
+                              <p className="text-xs">{service.description}</p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </>
+              )}
             </TabsContent>
 
             <TabsContent value="rental" className="space-y-4">
