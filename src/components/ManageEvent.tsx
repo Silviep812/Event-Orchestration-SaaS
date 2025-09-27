@@ -392,6 +392,7 @@ const ManageEvent = () => {
     if (user) {
       fetchEvents();
       fetchThemes();
+      fetchEventTypes();
     }
   }, [selectedEvent?.theme_id]);
 
