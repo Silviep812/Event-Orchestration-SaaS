@@ -7,133 +7,87 @@ import { Truck, Camera, Lightbulb, Music, Gamepad2, Flower, Home, Table } from "
 
 const VendorServiceDirectory = () => {
   const [serviceTypes, setServiceTypes] = useState<any[]>([]);
+  const [serviceProfiles, setServiceProfiles] = useState<any[]>([]);
   const [selectedServiceTypes, setSelectedServiceTypes] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock service rental profiles data
-  const mockServiceProfiles = [
-    {
-      id: 1,
-      business_name: "Premier Event Rentals",
-      contact_name: "David Martinez",
-      email: "david@premierevent.com",
-      contact_phone: "(555) 123-4567",
-      type: "table_chairs",
-      location: "Los Angeles, CA",
-      description: "Complete table and chair rental service for events of all sizes",
-      items: ["Round tables", "Rectangular tables", "Chiavari chairs", "Linens"]
-    },
-    {
-      id: 2,
-      business_name: "Illuminate Events",
-      contact_name: "Sarah Johnson",
-      email: "sarah@illuminateevents.com",
-      contact_phone: "(555) 987-6543",
-      type: "lighting",
-      location: "New York, NY",
-      description: "Professional lighting equipment and design for spectacular events",
-      items: ["LED uplighting", "String lights", "Spotlights", "Dance floor lighting"]
-    },
-    {
-      id: 3,
-      business_name: "Sound & Vision Pro",
-      contact_name: "Mike Chen",
-      email: "mike@soundvision.com",
-      contact_phone: "(555) 456-7890",
-      type: "audio_visual_equip",
-      location: "Chicago, IL",
-      description: "High-quality AV equipment and technical support for events",
-      items: ["Sound systems", "Microphones", "Projectors", "Screens"]
-    },
-    {
-      id: 4,
-      business_name: "Shelter Solutions",
-      contact_name: "Jennifer Wilson",
-      email: "jennifer@sheltersolutions.com",
-      contact_phone: "(555) 321-0987",
-      type: "tents",
-      location: "Miami, FL",
-      description: "Weather protection and elegant tent rentals for outdoor events",
-      items: ["Party tents", "Canopies", "Market umbrellas", "Sidewalls"]
-    },
-    {
-      id: 5,
-      business_name: "Capture Moments Photo Booths",
-      contact_name: "Lisa Park",
-      email: "lisa@capturemoments.com",
-      contact_phone: "(555) 654-3210",
-      type: "photo_both",
-      location: "Seattle, WA",
-      description: "Fun and interactive photo booth experiences for memorable events",
-      items: ["Open-air booth", "Props", "Custom backdrops", "Digital gallery"]
-    },
-    {
-      id: 6,
-      business_name: "Bloom & Decor Rentals",
-      contact_name: "Amanda Rodriguez",
-      email: "amanda@bloomdecor.com",
-      contact_phone: "(555) 789-0123",
-      type: "flowers_plants",
-      location: "Austin, TX",
-      description: "Beautiful floral arrangements and plant rentals for event decoration",
-      items: ["Centerpieces", "Potted plants", "Floral walls", "Arch decorations"]
-    },
-    {
-      id: 7,
-      business_name: "Game Night Rentals",
-      contact_name: "Robert Anderson",
-      email: "robert@gamenight.com",
-      contact_phone: "(555) 111-2222",
-      type: "game_tables",
-      location: "Denver, CO",
-      description: "Casino tables and game rentals for entertainment at events",
-      items: ["Poker tables", "Blackjack tables", "Roulette wheels", "Dealers available"]
-    },
-    {
-      id: 8,
-      business_name: "Elite Housewares Rentals",
-      contact_name: "Emma Thompson",
-      email: "emma@elitehousewares.com",
-      contact_phone: "(555) 333-4444",
-      type: "housewares",
-      location: "San Francisco, CA",
-      description: "Premium housewares and serving equipment for elegant events",
-      items: ["Fine china", "Glassware", "Silverware", "Serving platters"]
-    },
-    {
-      id: 9,
-      business_name: "Comfort Station Rentals",
-      contact_name: "Mark Davis",
-      email: "mark@comfortstation.com",
-      contact_phone: "(555) 555-6666",
-      type: "potty_johns",
-      location: "Phoenix, AZ",
-      description: "Clean and well-maintained portable restroom facilities",
-      items: ["Standard units", "Luxury trailers", "Hand wash stations", "ADA compliant"]
-    }
-  ];
+  // Fetch service types and profiles from Supabase
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Fetch service types
+        const { data: typesData, error: typesError } = await supabase
+          .from('vendor_rental_types')
+          .select('*');
+
+        if (typesError) throw typesError;
+
+        // Fetch service profiles with their assignments and types
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('serv_vendor_rentals')
+          .select(`
+            *,
+            serv_vendor_rental_assignments!inner(
+              vendor_rental_types(*)
+            )
+          `);
+
+        if (profilesError) throw profilesError;
+
+        setServiceTypes(typesData || []);
+        setServiceProfiles(profilesData || []);
+      } catch (err: any) {
+        console.error('Error fetching data:', err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   // Filter profiles based on selected service types
   const filteredProfiles = selectedServiceTypes.length > 0 
-    ? mockServiceProfiles.filter(profile => selectedServiceTypes.includes(profile.type))
-    : mockServiceProfiles;
+    ? serviceProfiles.filter(profile => 
+        profile.serv_vendor_rental_assignments?.some((assignment: any) => 
+          selectedServiceTypes.includes(assignment.vendor_rental_types?.id?.toString())
+        )
+      )
+    : serviceProfiles;
 
-  const serviceTypeOptions = [
-    { value: "transport_options", label: "Transportation Options", icon: Truck },
-    { value: "photo_both", label: "Photo Booth", icon: Camera },
-    { value: "lighting", label: "Lighting", icon: Lightbulb },
-    { value: "audio_visual_equip", label: "Audio Visual Equipment", icon: Music },
-    { value: "game_tables", label: "Game Tables", icon: Gamepad2 },
-    { value: "flowers_plants", label: "Flowers & Plants", icon: Flower },
-    { value: "tents", label: "Tents", icon: Home },
-    { value: "table_chairs", label: "Tables & Chairs", icon: Table },
-    { value: "housewares", label: "Housewares", icon: Home },
-    { value: "entertainment_options", label: "Entertainment Options", icon: Music },
-    { value: "potty_johns", label: "Portable Toilets", icon: Home },
-    { value: "prod_props", label: "Production Props", icon: Camera },
-    { value: "venue_space_decor", label: "Venue Space Decor", icon: Flower },
-    { value: "child_play_equip", label: "Child Play Equipment", icon: Gamepad2 }
-  ];
+  // Get icon for service type
+  const getServiceIcon = (typeName: string) => {
+    const iconMap: { [key: string]: any } = {
+      'transport': Truck,
+      'photo': Camera,
+      'lighting': Lightbulb,
+      'audio': Music,
+      'game': Gamepad2,
+      'flower': Flower,
+      'tent': Home,
+      'table': Table,
+      'chair': Table,
+      'housewares': Home,
+      'entertainment': Music,
+      'toilet': Home,
+      'prop': Camera,
+      'decor': Flower,
+      'child': Gamepad2
+    };
+
+    const lowerName = typeName.toLowerCase();
+    for (const [key, icon] of Object.entries(iconMap)) {
+      if (lowerName.includes(key)) {
+        return icon;
+      }
+    }
+    return Home;
+  };
 
   return (
     <div className="space-y-6">
@@ -149,46 +103,58 @@ const VendorServiceDirectory = () => {
           <CardTitle>Select Service Types</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-3">
-            <label className="text-sm font-medium">Service Types (select all that apply)</label>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {serviceTypeOptions.map((option) => {
-                const IconComponent = option.icon;
-                const isChecked = selectedServiceTypes.includes(option.value);
-                return (
-                  <div key={option.value} className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50">
-                    <Checkbox
-                      id={option.value}
-                      checked={isChecked}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setSelectedServiceTypes([...selectedServiceTypes, option.value]);
-                        } else {
-                          setSelectedServiceTypes(selectedServiceTypes.filter(type => type !== option.value));
-                        }
-                      }}
-                    />
-                    <label htmlFor={option.value} className="flex items-center gap-2 cursor-pointer text-sm font-medium">
-                      <IconComponent size={16} />
-                      {option.label}
-                    </label>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-          
-          {selectedServiceTypes.length > 0 && (
-            <div className="p-4 bg-muted rounded-lg">
-              <h3 className="font-medium mb-2">Selected Service Types:</h3>
-              <div className="flex flex-wrap gap-2">
-                {selectedServiceTypes.map(type => (
-                  <span key={type} className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
-                    {serviceTypeOptions.find(opt => opt.value === type)?.label}
-                  </span>
-                ))}
+          {loading ? (
+            <p className="text-center py-4">Loading service types...</p>
+          ) : error ? (
+            <p className="text-center py-4 text-destructive">Error loading data: {error}</p>
+          ) : (
+            <>
+              <div className="space-y-3">
+                <label className="text-sm font-medium">Service Types (select all that apply)</label>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {serviceTypes.map((type) => {
+                    const IconComponent = getServiceIcon(type.name || '');
+                    const isChecked = selectedServiceTypes.includes(type.id?.toString());
+                    return (
+                      <div key={type.id} className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50">
+                        <Checkbox
+                          id={type.id?.toString()}
+                          checked={isChecked}
+                          onCheckedChange={(checked) => {
+                            const typeId = type.id?.toString();
+                            if (checked) {
+                              setSelectedServiceTypes([...selectedServiceTypes, typeId]);
+                            } else {
+                              setSelectedServiceTypes(selectedServiceTypes.filter(id => id !== typeId));
+                            }
+                          }}
+                        />
+                        <label htmlFor={type.id?.toString()} className="flex items-center gap-2 cursor-pointer text-sm font-medium">
+                          <IconComponent size={16} />
+                          {type.name}
+                        </label>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+              
+              {selectedServiceTypes.length > 0 && (
+                <div className="p-4 bg-muted rounded-lg">
+                  <h3 className="font-medium mb-2">Selected Service Types:</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedServiceTypes.map(typeId => {
+                      const type = serviceTypes.find(t => t.id?.toString() === typeId);
+                      return (
+                        <span key={typeId} className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
+                          {type?.name}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </>
           )}
 
           <Button 
@@ -206,45 +172,59 @@ const VendorServiceDirectory = () => {
           <CardTitle>Service Profiles ({filteredProfiles.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          {filteredProfiles.length === 0 ? (
+          {loading ? (
+            <p className="text-center py-8">Loading service profiles...</p>
+          ) : error ? (
+            <p className="text-center py-8 text-destructive">Error loading profiles: {error}</p>
+          ) : filteredProfiles.length === 0 ? (
             <p className="text-muted-foreground text-center py-8">
               No service profiles match your selected criteria.
             </p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredProfiles.map((profile) => {
-                const typeOption = serviceTypeOptions.find(opt => opt.value === profile.type);
-                const IconComponent = typeOption?.icon || Home;
+                const profileTypes = profile.serv_vendor_rental_assignments?.map((assignment: any) => 
+                  assignment.vendor_rental_types?.name
+                ).filter(Boolean) || [];
+                const primaryType = profileTypes[0] || 'Service';
+                const IconComponent = getServiceIcon(primaryType);
                 
                 return (
                   <Card key={profile.id} className="hover:shadow-lg transition-shadow">
                     <CardHeader className="pb-3">
                       <div className="flex items-center gap-2">
                         <IconComponent className="h-5 w-5 text-primary" />
-                        <CardTitle className="text-lg">{profile.business_name}</CardTitle>
+                        <CardTitle className="text-lg">{profile.business_name || 'Service Provider'}</CardTitle>
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        {typeOption?.label || 'Other'}
+                        {profileTypes.join(', ') || 'Service'}
                       </p>
                     </CardHeader>
                     <CardContent className="space-y-3">
                       <div>
                         <p className="font-semibold">{profile.contact_name}</p>
                         <p className="text-sm text-muted-foreground">{profile.email}</p>
-                        <p className="text-sm text-muted-foreground">{profile.contact_phone}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {profile.phone_number ? `(${String(profile.phone_number).slice(0,3)}) ${String(profile.phone_number).slice(3,6)}-${String(profile.phone_number).slice(6)}` : 'No phone provided'}
+                        </p>
                       </div>
                       
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        <p><strong>Location:</strong> {profile.location}</p>
+                      <div className="space-y-2 text-sm">
+                        {profile.price && (
+                          <p><strong>Price:</strong> ${profile.price}</p>
+                        )}
+                        <p><strong>Location:</strong> {[profile.city, profile.state, profile.zip].filter(Boolean).join(', ') || 'Location not specified'}</p>
                       </div>
                       
-                      <p className="text-sm text-muted-foreground">{profile.description}</p>
+                      {profile.description && (
+                        <p className="text-sm text-muted-foreground">{profile.description}</p>
+                      )}
                       
-                      {profile.items.length > 0 && (
+                      {profile.items_available && profile.items_available.length > 0 && (
                         <div>
                           <p className="text-sm font-medium mb-1">Items Available:</p>
                           <div className="flex flex-wrap gap-1">
-                            {profile.items.map((item, index) => (
+                            {profile.items_available.map((item: string, index: number) => (
                               <span key={index} className="text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded">
                                 {item}
                               </span>
