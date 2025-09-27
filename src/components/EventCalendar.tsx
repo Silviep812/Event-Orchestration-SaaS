@@ -253,8 +253,8 @@ const EventCalendar = () => {
                     <div>
                       <p className="font-medium text-sm">{event.title}</p>
                       <p className="text-xs text-muted-foreground">
-                        {format(event.date, "MMM dd") &&
-                        event.start_time ? 'at ' + event.start_time : ''}
+                        {event.date && format(event.date, "MMM dd")}
+                        {event.start_time ? ' at ' + event.start_time : ''}
                       </p>
                     </div>
                   </div>
