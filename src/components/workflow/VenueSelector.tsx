@@ -15,21 +15,30 @@ import {
   CheckCircle2,
   Search,
   Filter,
-  Users
+  Users,
+  DollarSign
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface VenueOption {
-  venue_type_id: string;
-  ven_contact_name: string;
-  ven_contact_ph_nbr: number;
-  ven_email: string;
-  ven_locatiom: string; // Note: using actual column name from database
-  ven_biz_name?: string;
-  ven_price?: number;
-  ven_reservation_date?: string;
-  ven_reservation_time?: string;
+  id?: string;
+  venue_type_id: number;
+  business_name?: string;
+  contact_name: string;
+  email: string;
+  phone_number?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  price?: number;
+  capacity?: number;
   created_at?: string;
+}
+
+interface VenueType {
+  id: number;
+  name: string;
+  description?: string;
 }
 
 interface VenueSelectorProps {
@@ -39,6 +48,7 @@ interface VenueSelectorProps {
 
 export const VenueSelector = ({ onSelectVenue, selectedVenue }: VenueSelectorProps) => {
   const [venues, setVenues] = useState<VenueOption[]>([]);
+  const [venueTypes, setVenueTypes] = useState<VenueType[]>([]);
   const [filteredVenues, setFilteredVenues] = useState<VenueOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -49,26 +59,50 @@ export const VenueSelector = ({ onSelectVenue, selectedVenue }: VenueSelectorPro
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchVenues();
+    fetchData();
   }, []);
 
   useEffect(() => {
     filterVenues();
   }, [venues, searchTerm, cityFilter, stateFilter, zipFilter, venueTypeFilter]);
 
-  const fetchVenues = async () => {
+  const fetchData = async () => {
     try {
-      const { data, error } = await supabase
-        .from('Venue Profile')
-        .select('*');
+      setLoading(true);
+      
+      // Fetch both venues and venue types
+      const [venuesResponse, typesResponse] = await Promise.all([
+        supabase.from('venues').select('*'),
+        supabase.from('venue_types').select('*')
+      ]);
 
-      if (error) throw error;
-      setVenues(data || []);
+      if (venuesResponse.error) {
+        console.error('Error fetching venues:', venuesResponse.error);
+        toast({
+          title: "Error",
+          description: "Failed to load venues. Please try again.",
+          variant: "destructive"
+        });
+      } else {
+        setVenues(venuesResponse.data || []);
+      }
+
+      if (typesResponse.error) {
+        console.error('Error fetching venue types:', typesResponse.error);
+        toast({
+          title: "Error", 
+          description: "Failed to load venue types. Please try again.",
+          variant: "destructive"
+        });
+      } else {
+        setVenueTypes(typesResponse.data || []);
+      }
     } catch (error) {
+      console.error('Error fetching data:', error);
       toast({
         title: "Error",
-        description: "Failed to load venue options",
-        variant: "destructive",
+        description: "Failed to load data. Please try again.",
+        variant: "destructive"
       });
     } finally {
       setLoading(false);
@@ -80,37 +114,43 @@ export const VenueSelector = ({ onSelectVenue, selectedVenue }: VenueSelectorPro
 
     if (searchTerm) {
       filtered = filtered.filter(venue => 
-        venue.ven_contact_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        venue.venue_type_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        venue.ven_locatiom?.toLowerCase().includes(searchTerm.toLowerCase())
+        venue.contact_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        venue.business_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        venue.city?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
     if (cityFilter) {
       filtered = filtered.filter(venue => 
-        venue.ven_locatiom?.toLowerCase().includes(cityFilter.toLowerCase())
+        venue.city?.toLowerCase().includes(cityFilter.toLowerCase())
       );
     }
 
     if (stateFilter) {
       filtered = filtered.filter(venue => 
-        venue.ven_locatiom?.toLowerCase().includes(stateFilter.toLowerCase())
+        venue.state?.toLowerCase().includes(stateFilter.toLowerCase())
       );
     }
 
     if (zipFilter) {
       filtered = filtered.filter(venue => 
-        venue.ven_locatiom?.includes(zipFilter)
+        venue.zip?.includes(zipFilter)
       );
     }
 
     if (venueTypeFilter && venueTypeFilter !== "all") {
       filtered = filtered.filter(venue => 
-        venue.venue_type_id?.toLowerCase().includes(venueTypeFilter.toLowerCase())
+        venue.venue_type_id === parseInt(venueTypeFilter)
       );
     }
 
     setFilteredVenues(filtered);
+  };
+
+  // Get venue type name by ID
+  const getVenueTypeName = (typeId: number) => {
+    const venueType = venueTypes.find(type => type.id === typeId);
+    return venueType?.name || 'Unknown Type';
   };
 
   const handleBooking = async (venue: VenueOption) => {
@@ -119,7 +159,7 @@ export const VenueSelector = ({ onSelectVenue, selectedVenue }: VenueSelectorPro
       onSelectVenue(venue);
       toast({
         title: "Success",
-        description: `Selected venue: ${venue.venue_type_id}`,
+        description: `Selected venue: ${venue.business_name || venue.contact_name}`,
       });
     } catch (error) {
       toast({
@@ -130,19 +170,6 @@ export const VenueSelector = ({ onSelectVenue, selectedVenue }: VenueSelectorPro
     }
   };
 
-  const parseAddress = (address: string) => {
-    if (!address) return { city: "", state: "", zip: "" };
-    
-    const parts = address.split(',').map(part => part.trim());
-    const lastPart = parts[parts.length - 1] || "";
-    const stateZipMatch = lastPart.match(/^([A-Z]{2})\s+(\d{5}(-\d{4})?)$/);
-    
-    return {
-      city: parts[parts.length - 2] || "",
-      state: stateZipMatch ? stateZipMatch[1] : "",
-      zip: stateZipMatch ? stateZipMatch[2] : ""
-    };
-  };
 
   if (loading) {
     return (
@@ -222,12 +249,11 @@ export const VenueSelector = ({ onSelectVenue, selectedVenue }: VenueSelectorPro
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Any type</SelectItem>
-                  <SelectItem value="hotel">Hotel</SelectItem>
-                  <SelectItem value="conference">Conference Center</SelectItem>
-                  <SelectItem value="banquet">Banquet Hall</SelectItem>
-                  <SelectItem value="outdoor">Outdoor Venue</SelectItem>
-                  <SelectItem value="restaurant">Restaurant</SelectItem>
-                  <SelectItem value="theater">Theater/Auditorium</SelectItem>
+                  {venueTypes.map((type) => (
+                    <SelectItem key={type.id} value={type.id.toString()}>
+                      {type.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -238,12 +264,11 @@ export const VenueSelector = ({ onSelectVenue, selectedVenue }: VenueSelectorPro
       {/* Results */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredVenues.map((venue) => {
-          const isSelected = selectedVenue?.venue_type_id === venue.venue_type_id;
-          const addressInfo = parseAddress(venue.ven_locatiom);
+          const isSelected = selectedVenue?.id === venue.id;
           
           return (
             <Card 
-              key={venue.venue_type_id}
+              key={venue.id || venue.created_at}
               className={`cursor-pointer transition-all duration-300 hover:scale-105 border-2 ${
                 isSelected ? 'border-primary shadow-lg' : 'border-border'
               }`}
@@ -253,10 +278,10 @@ export const VenueSelector = ({ onSelectVenue, selectedVenue }: VenueSelectorPro
                   <div>
                     <CardTitle className="text-lg flex items-center gap-2">
                       <Building className="h-5 w-5" />
-                      {venue.venue_type_id}
+                      {venue.business_name || 'Venue'}
                     </CardTitle>
                     <p className="text-sm text-muted-foreground">
-                      Contact: {venue.ven_contact_name}
+                      {getVenueTypeName(venue.venue_type_id)}
                     </p>
                   </div>
                   {isSelected && <CheckCircle2 className="h-5 w-5 text-primary" />}
@@ -264,48 +289,44 @@ export const VenueSelector = ({ onSelectVenue, selectedVenue }: VenueSelectorPro
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  {venue.ven_locatiom && (
-                    <div className="flex items-start gap-2 text-sm">
-                      <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-                      <span>{venue.ven_locatiom}</span>
-                    </div>
-                  )}
-                  {venue.ven_contact_ph_nbr && (
+                  <div className="flex items-start gap-2 text-sm">
+                    <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+                    <span>
+                      {[venue.city, venue.state, venue.zip].filter(Boolean).join(', ') || 'Location not specified'}
+                    </span>
+                  </div>
+                  {venue.phone_number && (
                     <div className="flex items-center gap-2 text-sm">
                       <Phone className="h-4 w-4 text-muted-foreground" />
-                      <span>{venue.ven_contact_ph_nbr}</span>
+                      <span>{venue.phone_number}</span>
                     </div>
                   )}
-                  {venue.ven_email && (
+                  {venue.email && (
                     <div className="flex items-center gap-2 text-sm">
                       <Mail className="h-4 w-4 text-muted-foreground" />
-                      <span className="truncate">{venue.ven_email}</span>
+                      <span className="truncate">{venue.email}</span>
                     </div>
                   )}
                 </div>
 
-                {(addressInfo.city || addressInfo.state || addressInfo.zip) && (
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">Location Details</Label>
-                    <div className="flex flex-wrap gap-1">
-                      {addressInfo.city && (
-                        <Badge variant="outline" className="text-xs">
-                          {addressInfo.city}
-                        </Badge>
-                      )}
-                      {addressInfo.state && (
-                        <Badge variant="outline" className="text-xs">
-                          {addressInfo.state}
-                        </Badge>
-                      )}
-                      {addressInfo.zip && (
-                        <Badge variant="outline" className="text-xs">
-                          {addressInfo.zip}
-                        </Badge>
-                      )}
-                    </div>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                    <span>Contact: {venue.contact_name}</span>
                   </div>
-                )}
+                  {venue.capacity && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Users className="h-4 w-4 text-muted-foreground" />
+                      <span>Capacity: {venue.capacity} guests</span>
+                    </div>
+                  )}
+                  {venue.price && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <DollarSign className="h-4 w-4 text-muted-foreground" />
+                      <span>Price: ${venue.price}</span>
+                    </div>
+                  )}
+                </div>
 
                 <div className="flex gap-2">
                   <Button 
@@ -321,7 +342,7 @@ export const VenueSelector = ({ onSelectVenue, selectedVenue }: VenueSelectorPro
                     onClick={() => handleBooking(venue)}
                     size="sm"
                   >
-                    {isSelected ? "Selected" : "Book Venue"}
+                    {isSelected ? "Selected" : "Select Venue"}
                   </Button>
                 </div>
               </CardContent>
