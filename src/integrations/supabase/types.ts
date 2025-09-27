@@ -1292,7 +1292,7 @@ export type Database = {
         }
         Relationships: []
       }
-      serv_vendor_rental_types: {
+      serv_vendor_rental_assignments: {
         Row: {
           created_at: string
           id: number

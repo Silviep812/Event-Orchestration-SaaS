@@ -1,0 +1,2 @@
+-- Rename the table serv_vendor_rental_types to serv_vendor_rental_assignments
+ALTER TABLE public.serv_vendor_rental_types RENAME TO serv_vendor_rental_assignments;
