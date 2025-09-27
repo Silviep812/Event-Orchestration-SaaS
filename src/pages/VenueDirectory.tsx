@@ -4,108 +4,73 @@ import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Building, Home, Utensils, MapPin, Trees, Dumbbell, Warehouse, Users, Building2, Hotel, ShoppingBag, HelpCircle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const VenueDirectory = () => {
-  const [venueTypes, setVenueTypes] = useState<any[]>([]);
+  const [venueProfiles, setVenueProfiles] = useState<any[]>([]);
   const [selectedVenueTypes, setSelectedVenueTypes] = useState<string[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
-  // Mock venue profiles data
-  const mockVenueProfiles = [
-    {
-      id: 1,
-      venue_name: "Grand Ballroom at The Ritz",
-      contact_name: "Elizabeth Parker",
-      email: "elizabeth@ritzgrand.com",
-      contact_phone: "(555) 123-4567",
-      type: "business_location",
-      capacity: 300,
-      location: "Downtown Los Angeles, CA",
-      venue_type: "Ballroom"
-    },
-    {
-      id: 2,
-      venue_name: "Sunset Beach Resort",
-      contact_name: "Carlos Rodriguez",
-      email: "carlos@sunsetbeach.com",
-      contact_phone: "(555) 987-6543",
-      type: "resort_location",
-      capacity: 150,
-      location: "Malibu, CA",
-      venue_type: "Resort"
-    },
-    {
-      id: 3,
-      venue_name: "The Historic Manor House",
-      contact_name: "Victoria Smith",
-      email: "victoria@historicmanor.com",
-      contact_phone: "(555) 456-7890",
-      type: "private_resident",
-      capacity: 80,
-      location: "Napa Valley, CA",
-      venue_type: "Private Estate"
-    },
-    {
-      id: 4,
-      venue_name: "Metropolitan Sports Complex",
-      contact_name: "Michael Johnson",
-      email: "michael@metrosports.com",
-      contact_phone: "(555) 321-0987",
-      type: "sporting_facility",
-      capacity: 500,
-      location: "Chicago, IL",
-      venue_type: "Sports Facility"
-    },
-    {
-      id: 5,
-      venue_name: "Bella Vista Restaurant",
-      contact_name: "Isabella Martinez",
-      email: "isabella@bellavista.com",
-      contact_phone: "(555) 654-3210",
-      type: "restaurant_location",
-      capacity: 120,
-      location: "Miami, FL",
-      venue_type: "Restaurant"
-    },
-    {
-      id: 6,
-      venue_name: "Countryside Barn & Farm",
-      contact_name: "Sarah Thompson",
-      email: "sarah@countrysidebarn.com",
-      contact_phone: "(555) 789-0123",
-      type: "agri_farming",
-      capacity: 200,
-      location: "Austin, TX",
-      venue_type: "Farm Venue"
-    },
-    {
-      id: 7,
-      venue_name: "Elite Country Club",
-      contact_name: "James Wilson",
-      email: "james@elitecc.com",
-      contact_phone: "(555) 111-2222",
-      type: "private_club",
-      capacity: 180,
-      location: "Scottsdale, AZ",
-      venue_type: "Country Club"
-    },
-    {
-      id: 8,
-      venue_name: "Industrial Loft Warehouse",
-      contact_name: "Rachel Davis",
-      email: "rachel@industrialloft.com",
-      contact_phone: "(555) 333-4444",
-      type: "warehouse",
-      capacity: 400,
-      location: "Portland, OR",
-      venue_type: "Industrial Venue"
+  // Fetch venue profiles from Supabase
+  useEffect(() => {
+    fetchVenueProfiles();
+  }, []);
+
+  const fetchVenueProfiles = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('Venue Profile')
+        .select('*');
+
+      if (error) {
+        console.error('Error fetching venue profiles:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load venue profiles. Please try again.",
+          variant: "destructive"
+        });
+      } else {
+        setVenueProfiles(data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching venue profiles:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load venue profiles. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  // Map venue type IDs to readable types
+  const mapVenueTypeId = (typeId: string) => {
+    const typeMap: { [key: string]: string } = {
+      'private_resident': 'private_resident',
+      'business_location': 'business_location', 
+      'restaurant_location': 'restaurant_location',
+      'resort_location': 'resort_location',
+      'recreation_location': 'recreation_location',
+      'private_club': 'private_club',
+      'market_place': 'market_place',
+      'local_govern_location': 'local_govern_location',
+      'hospitality_location': 'hospitality_location',
+      'agri_farming': 'agri_farming',
+      'warehouse': 'warehouse',
+      'state_govern_location': 'state_govern_location',
+      'sporting_facility': 'sporting_facility',
+      'other': 'other'
+    };
+    return typeMap[typeId] || 'other';
+  };
 
   // Filter profiles based on selected venue types
   const filteredProfiles = selectedVenueTypes.length > 0 
-    ? mockVenueProfiles.filter(profile => selectedVenueTypes.includes(profile.type))
-    : mockVenueProfiles;
+    ? venueProfiles.filter(profile => selectedVenueTypes.includes(mapVenueTypeId(profile.venue_type_id)))
+    : venueProfiles;
 
   const venueTypeOptions = [
     { value: "private_resident", label: "Private Resident", icon: Home },
@@ -195,37 +160,46 @@ const VenueDirectory = () => {
           <CardTitle>Venue Profiles ({filteredProfiles.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          {filteredProfiles.length === 0 ? (
+          {loading ? (
+            <p className="text-muted-foreground text-center py-8">
+              Loading venue profiles...
+            </p>
+          ) : filteredProfiles.length === 0 ? (
             <p className="text-muted-foreground text-center py-8">
               No venue profiles match your selected criteria.
             </p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredProfiles.map((profile) => {
-                const typeOption = venueTypeOptions.find(opt => opt.value === profile.type);
+                const mappedType = mapVenueTypeId(profile.venue_type_id);
+                const typeOption = venueTypeOptions.find(opt => opt.value === mappedType);
                 const IconComponent = typeOption?.icon || HelpCircle;
                 
                 return (
-                  <Card key={profile.id} className="hover:shadow-lg transition-shadow">
+                  <Card key={profile.created_at} className="hover:shadow-lg transition-shadow">
                     <CardHeader className="pb-3">
                       <div className="flex items-center gap-2">
                         <IconComponent className="h-5 w-5 text-primary" />
-                        <CardTitle className="text-lg">{profile.venue_name}</CardTitle>
+                        <CardTitle className="text-lg">{profile.ven_biz_name || 'Venue Name'}</CardTitle>
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        {profile.venue_type} • {typeOption?.label || 'Other'}
+                        {typeOption?.label || 'Other'}
                       </p>
                     </CardHeader>
                     <CardContent className="space-y-3">
                       <div>
-                        <p className="font-semibold">{profile.contact_name}</p>
-                        <p className="text-sm text-muted-foreground">{profile.email}</p>
-                        <p className="text-sm text-muted-foreground">{profile.contact_phone}</p>
+                        <p className="font-semibold">{profile.ven_contact_name}</p>
+                        <p className="text-sm text-muted-foreground">{profile.ven_email}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {profile.ven_contact_ph_nbr ? `(${String(profile.ven_contact_ph_nbr).slice(0,3)}) ${String(profile.ven_contact_ph_nbr).slice(3,6)}-${String(profile.ven_contact_ph_nbr).slice(6)}` : 'No phone provided'}
+                        </p>
                       </div>
                       
                       <div className="text-sm">
-                        <p><strong>Capacity:</strong> {profile.capacity} guests</p>
-                        <p><strong>Location:</strong> {profile.location}</p>
+                        {profile.ven_price && (
+                          <p><strong>Price:</strong> ${profile.ven_price}</p>
+                        )}
+                        <p><strong>Location:</strong> {profile.ven_locatiom || 'Location not specified'}</p>
                       </div>
                     </CardContent>
                   </Card>
