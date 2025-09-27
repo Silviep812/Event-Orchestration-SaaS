@@ -7,87 +7,78 @@ import { Music, Mic, Users, MessageCircle, Presentation, Theater, HelpCircle } f
 
 const EntertainmentDirectory = () => {
   const [entertainmentTypes, setEntertainmentTypes] = useState<any[]>([]);
+  const [entertainmentProfiles, setEntertainmentProfiles] = useState<any[]>([]);
   const [selectedEntertainmentTypes, setSelectedEntertainmentTypes] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock entertainment profiles data
-  const mockEntertainmentProfiles = [
-    {
-      id: 1,
-      business_name: "Harmony Music Collective",
-      contact_name: "Sarah Johnson",
-      email: "sarah@harmonycollective.com",
-      contact_phone: "(555) 123-4567",
-      type: "musicians",
-      location: "Los Angeles, CA",
-      description: "Professional jazz and classical ensemble for weddings and corporate events"
-    },
-    {
-      id: 2,
-      business_name: "Beat Master Productions",
-      contact_name: "Mike Chen",
-      email: "mike@beatmaster.com",
-      contact_phone: "(555) 987-6543",
-      type: "dj_music",
-      location: "New York, NY",
-      description: "Professional DJ services with state-of-the-art sound equipment"
-    },
-    {
-      id: 3,
-      business_name: "Spotlight Entertainment",
-      contact_name: "Emma Rodriguez",
-      email: "emma@spotlight.com",
-      contact_phone: "(555) 456-7890",
-      type: "performer",
-      location: "Miami, FL",
-      description: "Dancers, acrobats, and variety performers for all types of events"
-    },
-    {
-      id: 4,
-      business_name: "Laugh Track Comedy",
-      contact_name: "Dave Wilson",
-      email: "dave@laughtrack.com",
-      contact_phone: "(555) 321-0987",
-      type: "standup_comic",
-      location: "Chicago, IL",
-      description: "Clean comedy for corporate events and private parties"
-    },
-    {
-      id: 5,
-      business_name: "TED Speakers Bureau",
-      contact_name: "Dr. Lisa Park",
-      email: "lisa@tedspeakers.com",
-      contact_phone: "(555) 654-3210",
-      type: "speaker",
-      location: "San Francisco, CA",
-      description: "Motivational and keynote speakers for conferences and seminars"
-    },
-    {
-      id: 6,
-      business_name: "Broadway Dreams Productions",
-      contact_name: "Anthony Martinez",
-      email: "anthony@broadwaydreams.com",
-      contact_phone: "(555) 789-0123",
-      type: "stage_production",
-      location: "Las Vegas, NV",
-      description: "Full theatrical productions and musical performances"
-    }
-  ];
+  // Fetch entertainment types and profiles from Supabase
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Fetch entertainment types
+        const { data: typesData, error: typesError } = await supabase
+          .from('entertainment_types')
+          .select('*');
+
+        if (typesError) throw typesError;
+
+        // Fetch entertainment profiles with their types
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('entertainments')
+          .select(`
+            *,
+            entertainment_types(*)
+          `);
+
+        if (profilesError) throw profilesError;
+
+        setEntertainmentTypes(typesData || []);
+        setEntertainmentProfiles(profilesData || []);
+      } catch (err: any) {
+        console.error('Error fetching data:', err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   // Filter profiles based on selected entertainment types
   const filteredProfiles = selectedEntertainmentTypes.length > 0 
-    ? mockEntertainmentProfiles.filter(profile => selectedEntertainmentTypes.includes(profile.type))
-    : mockEntertainmentProfiles;
+    ? entertainmentProfiles.filter(profile => 
+        selectedEntertainmentTypes.includes(profile.ent_type_id?.toString())
+      )
+    : entertainmentProfiles;
 
-  const entertainmentTypeOptions = [
-    { value: "musicians", label: "Musicians", icon: Music },
-    { value: "dj_music", label: "DJ Music", icon: Music },
-    { value: "performer", label: "Performer", icon: Users },
-    { value: "standup_comic", label: "Standup Comic", icon: MessageCircle },
-    { value: "speaker", label: "Speaker", icon: Presentation },
-    { value: "stage_production", label: "Stage Production", icon: Theater },
-    { value: "other", label: "Other", icon: HelpCircle }
-  ];
+  // Get icon for entertainment type
+  const getEntertainmentIcon = (typeName: string) => {
+    const iconMap: { [key: string]: any } = {
+      'musician': Music,
+      'dj': Music,
+      'music': Music,
+      'performer': Users,
+      'standup': MessageCircle,
+      'comic': MessageCircle,
+      'speaker': Presentation,
+      'stage': Theater,
+      'production': Theater,
+      'other': HelpCircle
+    };
+
+    const lowerName = typeName.toLowerCase();
+    for (const [key, icon] of Object.entries(iconMap)) {
+      if (lowerName.includes(key)) {
+        return icon;
+      }
+    }
+    return HelpCircle;
+  };
 
   return (
     <div className="space-y-6">
@@ -103,46 +94,58 @@ const EntertainmentDirectory = () => {
           <CardTitle>Select Entertainment Types</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-3">
-            <label className="text-sm font-medium">Entertainment Types (select all that apply)</label>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {entertainmentTypeOptions.map((option) => {
-                const IconComponent = option.icon;
-                const isChecked = selectedEntertainmentTypes.includes(option.value);
-                return (
-                  <div key={option.value} className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50">
-                    <Checkbox
-                      id={option.value}
-                      checked={isChecked}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setSelectedEntertainmentTypes([...selectedEntertainmentTypes, option.value]);
-                        } else {
-                          setSelectedEntertainmentTypes(selectedEntertainmentTypes.filter(type => type !== option.value));
-                        }
-                      }}
-                    />
-                    <label htmlFor={option.value} className="flex items-center gap-2 cursor-pointer text-sm font-medium">
-                      <IconComponent size={16} />
-                      {option.label}
-                    </label>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-          
-          {selectedEntertainmentTypes.length > 0 && (
-            <div className="p-4 bg-muted rounded-lg">
-              <h3 className="font-medium mb-2">Selected Entertainment Types:</h3>
-              <div className="flex flex-wrap gap-2">
-                {selectedEntertainmentTypes.map(type => (
-                  <span key={type} className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
-                    {entertainmentTypeOptions.find(opt => opt.value === type)?.label}
-                  </span>
-                ))}
+          {loading ? (
+            <p className="text-center py-4">Loading entertainment types...</p>
+          ) : error ? (
+            <p className="text-center py-4 text-destructive">Error loading data: {error}</p>
+          ) : (
+            <>
+              <div className="space-y-3">
+                <label className="text-sm font-medium">Entertainment Types (select all that apply)</label>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {entertainmentTypes.map((type) => {
+                    const IconComponent = getEntertainmentIcon(type.name || '');
+                    const isChecked = selectedEntertainmentTypes.includes(type.id?.toString());
+                    return (
+                      <div key={type.id} className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50">
+                        <Checkbox
+                          id={type.id?.toString()}
+                          checked={isChecked}
+                          onCheckedChange={(checked) => {
+                            const typeId = type.id?.toString();
+                            if (checked) {
+                              setSelectedEntertainmentTypes([...selectedEntertainmentTypes, typeId]);
+                            } else {
+                              setSelectedEntertainmentTypes(selectedEntertainmentTypes.filter(id => id !== typeId));
+                            }
+                          }}
+                        />
+                        <label htmlFor={type.id?.toString()} className="flex items-center gap-2 cursor-pointer text-sm font-medium">
+                          <IconComponent size={16} />
+                          {type.name}
+                        </label>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+              
+              {selectedEntertainmentTypes.length > 0 && (
+                <div className="p-4 bg-muted rounded-lg">
+                  <h3 className="font-medium mb-2">Selected Entertainment Types:</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedEntertainmentTypes.map(typeId => {
+                      const type = entertainmentTypes.find(t => t.id?.toString() === typeId);
+                      return (
+                        <span key={typeId} className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
+                          {type?.name}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </>
           )}
 
           <Button 
@@ -160,38 +163,50 @@ const EntertainmentDirectory = () => {
           <CardTitle>Entertainment Profiles ({filteredProfiles.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          {filteredProfiles.length === 0 ? (
+          {loading ? (
+            <p className="text-center py-8">Loading entertainment profiles...</p>
+          ) : error ? (
+            <p className="text-center py-8 text-destructive">Error loading profiles: {error}</p>
+          ) : filteredProfiles.length === 0 ? (
             <p className="text-muted-foreground text-center py-8">
               No entertainment profiles match your selected criteria.
             </p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredProfiles.map((profile) => {
-                const typeOption = entertainmentTypeOptions.find(opt => opt.value === profile.type);
-                const IconComponent = typeOption?.icon || HelpCircle;
+                const entertainmentType = profile.entertainment_types?.name || 'Entertainment';
+                const IconComponent = getEntertainmentIcon(entertainmentType);
                 
                 return (
                   <Card key={profile.id} className="hover:shadow-lg transition-shadow">
                     <CardHeader className="pb-3">
                       <div className="flex items-center gap-2">
                         <IconComponent className="h-5 w-5 text-primary" />
-                        <CardTitle className="text-lg">{profile.business_name}</CardTitle>
+                        <CardTitle className="text-lg">{profile.business_name || 'Entertainment Provider'}</CardTitle>
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        {typeOption?.label || 'Other'}
+                        {entertainmentType}
                       </p>
                     </CardHeader>
                     <CardContent className="space-y-3">
                       <div>
                         <p className="font-semibold">{profile.contact_name}</p>
                         <p className="text-sm text-muted-foreground">{profile.email}</p>
-                        <p className="text-sm text-muted-foreground">{profile.contact_phone}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {profile.phone_number ? `(${String(profile.phone_number).slice(0,3)}) ${String(profile.phone_number).slice(3,6)}-${String(profile.phone_number).slice(6)}` : 'No phone provided'}
+                        </p>
                       </div>
                       
-                      <div>
-                        <p className="text-sm"><strong>Location:</strong> {profile.location}</p>
+                      <div className="space-y-2 text-sm">
+                        {profile.price && (
+                          <p><strong>Price:</strong> ${profile.price}</p>
+                        )}
+                        <p><strong>Location:</strong> {[profile.city, profile.state, profile.zip].filter(Boolean).join(', ') || 'Location not specified'}</p>
                       </div>
-                      <p className="text-sm text-muted-foreground">{profile.description}</p>
+                      
+                      {profile.description && (
+                        <p className="text-sm text-muted-foreground">{profile.description}</p>
+                      )}
                     </CardContent>
                   </Card>
                 );
