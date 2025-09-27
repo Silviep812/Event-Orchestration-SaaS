@@ -215,7 +215,7 @@ export const HospitalitySelector = ({ onSelectHospitality, selectedHospitality }
           
           return (
             <Card 
-              key={hospitality.id}
+              key={`${hospitality.business_name}-${hospitality.city}-${hospitality.hospitality_type}`}
               className={`cursor-pointer transition-all duration-300 hover:scale-105 border-2 ${
                 isSelected ? 'border-primary shadow-lg' : 'border-border'
               }`}

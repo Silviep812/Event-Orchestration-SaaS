@@ -2266,6 +2266,80 @@ export type Database = {
         }
         Relationships: []
       }
+      venue_types: {
+        Row: {
+          created_at: string
+          id: number
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      venues: {
+        Row: {
+          business_name: string
+          capacity: number | null
+          city: string | null
+          contact_name: string | null
+          created_at: string
+          email: string | null
+          id: string
+          phone_number: string | null
+          state: string | null
+          updated_at: string
+          venue_type_id: number | null
+          zip: string | null
+        }
+        Insert: {
+          business_name: string
+          capacity?: number | null
+          city?: string | null
+          contact_name?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          phone_number?: string | null
+          state?: string | null
+          updated_at?: string
+          venue_type_id?: number | null
+          zip?: string | null
+        }
+        Update: {
+          business_name?: string
+          capacity?: number | null
+          city?: string | null
+          contact_name?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          phone_number?: string | null
+          state?: string | null
+          updated_at?: string
+          venue_type_id?: number | null
+          zip?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "venues_venue_type_id_fkey"
+            columns: ["venue_type_id"]
+            isOneToOne: false
+            referencedRelation: "venue_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       create_event_safe: {
