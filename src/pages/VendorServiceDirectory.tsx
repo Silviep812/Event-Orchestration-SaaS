@@ -205,7 +205,7 @@ const VendorServiceDirectory = () => {
                         <p className="font-semibold">{profile.contact_name}</p>
                         <p className="text-sm text-muted-foreground">{profile.email}</p>
                         <p className="text-sm text-muted-foreground">
-                          {profile.phone_number ? `(${String(profile.phone_number).slice(0,3)}) ${String(profile.phone_number).slice(3,6)}-${String(profile.phone_number).slice(6)}` : 'No phone provided'}
+                          {profile.phone_number ? profile.phone_number : 'No phone provided'}
                         </p>
                       </div>
                       
