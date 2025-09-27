@@ -21,7 +21,7 @@ const VenueDirectory = () => {
     try {
       setLoading(true);
       const { data, error } = await supabase
-        .from('Venue Profile')
+        .from('venues')
         .select('*');
 
       if (error) {
@@ -180,7 +180,7 @@ const VenueDirectory = () => {
                     <CardHeader className="pb-3">
                       <div className="flex items-center gap-2">
                         <IconComponent className="h-5 w-5 text-primary" />
-                        <CardTitle className="text-lg">{profile.ven_biz_name || 'Venue Name'}</CardTitle>
+                        <CardTitle className="text-lg">{profile.business_name || 'Venue Name'}</CardTitle>
                       </div>
                       <p className="text-sm text-muted-foreground">
                         {typeOption?.label || 'Other'}
@@ -188,10 +188,10 @@ const VenueDirectory = () => {
                     </CardHeader>
                     <CardContent className="space-y-3">
                       <div>
-                        <p className="font-semibold">{profile.ven_contact_name}</p>
-                        <p className="text-sm text-muted-foreground">{profile.ven_email}</p>
+                        <p className="font-semibold">{profile.contact_name}</p>
+                        <p className="text-sm text-muted-foreground">{profile.email}</p>
                         <p className="text-sm text-muted-foreground">
-                          {profile.ven_contact_ph_nbr ? `(${String(profile.ven_contact_ph_nbr).slice(0,3)}) ${String(profile.ven_contact_ph_nbr).slice(3,6)}-${String(profile.ven_contact_ph_nbr).slice(6)}` : 'No phone provided'}
+                          {profile.phone_number ? `(${String(profile.phone_number).slice(0,3)}) ${String(profile.phone_number).slice(3,6)}-${String(profile.phone_number).slice(6)}` : 'No phone provided'}
                         </p>
                       </div>
                       
@@ -199,7 +199,10 @@ const VenueDirectory = () => {
                         {profile.ven_price && (
                           <p><strong>Price:</strong> ${profile.ven_price}</p>
                         )}
-                        <p><strong>Location:</strong> {profile.ven_locatiom || 'Location not specified'}</p>
+                        {profile.capacity && (
+                          <p><strong>Capacity:</strong> {profile.capacity} guests</p>
+                        )}
+                        <p><strong>Location:</strong> {[profile.city, profile.state, profile.zip].join(', ') || 'Location not specified'}</p>
                       </div>
                     </CardContent>
                   </Card>
