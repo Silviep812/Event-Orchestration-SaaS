@@ -331,13 +331,6 @@ export const VenueSelector = ({ onSelectVenue, selectedVenue }: VenueSelectorPro
                 <div className="flex gap-2">
                   <Button 
                     className="flex-1" 
-                    variant="outline"
-                    size="sm"
-                  >
-                    View Details
-                  </Button>
-                  <Button 
-                    className="flex-1" 
                     variant={isSelected ? "default" : "outline"}
                     onClick={() => handleBooking(venue)}
                     size="sm"
