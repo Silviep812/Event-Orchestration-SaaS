@@ -8,37 +8,52 @@ import { useToast } from "@/hooks/use-toast";
 
 const VenueDirectory = () => {
   const [venueProfiles, setVenueProfiles] = useState<any[]>([]);
+  const [venueTypes, setVenueTypes] = useState<any[]>([]);
   const [selectedVenueTypes, setSelectedVenueTypes] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  // Fetch venue profiles from Supabase
+  // Fetch venue profiles and types from Supabase
   useEffect(() => {
-    fetchVenueProfiles();
+    fetchData();
   }, []);
 
-  const fetchVenueProfiles = async () => {
+  const fetchData = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('venues')
-        .select('*');
+      
+      // Fetch both venues and venue types
+      const [venuesResponse, typesResponse] = await Promise.all([
+        supabase.from('venues').select('*'),
+        supabase.from('venue_types').select('*')
+      ]);
 
-      if (error) {
-        console.error('Error fetching venue profiles:', error);
+      if (venuesResponse.error) {
+        console.error('Error fetching venues:', venuesResponse.error);
         toast({
           title: "Error",
-          description: "Failed to load venue profiles. Please try again.",
+          description: "Failed to load venues. Please try again.",
           variant: "destructive"
         });
       } else {
-        setVenueProfiles(data || []);
+        setVenueProfiles(venuesResponse.data || []);
+      }
+
+      if (typesResponse.error) {
+        console.error('Error fetching venue types:', typesResponse.error);
+        toast({
+          title: "Error", 
+          description: "Failed to load venue types. Please try again.",
+          variant: "destructive"
+        });
+      } else {
+        setVenueTypes(typesResponse.data || []);
       }
     } catch (error) {
-      console.error('Error fetching venue profiles:', error);
+      console.error('Error fetching data:', error);
       toast({
         title: "Error",
-        description: "Failed to load venue profiles. Please try again.",
+        description: "Failed to load data. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -46,48 +61,55 @@ const VenueDirectory = () => {
     }
   };
 
-  // Map venue type IDs to readable types
-  const mapVenueTypeId = (typeId: string) => {
-    const typeMap: { [key: string]: string } = {
-      'private_resident': 'private_resident',
-      'business_location': 'business_location', 
-      'restaurant_location': 'restaurant_location',
-      'resort_location': 'resort_location',
-      'recreation_location': 'recreation_location',
-      'private_club': 'private_club',
-      'market_place': 'market_place',
-      'local_govern_location': 'local_govern_location',
-      'hospitality_location': 'hospitality_location',
-      'agri_farming': 'agri_farming',
-      'warehouse': 'warehouse',
-      'state_govern_location': 'state_govern_location',
-      'sporting_facility': 'sporting_facility',
-      'other': 'other'
-    };
-    return typeMap[typeId] || 'other';
+  // Get venue type by ID
+  const getVenueTypeById = (typeId: string) => {
+    return venueTypes.find(type => type.id === typeId);
   };
 
   // Filter profiles based on selected venue types
   const filteredProfiles = selectedVenueTypes.length > 0 
-    ? venueProfiles.filter(profile => selectedVenueTypes.includes(mapVenueTypeId(profile.venue_type_id)))
+    ? venueProfiles.filter(profile => selectedVenueTypes.includes(profile.venue_type_id))
     : venueProfiles;
 
-  const venueTypeOptions = [
-    { value: "private_resident", label: "Private Resident", icon: Home },
-    { value: "business_location", label: "Business Location", icon: Building },
-    { value: "restaurant_location", label: "Restaurant Location", icon: Utensils },
-    { value: "resort_location", label: "Resort Location", icon: Hotel },
-    { value: "recreation_location", label: "Recreation Location", icon: Trees },
-    { value: "private_club", label: "Private Club", icon: Users },
-    { value: "market_place", label: "Market Place", icon: ShoppingBag },
-    { value: "local_govern_location", label: "Local Government Location", icon: Building2 },
-    { value: "hospitality_location", label: "Hospitality Location", icon: Hotel },
-    { value: "agri_farming", label: "Agri-Farming", icon: Trees },
-    { value: "warehouse", label: "Warehouse", icon: Warehouse },
-    { value: "state_govern_location", label: "State Government Location", icon: Building2 },
-    { value: "sporting_facility", label: "Sporting Facility", icon: Dumbbell },
-    { value: "other", label: "Other", icon: HelpCircle }
-  ];
+  // Create venue type options from fetched data
+  const getIconForType = (typeName: string) => {
+    const iconMap: { [key: string]: any } = {
+      'private_resident': Home,
+      'private resident': Home,
+      'business_location': Building,
+      'business location': Building,
+      'restaurant_location': Utensils,
+      'restaurant location': Utensils,
+      'resort_location': Hotel,
+      'resort location': Hotel,
+      'recreation_location': Trees,
+      'recreation location': Trees,
+      'private_club': Users,
+      'private club': Users,
+      'market_place': ShoppingBag,
+      'market place': ShoppingBag,
+      'local_govern_location': Building2,
+      'local government location': Building2,
+      'hospitality_location': Hotel,
+      'hospitality location': Hotel,
+      'agri_farming': Trees,
+      'agri farming': Trees,
+      'warehouse': Warehouse,
+      'state_govern_location': Building2,
+      'state government location': Building2,
+      'sporting_facility': Dumbbell,
+      'sporting facility': Dumbbell,
+      'other': HelpCircle
+    };
+    const normalizedName = typeName.toLowerCase().replace(/[-_]/g, ' ');
+    return iconMap[normalizedName] || HelpCircle;
+  };
+
+  const venueTypeOptions = venueTypes.map(type => ({
+    value: type.id,
+    label: type.name,
+    icon: getIconForType(type.name)
+  }));
 
   return (
     <div className="space-y-6">
@@ -171,19 +193,19 @@ const VenueDirectory = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredProfiles.map((profile) => {
-                const mappedType = mapVenueTypeId(profile.venue_type_id);
-                const typeOption = venueTypeOptions.find(opt => opt.value === mappedType);
+                const venueType = getVenueTypeById(profile.venue_type_id);
+                const typeOption = venueTypeOptions.find(opt => opt.value === profile.venue_type_id);
                 const IconComponent = typeOption?.icon || HelpCircle;
                 
                 return (
-                  <Card key={profile.created_at} className="hover:shadow-lg transition-shadow">
+                  <Card key={profile.id || profile.created_at} className="hover:shadow-lg transition-shadow">
                     <CardHeader className="pb-3">
                       <div className="flex items-center gap-2">
                         <IconComponent className="h-5 w-5 text-primary" />
                         <CardTitle className="text-lg">{profile.business_name || 'Venue Name'}</CardTitle>
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        {typeOption?.label || 'Other'}
+                        {venueType?.name || 'Other'}
                       </p>
                     </CardHeader>
                     <CardContent className="space-y-3">
@@ -191,18 +213,18 @@ const VenueDirectory = () => {
                         <p className="font-semibold">{profile.contact_name}</p>
                         <p className="text-sm text-muted-foreground">{profile.email}</p>
                         <p className="text-sm text-muted-foreground">
-                          {profile.phone_number ? `(${String(profile.phone_number).slice(0,3)}) ${String(profile.phone_number).slice(3,6)}-${String(profile.phone_number).slice(6)}` : 'No phone provided'}
+                          {profile.phone_number ? profile.phone_number : 'No phone provided'}
                         </p>
                       </div>
                       
                       <div className="text-sm">
-                        {profile.ven_price && (
-                          <p><strong>Price:</strong> ${profile.ven_price}</p>
+                        {profile.price && (
+                          <p><strong>Price:</strong> ${profile.price}</p>
                         )}
                         {profile.capacity && (
                           <p><strong>Capacity:</strong> {profile.capacity} guests</p>
                         )}
-                        <p><strong>Location:</strong> {[profile.city, profile.state, profile.zip].join(', ') || 'Location not specified'}</p>
+                        <p><strong>Location:</strong> {[profile.city, profile.state, profile.zip].filter(Boolean).join(', ') || 'Location not specified'}</p>
                       </div>
                     </CardContent>
                   </Card>
