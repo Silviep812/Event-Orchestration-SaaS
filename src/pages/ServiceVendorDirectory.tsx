@@ -7,122 +7,82 @@ import { ChefHat, Camera, Utensils, Cake, Truck, Flower } from "lucide-react";
 
 const ServiceVendorDirectory = () => {
   const [vendorTypes, setVendorTypes] = useState<any[]>([]);
+  const [vendorProfiles, setVendorProfiles] = useState<any[]>([]);
   const [selectedVendorTypes, setSelectedVendorTypes] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock service vendor profiles data
-  const mockVendorProfiles = [
-    {
-      id: 1,
-      business_name: "Gourmet Delights Catering",
-      contact_name: "Maria Rodriguez",
-      email: "maria@gourmetdelights.com",
-      contact_phone: "(555) 123-4567",
-      type: "caterer",
-      location: "San Francisco, CA",
-      description: "Full-service catering for weddings, corporate events, and special occasions",
-      specialties: ["Italian cuisine", "Vegetarian options", "Custom menus"]
-    },
-    {
-      id: 2,
-      business_name: "Chef Alexander's Kitchen",
-      contact_name: "Alexander Thompson",
-      email: "alex@chefalexander.com",
-      contact_phone: "(555) 987-6543",
-      type: "chef",
-      location: "New York, NY",
-      description: "Private chef services for intimate gatherings and exclusive events",
-      specialties: ["French cuisine", "Molecular gastronomy", "Wine pairing"]
-    },
-    {
-      id: 3,
-      business_name: "Sweet Dreams Bakery",
-      contact_name: "Sarah Johnson",
-      email: "sarah@sweetdreams.com",
-      contact_phone: "(555) 456-7890",
-      type: "bakery",
-      location: "Chicago, IL",
-      description: "Custom wedding cakes, desserts, and pastries for all occasions",
-      specialties: ["Wedding cakes", "Gluten-free options", "Custom designs"]
-    },
-    {
-      id: 4,
-      business_name: "Cinematic Moments",
-      contact_name: "David Chen",
-      email: "david@cinematicmoments.com",
-      contact_phone: "(555) 321-0987",
-      type: "videographer",
-      location: "Los Angeles, CA",
-      description: "Professional videography for weddings and corporate events",
-      specialties: ["4K filming", "Drone footage", "Same-day highlights"]
-    },
-    {
-      id: 5,
-      business_name: "Bloom & Petal Florists",
-      contact_name: "Jennifer Park",
-      email: "jennifer@bloomandpetal.com",
-      contact_phone: "(555) 654-3210",
-      type: "florist",
-      location: "Seattle, WA",
-      description: "Elegant floral arrangements and wedding decorations",
-      specialties: ["Bridal bouquets", "Centerpieces", "Seasonal flowers"]
-    },
-    {
-      id: 6,
-      business_name: "Rolling Feast Food Truck",
-      contact_name: "Mike Wilson",
-      email: "mike@rollingfeast.com",
-      contact_phone: "(555) 789-0123",
-      type: "food_truck",
-      location: "Austin, TX",
-      description: "Gourmet street food and mobile catering services",
-      specialties: ["BBQ", "Tacos", "Vegan options"]
-    },
-    {
-      id: 7,
-      business_name: "Artisan Brew Company",
-      contact_name: "Lisa Martinez",
-      email: "lisa@artisanbrew.com",
-      contact_phone: "(555) 111-2222",
-      type: "brewery",
-      location: "Denver, CO",
-      description: "Craft beer services and mobile bar setup for events",
-      specialties: ["Craft beer", "Custom labels", "Beer tasting"]
-    },
-    {
-      id: 8,
-      business_name: "Tuscany Vineyards",
-      contact_name: "Robert Anderson",
-      email: "robert@tuscanyvineyards.com",
-      contact_phone: "(555) 333-4444",
-      type: "winery",
-      location: "Napa Valley, CA",
-      description: "Premium wine services and sommelier experiences",
-      specialties: ["Wine tasting", "Sommelier service", "Custom wine selection"]
-    }
-  ];
+  // Fetch vendor types and profiles from Supabase
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Fetch vendor types
+        const { data: typesData, error: typesError } = await supabase
+          .from('vendor_supplier_types')
+          .select('*');
+
+        if (typesError) throw typesError;
+
+        // Fetch vendor profiles with their types
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('serv_vendor_suppliers')
+          .select(`
+            *,
+            vendor_supplier_types(*)
+          `);
+
+        if (profilesError) throw profilesError;
+
+        setVendorTypes(typesData || []);
+        setVendorProfiles(profilesData || []);
+      } catch (err: any) {
+        console.error('Error fetching data:', err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   // Filter profiles based on selected vendor types
   const filteredProfiles = selectedVendorTypes.length > 0 
-    ? mockVendorProfiles.filter(profile => selectedVendorTypes.includes(profile.type))
-    : mockVendorProfiles;
+    ? vendorProfiles.filter(profile => 
+        selectedVendorTypes.includes(profile.vendor_sup_type_id?.toString())
+      )
+    : vendorProfiles;
 
-  const vendorTypeOptions = [
-    { value: "caterer", label: "Caterer", icon: Utensils },
-    { value: "chef", label: "Chef", icon: ChefHat },
-    { value: "bakery", label: "Bakery", icon: Cake },
-    { value: "videographer", label: "Videographer", icon: Camera },
-    // Vendor Directory entries
-    { value: "food_truck", label: "Food Truck", icon: Truck },
-    { value: "mobile_pop_up", label: "Mobile Pop-Up", icon: Truck },
-    { value: "ice_sculpure", label: "Ice Sculpture", icon: Utensils },
-    { value: "florist", label: "Florist", icon: Flower },
-    { value: "foodies", label: "Foodies", icon: Utensils },
-    { value: "beverage", label: "Beverage", icon: Utensils },
-    { value: "brewery", label: "Brewery", icon: Utensils },
-    { value: "winery", label: "Winery", icon: Utensils },
-    { value: "other", label: "Other", icon: Utensils }
-  ];
+  // Get icon for vendor type
+  const getVendorIcon = (typeName: string) => {
+    const iconMap: { [key: string]: any } = {
+      'caterer': Utensils,
+      'chef': ChefHat,
+      'bakery': Cake,
+      'videographer': Camera,
+      'food': Truck,
+      'truck': Truck,
+      'mobile': Truck,
+      'ice': Utensils,
+      'florist': Flower,
+      'flower': Flower,
+      'beverage': Utensils,
+      'brewery': Utensils,
+      'winery': Utensils,
+      'photo': Camera
+    };
+
+    const lowerName = typeName.toLowerCase();
+    for (const [key, icon] of Object.entries(iconMap)) {
+      if (lowerName.includes(key)) {
+        return icon;
+      }
+    }
+    return Utensils;
+  };
 
   return (
     <div className="space-y-6">
@@ -138,46 +98,58 @@ const ServiceVendorDirectory = () => {
           <CardTitle>Select Vendor Types</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-3">
-            <label className="text-sm font-medium">Vendor Types (select all that apply)</label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {vendorTypeOptions.map((option) => {
-                const IconComponent = option.icon;
-                const isChecked = selectedVendorTypes.includes(option.value);
-                return (
-                  <div key={option.value} className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50">
-                    <Checkbox
-                      id={option.value}
-                      checked={isChecked}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setSelectedVendorTypes([...selectedVendorTypes, option.value]);
-                        } else {
-                          setSelectedVendorTypes(selectedVendorTypes.filter(type => type !== option.value));
-                        }
-                      }}
-                    />
-                    <label htmlFor={option.value} className="flex items-center gap-2 cursor-pointer text-sm font-medium">
-                      <IconComponent size={16} />
-                      {option.label}
-                    </label>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-          
-          {selectedVendorTypes.length > 0 && (
-            <div className="p-4 bg-muted rounded-lg">
-              <h3 className="font-medium mb-2">Selected Vendor Types:</h3>
-              <div className="flex flex-wrap gap-2">
-                {selectedVendorTypes.map(type => (
-                  <span key={type} className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
-                    {vendorTypeOptions.find(opt => opt.value === type)?.label}
-                  </span>
-                ))}
+          {loading ? (
+            <p className="text-center py-4">Loading vendor types...</p>
+          ) : error ? (
+            <p className="text-center py-4 text-destructive">Error loading data: {error}</p>
+          ) : (
+            <>
+              <div className="space-y-3">
+                <label className="text-sm font-medium">Vendor Types (select all that apply)</label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {vendorTypes.map((type) => {
+                    const IconComponent = getVendorIcon(type.name || '');
+                    const isChecked = selectedVendorTypes.includes(type.id?.toString());
+                    return (
+                      <div key={type.id} className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50">
+                        <Checkbox
+                          id={type.id?.toString()}
+                          checked={isChecked}
+                          onCheckedChange={(checked) => {
+                            const typeId = type.id?.toString();
+                            if (checked) {
+                              setSelectedVendorTypes([...selectedVendorTypes, typeId]);
+                            } else {
+                              setSelectedVendorTypes(selectedVendorTypes.filter(id => id !== typeId));
+                            }
+                          }}
+                        />
+                        <label htmlFor={type.id?.toString()} className="flex items-center gap-2 cursor-pointer text-sm font-medium">
+                          <IconComponent size={16} />
+                          {type.name}
+                        </label>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+              
+              {selectedVendorTypes.length > 0 && (
+                <div className="p-4 bg-muted rounded-lg">
+                  <h3 className="font-medium mb-2">Selected Vendor Types:</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedVendorTypes.map(typeId => {
+                      const type = vendorTypes.find(t => t.id?.toString() === typeId);
+                      return (
+                        <span key={typeId} className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
+                          {type?.name}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </>
           )}
 
           <Button 
@@ -195,45 +167,56 @@ const ServiceVendorDirectory = () => {
           <CardTitle>Vendor Profiles ({filteredProfiles.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          {filteredProfiles.length === 0 ? (
+          {loading ? (
+            <p className="text-center py-8">Loading vendor profiles...</p>
+          ) : error ? (
+            <p className="text-center py-8 text-destructive">Error loading profiles: {error}</p>
+          ) : filteredProfiles.length === 0 ? (
             <p className="text-muted-foreground text-center py-8">
               No vendor profiles match your selected criteria.
             </p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredProfiles.map((profile) => {
-                const typeOption = vendorTypeOptions.find(opt => opt.value === profile.type);
-                const IconComponent = typeOption?.icon || Utensils;
+                const vendorType = profile.vendor_supplier_types?.name || 'Service Vendor';
+                const IconComponent = getVendorIcon(vendorType);
                 
                 return (
                   <Card key={profile.id} className="hover:shadow-lg transition-shadow">
                     <CardHeader className="pb-3">
                       <div className="flex items-center gap-2">
                         <IconComponent className="h-5 w-5 text-primary" />
-                        <CardTitle className="text-lg">{profile.business_name}</CardTitle>
+                        <CardTitle className="text-lg">{profile.business_name || 'Vendor'}</CardTitle>
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        {typeOption?.label || 'Other'}
+                        {vendorType}
                       </p>
                     </CardHeader>
                     <CardContent className="space-y-3">
                       <div>
                         <p className="font-semibold">{profile.contact_name}</p>
                         <p className="text-sm text-muted-foreground">{profile.email}</p>
-                        <p className="text-sm text-muted-foreground">{profile.contact_phone}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {profile.phone_number ? `(${String(profile.phone_number).slice(0,3)}) ${String(profile.phone_number).slice(3,6)}-${String(profile.phone_number).slice(6)}` : 'No phone provided'}
+                        </p>
                       </div>
                       
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        <p><strong>Location:</strong> {profile.location}</p>
+                      <div className="space-y-2 text-sm">
+                        {profile.price && (
+                          <p><strong>Price:</strong> ${profile.price}</p>
+                        )}
+                        <p><strong>Location:</strong> {[profile.city, profile.state, profile.zip].filter(Boolean).join(', ') || 'Location not specified'}</p>
                       </div>
                       
-                      <p className="text-sm text-muted-foreground">{profile.description}</p>
+                      {profile.description && (
+                        <p className="text-sm text-muted-foreground">{profile.description}</p>
+                      )}
                       
-                      {profile.specialties.length > 0 && (
+                      {profile.specialties && profile.specialties.length > 0 && (
                         <div>
                           <p className="text-sm font-medium mb-1">Specialties:</p>
                           <div className="flex flex-wrap gap-1">
-                            {profile.specialties.map((specialty, index) => (
+                            {profile.specialties.map((specialty: string, index: number) => (
                               <span key={index} className="text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded">
                                 {specialty}
                               </span>
