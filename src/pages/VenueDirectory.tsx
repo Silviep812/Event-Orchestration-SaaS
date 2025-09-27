@@ -21,8 +21,6 @@ const VenueDirectory = () => {
       type: "business_location",
       capacity: 300,
       location: "Downtown Los Angeles, CA",
-      description: "Elegant ballroom with crystal chandeliers and marble floors, perfect for upscale events",
-      amenities: ["Catering kitchen", "AV equipment", "Valet parking", "Bridal suite"],
       venue_type: "Ballroom"
     },
     {
@@ -34,8 +32,6 @@ const VenueDirectory = () => {
       type: "resort_location",
       capacity: 150,
       location: "Malibu, CA",
-      description: "Beachfront resort with panoramic ocean views and outdoor ceremony spaces",
-      amenities: ["Ocean view", "Outdoor terrace", "Beach access", "On-site catering"],
       venue_type: "Resort"
     },
     {
@@ -47,8 +43,6 @@ const VenueDirectory = () => {
       type: "private_resident",
       capacity: 80,
       location: "Napa Valley, CA",
-      description: "Charming Victorian manor with beautiful gardens and vineyard views",
-      amenities: ["Historic architecture", "Garden ceremony space", "Wine cellar", "Guest quarters"],
       venue_type: "Private Estate"
     },
     {
@@ -60,8 +54,6 @@ const VenueDirectory = () => {
       type: "sporting_facility",
       capacity: 500,
       location: "Chicago, IL",
-      description: "Modern sports facility with multiple event spaces and state-of-the-art amenities",
-      amenities: ["Multiple event rooms", "Concession stands", "Ample parking", "Sound system"],
       venue_type: "Sports Facility"
     },
     {
@@ -73,8 +65,6 @@ const VenueDirectory = () => {
       type: "restaurant_location",
       capacity: 120,
       location: "Miami, FL",
-      description: "Upscale Italian restaurant with private dining rooms and rooftop terrace",
-      amenities: ["Private dining room", "Rooftop terrace", "Full kitchen", "Wine selection"],
       venue_type: "Restaurant"
     },
     {
@@ -86,8 +76,6 @@ const VenueDirectory = () => {
       type: "agri_farming",
       capacity: 200,
       location: "Austin, TX",
-      description: "Rustic barn venue surrounded by rolling hills and farmland, perfect for country weddings",
-      amenities: ["Rustic barn", "Outdoor ceremony space", "Farmland views", "Vintage decor"],
       venue_type: "Farm Venue"
     },
     {
@@ -99,8 +87,6 @@ const VenueDirectory = () => {
       type: "private_club",
       capacity: 180,
       location: "Scottsdale, AZ",
-      description: "Exclusive country club with golf course views and luxury amenities",
-      amenities: ["Golf course views", "Clubhouse", "Professional staff", "Member privileges"],
       venue_type: "Country Club"
     },
     {
@@ -112,8 +98,6 @@ const VenueDirectory = () => {
       type: "warehouse",
       capacity: 400,
       location: "Portland, OR",
-      description: "Converted warehouse with exposed brick walls and industrial charm",
-      amenities: ["Exposed brick", "High ceilings", "Open floor plan", "Urban location"],
       venue_type: "Industrial Venue"
     }
   ];
@@ -239,25 +223,10 @@ const VenueDirectory = () => {
                         <p className="text-sm text-muted-foreground">{profile.contact_phone}</p>
                       </div>
                       
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        <p><strong>Location:</strong> {profile.location}</p>
+                      <div className="text-sm">
                         <p><strong>Capacity:</strong> {profile.capacity} guests</p>
+                        <p><strong>Location:</strong> {profile.location}</p>
                       </div>
-                      
-                      <p className="text-sm text-muted-foreground">{profile.description}</p>
-                      
-                      {profile.amenities.length > 0 && (
-                        <div>
-                          <p className="text-sm font-medium mb-1">Amenities:</p>
-                          <div className="flex flex-wrap gap-1">
-                            {profile.amenities.map((amenity, index) => (
-                              <span key={index} className="text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded">
-                                {amenity}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
                     </CardContent>
                   </Card>
                 );
