@@ -29,6 +29,34 @@ interface VendorSupplierType {
   updated_at: string;
 }
 
+interface VendorRental {
+  id: string;
+  business_name: string;
+  contact_name: string | null;
+  email: string;
+  phone_number: string;
+  city: string;
+  state: string;
+  zip: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface VendorRentalType {
+  id: number;
+  name: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface VendorRentalAssignment {
+  id: number;
+  serv_vendor_rental_id: string;
+  vendor_rental_type_id: number;
+  created_at: string;
+  updated_at: string;
+}
+
 interface Service {
   id: string;
   category: "vendor" | "rental";
@@ -126,29 +154,41 @@ export function ServiceSelector({ onSelectService, selectedService }: ServiceSel
   const [activeTab, setActiveTab] = useState("vendor");
   const [vendors, setVendors] = useState<VendorSupplier[]>([]);
   const [vendorTypes, setVendorTypes] = useState<VendorSupplierType[]>([]);
+  const [rentals, setRentals] = useState<VendorRental[]>([]);
+  const [rentalTypes, setRentalTypes] = useState<VendorRentalType[]>([]);
+  const [rentalAssignments, setRentalAssignments] = useState<VendorRentalAssignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchVendorsAndTypes();
+    fetchAllData();
   }, []);
 
-  const fetchVendorsAndTypes = async () => {
+  const fetchAllData = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Fetch vendor suppliers and types
-      const [vendorsResult, typesResult] = await Promise.all([
+      // Fetch all data in parallel
+      const [vendorsResult, vendorTypesResult, rentalsResult, rentalTypesResult, assignmentsResult] = await Promise.all([
         supabase.from('serv_vendor_suppliers').select('*'),
-        supabase.from('vendor_supplier_types').select('*')
+        supabase.from('vendor_supplier_types').select('*'),
+        supabase.from('serv_vendor_rentals').select('*'),
+        supabase.from('vendor_rental_types').select('*'),
+        supabase.from('serv_vendor_rental_assignments').select('*')
       ]);
 
       if (vendorsResult.error) throw vendorsResult.error;
-      if (typesResult.error) throw typesResult.error;
+      if (vendorTypesResult.error) throw vendorTypesResult.error;
+      if (rentalsResult.error) throw rentalsResult.error;
+      if (rentalTypesResult.error) throw rentalTypesResult.error;
+      if (assignmentsResult.error) throw assignmentsResult.error;
 
       setVendors(vendorsResult.data || []);
-      setVendorTypes(typesResult.data || []);
+      setVendorTypes(vendorTypesResult.data || []);
+      setRentals(rentalsResult.data || []);
+      setRentalTypes(rentalTypesResult.data || []);
+      setRentalAssignments(assignmentsResult.data || []);
     } catch (error) {
       console.error('Error fetching data:', error);
       setError('Failed to load services. Please try again.');
@@ -172,8 +212,33 @@ export function ServiceSelector({ onSelectService, selectedService }: ServiceSel
     };
   });
 
-  // Combine with mock rental services for now (rentals tab)
-  const allServices = [...convertedVendors, ...mockServices.filter(s => s.category === "rental")];
+  // Convert rentals to Service format for compatibility
+  const convertedRentals: Service[] = rentals.map(rental => {
+    // Find all rental types for this rental vendor through assignments
+    const rentalTypeIds = rentalAssignments
+      .filter(assignment => assignment.serv_vendor_rental_id === rental.id)
+      .map(assignment => assignment.vendor_rental_type_id);
+    
+    const associatedTypes = rentalTypes
+      .filter(type => rentalTypeIds.includes(type.id))
+      .map(type => type.name);
+
+    const location = `${rental.city}, ${rental.state} ${rental.zip}`.trim();
+    const rentalTypeName = associatedTypes.length > 0 ? associatedTypes.join(", ") : "Rental Services";
+
+    return {
+      id: rental.id,
+      category: "rental" as const,
+      type: rentalTypeName,
+      business_name: rental.business_name || "Unknown Business",
+      contact_name: rental.contact_name || undefined,
+      location: location,
+      description: `Email: ${rental.email} | Phone: ${rental.phone_number}`
+    };
+  });
+
+  // Combine all services
+  const allServices = [...convertedVendors, ...convertedRentals];
 
   const filteredServices = allServices.filter(service => {
     const matchesCategory = service.category === activeTab;
@@ -233,7 +298,7 @@ export function ServiceSelector({ onSelectService, selectedService }: ServiceSel
               ) : error ? (
                 <div className="text-center py-8 text-red-600">
                   <p>{error}</p>
-                  <Button onClick={fetchVendorsAndTypes} className="mt-2">Try Again</Button>
+                  <Button onClick={fetchAllData} className="mt-2">Try Again</Button>
                 </div>
               ) : (
                 <>
@@ -285,46 +350,63 @@ export function ServiceSelector({ onSelectService, selectedService }: ServiceSel
             </TabsContent>
 
             <TabsContent value="rental" className="space-y-4">
-              <div className="space-y-2">
-                <Label>Available Rental Types:</Label>
-                <div className="flex flex-wrap gap-2">
-                  {serviceTypes.map((type) => (
-                    <Badge key={type} variant="secondary" className="flex items-center gap-1">
-                      {getServiceIcon(type)}
-                      {type}
-                    </Badge>
-                  ))}
+              {loading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                  <p className="text-muted-foreground">Loading rental services...</p>
                 </div>
-              </div>
+              ) : error ? (
+                <div className="text-center py-8 text-red-600">
+                  <p>{error}</p>
+                  <Button onClick={fetchAllData} className="mt-2">Try Again</Button>
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <Label>Available Rental Types:</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {serviceTypes.map((type) => (
+                        <Badge key={type} variant="secondary" className="flex items-center gap-1">
+                          {getServiceIcon(type)}
+                          {type}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto">
-                {filteredServices.map((service) => (
-                  <Card 
-                    key={service.id}
-                    className={`cursor-pointer transition-all hover:shadow-md ${
-                      selectedService?.id === service.id ? 'ring-2 ring-primary' : ''
-                    }`}
-                    onClick={() => onSelectService(service)}
-                  >
-                    <CardContent className="p-4">
-                      <div className="space-y-2">
-                        <div className="flex items-start justify-between">
-                          <h4 className="font-semibold text-sm">{service.business_name}</h4>
-                          <Badge variant="outline" className="text-xs flex items-center gap-1">
-                            {getServiceIcon(service.type)}
-                            {service.type}
-                          </Badge>
-                        </div>
-                        
-                        <div className="space-y-1 text-sm text-muted-foreground">
-                          <p className="text-xs"><strong>Location:</strong> {service.location}</p>
-                          <p className="text-xs">{service.description}</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto">
+                    {filteredServices.map((service) => (
+                      <Card 
+                        key={service.id}
+                        className={`cursor-pointer transition-all hover:shadow-md ${
+                          selectedService?.id === service.id ? 'ring-2 ring-primary' : ''
+                        }`}
+                        onClick={() => onSelectService(service)}
+                      >
+                        <CardContent className="p-4">
+                          <div className="space-y-2">
+                            <div className="flex items-start justify-between">
+                              <h4 className="font-semibold text-sm">{service.business_name}</h4>
+                              <Badge variant="outline" className="text-xs flex items-center gap-1">
+                                {getServiceIcon(service.type)}
+                                {service.type}
+                              </Badge>
+                            </div>
+                            
+                            <div className="space-y-1 text-sm text-muted-foreground">
+                              {service.contact_name && (
+                                <p className="text-xs"><strong>Contact:</strong> {service.contact_name}</p>
+                              )}
+                              <p className="text-xs"><strong>Location:</strong> {service.location}</p>
+                              <p className="text-xs">{service.description}</p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </>
+              )}
             </TabsContent>
           </Tabs>
 
