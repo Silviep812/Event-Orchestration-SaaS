@@ -1292,6 +1292,84 @@ export type Database = {
         }
         Relationships: []
       }
+      serv_vendor_rental_types: {
+        Row: {
+          created_at: string
+          id: number
+          serv_vendor_rental_id: string | null
+          updated_at: string
+          vendor_rental_type_id: number | null
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          serv_vendor_rental_id?: string | null
+          updated_at?: string
+          vendor_rental_type_id?: number | null
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          serv_vendor_rental_id?: string | null
+          updated_at?: string
+          vendor_rental_type_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "serv_vendor_rental_types_serv_vendor_rental_id_fkey"
+            columns: ["serv_vendor_rental_id"]
+            isOneToOne: false
+            referencedRelation: "serv_vendor_rentals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "serv_vendor_rental_types_vendor_rental_type_id_fkey"
+            columns: ["vendor_rental_type_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_rental_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      serv_vendor_rentals: {
+        Row: {
+          business_name: string
+          city: string | null
+          contact_name: string | null
+          created_at: string
+          email: string | null
+          id: string
+          phone_number: string | null
+          state: string | null
+          updated_at: string
+          zip: string | null
+        }
+        Insert: {
+          business_name: string
+          city?: string | null
+          contact_name?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          phone_number?: string | null
+          state?: string | null
+          updated_at?: string
+          zip?: string | null
+        }
+        Update: {
+          business_name?: string
+          city?: string | null
+          contact_name?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          phone_number?: string | null
+          state?: string | null
+          updated_at?: string
+          zip?: string | null
+        }
+        Relationships: []
+      }
       serv_vendor_suppliers: {
         Row: {
           business_name: string
@@ -2347,6 +2425,27 @@ export type Database = {
           vendor_price?: number | null
           vendor_type?: string | null
           vendor_type_id?: string
+        }
+        Relationships: []
+      }
+      vendor_rental_types: {
+        Row: {
+          created_at: string
+          id: number
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          name?: string
+          updated_at?: string
         }
         Relationships: []
       }
