@@ -19,6 +19,11 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+interface HospitalityType {
+  id: number;
+  name: string;
+}
+
 interface HospitalityOption {
   business_name: string;
   contact_name: string;
@@ -28,6 +33,7 @@ interface HospitalityOption {
   state: string;
   zip: string;
   hospitality_type: number;
+  hospitality_type_details: HospitalityType;
 }
 
 interface HospitalitySelectorProps {
@@ -43,9 +49,11 @@ export const HospitalitySelector = ({ onSelectHospitality, selectedHospitality }
   const [locationFilter, setLocationFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [maxBudget, setMaxBudget] = useState("");
+  const [hospitalityTypes, setHospitalityTypes] = useState<HospitalityType[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
+    // fetchHospitalityTypes();
     fetchHospitalities();
   }, []);
 
@@ -54,10 +62,21 @@ export const HospitalitySelector = ({ onSelectHospitality, selectedHospitality }
   }, [hospitalities, searchTerm, locationFilter, typeFilter, maxBudget]);
 
   const fetchHospitalities = async () => {
+     // Fetch hospitality types first
+      const { data: typesData, error: typesError } = await supabase
+        .from('hospitality_types')
+        .select('*');
+
+      if (typesError) throw typesError;
+      setHospitalityTypes(typesData || []);
+
     try {
       const { data, error } = await supabase
         .from('hospitality_profiles')
-        .select('*');
+        .select(`
+          *,
+          hospitality_type_details:hospitality_types(*)
+        `);
 
       if (error) throw error;
       setHospitalities(data || []);
@@ -84,15 +103,17 @@ export const HospitalitySelector = ({ onSelectHospitality, selectedHospitality }
 
     if (locationFilter) {
       filtered = filtered.filter(item => 
-        [item.city, item.state, item.zip].filter(Boolean).join(', ')?.some(loc => 
-          loc.toLowerCase().includes(locationFilter.toLowerCase())
-        )
+        [item.city, item.state, item.zip]
+          .filter(Boolean)
+          .some(loc =>
+            loc.toLowerCase().includes(locationFilter.toLowerCase())
+          )
       );
     }
 
-    if (typeFilter && typeFilter !== "all") {
+    if (typeFilter && typeFilter !== 'all') {
       filtered = filtered.filter(item => 
-        item.hospitality_type?.toLowerCase().includes(typeFilter.toLowerCase())
+        item.hospitality_type === parseInt(typeFilter)
       );
     }
 
@@ -168,17 +189,18 @@ export const HospitalitySelector = ({ onSelectHospitality, selectedHospitality }
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="type">Service Type</Label>
+              <Label htmlFor="type">Hospitality Type</Label>
               <Select value={typeFilter} onValueChange={setTypeFilter}>
                 <SelectTrigger>
                   <SelectValue placeholder="Any type" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Any type</SelectItem>
-                  <SelectItem value="catering">Catering</SelectItem>
-                  <SelectItem value="hotel">Hotel</SelectItem>
-                  <SelectItem value="restaurant">Restaurant</SelectItem>
-                  <SelectItem value="bar">Bar Service</SelectItem>
+                  {hospitalityTypes.map((type) => (
+                    <SelectItem key={type.id} value={type.id.toString()}>
+                      {type.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -193,7 +215,7 @@ export const HospitalitySelector = ({ onSelectHospitality, selectedHospitality }
           
           return (
             <Card 
-              key={hospitality.hospitality_type}
+              key={hospitality.id}
               className={`cursor-pointer transition-all duration-300 hover:scale-105 border-2 ${
                 isSelected ? 'border-primary shadow-lg' : 'border-border'
               }`}
@@ -232,24 +254,6 @@ export const HospitalitySelector = ({ onSelectHospitality, selectedHospitality }
                     </div>
                   )}
                 </div>
-
-                {/* {hospitality.hosp_amendities && hospitality.hosp_amendities.length > 0 && (
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">Amenities</Label>
-                    <div className="flex flex-wrap gap-1">
-                      {hospitality.hosp_amendities.slice(0, 3).map((amenity, index) => (
-                        <Badge key={index} variant="outline" className="text-xs">
-                          {amenity}
-                        </Badge>
-                      ))}
-                      {hospitality.hosp_amendities.length > 3 && (
-                        <Badge variant="outline" className="text-xs">
-                          +{hospitality.hosp_amendities.length - 3} more
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                )} */}
 
                 <Button 
                   className="w-full" 
