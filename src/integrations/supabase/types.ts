@@ -413,6 +413,77 @@ export type Database = {
         }
         Relationships: []
       }
+      entertainment_types: {
+        Row: {
+          created_at: string
+          id: number
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      entertainments: {
+        Row: {
+          business_name: string
+          city: string | null
+          contact_name: string | null
+          created_at: string
+          email: string | null
+          ent_type_id: number | null
+          id: string
+          phone_number: string | null
+          state: string | null
+          updated_at: string
+          zip: string | null
+        }
+        Insert: {
+          business_name: string
+          city?: string | null
+          contact_name?: string | null
+          created_at?: string
+          email?: string | null
+          ent_type_id?: number | null
+          id?: string
+          phone_number?: string | null
+          state?: string | null
+          updated_at?: string
+          zip?: string | null
+        }
+        Update: {
+          business_name?: string
+          city?: string | null
+          contact_name?: string | null
+          created_at?: string
+          email?: string | null
+          ent_type_id?: number | null
+          id?: string
+          phone_number?: string | null
+          state?: string | null
+          updated_at?: string
+          zip?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entertainments_ent_type_id_fkey"
+            columns: ["ent_type_id"]
+            isOneToOne: false
+            referencedRelation: "entertainment_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       "Event Analytics": {
         Row: {
           avg_task_duration: number | null
