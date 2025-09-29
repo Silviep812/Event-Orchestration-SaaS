@@ -475,11 +475,6 @@ export const WorkflowDashboard = ({ userType, selectedTheme }: WorkflowDashboard
                           {card.value}
                         </div>
                         <div className="flex gap-2">
-                          {isSelected && (
-                            <Button variant="outline" size="sm">
-                              View Details
-                            </Button>
-                          )}
                           <Button variant={isSelected ? "secondary" : "default"} size="sm">
                             {isSelected ? "Change" : "Select"}
                           </Button>
