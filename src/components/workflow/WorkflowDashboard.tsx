@@ -235,6 +235,7 @@ const getPriorityColor = (priority: string) => {
 
 export const WorkflowDashboard = ({ userType, selectedTheme, setCurrentStep }: WorkflowDashboardProps) => {
   const [steps, setSteps] = useState<WorkflowStep[]>([]);
+  const [eventTasks, setEventTasks] = useState<any[]>([]);
   const [selections, setSelections] = useState<WorkflowSelections>({
     theme: '',
     hospitality: '',
@@ -339,6 +340,27 @@ export const WorkflowDashboard = ({ userType, selectedTheme, setCurrentStep }: W
   useEffect(() => {
     setSteps(workflowSteps[userType] || []);
   }, [userType]);
+
+  useEffect(() => {
+    const loadEventTasks = async () => {
+      const workflowData = await getWorkflowData();
+      if (workflowData?.event_id) {
+        const { data: tasks, error } = await supabase
+          .from('tasks')
+          .select('*')
+          .eq('event_id', workflowData.event_id)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('Error fetching tasks:', error);
+        } else {
+          setEventTasks(tasks || []);
+        }
+      }
+    };
+
+    loadEventTasks();
+  }, [getWorkflowData]);
 
   useEffect(() => {
     const loadWorkflowSelections = async () => {
@@ -608,6 +630,7 @@ export const WorkflowDashboard = ({ userType, selectedTheme, setCurrentStep }: W
       <Tabs defaultValue="timeline" className="space-y-4">
         <TabsList>
           <TabsTrigger value="timeline">Suggested Tasks</TabsTrigger>
+          <TabsTrigger value="event-tasks">Event Tasks</TabsTrigger>
         </TabsList>
 
         <TabsContent value="timeline" className="space-y-4">
@@ -661,6 +684,73 @@ export const WorkflowDashboard = ({ userType, selectedTheme, setCurrentStep }: W
                 </Card>
               );
             })}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="event-tasks" className="space-y-4">
+          <div className="space-y-4">
+            {eventTasks.length === 0 ? (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-12">
+                  <p className="text-muted-foreground mb-4">No tasks created yet</p>
+                  <Button size="sm">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create First Task
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              eventTasks.map((task, index) => {
+                const StatusIcon = getStatusIcon(task.status || "planning");
+                return (
+                  <Card key={task.id} className="relative">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start gap-3">
+                          <div className={`p-2 rounded-full ${getStatusColor(task.status || "planning")}`}>
+                            <StatusIcon className="h-4 w-4" />
+                          </div>
+                          <div className="space-y-1">
+                            <CardTitle className="text-lg">{task.title}</CardTitle>
+                            {task.description && (
+                              <CardDescription>{task.description}</CardDescription>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-end gap-2">
+                          <Badge 
+                            variant="outline" 
+                            className={getPriorityColor(task.priority || "medium")}
+                          >
+                            {(task.priority || "medium").toUpperCase()}
+                          </Badge>
+                          {task.due_date && (
+                            <span className="text-sm text-muted-foreground">
+                              Due: {new Date(task.due_date).toLocaleDateString()}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <div className="flex items-center justify-between">
+                        <Badge className={getStatusColor(task.status || "planning")}>
+                          {(task.status || "planning").toUpperCase()}
+                        </Badge>
+                        {task.estimated_hours && (
+                          <span className="text-sm text-muted-foreground">
+                            Est. {task.estimated_hours}h
+                          </span>
+                        )}
+                      </div>
+                    </CardContent>
+                    {index < eventTasks.length - 1 && (
+                      <div className="absolute left-8 bottom-0 w-0.5 h-6 bg-border transform translate-y-full" />
+                    )}
+                  </Card>
+                );
+              })
+            )}
           </div>
         </TabsContent>
       </Tabs>
