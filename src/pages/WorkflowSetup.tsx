@@ -16,7 +16,7 @@ type SetupStep = "user-type" | "theme" | "hospitality" | "venue" | "services" | 
 
 export default function WorkflowSetup() {
   const { userRoles } = useAuth();
-  const { saveWorkflowType, updateWorkflowSelections, loading, getWorkflowData } = useWorkflow();
+  const { saveWorkflowType, updateWorkflowSelections, loading } = useWorkflow();
   const [currentStep, setCurrentStep] = useState<SetupStep>("user-type");
   const [selectedUserType, setSelectedUserType] = useState<string>("");
   const [selectedTheme, setSelectedTheme] = useState<number | undefined>(undefined);
@@ -24,26 +24,6 @@ export default function WorkflowSetup() {
   const [selectedVenue, setSelectedVenue] = useState<string | undefined>(undefined);
   const [selectedServiceVendor, setSelectedServiceVendor] = useState<string | null>(null);
   const [selectedServiceRental, setSelectedServiceRental] = useState<string | null>(null);
-
-  // Check if user has completed workflow and redirect to dashboard
-  useEffect(() => {
-    const checkWorkflowCompletion = async () => {
-      const workflowData = await getWorkflowData();
-      
-      if (workflowData && workflowData.theme_id && (workflowData.serv_vendor_sup_id || workflowData.serv_vendor_rent_id)) {
-        // User has completed at least theme and services, show dashboard
-        setCurrentStep("dashboard");
-        setSelectedTheme(workflowData.theme_id);
-        if (workflowData.hospitality_id) setSelectedHospitality(workflowData.hospitality_id);
-        if (workflowData.venue_id) setSelectedVenue(workflowData.venue_id);
-        if (workflowData.serv_vendor_sup_id) setSelectedServiceVendor(workflowData.serv_vendor_sup_id);
-        if (workflowData.serv_vendor_rent_id) setSelectedServiceRental(workflowData.serv_vendor_rent_id);
-        setSelectedSupplier({ id: workflowData.supplier_id || 'default' });
-      }
-    };
-    
-    checkWorkflowCompletion();
-  }, [getWorkflowData]);
 
   // Auto-detect user type from Supabase roles
   useEffect(() => {
