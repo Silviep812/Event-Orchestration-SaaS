@@ -23,7 +23,7 @@ export default function WorkflowSetup() {
   const [selectedTheme, setSelectedTheme] = useState<number | undefined>(undefined);
   const [selectedHospitality, setSelectedHospitality] = useState<string | undefined>(undefined);
   const [selectedVenue, setSelectedVenue] = useState<string | undefined>(undefined);
-  const [selectedVendor, setSelectedVendor] = useState<any>(null);
+  const [selectedVendor, setSelectedVendor] = useState<string | null>(null);
   const [selectedService, setSelectedService] = useState<any>(null);
   const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
 
@@ -114,8 +114,12 @@ export default function WorkflowSetup() {
     setCurrentStep(getNextStepForUserType(selectedUserType, "venue"));
   };
 
-  const handleVendorSelection = (vendor: any) => {
-    setSelectedVendor(vendor);
+  const handleVendorSelection = async (vendorId: string) => {
+    setSelectedVendor(vendorId);
+    
+    // Save vendor selection to workflow
+    await updateWorkflowSelections({ supplier_id: vendorId });
+    
     setCurrentStep(getNextStepForUserType(selectedUserType, "vendors"));
   };
 

@@ -18,8 +18,8 @@ interface Vendor {
 }
 
 interface VendorSelectorProps {
-  onSelectVendor: (vendor: Vendor) => void;
-  selectedVendor: Vendor | null;
+  onSelectVendor: (vendorId: string) => void;
+  selectedVendor: string | null;
 }
 
 export function VendorSelector({ onSelectVendor, selectedVendor }: VendorSelectorProps) {
@@ -135,9 +135,9 @@ export function VendorSelector({ onSelectVendor, selectedVendor }: VendorSelecto
               <Card 
                 key={vendor.id}
                 className={`cursor-pointer transition-all hover:shadow-md ${
-                  selectedVendor?.id === vendor.id ? 'ring-2 ring-primary' : ''
+                  selectedVendor === vendor.id ? 'ring-2 ring-primary' : ''
                 }`}
-                onClick={() => onSelectVendor(vendor)}
+                onClick={() => onSelectVendor(vendor.id)}
               >
                 <CardContent className="p-4">
                   <div className="space-y-2">
@@ -189,9 +189,16 @@ export function VendorSelector({ onSelectVendor, selectedVendor }: VendorSelecto
             <div className="mt-6 p-4 bg-primary/10 rounded-lg">
               <h4 className="font-semibold text-primary mb-2">Selected Vendor</h4>
               <div className="text-sm">
-                <p><strong>{selectedVendor.vendor_biz_name}</strong></p>
-                <p>{selectedVendor.vendor_type}</p>
-                <p className="text-muted-foreground">{selectedVendor.vendor_location}</p>
+                {(() => {
+                  const vendor = vendors.find(v => v.id === selectedVendor);
+                  return vendor ? (
+                    <>
+                      <p><strong>{vendor.vendor_biz_name}</strong></p>
+                      <p>{vendor.vendor_type}</p>
+                      <p className="text-muted-foreground">{vendor.vendor_location}</p>
+                    </>
+                  ) : null;
+                })()}
               </div>
             </div>
           )}
