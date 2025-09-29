@@ -2685,6 +2685,7 @@ export type Database = {
       workflows: {
         Row: {
           created_at: string
+          event_id: string | null
           hospitality_id: string | null
           id: string
           serv_vendor_rent_id: string | null
@@ -2698,6 +2699,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          event_id?: string | null
           hospitality_id?: string | null
           id?: string
           serv_vendor_rent_id?: string | null
@@ -2711,6 +2713,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          event_id?: string | null
           hospitality_id?: string | null
           id?: string
           serv_vendor_rent_id?: string | null
@@ -2723,6 +2726,13 @@ export type Database = {
           workflow_type_id?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "workflows_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "workflows_hospitality_id_fkey"
             columns: ["hospitality_id"]
