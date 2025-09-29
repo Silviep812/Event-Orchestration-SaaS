@@ -475,7 +475,7 @@ export const WorkflowDashboard = ({ userType, selectedTheme, setCurrentStep }: W
     },
     {
       title: "Active Tasks",
-      value: steps.filter(step => step.status === "in_progress").length.toString(),
+      value: eventTasks.filter(task => task.status === "in_progress").length.toString(),
       description: "Currently in progress",
       icon: Clock,
     },
