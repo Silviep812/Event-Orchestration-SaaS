@@ -68,6 +68,36 @@ interface SelectionCard {
 }
 
 const workflowSteps: Record<string, WorkflowStep[]> = {
+  "host": [
+    {
+      id: "1",
+      title: "Define Event Concept",
+      description: "Establish theme, guest count, and basic requirements",
+      status: "not_started",
+      priority: "high"
+    },
+    {
+      id: "2", 
+      title: "Set Budget & Timeline",
+      description: "Determine available budget and create event timeline",
+      status: "not_started",
+      priority: "high"
+    },
+    {
+      id: "3",
+      title: "Book Venue",
+      description: "Secure location that fits theme and guest count",
+      status: "not_started",
+      priority: "high"
+    },
+    {
+      id: "4",
+      title: "Arrange Catering",
+      description: "Select menu options and coordinate food service",
+      status: "not_started", 
+      priority: "medium"
+    }
+  ],
   "social-organizer": [
     {
       id: "1",

@@ -38,6 +38,8 @@ export default function WorkflowSetup() {
         setSelectedUserType('hospitality-provider');
       } else if (userRoles.includes('event_manager') || userRoles.includes('admin')) {
         setSelectedUserType('professional-planner');
+      } else if (userRoles.includes('host')) {
+        setSelectedUserType('host');
       } else {
         setSelectedUserType('social-organizer');
       }
@@ -75,7 +77,7 @@ export default function WorkflowSetup() {
         if (currentStep === "services") return "suppliers";
         return "dashboard";
       
-      default: // social-organizer, professional-planner
+      default: // social-organizer, professional-planner, host
         if (currentStep === "event") return "user-type";
         if (currentStep === "user-type") return "theme";
         if (currentStep === "theme") return "hospitality";

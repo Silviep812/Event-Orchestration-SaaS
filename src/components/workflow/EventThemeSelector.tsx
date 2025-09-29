@@ -182,6 +182,7 @@ export const EventThemeSelector = ({ userType, onSelectTheme, selectedTheme }: E
   // Define recommended themes based on user type
   const getRecommendedThemes = () => {
     const recommendedCategories: { [key: string]: string[] } = {
+      'host': ['business', 'celebration'],
       'professional-planner': ['business', 'celebration'],
       'venue-owner': ['celebration', 'entertainment'],
       'hospitality-provider': ['business', 'social'],

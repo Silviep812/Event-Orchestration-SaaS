@@ -16,6 +16,7 @@ export default function WorkflowDashboard() {
       case 2: return "professional-planner";
       case 3: return "hospitality-provider";
       case 4: return "venue-owner";
+      case 5: return "host";
       default: return "";
     }
   };

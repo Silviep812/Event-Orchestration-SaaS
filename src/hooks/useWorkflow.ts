@@ -31,6 +31,7 @@ export const useWorkflow = () => {
       case 'professional-planner': return 2;
       case 'hospitality-provider': return 3;
       case 'venue-owner': return 4;
+      case 'host': return 5;
       default: return 1;
     }
   };

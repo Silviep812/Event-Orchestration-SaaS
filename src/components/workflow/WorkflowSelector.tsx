@@ -20,6 +20,14 @@ interface WorkflowSelectorProps {
 
 const userTypes: UserType[] = [
   {
+    id: "host",
+    title: "Host Organizer",
+    description: "Plan personal celebrations, parties, and social gatherings",
+    icon: Users,
+    color: "bg-userType-organizer",
+    features: ["Birthday Parties", "Anniversaries", "Family Reunions", "Holiday Celebrations"]
+  },
+  {
     id: "social-organizer",
     title: "Social Event Organizer",
     description: "Plan personal celebrations, parties, and social gatherings",
