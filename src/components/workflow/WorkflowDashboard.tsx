@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -234,6 +235,11 @@ export const WorkflowDashboard = ({ userType, selectedTheme }: WorkflowDashboard
     serviceRental: ''
   });
   const { getWorkflowData } = useWorkflow();
+  const navigate = useNavigate();
+
+  const handleCustomize = () => {
+    navigate('/dashboard/workflow-setup?step=1');
+  };
 
   useEffect(() => {
     setSteps(workflowSteps[userType] || []);
@@ -373,7 +379,7 @@ export const WorkflowDashboard = ({ userType, selectedTheme }: WorkflowDashboard
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={handleCustomize}>
             <Settings className="h-4 w-4 mr-2" />
             Customize
           </Button>
