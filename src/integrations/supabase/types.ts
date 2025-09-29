@@ -2685,26 +2685,86 @@ export type Database = {
       workflows: {
         Row: {
           created_at: string
+          hospitality_id: string | null
           id: string
+          serv_vendor_rent_id: string | null
+          serv_vendor_sup_id: string | null
+          supplier_id: string | null
+          theme_id: number | null
           updated_at: string
           user_id: string
+          venue_id: string | null
           workflow_type_id: number | null
         }
         Insert: {
           created_at?: string
+          hospitality_id?: string | null
           id?: string
+          serv_vendor_rent_id?: string | null
+          serv_vendor_sup_id?: string | null
+          supplier_id?: string | null
+          theme_id?: number | null
           updated_at?: string
           user_id: string
+          venue_id?: string | null
           workflow_type_id?: number | null
         }
         Update: {
           created_at?: string
+          hospitality_id?: string | null
           id?: string
+          serv_vendor_rent_id?: string | null
+          serv_vendor_sup_id?: string | null
+          supplier_id?: string | null
+          theme_id?: number | null
           updated_at?: string
           user_id?: string
+          venue_id?: string | null
           workflow_type_id?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "workflows_hospitality_id_fkey"
+            columns: ["hospitality_id"]
+            isOneToOne: false
+            referencedRelation: "hospitality_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflows_serv_vendor_rent_id_fkey"
+            columns: ["serv_vendor_rent_id"]
+            isOneToOne: false
+            referencedRelation: "serv_vendor_rentals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflows_serv_vendor_sup_id_fkey"
+            columns: ["serv_vendor_sup_id"]
+            isOneToOne: false
+            referencedRelation: "serv_vendor_suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflows_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflows_theme_id_fkey"
+            columns: ["theme_id"]
+            isOneToOne: false
+            referencedRelation: "event_themes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflows_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "workflows_workflow_type_id_fkey"
             columns: ["workflow_type_id"]

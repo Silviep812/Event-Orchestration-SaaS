@@ -259,7 +259,7 @@ export const WorkflowDashboard = ({ userType, selectedTheme }: WorkflowDashboard
           const { data: hospitality } = await supabase
             .from('Hospitality Profile')
             .select('hosp_biz_name')
-            .eq('hosp_type_id', workflowData.hospitality_id)
+            .eq('hosp_type_id', workflowData.hospitality_id as any)
             .limit(1)
             .maybeSingle();
           newSelections.hospitality = hospitality?.hosp_biz_name || `Hospitality ${workflowData.hospitality_id}`;

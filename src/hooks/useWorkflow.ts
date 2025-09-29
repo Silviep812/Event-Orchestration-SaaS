@@ -178,7 +178,7 @@ export const useWorkflow = () => {
         return null;
       }
 
-      return data as WorkflowData | null;
+      return data || null;
     } catch (error) {
       console.error('Error fetching workflow data:', error);
       return null;
