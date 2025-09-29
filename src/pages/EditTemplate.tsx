@@ -199,10 +199,6 @@ const EditTemplate = () => {
             <p className="text-muted-foreground mb-4 text-center">
               No tasks added yet. Add your first task to this template!
             </p>
-            <Button onClick={() => setIsDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Task
-            </Button>
           </CardContent>
         </Card>
       ) : (
