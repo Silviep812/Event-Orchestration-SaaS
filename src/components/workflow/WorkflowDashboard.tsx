@@ -36,9 +36,12 @@ interface WorkflowStep {
   priority: "low" | "medium" | "high";
 }
 
+type SetupStep = "user-type" | "theme" | "hospitality" | "venue" | "services" | "suppliers" | "dashboard";
+
 interface WorkflowDashboardProps {
   userType: string;
   selectedTheme: number;
+  setCurrentStep: (step: SetupStep) => void;
 }
 
 interface WorkflowSelections {
@@ -224,7 +227,7 @@ const getPriorityColor = (priority: string) => {
   }
 };
 
-export const WorkflowDashboard = ({ userType, selectedTheme }: WorkflowDashboardProps) => {
+export const WorkflowDashboard = ({ userType, selectedTheme, setCurrentStep }: WorkflowDashboardProps) => {
   const [steps, setSteps] = useState<WorkflowStep[]>([]);
   const [selections, setSelections] = useState<WorkflowSelections>({
     theme: '',
@@ -238,7 +241,7 @@ export const WorkflowDashboard = ({ userType, selectedTheme }: WorkflowDashboard
   const navigate = useNavigate();
 
   const handleCustomize = () => {
-    navigate('/dashboard/workflow?step=1');
+    setCurrentStep("user-type");
   };
 
   useEffect(() => {

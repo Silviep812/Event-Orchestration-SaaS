@@ -277,6 +277,7 @@ export default function WorkflowSetup() {
             <WorkflowDashboard 
               userType={selectedUserType}
               selectedTheme={selectedTheme}
+              setCurrentStep={setCurrentStep}
             />
           )}
         </div>
