@@ -258,7 +258,7 @@ const PlanningAssets = () => {
                     onClick={() => navigate(`/dashboard/planning-assets/${template.id}`)}
                   >
                     <Edit className="h-4 w-4 mr-2" />
-                    Edit Template
+                    Edit
                   </Button>
                   <Button 
                     variant="outline" 
