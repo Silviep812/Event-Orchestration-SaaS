@@ -9,11 +9,9 @@ import { format } from "date-fns";
 
 interface Event {
   id: string;
-  userid: string;
-  event_description: string;
-  event_start_date: string;
-  event_location: string[];
-  event_theme: string[];
+  user_id: string;
+  title: string;
+  description: string;
 }
 
 interface EventSelectorProps {
@@ -33,25 +31,20 @@ export function EventSelector({ onSelectEvent, selectedEvent }: EventSelectorPro
 
       try {
         const { data, error } = await supabase
-          .from("Create Event")
-          .select("userid, event_description, event_start_date, event_location, event_theme")
-          .eq("userid", user.id)
-          .order("event_start_date", { ascending: true });
+          .from("events")
+          .select("user_id, title, description")
+          .eq("user_id", user.id)
+          .order("start_date", { ascending: true });
 
         if (error) throw error;
 
         // Map the data to include a generated id (using row index as id since there's no id column)
         const eventsWithIds = (data || []).map((event, index) => ({
           ...event,
-          id: `${event.userid}-${index}`, // Generate a unique id
+          id: `${event.user_id}-${index}`, // Generate a unique id
         }));
 
         setEvents(eventsWithIds);
-
-        // If user has only one event, auto-select it
-        if (eventsWithIds.length === 1) {
-          onSelectEvent(eventsWithIds[0].id);
-        }
       } catch (error) {
         console.error("Error fetching events:", error);
         toast({
@@ -113,33 +106,17 @@ export function EventSelector({ onSelectEvent, selectedEvent }: EventSelectorPro
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <CardTitle className="text-lg">
-                    {event.event_description || "Untitled Event"}
+                    {event.title || "Untitled Event"}
                   </CardTitle>
-                  {event.event_theme && event.event_theme.length > 0 && (
-                    <CardDescription className="mt-2">
-                      {event.event_theme[0]}
-                    </CardDescription>
-                  )}
+                  <CardDescription className="mt-2">
+                    {event.description}
+                  </CardDescription>
                 </div>
                 {selectedEvent === event.id && (
                   <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
                 )}
               </div>
             </CardHeader>
-            <CardContent className="space-y-2">
-              {event.event_start_date && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Calendar className="h-4 w-4" />
-                  <span>{format(new Date(event.event_start_date), "MMM dd, yyyy")}</span>
-                </div>
-              )}
-              {event.event_location && event.event_location.length > 0 && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <MapPin className="h-4 w-4" />
-                  <span>{event.event_location[0]}</span>
-                </div>
-              )}
-            </CardContent>
           </Card>
         ))}
       </div>

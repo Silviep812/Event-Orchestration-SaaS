@@ -21,37 +21,12 @@ export default function WorkflowSetup() {
   const { saveWorkflowType, updateWorkflowSelections, loading } = useWorkflow();
   const [currentStep, setCurrentStep] = useState<SetupStep>("event");
   const [selectedEvent, setSelectedEvent] = useState<string | undefined>(undefined);
-  const [userEventCount, setUserEventCount] = useState<number>(0);
   const [selectedUserType, setSelectedUserType] = useState<string>("");
   const [selectedTheme, setSelectedTheme] = useState<number | undefined>(undefined);
   const [selectedHospitality, setSelectedHospitality] = useState<string | undefined>(undefined);
   const [selectedVenue, setSelectedVenue] = useState<string | undefined>(undefined);
   const [selectedServiceVendor, setSelectedServiceVendor] = useState<string | null>(null);
   const [selectedServiceRental, setSelectedServiceRental] = useState<string | null>(null);
-
-  // Check user's event count on mount
-  useEffect(() => {
-    const checkUserEvents = async () => {
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from("Create Event")
-        .select("userid", { count: "exact", head: true })
-        .eq("userid", user.id);
-
-      if (!error && data !== null) {
-        const count = (data as any).count || 0;
-        setUserEventCount(count);
-
-        // If user has only one event, skip event selection step
-        if (count === 1) {
-          setCurrentStep("user-type");
-        }
-      }
-    };
-
-    checkUserEvents();
-  }, [user]);
 
   // Auto-detect user type from Supabase roles
   useEffect(() => {
@@ -73,6 +48,7 @@ export default function WorkflowSetup() {
   }, [userRoles, currentStep]);
 
   const handleEventSelection = async (eventId: string) => {
+    console.log('handle event selection called with:', eventId);
     setSelectedEvent(eventId);
     
     // Save event_id to workflow
@@ -182,9 +158,7 @@ export default function WorkflowSetup() {
 
   const handleBack = () => {
     if (currentStep === "user-type") {
-      if (userEventCount > 1) {
-        setCurrentStep("event");
-      }
+      setCurrentStep("event");
     } else if (currentStep === "theme") {
       setCurrentStep("user-type");
     } else if (currentStep === "hospitality") {
@@ -229,7 +203,7 @@ export default function WorkflowSetup() {
                       Back
                     </Button>
                   )}
-                  {currentStep === "user-type" && userEventCount > 1 && (
+                  {currentStep === "user-type" && (
                     <Button variant="ghost" size="sm" onClick={handleBack}>
                       <ArrowLeft className="h-4 w-4 mr-2" />
                       Back
