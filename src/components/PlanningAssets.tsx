@@ -11,6 +11,7 @@ import { Plus, FileText, CheckSquare, Package, Copy, Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const PlanningAssets = () => {
   const navigate = useNavigate();
@@ -20,6 +21,11 @@ const PlanningAssets = () => {
   const [templates, setTemplates] = useState<any[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [useTemplateDialogOpen, setUseTemplateDialogOpen] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [events, setEvents] = useState<any[]>([]);
+  const [eventsLoading, setEventsLoading] = useState(false);
 
   useEffect(() => {
     if (user?.id) {
@@ -88,11 +94,97 @@ const PlanningAssets = () => {
     }
   };
 
-  const handleCopyTemplate = (templateName: string) => {
-    toast({
-      title: "Template Copied",
-      description: `${templateName} has been copied to your current event.`,
-    });
+  const loadEvents = async () => {
+    setEventsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('events')
+        .select('id, title, start_date')
+        .eq('user_id', user?.id)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      setEvents(data || []);
+    } catch (error) {
+      console.error('Error loading events:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load events",
+        variant: "destructive"
+      });
+    } finally {
+      setEventsLoading(false);
+    }
+  };
+
+  const handleUseTemplate = (templateId: string) => {
+    setSelectedTemplateId(templateId);
+    setSelectedEventId(null);
+    loadEvents();
+    setUseTemplateDialogOpen(true);
+  };
+
+  const handleApplyTemplate = async () => {
+    if (!selectedTemplateId || !selectedEventId) {
+      toast({
+        title: "Error",
+        description: "Please select an event",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      // Fetch all tasks from the template
+      const { data: templateTasks, error: fetchError } = await supabase
+        .from('template_tasks')
+        .select('*')
+        .eq('template_id', selectedTemplateId)
+        .eq('user_id', user?.id);
+
+      if (fetchError) throw fetchError;
+
+      if (!templateTasks || templateTasks.length === 0) {
+        toast({
+          title: "No Tasks",
+          description: "This template has no tasks to copy",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Copy tasks to the tasks table
+      const tasksToInsert = templateTasks.map(task => ({
+        event_id: selectedEventId,
+        title: task.title,
+        description: task.description,
+        status: 'not_started' as const,
+        assigned_to: user?.id,
+        created_by: user?.id
+      }));
+
+      const { error: insertError } = await supabase
+        .from('tasks')
+        .insert(tasksToInsert);
+
+      if (insertError) throw insertError;
+
+      toast({
+        title: "Template Applied",
+        description: `${templateTasks.length} task(s) have been copied to your event`,
+      });
+
+      setUseTemplateDialogOpen(false);
+      setSelectedTemplateId(null);
+      setSelectedEventId(null);
+    } catch (error) {
+      console.error('Error applying template:', error);
+      toast({
+        title: "Error",
+        description: "Failed to apply template",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -168,7 +260,12 @@ const PlanningAssets = () => {
                     <Edit className="h-4 w-4 mr-2" />
                     Edit Template
                   </Button>
-                  <Button variant="outline" size="sm" className="flex-1">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex-1"
+                    onClick={() => handleUseTemplate(template.id)}
+                  >
                     <Copy className="h-4 w-4 mr-2" />
                     Use Template
                   </Button>
@@ -178,6 +275,68 @@ const PlanningAssets = () => {
           ))}
         </div>
       )}
+
+      <Dialog open={useTemplateDialogOpen} onOpenChange={setUseTemplateDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Select Event for Template</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {eventsLoading ? (
+              <div className="text-center py-8 text-muted-foreground">
+                Loading events...
+              </div>
+            ) : events.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground mb-4">
+                  You don't have any events yet. Create an event first to use this template.
+                </p>
+              </div>
+            ) : (
+              <>
+                <ScrollArea className="h-[400px] pr-4">
+                  <div className="space-y-2">
+                    {events.map((event) => (
+                      <Card 
+                        key={event.id}
+                        className={`cursor-pointer transition-colors ${
+                          selectedEventId === event.id 
+                            ? 'border-primary bg-primary/5' 
+                            : 'hover:border-primary/50'
+                        }`}
+                        onClick={() => setSelectedEventId(event.id)}
+                      >
+                        <CardHeader className="p-4">
+                          <CardTitle className="text-base">{event.title}</CardTitle>
+                          {event.start_date && (
+                            <CardDescription>
+                              {new Date(event.start_date).toLocaleDateString()}
+                            </CardDescription>
+                          )}
+                        </CardHeader>
+                      </Card>
+                    ))}
+                  </div>
+                </ScrollArea>
+                <div className="flex justify-end gap-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setUseTemplateDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={handleApplyTemplate}
+                    disabled={!selectedEventId}
+                  >
+                    Apply Template
+                  </Button>
+                </div>
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>        
   );
 };
