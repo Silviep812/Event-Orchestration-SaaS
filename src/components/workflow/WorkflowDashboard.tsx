@@ -38,7 +38,6 @@ interface WorkflowStep {
   title: string;
   description: string;
   status: "not_started" | "in_progress" | "completed" | "on_hold" | "cancelled";
-  dueDate: string;
   assignee?: string;
   priority: "low" | "medium" | "high";
 }
@@ -75,7 +74,6 @@ const workflowSteps: Record<string, WorkflowStep[]> = {
       title: "Define Event Concept",
       description: "Establish theme, guest count, and basic requirements",
       status: "not_started",
-      dueDate: "2024-01-15",
       priority: "high"
     },
     {
@@ -83,7 +81,6 @@ const workflowSteps: Record<string, WorkflowStep[]> = {
       title: "Set Budget & Timeline",
       description: "Determine available budget and create event timeline",
       status: "not_started",
-      dueDate: "2024-01-20",
       priority: "high"
     },
     {
@@ -91,7 +88,6 @@ const workflowSteps: Record<string, WorkflowStep[]> = {
       title: "Book Venue",
       description: "Secure location that fits theme and guest count",
       status: "not_started",
-      dueDate: "2024-01-25",
       priority: "high"
     },
     {
@@ -99,7 +95,6 @@ const workflowSteps: Record<string, WorkflowStep[]> = {
       title: "Arrange Catering",
       description: "Select menu options and coordinate food service",
       status: "not_started", 
-      dueDate: "2024-02-01",
       priority: "medium"
     }
   ],
@@ -109,7 +104,6 @@ const workflowSteps: Record<string, WorkflowStep[]> = {
       title: "Client Discovery & Requirements",
       description: "Detailed client consultation and requirement gathering",
       status: "not_started",
-      dueDate: "2024-01-10",
       priority: "high"
     },
     {
@@ -117,7 +111,6 @@ const workflowSteps: Record<string, WorkflowStep[]> = {
       title: "Proposal & Contract",
       description: "Create detailed proposal and finalize service agreement",
       status: "not_started",
-      dueDate: "2024-01-18",
       priority: "high"
     },
     {
@@ -125,7 +118,6 @@ const workflowSteps: Record<string, WorkflowStep[]> = {
       title: "Vendor Coordination",
       description: "Secure and coordinate all vendor relationships",
       status: "not_started",
-      dueDate: "2024-01-28",
       priority: "high"
     },
     {
@@ -133,7 +125,6 @@ const workflowSteps: Record<string, WorkflowStep[]> = {
       title: "Timeline & Logistics",
       description: "Detailed event timeline and logistics planning",
       status: "not_started",
-      dueDate: "2024-02-05",
       priority: "medium"
     }
   ],
@@ -143,7 +134,6 @@ const workflowSteps: Record<string, WorkflowStep[]> = {
       title: "Service Menu Planning",
       description: "Define available services and pricing structure",
       status: "not_started",
-      dueDate: "2024-01-12",
       priority: "high"
     },
     {
@@ -151,7 +141,6 @@ const workflowSteps: Record<string, WorkflowStep[]> = {
       title: "Staff Coordination",
       description: "Schedule and brief service staff for event",
       status: "not_started",
-      dueDate: "2024-01-22",
       priority: "high"
     },
     {
@@ -159,7 +148,6 @@ const workflowSteps: Record<string, WorkflowStep[]> = {
       title: "Supply Chain Management",
       description: "Coordinate ingredients, supplies, and equipment",
       status: "not_started",
-      dueDate: "2024-01-30",
       priority: "medium"
     },
     {
@@ -167,7 +155,6 @@ const workflowSteps: Record<string, WorkflowStep[]> = {
       title: "Quality Assurance",
       description: "Final service testing and quality checks",
       status: "not_started",
-      dueDate: "2024-02-08",
       priority: "medium"
     }
   ],
@@ -177,7 +164,6 @@ const workflowSteps: Record<string, WorkflowStep[]> = {
       title: "Space Configuration",
       description: "Optimize venue layout for event requirements",
       status: "not_started",
-      dueDate: "2024-01-14",
       priority: "high"
     },
     {
@@ -185,7 +171,6 @@ const workflowSteps: Record<string, WorkflowStep[]> = {
       title: "Facility Preparation",
       description: "Ensure all venue facilities are event-ready",
       status: "not_started",
-      dueDate: "2024-01-24",
       priority: "high"
     },
     {
@@ -193,7 +178,6 @@ const workflowSteps: Record<string, WorkflowStep[]> = {
       title: "Technical Setup",
       description: "Configure AV, lighting, and technical requirements",
       status: "not_started",
-      dueDate: "2024-02-02",
       priority: "medium"
     },
     {
@@ -201,7 +185,6 @@ const workflowSteps: Record<string, WorkflowStep[]> = {
       title: "Final Inspection",
       description: "Complete venue walkthrough and safety checks",
       status: "not_started",
-      dueDate: "2024-02-10",
       priority: "medium"
     }
   ]
@@ -659,9 +642,6 @@ export const WorkflowDashboard = ({ userType, selectedTheme, setCurrentStep }: W
                         >
                           {step.priority.toUpperCase()}
                         </Badge>
-                        <span className="text-sm text-muted-foreground">
-                          Due: {new Date(step.dueDate).toLocaleDateString()}
-                        </span>
                       </div>
                     </div>
                   </CardHeader>
