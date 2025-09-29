@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { NavLink, useLocation } from "react-router-dom";
+import { useWorkflow } from "@/hooks/useWorkflow";
 import {
   Calendar,
   Settings,
@@ -239,6 +240,12 @@ export function AppSidebar() {
   const location = useLocation();
   const currentPath = location.pathname;
   const collapsed = state === "collapsed";
+  const { workflowId } = useWorkflow();
+  const [hasWorkflow, setHasWorkflow] = useState(false);
+
+  useEffect(() => {
+    setHasWorkflow(!!workflowId);
+  }, [workflowId]);
 
   const isActive = (path: string) => currentPath === path;
   
@@ -276,21 +283,29 @@ export function AppSidebar() {
             )}
             <SidebarGroupContent>
               <SidebarMenu>
-                {group.items.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild>
-                      <NavLink 
-                        to={item.url} 
-                        className={({ isActive }) => getNavClass(item, isActive)}
-                      >
-                        <item.icon className={`h-5 w-5 ${collapsed ? 'mx-auto' : 'mr-3'} transition-colors duration-200`} />
-                        {!collapsed && (
-                          <span className="text-sm font-medium">{item.title}</span>
-                        )}
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
+                {group.items
+                  .filter((item) => {
+                    // Hide Workflow Dashboard if user doesn't have a workflow
+                    if (item.url === "/dashboard/workflow-dashboard" && !hasWorkflow) {
+                      return false;
+                    }
+                    return true;
+                  })
+                  .map((item) => (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton asChild>
+                        <NavLink 
+                          to={item.url} 
+                          className={({ isActive }) => getNavClass(item, isActive)}
+                        >
+                          <item.icon className={`h-5 w-5 ${collapsed ? 'mx-auto' : 'mr-3'} transition-colors duration-200`} />
+                          {!collapsed && (
+                            <span className="text-sm font-medium">{item.title}</span>
+                          )}
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
