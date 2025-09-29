@@ -2655,6 +2655,33 @@ export type Database = {
           },
         ]
       }
+      workflow_types: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          tags: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          tags?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          tags?: string[] | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       create_event_safe: {
