@@ -100,10 +100,37 @@ export const useWorkflow = () => {
   };
 
   const updateWorkflowSelections = async (updates: Partial<WorkflowData>) => {
-    if (!workflowId || !user?.id) return false;
+    if (!user?.id) return false;
 
     setLoading(true);
     try {
+      // If no workflow exists, create one
+      if (!workflowId) {
+        const { data, error } = await supabase
+          .from('workflows')
+          .insert({ 
+            user_id: user.id,
+            ...updates
+          })
+          .select()
+          .single();
+
+        if (error) {
+          toast({
+            title: "Error",
+            description: "Failed to create workflow",
+            variant: "destructive"
+          });
+          return false;
+        }
+
+        if (data) {
+          setWorkflowId(data.id);
+        }
+        return true;
+      }
+
+      // Update existing workflow
       const { error } = await supabase
         .from('workflows')
         .update(updates)
