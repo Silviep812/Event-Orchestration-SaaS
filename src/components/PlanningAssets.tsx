@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,12 +7,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, FileText, CheckSquare, Package, Copy } from "lucide-react";
+import { Plus, FileText, CheckSquare, Package, Copy, Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
 const PlanningAssets = () => {
+  const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
   const [newTemplate, setNewTemplate] = useState({ name: "", description: "" });
@@ -156,10 +158,21 @@ const PlanningAssets = () => {
                 <CardDescription>{template.description}</CardDescription>
               </CardHeader>
               <CardContent>
-                <Button variant="outline" size="sm" className="w-full">
-                  <Copy className="h-4 w-4 mr-2" />
-                  Use Template
-                </Button>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex-1"
+                    onClick={() => navigate(`/dashboard/planning-assets/${template.id}`)}
+                  >
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit Template
+                  </Button>
+                  <Button variant="outline" size="sm" className="flex-1">
+                    <Copy className="h-4 w-4 mr-2" />
+                    Use Template
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}

@@ -13,6 +13,7 @@ import WorkflowDashboard from "./pages/WorkflowDashboard";
 import ThemesDirectory from "./pages/ThemesDirectory";
 import ProjectManagement from "./pages/ProjectManagement";
 import PlanningAssets from "./components/PlanningAssets";
+import EditTemplate from "./pages/EditTemplate";
 import Analytics from "./components/Analytics";
 import EventCalendar from "./components/EventCalendar";
 import ManageEventPage from "./pages/ManageEvent";
@@ -52,6 +53,7 @@ const App = () => (
               <Route path="themes" element={<ThemesDirectory />} />
               <Route path="project-management" element={<ProjectManagement />} />
               <Route path="planning-assets" element={<PlanningAssets />} />
+              <Route path="planning-assets/:templateId" element={<EditTemplate />} />
               <Route path="analytics" element={<Analytics />} />
               <Route path="calendar" element={<EventCalendar />} />
               <Route path="create-event" element={<CreateEvent />} />
