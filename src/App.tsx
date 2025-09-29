@@ -9,6 +9,7 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import DashboardHome from "./pages/DashboardHome";
 import WorkflowSetup from "./pages/WorkflowSetup";
+import WorkflowDashboard from "./pages/WorkflowDashboard";
 import ThemesDirectory from "./pages/ThemesDirectory";
 import ProjectManagement from "./pages/ProjectManagement";
 import PlanningAssets from "./components/PlanningAssets";
@@ -47,6 +48,7 @@ const App = () => (
             <Route path="/dashboard" element={<Dashboard />}>
               <Route index element={<DashboardHome />} />
               <Route path="workflow" element={<WorkflowSetup />} />
+              <Route path="workflow-dashboard" element={<WorkflowDashboard />} />
               <Route path="themes" element={<ThemesDirectory />} />
               <Route path="project-management" element={<ProjectManagement />} />
               <Route path="planning-assets" element={<PlanningAssets />} />

@@ -98,6 +98,13 @@ const menuGroups = [
         hoverColor: "hover:bg-green-50"
       },
       {
+        title: "Workflow Dashboard",
+        url: "/dashboard/workflow-dashboard",
+        icon: BarChart3,
+        color: "text-green-600",
+        hoverColor: "hover:bg-green-50"
+      },
+      {
         title: "Project Management",
         url: "/dashboard/project-management",
         icon: CheckSquare,

@@ -41,7 +41,7 @@ type SetupStep = "user-type" | "theme" | "hospitality" | "venue" | "services" | 
 interface WorkflowDashboardProps {
   userType: string;
   selectedTheme: number;
-  setCurrentStep: (step: SetupStep) => void;
+  setCurrentStep?: (step: SetupStep) => void;
 }
 
 interface WorkflowSelections {
@@ -240,7 +240,11 @@ export const WorkflowDashboard = ({ userType, selectedTheme, setCurrentStep }: W
   const navigate = useNavigate();
 
   const handleCustomize = () => {
-    setCurrentStep("user-type");
+    if (setCurrentStep) {
+      setCurrentStep("user-type");
+    } else {
+      navigate("/dashboard/workflow?step=1");
+    }
   };
 
   useEffect(() => {
