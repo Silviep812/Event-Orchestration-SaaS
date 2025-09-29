@@ -391,6 +391,23 @@ export const WorkflowDashboard = ({ userType, selectedTheme, setCurrentStep }: W
         </div>
       </div>
 
+      {/* Progress Overview */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Overall Progress</CardTitle>
+          <CardDescription>Track your event planning workflow completion</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">Workflow Completion</span>
+              <span className="text-sm text-muted-foreground">{Math.round(progressPercentage)}%</span>
+            </div>
+            <Progress value={progressPercentage} className="w-full" />
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Selected Options */}
       <Card>
         <CardHeader>
@@ -474,23 +491,6 @@ export const WorkflowDashboard = ({ userType, selectedTheme, setCurrentStep }: W
                 );
               });
             })()}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Progress Overview */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Overall Progress</CardTitle>
-          <CardDescription>Track your event planning workflow completion</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Workflow Completion</span>
-              <span className="text-sm text-muted-foreground">{Math.round(progressPercentage)}%</span>
-            </div>
-            <Progress value={progressPercentage} className="w-full" />
           </div>
         </CardContent>
       </Card>
