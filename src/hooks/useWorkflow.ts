@@ -13,6 +13,7 @@ interface WorkflowData {
   supplier_id?: string;
   serv_vendor_sup_id?: string;
   serv_vendor_rent_id?: string;
+  event_id?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -167,6 +168,7 @@ export const useWorkflow = () => {
           supplier_id,
           serv_vendor_sup_id,
           serv_vendor_rent_id,
+          event_id,
           created_at,
           updated_at
         `)

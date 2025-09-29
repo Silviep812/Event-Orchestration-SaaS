@@ -5,8 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useWorkflow } from "@/hooks/useWorkflow";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { 
   Calendar, 
   MapPin, 
@@ -236,7 +243,23 @@ export const WorkflowDashboard = ({ userType, selectedTheme, setCurrentStep }: W
     serviceVendor: '',
     serviceRental: ''
   });
+  const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
+  const [newTask, setNewTask] = useState<{
+    title: string;
+    description: string;
+    priority: "low" | "medium" | "high" | "urgent";
+    estimated_hours: string;
+    due_date: string;
+  }>({
+    title: "",
+    description: "",
+    priority: "medium",
+    estimated_hours: "",
+    due_date: "",
+  });
   const { getWorkflowData } = useWorkflow();
+  const { user } = useAuth();
+  const { toast } = useToast();
   const navigate = useNavigate();
 
   const handleCustomize = () => {
@@ -244,6 +267,72 @@ export const WorkflowDashboard = ({ userType, selectedTheme, setCurrentStep }: W
       setCurrentStep("user-type");
     } else {
       navigate("/dashboard/workflow?step=1");
+    }
+  };
+
+  const handleAddToEvent = (step: WorkflowStep) => {
+    setNewTask({
+      title: step.title,
+      description: step.description,
+      priority: step.priority,
+      estimated_hours: "",
+      due_date: "",
+    });
+    setIsCreateTaskOpen(true);
+  };
+
+  const createTask = async () => {
+    if (!newTask.title.trim()) {
+      toast({
+        title: "Error",
+        description: "Task title is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (!currentUser) throw new Error('Not authenticated');
+
+      // Get the event_id from the workflow
+      const workflowData = await getWorkflowData();
+      
+      const taskData = {
+        title: newTask.title,
+        description: newTask.description || null,
+        priority: newTask.priority as any,
+        estimated_hours: newTask.estimated_hours ? parseFloat(newTask.estimated_hours) : null,
+        due_date: newTask.due_date || null,
+        event_id: workflowData?.event_id || null,
+        created_by: currentUser.id
+      };
+
+      const { error } = await supabase
+        .from('tasks')
+        .insert(taskData);
+
+      if (error) throw error;
+
+      toast({
+        title: "Task created",
+        description: "Task has been added to your event successfully.",
+      });
+
+      setIsCreateTaskOpen(false);
+      setNewTask({
+        title: "",
+        description: "",
+        priority: "medium",
+        estimated_hours: "",
+        due_date: "",
+      });
+    } catch (error) {
+      toast({
+        title: "Error creating task",
+        description: "Failed to create task. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -556,13 +645,14 @@ export const WorkflowDashboard = ({ userType, selectedTheme, setCurrentStep }: W
                       <Badge className={getStatusColor(step.status)}>
                         {step.status.toUpperCase()}
                       </Badge>
-                      <div className="flex gap-2">
-                        {step.status !== "complete" && (
-                          <Button size="sm">
-                            {step.status === "planning" ? "Start Task" : "Continue"}
-                          </Button>
-                        )}
-                      </div>
+                      <Button 
+                        size="sm" 
+                        onClick={() => handleAddToEvent(step)}
+                        variant="outline"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add to Event
+                      </Button>
                     </div>
                   </CardContent>
                   {index < steps.length - 1 && (
@@ -574,6 +664,85 @@ export const WorkflowDashboard = ({ userType, selectedTheme, setCurrentStep }: W
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Create Task Dialog */}
+      <Dialog open={isCreateTaskOpen} onOpenChange={setIsCreateTaskOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Add Task to Event</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="title">Task Title</Label>
+              <Input
+                id="title"
+                placeholder="Enter task title"
+                value={newTask.title}
+                onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                placeholder="Enter task description"
+                value={newTask.description}
+                onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
+                rows={4}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="priority">Priority</Label>
+                <Select value={newTask.priority} onValueChange={(value: any) => setNewTask({ ...newTask, priority: value })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="urgent">Urgent</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="hours">Estimated Hours</Label>
+                <Input
+                  id="hours"
+                  type="number"
+                  step="0.5"
+                  placeholder="0.0"
+                  value={newTask.estimated_hours}
+                  onChange={(e) => setNewTask({ ...newTask, estimated_hours: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="due_date">Due Date</Label>
+              <Input
+                id="due_date"
+                type="datetime-local"
+                value={newTask.due_date}
+                onChange={(e) => setNewTask({ ...newTask, due_date: e.target.value })}
+              />
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setIsCreateTaskOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={createTask}>
+                Create Task
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
