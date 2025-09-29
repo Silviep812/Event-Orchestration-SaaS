@@ -57,7 +57,7 @@ const PlanningAssets = () => {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold">Planning Assets</h2>
-          <p className="text-muted-foreground">Reusable templates and checklists for your events</p>
+          <p className="text-muted-foreground">Reusable templates for your events</p>
         </div>
         <Dialog>
           <DialogTrigger asChild>
@@ -89,125 +89,27 @@ const PlanningAssets = () => {
         </Dialog>
       </div>
 
-      <Tabs defaultValue="all">
-        <TabsList>
-          <TabsTrigger value="all">All Assets</TabsTrigger>
-          <TabsTrigger value="checklist">Checklists</TabsTrigger>
-          <TabsTrigger value="template">Templates</TabsTrigger>
-          <TabsTrigger value="assets">Asset Libraries</TabsTrigger>
-        </TabsList>
 
-        <TabsContent value="all" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {templates.map((template) => (
-              <Card key={template.id} className="hover:shadow-md transition-shadow">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      {template.type === "checklist" && <CheckSquare className="h-4 w-4" />}
-                      {template.type === "template" && <FileText className="h-4 w-4" />}
-                      {template.type === "assets" && <Package className="h-4 w-4" />}
-                      <CardTitle className="text-lg">{template.name}</CardTitle>
-                    </div>
-                    <Badge variant="secondary">{template.type}</Badge>
-                  </div>
-                  <CardDescription>{template.description}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2 mb-4">
-                    {template.items.slice(0, 3).map((item, index) => (
-                      <div key={index} className="text-sm text-muted-foreground">
-                        • {item}
-                      </div>
-                    ))}
-                    {template.items.length > 3 && (
-                      <div className="text-sm text-muted-foreground">
-                        +{template.items.length - 3} more items
-                      </div>
-                    )}
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full"
-                    onClick={() => handleCopyTemplate(template.name)}
-                  >
-                    <Copy className="h-4 w-4 mr-2" />
-                    Use Template
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="checklist">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {templates.filter(t => t.type === "checklist").map((template) => (
-              <Card key={template.id}>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <CheckSquare className="h-4 w-4" />
-                    {template.name}
-                  </CardTitle>
-                  <CardDescription>{template.description}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Button variant="outline" size="sm" className="w-full">
-                    <Copy className="h-4 w-4 mr-2" />
-                    Use Checklist
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="template">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {templates.filter(t => t.type === "template").map((template) => (
-              <Card key={template.id}>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    {template.name}
-                  </CardTitle>
-                  <CardDescription>{template.description}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Button variant="outline" size="sm" className="w-full">
-                    <Copy className="h-4 w-4 mr-2" />
-                    Use Template
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="assets">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {templates.filter(t => t.type === "assets").map((template) => (
-              <Card key={template.id}>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Package className="h-4 w-4" />
-                    {template.name}
-                  </CardTitle>
-                  <CardDescription>{template.description}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Button variant="outline" size="sm" className="w-full">
-                    <Copy className="h-4 w-4 mr-2" />
-                    Use Assets
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
-      </Tabs>
-    </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {templates.filter(t => t.type === "template").map((template) => (
+          <Card key={template.id}>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                {template.name}
+              </CardTitle>
+              <CardDescription>{template.description}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button variant="outline" size="sm" className="w-full">
+                <Copy className="h-4 w-4 mr-2" />
+                Use Template
+              </Button>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>        
   );
 };
 
