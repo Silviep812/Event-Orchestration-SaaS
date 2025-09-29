@@ -201,7 +201,7 @@ export default function WorkflowSetup() {
                         currentStep === "venue" ? "4" : 
                         currentStep === "services" ? "5" :
                         currentStep === "suppliers" ? "6" : "7"
-                      } of 8
+                      } of 7
                     </p>
                   </div>
                 </div>
