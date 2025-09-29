@@ -32,19 +32,13 @@ export function EventSelector({ onSelectEvent, selectedEvent }: EventSelectorPro
       try {
         const { data, error } = await supabase
           .from("events")
-          .select("user_id, title, description")
+          .select("id, user_id, title, description")
           .eq("user_id", user.id)
           .order("start_date", { ascending: true });
 
         if (error) throw error;
 
-        // Map the data to include a generated id (using row index as id since there's no id column)
-        const eventsWithIds = (data || []).map((event, index) => ({
-          ...event,
-          id: `${event.user_id}-${index}`, // Generate a unique id
-        }));
-
-        setEvents(eventsWithIds);
+        setEvents(data || []);
       } catch (error) {
         console.error("Error fetching events:", error);
         toast({
