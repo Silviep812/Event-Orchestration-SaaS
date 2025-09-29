@@ -470,23 +470,12 @@ export const WorkflowDashboard = ({ userType, selectedTheme, setCurrentStep }: W
                             <CardDescription>{card.description}</CardDescription>
                           </div>
                         </div>
-                        <Badge 
-                          variant={isSelected ? "default" : "secondary"}
-                          className="text-xs"
-                        >
-                          {isSelected ? "SELECTED" : "PENDING"}
-                        </Badge>
                       </div>
                     </CardHeader>
                     <CardContent className="pt-0">
                       <div className="flex items-center justify-between">
                         <div className="text-sm font-medium text-foreground">
                           {card.value}
-                        </div>
-                        <div className="flex gap-2">
-                          <Button variant={isSelected ? "secondary" : "default"} size="sm">
-                            {isSelected ? "Change" : "Select"}
-                          </Button>
                         </div>
                       </div>
                     </CardContent>
