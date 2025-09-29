@@ -37,7 +37,7 @@ interface WorkflowStep {
   id: string;
   title: string;
   description: string;
-  status: "planning" | "progress" | "review" | "complete";
+  status: "not_started" | "in_progress" | "completed" | "on_hold" | "cancelled";
   dueDate: string;
   assignee?: string;
   priority: "low" | "medium" | "high";
@@ -74,7 +74,7 @@ const workflowSteps: Record<string, WorkflowStep[]> = {
       id: "1",
       title: "Define Event Concept",
       description: "Establish theme, guest count, and basic requirements",
-      status: "complete",
+      status: "completed",
       dueDate: "2024-01-15",
       priority: "high"
     },
@@ -82,7 +82,7 @@ const workflowSteps: Record<string, WorkflowStep[]> = {
       id: "2", 
       title: "Set Budget & Timeline",
       description: "Determine available budget and create event timeline",
-      status: "progress",
+      status: "in_progress",
       dueDate: "2024-01-20",
       priority: "high"
     },
@@ -90,7 +90,7 @@ const workflowSteps: Record<string, WorkflowStep[]> = {
       id: "3",
       title: "Book Venue",
       description: "Secure location that fits theme and guest count",
-      status: "planning",
+      status: "not_started",
       dueDate: "2024-01-25",
       priority: "high"
     },
@@ -98,7 +98,7 @@ const workflowSteps: Record<string, WorkflowStep[]> = {
       id: "4",
       title: "Arrange Catering",
       description: "Select menu options and coordinate food service",
-      status: "planning", 
+      status: "not_started", 
       dueDate: "2024-02-01",
       priority: "medium"
     }
@@ -108,7 +108,7 @@ const workflowSteps: Record<string, WorkflowStep[]> = {
       id: "1",
       title: "Client Discovery & Requirements",
       description: "Detailed client consultation and requirement gathering",
-      status: "complete",
+      status: "completed",
       dueDate: "2024-01-10",
       priority: "high"
     },
@@ -116,7 +116,7 @@ const workflowSteps: Record<string, WorkflowStep[]> = {
       id: "2",
       title: "Proposal & Contract",
       description: "Create detailed proposal and finalize service agreement",
-      status: "progress",
+      status: "in_progress",
       dueDate: "2024-01-18",
       priority: "high"
     },
@@ -124,7 +124,7 @@ const workflowSteps: Record<string, WorkflowStep[]> = {
       id: "3",
       title: "Vendor Coordination",
       description: "Secure and coordinate all vendor relationships",
-      status: "planning",
+      status: "not_started",
       dueDate: "2024-01-28",
       priority: "high"
     },
@@ -132,7 +132,7 @@ const workflowSteps: Record<string, WorkflowStep[]> = {
       id: "4",
       title: "Timeline & Logistics",
       description: "Detailed event timeline and logistics planning",
-      status: "planning",
+      status: "not_started",
       dueDate: "2024-02-05",
       priority: "medium"
     }
@@ -142,7 +142,7 @@ const workflowSteps: Record<string, WorkflowStep[]> = {
       id: "1",
       title: "Service Menu Planning",
       description: "Define available services and pricing structure",
-      status: "complete",
+      status: "completed",
       dueDate: "2024-01-12",
       priority: "high"
     },
@@ -150,7 +150,7 @@ const workflowSteps: Record<string, WorkflowStep[]> = {
       id: "2",
       title: "Staff Coordination",
       description: "Schedule and brief service staff for event",
-      status: "progress",
+      status: "in_progress",
       dueDate: "2024-01-22",
       priority: "high"
     },
@@ -158,7 +158,7 @@ const workflowSteps: Record<string, WorkflowStep[]> = {
       id: "3",
       title: "Supply Chain Management",
       description: "Coordinate ingredients, supplies, and equipment",
-      status: "planning",
+      status: "not_started",
       dueDate: "2024-01-30",
       priority: "medium"
     },
@@ -166,7 +166,7 @@ const workflowSteps: Record<string, WorkflowStep[]> = {
       id: "4",
       title: "Quality Assurance",
       description: "Final service testing and quality checks",
-      status: "planning",
+      status: "not_started",
       dueDate: "2024-02-08",
       priority: "medium"
     }
@@ -176,7 +176,7 @@ const workflowSteps: Record<string, WorkflowStep[]> = {
       id: "1",
       title: "Space Configuration",
       description: "Optimize venue layout for event requirements",
-      status: "complete",
+      status: "completed",
       dueDate: "2024-01-14",
       priority: "high"
     },
@@ -184,7 +184,7 @@ const workflowSteps: Record<string, WorkflowStep[]> = {
       id: "2",
       title: "Facility Preparation",
       description: "Ensure all venue facilities are event-ready",
-      status: "progress",
+      status: "in_progress",
       dueDate: "2024-01-24",
       priority: "high"
     },
@@ -192,7 +192,7 @@ const workflowSteps: Record<string, WorkflowStep[]> = {
       id: "3",
       title: "Technical Setup",
       description: "Configure AV, lighting, and technical requirements",
-      status: "planning",
+      status: "not_started",
       dueDate: "2024-02-02",
       priority: "medium"
     },
@@ -200,7 +200,7 @@ const workflowSteps: Record<string, WorkflowStep[]> = {
       id: "4",
       title: "Final Inspection",
       description: "Complete venue walkthrough and safety checks",
-      status: "planning",
+      status: "not_started",
       dueDate: "2024-02-10",
       priority: "medium"
     }
@@ -209,18 +209,20 @@ const workflowSteps: Record<string, WorkflowStep[]> = {
 
 const getStatusColor = (status: string) => {
   switch (status) {
-    case "complete": return "bg-status-complete text-white";
-    case "progress": return "bg-status-progress text-white";
-    case "review": return "bg-status-review text-white";
+    case "completed": return "bg-status-complete text-white";
+    case "in_progress": return "bg-status-progress text-white";
+    case "on_hold": return "bg-status-review text-white";
+    case "cancelled": return "bg-status-review text-white";
     default: return "bg-status-planning text-white";
   }
 };
 
 const getStatusIcon = (status: string) => {
   switch (status) {
-    case "complete": return CheckCircle2;
-    case "progress": return Clock;
-    case "review": return AlertCircle;
+    case "completed": return CheckCircle2;
+    case "in_progress": return Clock;
+    case "on_hold": return AlertCircle;
+    case "cancelled": return AlertCircle;
     default: return Calendar;
   }
 };
@@ -461,7 +463,7 @@ export const WorkflowDashboard = ({ userType, selectedTheme, setCurrentStep }: W
     loadWorkflowSelections();
   }, [getWorkflowData]);
 
-  const completedSteps = steps.filter(step => step.status === "complete").length;
+  const completedSteps = steps.filter(step => step.status === "completed").length;
   const progressPercentage = (completedSteps / steps.length) * 100;
 
   const stats = [
@@ -473,13 +475,13 @@ export const WorkflowDashboard = ({ userType, selectedTheme, setCurrentStep }: W
     },
     {
       title: "Active Tasks",
-      value: steps.filter(step => step.status === "progress").length.toString(),
+      value: steps.filter(step => step.status === "in_progress").length.toString(),
       description: "Currently in progress",
       icon: Clock,
     },
     {
       title: "Upcoming Deadlines",
-      value: steps.filter(step => step.status === "planning").length.toString(),
+      value: steps.filter(step => step.status === "not_started").length.toString(),
       description: "Tasks to be started",
       icon: Calendar,
     },
@@ -666,7 +668,7 @@ export const WorkflowDashboard = ({ userType, selectedTheme, setCurrentStep }: W
                   <CardContent className="pt-0">
                     <div className="flex items-center justify-between">
                       <Badge className={getStatusColor(step.status)}>
-                        {step.status.toUpperCase()}
+                        {step.status.toUpperCase().replace("_", " ")}
                       </Badge>
                       <Button 
                         size="sm" 
@@ -701,13 +703,13 @@ export const WorkflowDashboard = ({ userType, selectedTheme, setCurrentStep }: W
               </Card>
             ) : (
               eventTasks.map((task, index) => {
-                const StatusIcon = getStatusIcon(task.status || "planning");
+                const StatusIcon = getStatusIcon(task.status || "not_started");
                 return (
                   <Card key={task.id} className="relative">
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between">
                         <div className="flex items-start gap-3">
-                          <div className={`p-2 rounded-full ${getStatusColor(task.status || "planning")}`}>
+                          <div className={`p-2 rounded-full ${getStatusColor(task.status || "not_started")}`}>
                             <StatusIcon className="h-4 w-4" />
                           </div>
                           <div className="space-y-1">
@@ -734,8 +736,8 @@ export const WorkflowDashboard = ({ userType, selectedTheme, setCurrentStep }: W
                     </CardHeader>
                     <CardContent className="pt-0">
                       <div className="flex items-center justify-between">
-                        <Badge className={getStatusColor(task.status || "planning")}>
-                          {(task.status || "planning").toUpperCase()}
+                        <Badge className={getStatusColor(task.status || "not_started")}>
+                          {(task.status || "not_started").toUpperCase().replace("_", " ")}
                         </Badge>
                         {task.estimated_hours && (
                           <span className="text-sm text-muted-foreground">
