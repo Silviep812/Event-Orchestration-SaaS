@@ -128,7 +128,7 @@ const workflowSteps: Record<string, WorkflowStep[]> = {
       priority: "medium"
     }
   ],
-  "hospitality-owner": [
+  "hospitality-provider": [
     {
       id: "1",
       title: "Service Menu Planning",

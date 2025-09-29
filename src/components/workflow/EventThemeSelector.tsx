@@ -184,7 +184,7 @@ export const EventThemeSelector = ({ userType, onSelectTheme, selectedTheme }: E
     const recommendedCategories: { [key: string]: string[] } = {
       'professional-planner': ['business', 'celebration'],
       'venue-owner': ['celebration', 'entertainment'],
-      'hospitality-owner': ['business', 'social'],
+      'hospitality-provider': ['business', 'social'],
       'social-organizer': ['social', 'celebration'],
     };
     

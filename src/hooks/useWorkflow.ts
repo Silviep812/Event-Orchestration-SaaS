@@ -29,7 +29,7 @@ export const useWorkflow = () => {
     switch (userType) {
       case 'social-organizer': return 1;
       case 'professional-planner': return 2;
-      case 'hospitality-owner': return 3;
+      case 'hospitality-provider': return 3;
       case 'venue-owner': return 4;
       default: return 1;
     }

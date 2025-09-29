@@ -36,8 +36,8 @@ const userTypes: UserType[] = [
     features: ["Corporate Events", "Weddings", "Conferences", "Product Launches"]
   },
   {
-    id: "hospitality-owner",
-    title: "Hospitality Owner",
+    id: "hospitality-provider",
+    title: "Hospitality Provider",
     description: "Manage venue bookings, catering, and hospitality services",
     icon: Coffee,
     color: "bg-userType-hospitality",

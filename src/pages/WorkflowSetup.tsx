@@ -35,7 +35,7 @@ export default function WorkflowSetup() {
       if (userRoles.includes('venue_manager')) {
         setSelectedUserType('venue-owner');
       } else if (userRoles.includes('hospitality_manager')) {
-        setSelectedUserType('hospitality-owner');
+        setSelectedUserType('hospitality-provider');
       } else if (userRoles.includes('event_manager') || userRoles.includes('admin')) {
         setSelectedUserType('professional-planner');
       } else {
@@ -66,7 +66,7 @@ export default function WorkflowSetup() {
         if (currentStep === "services") return "suppliers";
         return "dashboard";
       
-      case "hospitality-owner":
+      case "hospitality-provider":
         if (currentStep === "event") return "user-type";
         if (currentStep === "user-type") return "theme";
         if (currentStep === "theme") return "hospitality";

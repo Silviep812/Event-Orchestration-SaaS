@@ -14,7 +14,7 @@ export default function WorkflowDashboard() {
     switch (typeId) {
       case 1: return "social-organizer";
       case 2: return "professional-planner";
-      case 3: return "hospitality-owner";
+      case 3: return "hospitality-provider";
       case 4: return "venue-owner";
       default: return "";
     }
