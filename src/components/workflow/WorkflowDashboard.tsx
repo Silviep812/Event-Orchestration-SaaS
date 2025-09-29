@@ -16,7 +16,13 @@ import {
   AlertCircle,
   TrendingUp,
   Settings,
-  Plus
+  Plus,
+  Palette,
+  Building,
+  Home,
+  Package,
+  Truck,
+  Wrench
 } from "lucide-react";
 
 interface WorkflowStep {
@@ -41,6 +47,15 @@ interface WorkflowSelections {
   supplier: string;
   serviceVendor: string;
   serviceRental: string;
+}
+
+interface SelectionCard {
+  type: string;
+  title: string;
+  description: string;
+  value: string;
+  icon: React.ComponentType<any>;
+  status: "selected" | "not-selected";
 }
 
 const workflowSteps: Record<string, WorkflowStep[]> = {
@@ -377,42 +392,104 @@ export const WorkflowDashboard = ({ userType, selectedTheme }: WorkflowDashboard
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {selections.theme && (
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary">Theme</Badge>
-                <span className="text-sm">{selections.theme}</span>
-              </div>
-            )}
-            {selections.hospitality && (
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary">Hospitality</Badge>
-                <span className="text-sm">{selections.hospitality}</span>
-              </div>
-            )}
-            {selections.venue && (
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary">Venue</Badge>
-                <span className="text-sm">{selections.venue}</span>
-              </div>
-            )}
-            {selections.supplier && (
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary">Supplier</Badge>
-                <span className="text-sm">{selections.supplier}</span>
-              </div>
-            )}
-            {selections.serviceVendor && (
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary">Service Vendor</Badge>
-                <span className="text-sm">{selections.serviceVendor}</span>
-              </div>
-            )}
-            {selections.serviceRental && (
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary">Service Rental</Badge>
-                <span className="text-sm">{selections.serviceRental}</span>
-              </div>
-            )}
+            {(() => {
+              const selectionCards: SelectionCard[] = [
+                {
+                  type: "theme",
+                  title: "Event Theme",
+                  description: "The selected theme for your event",
+                  value: selections.theme || "Not selected",
+                  icon: Palette,
+                  status: selections.theme ? "selected" : "not-selected"
+                },
+                {
+                  type: "hospitality",
+                  title: "Hospitality Provider",
+                  description: "Accommodation and hospitality services",
+                  value: selections.hospitality || "Not selected",
+                  icon: Building,
+                  status: selections.hospitality ? "selected" : "not-selected"
+                },
+                {
+                  type: "venue",
+                  title: "Event Venue",
+                  description: "Location where your event will take place",
+                  value: selections.venue || "Not selected",
+                  icon: Home,
+                  status: selections.venue ? "selected" : "not-selected"
+                },
+                {
+                  type: "supplier",
+                  title: "Supplier",
+                  description: "Supplies and materials provider",
+                  value: selections.supplier || "Not selected",
+                  icon: Package,
+                  status: selections.supplier ? "selected" : "not-selected"
+                },
+                {
+                  type: "serviceVendor",
+                  title: "Service Vendor",
+                  description: "Professional services provider",
+                  value: selections.serviceVendor || "Not selected",
+                  icon: Users,
+                  status: selections.serviceVendor ? "selected" : "not-selected"
+                },
+                {
+                  type: "serviceRental",
+                  title: "Service Rental",
+                  description: "Equipment and rental services",
+                  value: selections.serviceRental || "Not selected",
+                  icon: Wrench,
+                  status: selections.serviceRental ? "selected" : "not-selected"
+                }
+              ];
+
+              return selectionCards.map((card) => {
+                const IconComponent = card.icon;
+                const isSelected = card.status === "selected";
+                
+                return (
+                  <Card key={card.type} className={`relative ${!isSelected ? 'opacity-60' : ''}`}>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start gap-3">
+                          <div className={`p-2 rounded-full ${isSelected ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+                            <IconComponent className="h-4 w-4" />
+                          </div>
+                          <div className="space-y-1">
+                            <CardTitle className="text-lg">{card.title}</CardTitle>
+                            <CardDescription>{card.description}</CardDescription>
+                          </div>
+                        </div>
+                        <Badge 
+                          variant={isSelected ? "default" : "secondary"}
+                          className="text-xs"
+                        >
+                          {isSelected ? "SELECTED" : "PENDING"}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm font-medium text-foreground">
+                          {card.value}
+                        </div>
+                        <div className="flex gap-2">
+                          {isSelected && (
+                            <Button variant="outline" size="sm">
+                              View Details
+                            </Button>
+                          )}
+                          <Button variant={isSelected ? "secondary" : "default"} size="sm">
+                            {isSelected ? "Change" : "Select"}
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              });
+            })()}
           </div>
         </CardContent>
       </Card>
