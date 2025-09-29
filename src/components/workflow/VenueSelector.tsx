@@ -314,10 +314,12 @@ export const VenueSelector = ({ onSelectVenue, selectedVenue }: VenueSelectorPro
                 </div>
 
                 <div className="space-y-2">
+                  {venue.contact_name && (
                   <div className="flex items-center gap-2 text-sm">
                     <Users className="h-4 w-4 text-muted-foreground" />
                     <span>Contact: {venue.contact_name}</span>
                   </div>
+        )}
                   {venue.capacity && (
                     <div className="flex items-center gap-2 text-sm">
                       <Users className="h-4 w-4 text-muted-foreground" />
