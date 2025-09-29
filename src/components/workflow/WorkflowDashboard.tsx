@@ -518,8 +518,7 @@ export const WorkflowDashboard = ({ userType, selectedTheme, setCurrentStep }: W
       {/* Workflow Steps */}
       <Tabs defaultValue="timeline" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="timeline">Timeline View</TabsTrigger>
-          <TabsTrigger value="kanban">Task Board</TabsTrigger>
+          <TabsTrigger value="timeline">Suggested Tasks</TabsTrigger>
         </TabsList>
 
         <TabsContent value="timeline" className="space-y-4">
@@ -572,36 +571,6 @@ export const WorkflowDashboard = ({ userType, selectedTheme, setCurrentStep }: W
                 </Card>
               );
             })}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="kanban">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {["planning", "progress", "review", "complete"].map((status) => (
-              <Card key={status}>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm capitalize">{status}</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {steps
-                    .filter(step => step.status === status)
-                    .map(step => (
-                      <Card key={step.id} className="p-3">
-                        <h4 className="font-medium text-sm">{step.title}</h4>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Due: {new Date(step.dueDate).toLocaleDateString()}
-                        </p>
-                        <Badge 
-                          variant="outline" 
-                          className={`${getPriorityColor(step.priority)} mt-2 text-xs`}
-                        >
-                          {step.priority}
-                        </Badge>
-                      </Card>
-                    ))}
-                </CardContent>
-              </Card>
-            ))}
           </div>
         </TabsContent>
       </Tabs>
