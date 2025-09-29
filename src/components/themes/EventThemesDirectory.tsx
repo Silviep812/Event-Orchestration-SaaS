@@ -16,13 +16,16 @@ import {
   Search,
   Filter,
   Star,
-  Eye,
-  Download,
   Palette,
   CheckCircle2,
   Grid3X3,
   List,
-  Loader2
+  Loader2,
+  Trophy,
+  PersonStanding,
+  Utensils,
+  Store,
+  Calendar1
 } from "lucide-react";
 
 interface ThemeDetails {
@@ -57,6 +60,13 @@ const getThemeIcon = (themeName: string) => {
     mixer: Network,
     health: Heart,
     wellness: Heart,
+    meetup: PersonStanding,
+    sporting: Trophy,
+    reunion: PersonStanding,
+    dining: Utensils,
+    retreat: Heart,
+    marketplace: Store,
+    'special event': Calendar1,
     'health and wellness': Heart,
   };
   
