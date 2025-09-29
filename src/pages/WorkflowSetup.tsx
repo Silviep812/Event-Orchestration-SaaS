@@ -21,7 +21,7 @@ export default function WorkflowSetup() {
   const [currentStep, setCurrentStep] = useState<SetupStep>("user-type");
   const [selectedUserType, setSelectedUserType] = useState<string>("");
   const [selectedTheme, setSelectedTheme] = useState<number | undefined>(undefined);
-  const [selectedHospitality, setSelectedHospitality] = useState<any>(null);
+  const [selectedHospitality, setSelectedHospitality] = useState<string | undefined>(undefined);
   const [selectedVenue, setSelectedVenue] = useState<any>(null);
   const [selectedVendor, setSelectedVendor] = useState<any>(null);
   const [selectedService, setSelectedService] = useState<any>(null);
@@ -96,8 +96,12 @@ export default function WorkflowSetup() {
     setCurrentStep(getNextStepForUserType(selectedUserType, "theme"));
   };
 
-  const handleHospitalitySelection = (hospitality: any) => {
-    setSelectedHospitality(hospitality);
+  const handleHospitalitySelection = async (hospitalityId: string) => {
+    setSelectedHospitality(hospitalityId);
+    
+    // Save hospitality selection to workflow
+    await updateWorkflowSelections({ hospitality_id: hospitalityId });
+    
     setCurrentStep(getNextStepForUserType(selectedUserType, "hospitality"));
   };
 

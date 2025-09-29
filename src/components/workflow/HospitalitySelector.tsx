@@ -25,6 +25,7 @@ interface HospitalityType {
 }
 
 interface HospitalityOption {
+  id: string;
   business_name: string;
   contact_name: string;
   phone_number: string;
@@ -37,8 +38,8 @@ interface HospitalityOption {
 }
 
 interface HospitalitySelectorProps {
-  onSelectHospitality: (hospitality: HospitalityOption) => void;
-  selectedHospitality?: HospitalityOption;
+  onSelectHospitality: (hospitalityId: string) => void;
+  selectedHospitality?: string; // Just the ID, not the full object
 }
 
 export const HospitalitySelector = ({ onSelectHospitality, selectedHospitality }: HospitalitySelectorProps) => {
@@ -122,8 +123,8 @@ export const HospitalitySelector = ({ onSelectHospitality, selectedHospitality }
 
   const handleBooking = async (hospitality: HospitalityOption) => {
     try {
-      // Here you would implement the actual booking logic
-      onSelectHospitality(hospitality);
+      // Pass only the ID to the parent component
+      onSelectHospitality(hospitality.id);
       toast({
         title: "Success",
         description: `Selected ${hospitality.business_name} for your event`,
@@ -211,11 +212,11 @@ export const HospitalitySelector = ({ onSelectHospitality, selectedHospitality }
       {/* Results */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredHospitalities.map((hospitality) => {
-          const isSelected = selectedHospitality?.hospitality_type === hospitality.hospitality_type;
+          const isSelected = selectedHospitality === hospitality.id;
           
           return (
             <Card 
-              key={`${hospitality.business_name}-${hospitality.city}-${hospitality.hospitality_type}`}
+              key={hospitality.id}
               className={`cursor-pointer transition-all duration-300 hover:scale-105 border-2 ${
                 isSelected ? 'border-primary shadow-lg' : 'border-border'
               }`}
