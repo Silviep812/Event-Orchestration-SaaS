@@ -554,9 +554,6 @@ export const WorkflowDashboard = ({ userType, selectedTheme, setCurrentStep }: W
                         {step.status.toUpperCase()}
                       </Badge>
                       <div className="flex gap-2">
-                        <Button variant="outline" size="sm">
-                          View Details
-                        </Button>
                         {step.status !== "complete" && (
                           <Button size="sm">
                             {step.status === "planning" ? "Start Task" : "Continue"}
