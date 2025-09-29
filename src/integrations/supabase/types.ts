@@ -2682,6 +2682,38 @@ export type Database = {
         }
         Relationships: []
       }
+      workflows: {
+        Row: {
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+          workflow_type_id: number | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+          workflow_type_id?: number | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+          workflow_type_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflows_workflow_type_id_fkey"
+            columns: ["workflow_type_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       create_event_safe: {
