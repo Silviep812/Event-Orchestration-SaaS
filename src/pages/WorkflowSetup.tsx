@@ -3,7 +3,6 @@ import { WorkflowSelector } from "@/components/workflow/WorkflowSelector";
 import { EventThemeSelector } from "@/components/workflow/EventThemeSelector";
 import { HospitalitySelector } from "@/components/workflow/HospitalitySelector";
 import { VenueSelector } from "@/components/workflow/VenueSelector";
-import { VendorSelector } from "@/components/workflow/VendorSelector";
 import { ServiceSelector } from "@/components/workflow/ServiceSelector";
 import { SupplierSelector } from "@/components/workflow/SupplierSelector";
 import { WorkflowDashboard } from "@/components/workflow/WorkflowDashboard";
@@ -13,7 +12,7 @@ import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkflow } from "@/hooks/useWorkflow";
 
-type SetupStep = "user-type" | "theme" | "hospitality" | "venue" | "vendors" | "services" | "suppliers" | "dashboard";
+type SetupStep = "user-type" | "theme" | "hospitality" | "venue" | "services" | "suppliers" | "dashboard";
 
 export default function WorkflowSetup() {
   const { userRoles } = useAuth();
@@ -23,7 +22,6 @@ export default function WorkflowSetup() {
   const [selectedTheme, setSelectedTheme] = useState<number | undefined>(undefined);
   const [selectedHospitality, setSelectedHospitality] = useState<string | undefined>(undefined);
   const [selectedVenue, setSelectedVenue] = useState<string | undefined>(undefined);
-  const [selectedVendor, setSelectedVendor] = useState<string | null>(null);
   const [selectedServiceVendor, setSelectedServiceVendor] = useState<string | null>(null);
   const [selectedServiceRental, setSelectedServiceRental] = useState<string | null>(null);
 
@@ -50,8 +48,7 @@ export default function WorkflowSetup() {
     switch (userType) {
       case "venue-owner":
         if (currentStep === "user-type") return "theme";
-        if (currentStep === "theme") return "vendors";
-        if (currentStep === "vendors") return "services";
+        if (currentStep === "theme") return "services";
         if (currentStep === "services") return "suppliers";
         return "dashboard";
       
@@ -59,8 +56,7 @@ export default function WorkflowSetup() {
         if (currentStep === "user-type") return "theme";
         if (currentStep === "theme") return "hospitality";
         if (currentStep === "hospitality") return "venue";
-        if (currentStep === "venue") return "vendors";
-        if (currentStep === "vendors") return "services";
+        if (currentStep === "venue") return "services";
         if (currentStep === "services") return "suppliers";
         return "dashboard";
       
@@ -68,8 +64,7 @@ export default function WorkflowSetup() {
         if (currentStep === "user-type") return "theme";
         if (currentStep === "theme") return "hospitality";
         if (currentStep === "hospitality") return "venue";
-        if (currentStep === "venue") return "vendors";
-        if (currentStep === "vendors") return "services";
+        if (currentStep === "venue") return "services";
         if (currentStep === "services") return "suppliers";
         return "dashboard";
     }
@@ -114,15 +109,6 @@ export default function WorkflowSetup() {
     setCurrentStep(getNextStepForUserType(selectedUserType, "venue"));
   };
 
-  const handleVendorSelection = async (vendorId: string) => {
-    setSelectedVendor(vendorId);
-    
-    // Save vendor selection to workflow
-    await updateWorkflowSelections({ supplier_id: vendorId });
-    
-    setCurrentStep(getNextStepForUserType(selectedUserType, "vendors"));
-  };
-
   const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
 
   const handleServiceVendorSelection = async (vendorId: string) => {
@@ -161,10 +147,8 @@ export default function WorkflowSetup() {
       setCurrentStep("theme");
     } else if (currentStep === "venue") {
       setCurrentStep("hospitality");
-    } else if (currentStep === "vendors") {
-      setCurrentStep("venue");
     } else if (currentStep === "services") {
-      setCurrentStep("vendors");
+      setCurrentStep("venue");
     } else if (currentStep === "suppliers") {
       setCurrentStep("services");
     } else if (currentStep === "dashboard") {
@@ -174,13 +158,12 @@ export default function WorkflowSetup() {
 
   const getStepProgress = () => {
     switch (currentStep) {
-      case "user-type": return 12.5;
-      case "theme": return 25;
-      case "hospitality": return 37.5;
-      case "venue": return 50;
-      case "vendors": return 62.5;
-      case "services": return 75;
-      case "suppliers": return 87.5;
+      case "user-type": return 14.3;
+      case "theme": return 28.6;
+      case "hospitality": return 42.9;
+      case "venue": return 57.2;
+      case "services": return 71.5;
+      case "suppliers": return 85.8;
       case "dashboard": return 100;
       default: return 0;
     }
@@ -207,7 +190,6 @@ export default function WorkflowSetup() {
                       {currentStep === "theme" && "Choose Event Theme"}
                       {currentStep === "hospitality" && "Select Hospitality Services"}
                       {currentStep === "venue" && "Choose Venue Location"}
-                      {currentStep === "vendors" && "Select Vendors"}
                       {currentStep === "services" && "Choose Services"}
                       {currentStep === "suppliers" && "Select Suppliers"}
                     </CardTitle>
@@ -217,9 +199,8 @@ export default function WorkflowSetup() {
                         currentStep === "theme" ? "2" : 
                         currentStep === "hospitality" ? "3" : 
                         currentStep === "venue" ? "4" : 
-                        currentStep === "vendors" ? "5" : 
-                        currentStep === "services" ? "6" : 
-                        currentStep === "suppliers" ? "7" : "8"
+                        currentStep === "services" ? "5" :
+                        currentStep === "suppliers" ? "6" : "7"
                       } of 8
                     </p>
                   </div>
@@ -276,14 +257,7 @@ export default function WorkflowSetup() {
             />
           )}
 
-          {currentStep === "vendors" && selectedUserType && selectedTheme && (
-            <VendorSelector 
-              onSelectVendor={handleVendorSelection}
-              selectedVendor={selectedVendor}
-            />
-          )}
-
-          {currentStep === "services" && selectedUserType && selectedTheme && selectedVendor && (
+          {currentStep === "services" && selectedUserType && selectedTheme && (
             <ServiceSelector 
               onSelectServiceVendor={handleServiceVendorSelection}
               onSelectServiceRental={handleServiceRentalSelection}
