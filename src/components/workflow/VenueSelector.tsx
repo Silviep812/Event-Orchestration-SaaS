@@ -42,8 +42,8 @@ interface VenueType {
 }
 
 interface VenueSelectorProps {
-  onSelectVenue: (venue: VenueOption) => void;
-  selectedVenue?: VenueOption;
+  onSelectVenue: (venueId: string) => void;
+  selectedVenue?: string; // Just the ID, not the full object
 }
 
 export const VenueSelector = ({ onSelectVenue, selectedVenue }: VenueSelectorProps) => {
@@ -155,12 +155,16 @@ export const VenueSelector = ({ onSelectVenue, selectedVenue }: VenueSelectorPro
 
   const handleBooking = async (venue: VenueOption) => {
     try {
-      // Here you would implement the actual booking logic
-      onSelectVenue(venue);
-      toast({
-        title: "Success",
-        description: `Selected venue: ${venue.business_name || venue.contact_name}`,
-      });
+      // Pass only the ID to the parent component
+      if (venue.id) {
+        onSelectVenue(venue.id);
+        toast({
+          title: "Success",
+          description: `Selected venue: ${venue.business_name || venue.contact_name}`,
+        });
+      } else {
+        throw new Error("Venue ID is missing");
+      }
     } catch (error) {
       toast({
         title: "Error",
@@ -264,7 +268,7 @@ export const VenueSelector = ({ onSelectVenue, selectedVenue }: VenueSelectorPro
       {/* Results */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredVenues.map((venue) => {
-          const isSelected = selectedVenue?.id === venue.id;
+          const isSelected = selectedVenue === venue.id;
           
           return (
             <Card 
