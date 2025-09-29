@@ -7,6 +7,13 @@ interface WorkflowData {
   id?: string;
   workflow_type_id?: number;
   user_id: string;
+  theme_id?: number;
+  hospitality_id?: string;
+  venue_id?: string;
+  supplier_id?: string;
+  serv_vendor_sup_id?: string;
+  serv_vendor_rent_id?: string;
+  // Legacy JSONB fields (to be deprecated)
   theme_name?: string;
   hospitality_selection?: any;
   venue_selection?: any;

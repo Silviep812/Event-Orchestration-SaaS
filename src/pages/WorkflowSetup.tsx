@@ -11,11 +11,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useWorkflow } from "@/hooks/useWorkflow";
 
 type SetupStep = "user-type" | "theme" | "hospitality" | "venue" | "vendors" | "services" | "suppliers" | "dashboard";
 
 export default function WorkflowSetup() {
   const { userRoles } = useAuth();
+  const { saveWorkflowType, updateWorkflowSelections, loading } = useWorkflow();
   const [currentStep, setCurrentStep] = useState<SetupStep>("user-type");
   const [selectedUserType, setSelectedUserType] = useState<string>("");
   const [selectedTheme, setSelectedTheme] = useState<number | undefined>(undefined);
@@ -73,13 +75,24 @@ export default function WorkflowSetup() {
     }
   };
 
-  const handleUserTypeSelection = (userType: string) => {
+  const handleUserTypeSelection = async (userType: string) => {
     setSelectedUserType(userType);
+    
+    // Save workflow type to database when Step 1 is completed
+    const workflowId = await saveWorkflowType(userType);
+    if (workflowId) {
+      console.log('Workflow created with ID:', workflowId);
+    }
+    
     setCurrentStep(getNextStepForUserType(userType, "user-type"));
   };
 
-  const handleThemeSelection = (themeId: number, themeName: string) => {
+  const handleThemeSelection = async (themeId: number, themeName: string) => {
     setSelectedTheme(themeId);
+    
+    // Save theme selection to workflow
+    await updateWorkflowSelections({ theme_id: themeId });
+    
     setCurrentStep(getNextStepForUserType(selectedUserType, "theme"));
   };
 
