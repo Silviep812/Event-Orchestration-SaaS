@@ -13,13 +13,8 @@ interface WorkflowData {
   supplier_id?: string;
   serv_vendor_sup_id?: string;
   serv_vendor_rent_id?: string;
-  // Legacy JSONB fields (to be deprecated)
-  theme_name?: string;
-  hospitality_selection?: any;
-  venue_selection?: any;
-  vendor_selection?: any;
-  service_selection?: any;
-  supplier_selection?: any;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export const useWorkflow = () => {
@@ -156,10 +151,45 @@ export const useWorkflow = () => {
     loadWorkflow();
   }, [user?.id]);
 
+  const getWorkflowData = async (): Promise<WorkflowData | null> => {
+    if (!user?.id) return null;
+
+    try {
+      const { data, error } = await supabase
+        .from('workflows')
+        .select(`
+          id,
+          workflow_type_id,
+          user_id,
+          theme_id,
+          hospitality_id,
+          venue_id,
+          supplier_id,
+          serv_vendor_sup_id,
+          serv_vendor_rent_id,
+          created_at,
+          updated_at
+        `)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching workflow data:', error);
+        return null;
+      }
+
+      return data as WorkflowData | null;
+    } catch (error) {
+      console.error('Error fetching workflow data:', error);
+      return null;
+    }
+  };
+
   return {
     workflowId,
     loading,
     saveWorkflowType,
-    updateWorkflowSelections
+    updateWorkflowSelections,
+    getWorkflowData
   };
 };

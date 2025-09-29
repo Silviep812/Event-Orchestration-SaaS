@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useWorkflow } from "@/hooks/useWorkflow";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   Calendar, 
   MapPin, 
@@ -30,6 +32,15 @@ interface WorkflowStep {
 interface WorkflowDashboardProps {
   userType: string;
   selectedTheme: number;
+}
+
+interface WorkflowSelections {
+  theme: string;
+  hospitality: string;
+  venue: string;
+  supplier: string;
+  serviceVendor: string;
+  serviceRental: string;
 }
 
 const workflowSteps: Record<string, WorkflowStep[]> = {
@@ -199,10 +210,119 @@ const getPriorityColor = (priority: string) => {
 
 export const WorkflowDashboard = ({ userType, selectedTheme }: WorkflowDashboardProps) => {
   const [steps, setSteps] = useState<WorkflowStep[]>([]);
+  const [selections, setSelections] = useState<WorkflowSelections>({
+    theme: '',
+    hospitality: '',
+    venue: '',
+    supplier: '',
+    serviceVendor: '',
+    serviceRental: ''
+  });
+  const { getWorkflowData } = useWorkflow();
 
   useEffect(() => {
     setSteps(workflowSteps[userType] || []);
   }, [userType]);
+
+  useEffect(() => {
+    const loadWorkflowSelections = async () => {
+      const workflowData = await getWorkflowData();
+      if (workflowData) {
+        // Fetch actual names/details for selected items
+        const newSelections: WorkflowSelections = {
+          theme: '',
+          hospitality: '',
+          venue: '',
+          supplier: '',
+          serviceVendor: '',
+          serviceRental: ''
+        };
+
+        // Fetch theme name
+        if (workflowData.theme_id) {
+          const { data: theme } = await supabase
+            .from('Themes Directory')
+            .select('*')
+            .limit(1)
+            .maybeSingle();
+          if (theme) {
+            // Find the matching theme field
+            const themeKeys = Object.keys(theme).filter(key => 
+              key !== 'created_at' && theme[key as keyof typeof theme]
+            );
+            newSelections.theme = themeKeys[0] || `Theme ${workflowData.theme_id}`;
+          }
+        }
+
+        // Fetch hospitality name
+        if (workflowData.hospitality_id) {
+          const { data: hospitality } = await supabase
+            .from('Hospitality Profile')
+            .select('hosp_biz_name')
+            .eq('hosp_type_id', workflowData.hospitality_id)
+            .limit(1)
+            .maybeSingle();
+          newSelections.hospitality = hospitality?.hosp_biz_name || `Hospitality ${workflowData.hospitality_id}`;
+        }
+
+        // Fetch venue name
+        if (workflowData.venue_id) {
+          const { data: venue } = await supabase
+            .from('Venue Profile')
+            .select('ven_biz_name')
+            .eq('venue_type_id', workflowData.venue_id)
+            .limit(1)
+            .maybeSingle();
+          newSelections.venue = venue?.ven_biz_name || `Venue ${workflowData.venue_id}`;
+        }
+
+        // Fetch supplier name
+        if (workflowData.supplier_id) {
+          const { data: supplier } = await supabase
+            .from('Supplier Profile')
+            .select('supplier_contact_name, distributor_supplier_biz_name, wholesaler_supplier_biz_name')
+            .eq('supply_id', workflowData.supplier_id)
+            .limit(1)
+            .maybeSingle();
+          newSelections.supplier = supplier?.distributor_supplier_biz_name || 
+                                 supplier?.wholesaler_supplier_biz_name || 
+                                 supplier?.supplier_contact_name || 
+                                 `Supplier ${workflowData.supplier_id}`;
+        }
+
+        // Fetch service vendor name
+        if (workflowData.serv_vendor_sup_id) {
+          const { data: serviceVendor } = await supabase
+            .from('Service Profile')
+            .select('"Business Name"')
+            .eq('id', parseInt(workflowData.serv_vendor_sup_id))
+            .limit(1)
+            .maybeSingle();
+          newSelections.serviceVendor = serviceVendor?.["Business Name"] || `Service Vendor ${workflowData.serv_vendor_sup_id}`;
+        }
+
+        // Fetch service rental name
+        if (workflowData.serv_vendor_rent_id) {
+          const { data: serviceRental } = await supabase
+            .from('Service Rental/Sale Directory')
+            .select('*')
+            .eq('rental_type_id', workflowData.serv_vendor_rent_id)
+            .limit(1)
+            .maybeSingle();
+          if (serviceRental) {
+            const rentalKeys = Object.keys(serviceRental).filter(key => 
+              key !== 'rental_type_id' && key !== 'created_at' && serviceRental[key]
+            );
+            newSelections.serviceRental = rentalKeys[0] || `Service Rental ${workflowData.serv_vendor_rent_id}`;
+          }
+        }
+
+        setSelections(newSelections);
+      }
+    };
+
+    loadWorkflowSelections();
+  }, [getWorkflowData]);
 
   const completedSteps = steps.filter(step => step.status === "complete").length;
   const progressPercentage = (completedSteps / steps.length) * 100;
@@ -248,6 +368,54 @@ export const WorkflowDashboard = ({ userType, selectedTheme }: WorkflowDashboard
           </Button>
         </div>
       </div>
+
+      {/* Selected Options */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Your Workflow Selections</CardTitle>
+          <CardDescription>Options you selected during workflow setup</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {selections.theme && (
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary">Theme</Badge>
+                <span className="text-sm">{selections.theme}</span>
+              </div>
+            )}
+            {selections.hospitality && (
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary">Hospitality</Badge>
+                <span className="text-sm">{selections.hospitality}</span>
+              </div>
+            )}
+            {selections.venue && (
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary">Venue</Badge>
+                <span className="text-sm">{selections.venue}</span>
+              </div>
+            )}
+            {selections.supplier && (
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary">Supplier</Badge>
+                <span className="text-sm">{selections.supplier}</span>
+              </div>
+            )}
+            {selections.serviceVendor && (
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary">Service Vendor</Badge>
+                <span className="text-sm">{selections.serviceVendor}</span>
+              </div>
+            )}
+            {selections.serviceRental && (
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary">Service Rental</Badge>
+                <span className="text-sm">{selections.serviceRental}</span>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Progress Overview */}
       <Card>
