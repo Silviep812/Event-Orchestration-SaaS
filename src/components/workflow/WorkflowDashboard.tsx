@@ -238,7 +238,7 @@ export const WorkflowDashboard = ({ userType, selectedTheme }: WorkflowDashboard
   const navigate = useNavigate();
 
   const handleCustomize = () => {
-    navigate('/dashboard/workflow-setup?step=1');
+    navigate('/dashboard/workflow?step=1');
   };
 
   useEffect(() => {
