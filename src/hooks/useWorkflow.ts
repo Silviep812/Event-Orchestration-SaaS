@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
@@ -179,8 +179,8 @@ export const useWorkflow = () => {
     loadWorkflow();
   }, [user?.id]);
 
-  const getWorkflowData = async (): Promise<WorkflowData | null> => {
-    if (!user?.id) return null;
+  const getWorkflowData = useCallback(async (): Promise<WorkflowData | null> => {
+  if (!user?.id) return null;
 
     try {
       const { data, error } = await supabase
@@ -212,7 +212,7 @@ export const useWorkflow = () => {
       console.error('Error fetching workflow data:', error);
       return null;
     }
-  };
+  }, [user?.id]);
 
   return {
     workflowId,

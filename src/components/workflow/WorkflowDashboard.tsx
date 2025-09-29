@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -305,6 +305,8 @@ export const WorkflowDashboard = ({ userType, selectedTheme, setCurrentStep }: W
         description: "Task has been added to your event successfully.",
       });
 
+      refreshEventTasks();
+
       setIsCreateTaskOpen(false);
       setNewTask({
         title: "",
@@ -321,6 +323,22 @@ export const WorkflowDashboard = ({ userType, selectedTheme, setCurrentStep }: W
       });
     }
   };
+
+  const refreshEventTasks = useCallback(async () => {
+  const workflowData = await getWorkflowData();
+
+  if (workflowData?.event_id) {
+    const { data: tasks, error } = await supabase
+      .from('tasks')
+      .select('*')
+      .eq('event_id', workflowData.event_id)
+      .order('created_at', { ascending: false });
+
+    if (!error) {
+      setEventTasks(tasks || []);
+    }
+  }
+}, [getWorkflowData]);
 
   useEffect(() => {
     setSteps(workflowSteps[userType] || []);
