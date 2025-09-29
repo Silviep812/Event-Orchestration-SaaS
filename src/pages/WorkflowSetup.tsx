@@ -18,7 +18,7 @@ export default function WorkflowSetup() {
   const { userRoles } = useAuth();
   const [currentStep, setCurrentStep] = useState<SetupStep>("user-type");
   const [selectedUserType, setSelectedUserType] = useState<string>("");
-  const [selectedTheme, setSelectedTheme] = useState<string>("");
+  const [selectedTheme, setSelectedTheme] = useState<number | undefined>(undefined);
   const [selectedHospitality, setSelectedHospitality] = useState<any>(null);
   const [selectedVenue, setSelectedVenue] = useState<any>(null);
   const [selectedVendor, setSelectedVendor] = useState<any>(null);
@@ -78,8 +78,8 @@ export default function WorkflowSetup() {
     setCurrentStep(getNextStepForUserType(userType, "user-type"));
   };
 
-  const handleThemeSelection = (theme: string) => {
-    setSelectedTheme(theme);
+  const handleThemeSelection = (themeId: number, themeName: string) => {
+    setSelectedTheme(themeId);
     setCurrentStep(getNextStepForUserType(selectedUserType, "theme"));
   };
 

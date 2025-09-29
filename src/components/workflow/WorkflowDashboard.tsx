@@ -29,7 +29,7 @@ interface WorkflowStep {
 
 interface WorkflowDashboardProps {
   userType: string;
-  selectedTheme: string;
+  selectedTheme: number;
 }
 
 const workflowSteps: Record<string, WorkflowStep[]> = {
@@ -234,7 +234,7 @@ export const WorkflowDashboard = ({ userType, selectedTheme }: WorkflowDashboard
         <div>
           <h1 className="text-3xl font-bold">Workflow Dashboard</h1>
           <p className="text-muted-foreground">
-            {userType.replace("-", " ").replace(/\b\w/g, l => l.toUpperCase())} • {selectedTheme.replace("-", " ").replace(/\b\w/g, l => l.toUpperCase())} Theme
+            {userType.replace("-", " ").replace(/\b\w/g, l => l.toUpperCase())} • Theme ID: {selectedTheme}
           </p>
         </div>
         <div className="flex gap-2">

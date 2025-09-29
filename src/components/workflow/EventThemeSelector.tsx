@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   Heart, 
   Building, 
@@ -11,110 +12,188 @@ import {
   Coffee, 
   Network,
   Palette,
-  CheckCircle2 
+  CheckCircle2,
+  Loader2,
+  Trophy,
+  PersonStanding,
+  Utensils,
+  Store,
+  Calendar1
 } from "lucide-react";
 
 interface EventTheme {
-  id: string;
+  id: number;
   name: string;
   description: string;
   icon: any;
   color: string;
   bgColor: string;
   tags: string[];
-  popularWith: string[];
+  category: string;
+  premium: boolean;
 }
 
 interface EventThemeSelectorProps {
   userType: string;
-  onSelectTheme: (theme: string) => void;
-  selectedTheme?: string;
+  onSelectTheme: (themeId: number, themeName: string) => void;
+  selectedTheme?: number;
 }
 
-const eventThemes: EventTheme[] = [
-  {
-    id: "wedding",
-    name: "Wedding & Romance",
-    description: "Elegant celebrations of love and commitment",
-    icon: Heart,
-    color: "text-theme-wedding",
-    bgColor: "bg-theme-wedding",
-    tags: ["Elegant", "Romantic", "Formal", "Traditional"],
-    popularWith: ["professional-planner", "venue-owner"]
-  },
-  {
-    id: "corporate",
-    name: "Corporate & Business",
-    description: "Professional networking and business events",
-    icon: Building,
-    color: "text-theme-corporate", 
-    bgColor: "bg-theme-corporate",
-    tags: ["Professional", "Networking", "Formal", "Strategic"],
-    popularWith: ["professional-planner", "hospitality-owner"]
-  },
-  {
-    id: "birthday",
-    name: "Birthday & Celebrations",
-    description: "Personal milestones and joyful celebrations",
-    icon: Cake,
-    color: "text-theme-birthday",
-    bgColor: "bg-theme-birthday",
-    tags: ["Fun", "Personal", "Colorful", "Memorable"],
-    popularWith: ["social-organizer", "venue-owner"]
-  },
-  {
-    id: "conference",
-    name: "Conference & Summit",
-    description: "Educational and industry-focused gatherings",
-    icon: Users,
-    color: "text-theme-conference",
-    bgColor: "bg-theme-conference",
-    tags: ["Educational", "Professional", "Informative", "Strategic"],
-    popularWith: ["professional-planner", "hospitality-owner"]
-  },
-  {
-    id: "festival",
-    name: "Festival & Entertainment",
-    description: "Large-scale entertainment and cultural events",
-    icon: Music,
-    color: "text-theme-festival",
-    bgColor: "bg-theme-festival",
-    tags: ["Energetic", "Cultural", "Entertainment", "Large-scale"],
-    popularWith: ["professional-planner", "venue-owner"]
-  },
-  {
-    id: "social",
-    name: "Social & Community",
-    description: "Community gatherings and social meetups",
-    icon: Coffee,
-    color: "text-theme-social",
-    bgColor: "bg-theme-social",
-    tags: ["Community", "Casual", "Friendly", "Inclusive"],
-    popularWith: ["social-organizer", "hospitality-owner"]
-  },
-  {
-    id: "networking",
-    name: "Networking & Mixers",
-    description: "Professional connections and industry mixers",
-    icon: Network,
-    color: "text-theme-networking",
-    bgColor: "bg-theme-networking",
-    tags: ["Professional", "Connections", "Interactive", "Growth"],
-    popularWith: ["professional-planner", "hospitality-owner"]
+// Theme icon mapping
+const getThemeIcon = (themeName: string) => {
+  const iconMap: { [key: string]: any } = {
+    wedding: Heart,
+    'bridal shower': Heart,
+    corporate: Building,
+    business: Building,
+    birthday: Cake,
+    celebration: Cake,
+    conference: Users,
+    summit: Users,
+    festival: Music,
+    entertainment: Music,
+    social: Coffee,
+    community: Coffee,
+    networking: Network,
+    mixer: Network,
+    health: Heart,
+    wellness: Heart,
+    meetup: PersonStanding,
+    sporting: Trophy,
+    reunion: PersonStanding,
+    dining: Utensils,
+    retreat: Heart,
+    marketplace: Store,
+    'special event': Calendar1,
+    'health and wellness': Heart,
+  };
+  
+  const key = Object.keys(iconMap).find(k => 
+    themeName.toLowerCase().includes(k)
+  );
+  return iconMap[key] || Palette;
+};
+
+// Get theme styling based on category
+const getThemeStyles = (category: string) => {
+  const styleMap: { [key: string]: { color: string; bgColor: string } } = {
+    celebration: { color: "text-pink-600", bgColor: "bg-pink-50" },
+    business: { color: "text-blue-600", bgColor: "bg-blue-50" },
+    entertainment: { color: "text-purple-600", bgColor: "bg-purple-50" },
+    social: { color: "text-green-600", bgColor: "bg-green-50" },
+    conference: { color: "text-indigo-600", bgColor: "bg-indigo-50" },
+    health: { color: "text-emerald-600", bgColor: "bg-emerald-50" },
+  };
+  
+  return styleMap[category] || { color: "text-gray-600", bgColor: "bg-gray-50" };
+};
+
+// Get category from theme name
+const getCategoryFromName = (themeName: string): string => {
+  const name = themeName.toLowerCase();
+  
+  if (name.includes('wedding') || name.includes('bridal') || name.includes('baby shower') || 
+      name.includes('birthday') || name.includes('party') || name.includes('celebration')) {
+    return "celebration";
   }
-];
+  if (name.includes('business') || name.includes('corporate') || name.includes('conference') || 
+      name.includes('seminar') || name.includes('networking')) {
+    return "business";
+  }
+  if (name.includes('festival') || name.includes('music') || name.includes('entertainment') || 
+      name.includes('concert') || name.includes('show')) {
+    return "entertainment";
+  }
+  if (name.includes('health') || name.includes('wellness') || name.includes('fitness') || 
+      name.includes('yoga') || name.includes('spa')) {
+    return "health";
+  }
+  
+  return "social";
+};
+
+const getThemeDescription = (category: string): string => {
+  const descriptions: { [key: string]: string } = {
+    celebration: "Perfect for special occasions and memorable celebrations",
+    social: "Great for community gatherings and social events",
+    entertainment: "Ideal for festivals and entertainment events",
+    business: "Professional events and corporate gatherings",
+    health: "Perfect for wellness retreats, health seminars, and mindful gatherings",
+  };
+  return descriptions[category] || "Versatile theme for any occasion";
+};
 
 export const EventThemeSelector = ({ userType, onSelectTheme, selectedTheme }: EventThemeSelectorProps) => {
-  const [hoveredTheme, setHoveredTheme] = useState<string | null>(null);
+  const [hoveredTheme, setHoveredTheme] = useState<number | null>(null);
+  const [themes, setThemes] = useState<EventTheme[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Filter themes based on user type popularity
-  const relevantThemes = eventThemes.filter(theme => 
-    theme.popularWith.includes(userType)
-  );
-  
-  const otherThemes = eventThemes.filter(theme => 
-    !theme.popularWith.includes(userType)
-  );
+  // Fetch themes from Supabase
+  useEffect(() => {
+    const fetchThemes = async () => {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('event_themes')
+          .select('id, name, description, tags, premium, created_at')
+          .order('name');
+
+        if (error) {
+          console.error('Error fetching themes:', error);
+          setThemes([]);
+          return;
+        }
+
+        if (!data || data.length === 0) {
+          setThemes([]);
+          return;
+        }
+
+        // Transform Supabase data into EventTheme format
+        const transformedThemes: EventTheme[] = data.map((theme) => {
+          const category = getCategoryFromName(theme.name);
+          const styles = getThemeStyles(category);
+          
+          return {
+            id: theme.id,
+            name: theme.name,
+            description: theme.description || getThemeDescription(category),
+            category,
+            tags: theme?.tags || [],
+            icon: getThemeIcon(theme.name),
+            color: styles.color,
+            bgColor: styles.bgColor,
+            premium: theme.premium,
+          };
+        });
+
+        setThemes(transformedThemes);
+      } catch (error) {
+        console.error('Error in fetchThemes:', error);
+        setThemes([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchThemes();
+  }, []);
+
+  // Define recommended themes based on user type
+  const getRecommendedThemes = () => {
+    const recommendedCategories: { [key: string]: string[] } = {
+      'professional-planner': ['business', 'celebration'],
+      'venue-owner': ['celebration', 'entertainment'],
+      'hospitality-owner': ['business', 'social'],
+      'social-organizer': ['social', 'celebration'],
+    };
+    
+    const userCategories = recommendedCategories[userType] || [];
+    return themes.filter(theme => userCategories.includes(theme.category));
+  };
+
+  const relevantThemes = getRecommendedThemes();
+  const otherThemes = themes.filter(theme => !relevantThemes.some(rt => rt.id === theme.id));
 
   const ThemeCard = ({ theme, isRecommended = false }: { theme: EventTheme; isRecommended?: boolean }) => {
     const IconComponent = theme.icon;
@@ -133,7 +212,7 @@ export const EventThemeSelector = ({ userType, onSelectTheme, selectedTheme }: E
         } ${isRecommended ? 'ring-2 ring-primary/20' : ''}`}
         onMouseEnter={() => setHoveredTheme(theme.id)}
         onMouseLeave={() => setHoveredTheme(null)}
-        onClick={() => onSelectTheme(theme.id)}
+        onClick={() => onSelectTheme(theme.id, theme.name)}
       >
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
@@ -143,6 +222,7 @@ export const EventThemeSelector = ({ userType, onSelectTheme, selectedTheme }: E
             <div className="flex flex-col items-end gap-1">
               {isSelected && <CheckCircle2 className="h-5 w-5 text-primary" />}
               {isRecommended && <Badge variant="secondary" className="text-xs">Recommended</Badge>}
+              {theme.premium && <Badge variant="outline" className="text-xs">Premium</Badge>}
             </div>
           </div>
           <CardTitle className="text-lg">{theme.name}</CardTitle>
@@ -174,6 +254,15 @@ export const EventThemeSelector = ({ userType, onSelectTheme, selectedTheme }: E
     );
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Loading themes...</span>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="text-center space-y-2">
@@ -185,6 +274,12 @@ export const EventThemeSelector = ({ userType, onSelectTheme, selectedTheme }: E
           Select an event theme to unlock specialized templates, vendor recommendations, and workflow optimizations.
         </p>
       </div>
+
+      {themes.length === 0 && !loading && (
+        <div className="text-center p-8 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <p className="text-yellow-800">No themes available. Please check your database configuration.</p>
+        </div>
+      )}
 
       {relevantThemes.length > 0 && (
         <div className="space-y-4">
@@ -208,6 +303,16 @@ export const EventThemeSelector = ({ userType, onSelectTheme, selectedTheme }: E
               <ThemeCard key={theme.id} theme={theme} />
             ))}
           </div>
+        </div>
+      )}
+
+      {themes.length === 0 && !loading && (
+        <div className="text-center py-8">
+          <Palette className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-semibold mb-2">No themes found</h3>
+          <p className="text-muted-foreground">
+            Please add some event themes to the database to get started.
+          </p>
         </div>
       )}
     </div>
