@@ -12,30 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 const PlanningAssets = () => {
   const { toast } = useToast();
   const [newTemplate, setNewTemplate] = useState({ name: "", description: "", type: "checklist" });
-
-  const templates = [
-    {
-      id: 1,
-      name: "Corporate Event Checklist",
-      type: "checklist",
-      description: "Complete checklist for corporate events",
-      items: ["Book venue", "Arrange catering", "Send invitations", "Setup AV equipment", "Prepare welcome materials"]
-    },
-    {
-      id: 2,
-      name: "Wedding Planning Template",
-      type: "template",
-      description: "Comprehensive wedding planning template",
-      items: ["Venue selection", "Photography", "Flowers", "Music", "Catering"]
-    },
-    {
-      id: 3,
-      name: "Birthday Party Assets",
-      type: "assets",
-      description: "Reusable assets for birthday celebrations",
-      items: ["Decoration themes", "Entertainment options", "Cake designs", "Party favors"]
-    }
-  ];
+  const templates = [];
 
   const handleCreateTemplate = () => {
     toast({
