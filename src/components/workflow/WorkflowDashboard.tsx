@@ -59,7 +59,6 @@ interface SelectionCard {
   description: string;
   value: string;
   icon: React.ComponentType<any>;
-  status: "selected" | "not-selected";
 }
 
 const workflowSteps: Record<string, WorkflowStep[]> = {
@@ -265,79 +264,78 @@ export const WorkflowDashboard = ({ userType, selectedTheme, setCurrentStep }: W
         // Fetch theme name
         if (workflowData.theme_id) {
           const { data: theme } = await supabase
-            .from('Themes Directory')
-            .select('*')
+            .from('event_themes')
+            .select('name')
+            .eq('id', workflowData.theme_id)
             .limit(1)
             .maybeSingle();
+
           if (theme) {
             // Find the matching theme field
             const themeKeys = Object.keys(theme).filter(key => 
               key !== 'created_at' && theme[key as keyof typeof theme]
             );
-            newSelections.theme = themeKeys[0] || `Theme ${workflowData.theme_id}`;
+            newSelections.theme = theme.name || themeKeys[0];
           }
         }
 
         // Fetch hospitality name
         if (workflowData.hospitality_id) {
           const { data: hospitality } = await supabase
-            .from('Hospitality Profile')
-            .select('hosp_biz_name')
-            .eq('hosp_type_id', workflowData.hospitality_id as any)
+            .from('hospitality_profiles')
+            .select('business_name')
+            .eq('id', workflowData.hospitality_id)
             .limit(1)
             .maybeSingle();
-          newSelections.hospitality = hospitality?.hosp_biz_name || `Hospitality ${workflowData.hospitality_id}`;
+          newSelections.hospitality = hospitality?.business_name || `Hospitality ${workflowData.hospitality_id}`;
         }
 
         // Fetch venue name
         if (workflowData.venue_id) {
           const { data: venue } = await supabase
-            .from('Venue Profile')
-            .select('ven_biz_name')
-            .eq('venue_type_id', workflowData.venue_id)
+            .from('venues')
+            .select('business_name')
+            .eq('id', workflowData.venue_id)
             .limit(1)
             .maybeSingle();
-          newSelections.venue = venue?.ven_biz_name || `Venue ${workflowData.venue_id}`;
+          newSelections.venue = venue?.business_name || `Venue ${workflowData.venue_id}`;
         }
 
         // Fetch supplier name
         if (workflowData.supplier_id) {
           const { data: supplier } = await supabase
-            .from('Supplier Profile')
-            .select('supplier_contact_name, distributor_supplier_biz_name, wholesaler_supplier_biz_name')
-            .eq('supply_id', workflowData.supplier_id)
+            .from('suppliers')
+            .select('business_name')
+            .eq('id', workflowData.supplier_id)
             .limit(1)
             .maybeSingle();
-          newSelections.supplier = supplier?.distributor_supplier_biz_name || 
-                                 supplier?.wholesaler_supplier_biz_name || 
-                                 supplier?.supplier_contact_name || 
-                                 `Supplier ${workflowData.supplier_id}`;
+          newSelections.supplier = supplier?.business_name || `Supplier ${workflowData.supplier_id}`;
         }
 
         // Fetch service vendor name
         if (workflowData.serv_vendor_sup_id) {
           const { data: serviceVendor } = await supabase
-            .from('Service Profile')
-            .select('"Business Name"')
-            .eq('id', parseInt(workflowData.serv_vendor_sup_id))
+            .from('serv_vendor_suppliers')
+            .select('business_name')
+            .eq('id', workflowData.serv_vendor_sup_id)
             .limit(1)
             .maybeSingle();
-          newSelections.serviceVendor = serviceVendor?.["Business Name"] || `Service Vendor ${workflowData.serv_vendor_sup_id}`;
+          newSelections.serviceVendor = serviceVendor?.business_name || `Service Vendor ${workflowData.serv_vendor_sup_id}`;
         }
 
-        // Fetch service rental name
+        // // Fetch service rental name
         if (workflowData.serv_vendor_rent_id) {
           const { data: serviceRental } = await supabase
-            .from('Service Rental/Sale Directory')
+            .from('serv_vendor_rentals')
             .select('*')
-            .eq('rental_type_id', workflowData.serv_vendor_rent_id)
+            .eq('id', workflowData.serv_vendor_rent_id)
             .limit(1)
             .maybeSingle();
           if (serviceRental) {
             const rentalKeys = Object.keys(serviceRental).filter(key => 
               key !== 'rental_type_id' && key !== 'created_at' && serviceRental[key]
             );
-            newSelections.serviceRental = rentalKeys[0] || `Service Rental ${workflowData.serv_vendor_rent_id}`;
+            newSelections.serviceRental = serviceRental?.business_name || `Service Rental ${workflowData.serv_vendor_rent_id}`;
           }
         }
 
@@ -409,7 +407,6 @@ export const WorkflowDashboard = ({ userType, selectedTheme, setCurrentStep }: W
                   description: "The selected theme for your event",
                   value: selections.theme || "Not selected",
                   icon: Palette,
-                  status: selections.theme ? "selected" : "not-selected"
                 },
                 {
                   type: "hospitality",
@@ -417,7 +414,6 @@ export const WorkflowDashboard = ({ userType, selectedTheme, setCurrentStep }: W
                   description: "Accommodation and hospitality services",
                   value: selections.hospitality || "Not selected",
                   icon: Building,
-                  status: selections.hospitality ? "selected" : "not-selected"
                 },
                 {
                   type: "venue",
@@ -425,7 +421,6 @@ export const WorkflowDashboard = ({ userType, selectedTheme, setCurrentStep }: W
                   description: "Location where your event will take place",
                   value: selections.venue || "Not selected",
                   icon: Home,
-                  status: selections.venue ? "selected" : "not-selected"
                 },
                 {
                   type: "supplier",
@@ -433,7 +428,6 @@ export const WorkflowDashboard = ({ userType, selectedTheme, setCurrentStep }: W
                   description: "Supplies and materials provider",
                   value: selections.supplier || "Not selected",
                   icon: Package,
-                  status: selections.supplier ? "selected" : "not-selected"
                 },
                 {
                   type: "serviceVendor",
@@ -441,7 +435,6 @@ export const WorkflowDashboard = ({ userType, selectedTheme, setCurrentStep }: W
                   description: "Professional services provider",
                   value: selections.serviceVendor || "Not selected",
                   icon: Users,
-                  status: selections.serviceVendor ? "selected" : "not-selected"
                 },
                 {
                   type: "serviceRental",
@@ -449,20 +442,18 @@ export const WorkflowDashboard = ({ userType, selectedTheme, setCurrentStep }: W
                   description: "Equipment and rental services",
                   value: selections.serviceRental || "Not selected",
                   icon: Wrench,
-                  status: selections.serviceRental ? "selected" : "not-selected"
                 }
               ];
 
               return selectionCards.map((card) => {
                 const IconComponent = card.icon;
-                const isSelected = card.status === "selected";
                 
                 return (
-                  <Card key={card.type} className={`relative ${!isSelected ? 'opacity-60' : ''}`}>
+                  <Card key={card.type} className={`relative`}>
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between">
                         <div className="flex items-start gap-3">
-                          <div className={`p-2 rounded-full ${isSelected ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+                          <div className={`p-2 rounded-full ${'bg-primary text-primary-foreground'}`}>
                             <IconComponent className="h-4 w-4" />
                           </div>
                           <div className="space-y-1">
