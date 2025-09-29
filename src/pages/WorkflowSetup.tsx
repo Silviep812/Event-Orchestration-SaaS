@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { WorkflowSelector } from "@/components/workflow/WorkflowSelector";
+import { EventSelector } from "@/components/workflow/EventSelector";
 import { EventThemeSelector } from "@/components/workflow/EventThemeSelector";
 import { HospitalitySelector } from "@/components/workflow/HospitalitySelector";
 import { VenueSelector } from "@/components/workflow/VenueSelector";
@@ -11,13 +12,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkflow } from "@/hooks/useWorkflow";
+import { supabase } from "@/integrations/supabase/client";
 
-type SetupStep = "user-type" | "theme" | "hospitality" | "venue" | "services" | "suppliers" | "dashboard";
+type SetupStep = "event" | "user-type" | "theme" | "hospitality" | "venue" | "services" | "suppliers" | "dashboard";
 
 export default function WorkflowSetup() {
-  const { userRoles } = useAuth();
+  const { userRoles, user } = useAuth();
   const { saveWorkflowType, updateWorkflowSelections, loading } = useWorkflow();
-  const [currentStep, setCurrentStep] = useState<SetupStep>("user-type");
+  const [currentStep, setCurrentStep] = useState<SetupStep>("event");
+  const [selectedEvent, setSelectedEvent] = useState<string | undefined>(undefined);
+  const [userEventCount, setUserEventCount] = useState<number>(0);
   const [selectedUserType, setSelectedUserType] = useState<string>("");
   const [selectedTheme, setSelectedTheme] = useState<number | undefined>(undefined);
   const [selectedHospitality, setSelectedHospitality] = useState<string | undefined>(undefined);
@@ -25,9 +29,33 @@ export default function WorkflowSetup() {
   const [selectedServiceVendor, setSelectedServiceVendor] = useState<string | null>(null);
   const [selectedServiceRental, setSelectedServiceRental] = useState<string | null>(null);
 
+  // Check user's event count on mount
+  useEffect(() => {
+    const checkUserEvents = async () => {
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("Create Event")
+        .select("userid", { count: "exact", head: true })
+        .eq("userid", user.id);
+
+      if (!error && data !== null) {
+        const count = (data as any).count || 0;
+        setUserEventCount(count);
+
+        // If user has only one event, skip event selection step
+        if (count === 1) {
+          setCurrentStep("user-type");
+        }
+      }
+    };
+
+    checkUserEvents();
+  }, [user]);
+
   // Auto-detect user type from Supabase roles
   useEffect(() => {
-    if (userRoles.length > 0) {
+    if (userRoles.length > 0 && currentStep === "user-type") {
       // Map Supabase roles to workflow user types
       if (userRoles.includes('venue_manager')) {
         setSelectedUserType('venue-owner');
@@ -42,17 +70,28 @@ export default function WorkflowSetup() {
       // Skip to theme selection since role is auto-detected
       setCurrentStep("theme");
     }
-  }, [userRoles]);
+  }, [userRoles, currentStep]);
+
+  const handleEventSelection = async (eventId: string) => {
+    setSelectedEvent(eventId);
+    
+    // Save event_id to workflow
+    await updateWorkflowSelections({ event_id: eventId });
+    
+    setCurrentStep("user-type");
+  };
 
   const getNextStepForUserType = (userType: string, currentStep: SetupStep): SetupStep => {
     switch (userType) {
       case "venue-owner":
+        if (currentStep === "event") return "user-type";
         if (currentStep === "user-type") return "theme";
         if (currentStep === "theme") return "services";
         if (currentStep === "services") return "suppliers";
         return "dashboard";
       
       case "hospitality-owner":
+        if (currentStep === "event") return "user-type";
         if (currentStep === "user-type") return "theme";
         if (currentStep === "theme") return "hospitality";
         if (currentStep === "hospitality") return "venue";
@@ -61,6 +100,7 @@ export default function WorkflowSetup() {
         return "dashboard";
       
       default: // social-organizer, professional-planner
+        if (currentStep === "event") return "user-type";
         if (currentStep === "user-type") return "theme";
         if (currentStep === "theme") return "hospitality";
         if (currentStep === "hospitality") return "venue";
@@ -141,7 +181,11 @@ export default function WorkflowSetup() {
   };
 
   const handleBack = () => {
-    if (currentStep === "theme") {
+    if (currentStep === "user-type") {
+      if (userEventCount > 1) {
+        setCurrentStep("event");
+      }
+    } else if (currentStep === "theme") {
       setCurrentStep("user-type");
     } else if (currentStep === "hospitality") {
       setCurrentStep("theme");
@@ -158,12 +202,13 @@ export default function WorkflowSetup() {
 
   const getStepProgress = () => {
     switch (currentStep) {
-      case "user-type": return 14.3;
-      case "theme": return 28.6;
-      case "hospitality": return 42.9;
-      case "venue": return 57.2;
-      case "services": return 71.5;
-      case "suppliers": return 85.8;
+      case "event": return 12.5;
+      case "user-type": return 25;
+      case "theme": return 37.5;
+      case "hospitality": return 50;
+      case "venue": return 62.5;
+      case "services": return 75;
+      case "suppliers": return 87.5;
       case "dashboard": return 100;
       default: return 0;
     }
@@ -178,7 +223,13 @@ export default function WorkflowSetup() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  {currentStep !== "user-type" && (
+                  {currentStep !== "event" && currentStep !== "user-type" && (
+                    <Button variant="ghost" size="sm" onClick={handleBack}>
+                      <ArrowLeft className="h-4 w-4 mr-2" />
+                      Back
+                    </Button>
+                  )}
+                  {currentStep === "user-type" && userEventCount > 1 && (
                     <Button variant="ghost" size="sm" onClick={handleBack}>
                       <ArrowLeft className="h-4 w-4 mr-2" />
                       Back
@@ -186,6 +237,7 @@ export default function WorkflowSetup() {
                   )}
                   <div>
                     <CardTitle className="text-xl">
+                      {currentStep === "event" && "Select Your Event"}
                       {currentStep === "user-type" && "Setup Your Workflow"}
                       {currentStep === "theme" && "Choose Event Theme"}
                       {currentStep === "hospitality" && "Select Hospitality Services"}
@@ -195,13 +247,14 @@ export default function WorkflowSetup() {
                     </CardTitle>
                     <p className="text-sm text-muted-foreground mt-1">
                       Step {
-                        currentStep === "user-type" ? "1" : 
-                        currentStep === "theme" ? "2" : 
-                        currentStep === "hospitality" ? "3" : 
-                        currentStep === "venue" ? "4" : 
-                        currentStep === "services" ? "5" :
-                        currentStep === "suppliers" ? "6" : "7"
-                      } of 7
+                        currentStep === "event" ? "1" :
+                        currentStep === "user-type" ? "2" : 
+                        currentStep === "theme" ? "3" : 
+                        currentStep === "hospitality" ? "4" : 
+                        currentStep === "venue" ? "5" : 
+                        currentStep === "services" ? "6" :
+                        currentStep === "suppliers" ? "7" : "8"
+                      } of 8
                     </p>
                   </div>
                 </div>
@@ -228,6 +281,13 @@ export default function WorkflowSetup() {
 
         {/* Step Content */}
         <div className="space-y-6">
+          {currentStep === "event" && (
+            <EventSelector 
+              onSelectEvent={handleEventSelection}
+              selectedEvent={selectedEvent}
+            />
+          )}
+
           {currentStep === "user-type" && (
             <WorkflowSelector 
               onSelectUserType={handleUserTypeSelection}

@@ -1,0 +1,156 @@
+import { useEffect, useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Calendar, MapPin, CheckCircle2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
+
+interface Event {
+  id: string;
+  userid: string;
+  event_description: string;
+  event_start_date: string;
+  event_location: string[];
+  event_theme: string[];
+}
+
+interface EventSelectorProps {
+  onSelectEvent: (eventId: string) => void;
+  selectedEvent?: string;
+}
+
+export function EventSelector({ onSelectEvent, selectedEvent }: EventSelectorProps) {
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchEvents = async () => {
+      if (!user) return;
+
+      try {
+        const { data, error } = await supabase
+          .from("Create Event")
+          .select("userid, event_description, event_start_date, event_location, event_theme")
+          .eq("userid", user.id)
+          .order("event_start_date", { ascending: true });
+
+        if (error) throw error;
+
+        // Map the data to include a generated id (using row index as id since there's no id column)
+        const eventsWithIds = (data || []).map((event, index) => ({
+          ...event,
+          id: `${event.userid}-${index}`, // Generate a unique id
+        }));
+
+        setEvents(eventsWithIds);
+
+        // If user has only one event, auto-select it
+        if (eventsWithIds.length === 1) {
+          onSelectEvent(eventsWithIds[0].id);
+        }
+      } catch (error) {
+        console.error("Error fetching events:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load events",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEvents();
+  }, [user, onSelectEvent, toast]);
+
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="p-12 text-center">
+          <p className="text-muted-foreground">Loading your events...</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (events.length === 0) {
+    return (
+      <Card>
+        <CardContent className="p-12 text-center">
+          <p className="text-muted-foreground">No events found. Please create an event first.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Select an Event</CardTitle>
+          <CardDescription>
+            Choose which event you want to set up a workflow for
+          </CardDescription>
+        </CardHeader>
+      </Card>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {events.map((event) => (
+          <Card
+            key={event.id}
+            className={`cursor-pointer transition-all hover:shadow-lg ${
+              selectedEvent === event.id
+                ? "ring-2 ring-primary bg-primary/5"
+                : "hover:border-primary/50"
+            }`}
+            onClick={() => onSelectEvent(event.id)}
+          >
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <CardTitle className="text-lg">
+                    {event.event_description || "Untitled Event"}
+                  </CardTitle>
+                  {event.event_theme && event.event_theme.length > 0 && (
+                    <CardDescription className="mt-2">
+                      {event.event_theme[0]}
+                    </CardDescription>
+                  )}
+                </div>
+                {selectedEvent === event.id && (
+                  <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {event.event_start_date && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Calendar className="h-4 w-4" />
+                  <span>{format(new Date(event.event_start_date), "MMM dd, yyyy")}</span>
+                </div>
+              )}
+              {event.event_location && event.event_location.length > 0 && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <MapPin className="h-4 w-4" />
+                  <span>{event.event_location[0]}</span>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {selectedEvent && (
+        <div className="flex justify-end">
+          <Button onClick={() => onSelectEvent(selectedEvent)} size="lg">
+            Continue
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
