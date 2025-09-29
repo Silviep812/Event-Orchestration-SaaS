@@ -24,8 +24,8 @@ export default function WorkflowSetup() {
   const [selectedHospitality, setSelectedHospitality] = useState<string | undefined>(undefined);
   const [selectedVenue, setSelectedVenue] = useState<string | undefined>(undefined);
   const [selectedVendor, setSelectedVendor] = useState<string | null>(null);
-  const [selectedService, setSelectedService] = useState<any>(null);
-  const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
+  const [selectedServiceVendor, setSelectedServiceVendor] = useState<string | null>(null);
+  const [selectedServiceRental, setSelectedServiceRental] = useState<string | null>(null);
 
   // Auto-detect user type from Supabase roles
   useEffect(() => {
@@ -123,9 +123,30 @@ export default function WorkflowSetup() {
     setCurrentStep(getNextStepForUserType(selectedUserType, "vendors"));
   };
 
-  const handleServiceSelection = (service: any) => {
-    setSelectedService(service);
-    setCurrentStep(getNextStepForUserType(selectedUserType, "services"));
+  const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
+
+  const handleServiceVendorSelection = async (vendorId: string) => {
+    setSelectedServiceVendor(vendorId);
+    
+    // Save service vendor selection to workflow
+    await updateWorkflowSelections({ serv_vendor_sup_id: vendorId });
+    
+    // Move to next step if both selections are made or skip to suppliers step
+    if (selectedServiceRental) {
+      setCurrentStep(getNextStepForUserType(selectedUserType, "services"));
+    }
+  };
+
+  const handleServiceRentalSelection = async (rentalId: string) => {
+    setSelectedServiceRental(rentalId);
+    
+    // Save service rental selection to workflow
+    await updateWorkflowSelections({ serv_vendor_rent_id: rentalId });
+    
+    // Move to next step if both selections are made or skip to suppliers step
+    if (selectedServiceVendor) {
+      setCurrentStep(getNextStepForUserType(selectedUserType, "services"));
+    }
   };
 
   const handleSupplierSelection = (supplier: any) => {
@@ -264,12 +285,14 @@ export default function WorkflowSetup() {
 
           {currentStep === "services" && selectedUserType && selectedTheme && selectedVendor && (
             <ServiceSelector 
-              onSelectService={handleServiceSelection}
-              selectedService={selectedService}
+              onSelectServiceVendor={handleServiceVendorSelection}
+              onSelectServiceRental={handleServiceRentalSelection}
+              selectedServiceVendor={selectedServiceVendor}
+              selectedServiceRental={selectedServiceRental}
             />
           )}
 
-          {currentStep === "suppliers" && selectedUserType && selectedTheme && selectedService && (
+          {currentStep === "suppliers" && selectedUserType && selectedTheme && (selectedServiceVendor || selectedServiceRental) && (
             <SupplierSelector 
               onSelectSupplier={handleSupplierSelection}
               selectedSupplier={selectedSupplier}

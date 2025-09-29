@@ -68,8 +68,10 @@ interface Service {
 }
 
 interface ServiceSelectorProps {
-  onSelectService: (service: Service) => void;
-  selectedService: Service | null;
+  onSelectServiceVendor: (vendorId: string) => void;
+  onSelectServiceRental: (rentalId: string) => void;
+  selectedServiceVendor: string | null;
+  selectedServiceRental: string | null;
 }
 
 // Mock service data - in real app, this would come from Service Vendor Directory and Service Rental Directory tables
@@ -148,7 +150,7 @@ const getServiceIcon = (type: string) => {
   }
 };
 
-export function ServiceSelector({ onSelectService, selectedService }: ServiceSelectorProps) {
+export function ServiceSelector({ onSelectServiceVendor, onSelectServiceRental, selectedServiceVendor, selectedServiceRental }: ServiceSelectorProps) {
   const [locationFilter, setLocationFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [activeTab, setActiveTab] = useState("vendor");
@@ -319,9 +321,9 @@ export function ServiceSelector({ onSelectService, selectedService }: ServiceSel
                       <Card 
                         key={service.id}
                         className={`cursor-pointer transition-all hover:shadow-md ${
-                          selectedService?.id === service.id ? 'ring-2 ring-primary' : ''
+                          selectedServiceVendor === service.id ? 'ring-2 ring-primary' : ''
                         }`}
-                        onClick={() => onSelectService(service)}
+                        onClick={() => onSelectServiceVendor(service.id)}
                       >
                         <CardContent className="p-4">
                           <div className="space-y-2">
@@ -379,9 +381,9 @@ export function ServiceSelector({ onSelectService, selectedService }: ServiceSel
                       <Card 
                         key={service.id}
                         className={`cursor-pointer transition-all hover:shadow-md ${
-                          selectedService?.id === service.id ? 'ring-2 ring-primary' : ''
+                          selectedServiceRental === service.id ? 'ring-2 ring-primary' : ''
                         }`}
-                        onClick={() => onSelectService(service)}
+                        onClick={() => onSelectServiceRental(service.id)}
                       >
                         <CardContent className="p-4">
                           <div className="space-y-2">
@@ -418,13 +420,28 @@ export function ServiceSelector({ onSelectService, selectedService }: ServiceSel
             </div>
           )}
 
-          {selectedService && (
+          {(selectedServiceVendor || selectedServiceRental) && (
             <div className="mt-6 p-4 bg-primary/10 rounded-lg">
-              <h4 className="font-semibold text-primary mb-2">Selected Service</h4>
-              <div className="text-sm">
-                <p><strong>{selectedService.business_name}</strong></p>
-                <p>{selectedService.type} ({selectedService.category})</p>
-                <p className="text-muted-foreground">{selectedService.location}</p>
+              <h4 className="font-semibold text-primary mb-2">Selected Services</h4>
+              <div className="text-sm space-y-2">
+                {selectedServiceVendor && (() => {
+                  const vendor = convertedVendors.find(s => s.id === selectedServiceVendor);
+                  return vendor ? (
+                    <div>
+                      <p><strong>Service Vendor:</strong> {vendor.business_name}</p>
+                      <p>{vendor.type} | {vendor.location}</p>
+                    </div>
+                  ) : null;
+                })()}
+                {selectedServiceRental && (() => {
+                  const rental = convertedRentals.find(s => s.id === selectedServiceRental);
+                  return rental ? (
+                    <div>
+                      <p><strong>Service Rental:</strong> {rental.business_name}</p>
+                      <p>{rental.type} | {rental.location}</p>
+                    </div>
+                  ) : null;
+                })()}
               </div>
             </div>
           )}
