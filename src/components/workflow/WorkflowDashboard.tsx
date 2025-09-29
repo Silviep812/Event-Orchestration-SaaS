@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -225,7 +224,6 @@ const getPriorityColor = (priority: string) => {
 };
 
 export const WorkflowDashboard = ({ userType, selectedTheme }: WorkflowDashboardProps) => {
-  const navigate = useNavigate();
   const [steps, setSteps] = useState<WorkflowStep[]>([]);
   const [selections, setSelections] = useState<WorkflowSelections>({
     theme: '',
@@ -340,11 +338,6 @@ export const WorkflowDashboard = ({ userType, selectedTheme }: WorkflowDashboard
 
     loadWorkflowSelections();
   }, [getWorkflowData]);
-
-  const handleChangeSelection = (stepType: string) => {
-    // Navigate to workflow setup with the specific step
-    navigate(`/dashboard/workflow-setup?step=${stepType}`);
-  };
 
   const completedSteps = steps.filter(step => step.status === "complete").length;
   const progressPercentage = (completedSteps / steps.length) * 100;
@@ -482,11 +475,7 @@ export const WorkflowDashboard = ({ userType, selectedTheme }: WorkflowDashboard
                           {card.value}
                         </div>
                         <div className="flex gap-2">
-                          <Button 
-                            variant={isSelected ? "secondary" : "default"} 
-                            size="sm"
-                            onClick={() => handleChangeSelection(card.type)}
-                          >
+                          <Button variant={isSelected ? "secondary" : "default"} size="sm">
                             {isSelected ? "Change" : "Select"}
                           </Button>
                         </div>
