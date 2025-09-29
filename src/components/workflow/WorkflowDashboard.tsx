@@ -74,7 +74,7 @@ const workflowSteps: Record<string, WorkflowStep[]> = {
       id: "1",
       title: "Define Event Concept",
       description: "Establish theme, guest count, and basic requirements",
-      status: "completed",
+      status: "not_started",
       dueDate: "2024-01-15",
       priority: "high"
     },
@@ -82,7 +82,7 @@ const workflowSteps: Record<string, WorkflowStep[]> = {
       id: "2", 
       title: "Set Budget & Timeline",
       description: "Determine available budget and create event timeline",
-      status: "in_progress",
+      status: "not_started",
       dueDate: "2024-01-20",
       priority: "high"
     },
@@ -108,7 +108,7 @@ const workflowSteps: Record<string, WorkflowStep[]> = {
       id: "1",
       title: "Client Discovery & Requirements",
       description: "Detailed client consultation and requirement gathering",
-      status: "completed",
+      status: "not_started",
       dueDate: "2024-01-10",
       priority: "high"
     },
@@ -116,7 +116,7 @@ const workflowSteps: Record<string, WorkflowStep[]> = {
       id: "2",
       title: "Proposal & Contract",
       description: "Create detailed proposal and finalize service agreement",
-      status: "in_progress",
+      status: "not_started",
       dueDate: "2024-01-18",
       priority: "high"
     },
@@ -142,7 +142,7 @@ const workflowSteps: Record<string, WorkflowStep[]> = {
       id: "1",
       title: "Service Menu Planning",
       description: "Define available services and pricing structure",
-      status: "completed",
+      status: "not_started",
       dueDate: "2024-01-12",
       priority: "high"
     },
@@ -150,7 +150,7 @@ const workflowSteps: Record<string, WorkflowStep[]> = {
       id: "2",
       title: "Staff Coordination",
       description: "Schedule and brief service staff for event",
-      status: "in_progress",
+      status: "not_started",
       dueDate: "2024-01-22",
       priority: "high"
     },
@@ -176,7 +176,7 @@ const workflowSteps: Record<string, WorkflowStep[]> = {
       id: "1",
       title: "Space Configuration",
       description: "Optimize venue layout for event requirements",
-      status: "completed",
+      status: "not_started",
       dueDate: "2024-01-14",
       priority: "high"
     },
@@ -184,7 +184,7 @@ const workflowSteps: Record<string, WorkflowStep[]> = {
       id: "2",
       title: "Facility Preparation",
       description: "Ensure all venue facilities are event-ready",
-      status: "in_progress",
+      status: "not_started",
       dueDate: "2024-01-24",
       priority: "high"
     },
