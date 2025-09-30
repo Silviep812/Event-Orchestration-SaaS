@@ -79,6 +79,8 @@ export default function Collaborate() {
   const [inviteRole, setInviteRole] = useState("");
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
   const [isMemberDialogOpen, setIsMemberDialogOpen] = useState(false);
+  const [isCreateTeamDialogOpen, setIsCreateTeamDialogOpen] = useState(false);
+  const [teamName, setTeamName] = useState("");
 
   // Fetch real team members data
   useEffect(() => {
@@ -322,6 +324,79 @@ export default function Collaborate() {
     setIsMemberDialogOpen(true);
   };
 
+  const handleCreateTeam = async () => {
+    if (!teamName.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a team name.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to create a team.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      // Create the team
+      const { data: teamData, error: teamError } = await supabase
+        .from('teams')
+        .insert({ name: teamName })
+        .select()
+        .single();
+
+      if (teamError) {
+        console.error('Error creating team:', teamError);
+        toast({
+          title: "Error",
+          description: "Failed to create team. Please try again.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Create team assignment with current user as admin
+      const { error: assignmentError } = await supabase
+        .from('team_assignments')
+        .insert({
+          team_id: teamData.id,
+          user_id: user.id,
+          team_admin: true
+        });
+
+      if (assignmentError) {
+        console.error('Error creating team assignment:', assignmentError);
+        toast({
+          title: "Error",
+          description: "Failed to assign team admin. Please try again.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: "Success",
+        description: `Team "${teamName}" has been created successfully!`,
+      });
+
+      setTeamName("");
+      setIsCreateTeamDialogOpen(false);
+    } catch (error) {
+      console.error('Error creating team:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -371,6 +446,33 @@ export default function Collaborate() {
               </div>
               <Button onClick={handleInviteMember} className="w-full">
                 Send Invitation
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Create Team Dialog */}
+        <Dialog open={isCreateTeamDialogOpen} onOpenChange={setIsCreateTeamDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create New Team</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium">Team Name</label>
+                <Input
+                  placeholder="Enter team name"
+                  value={teamName}
+                  onChange={(e) => setTeamName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleCreateTeam();
+                    }
+                  }}
+                />
+              </div>
+              <Button onClick={handleCreateTeam} className="w-full">
+                Create Team
               </Button>
             </div>
           </DialogContent>
@@ -460,15 +562,24 @@ export default function Collaborate() {
                 <Users className="w-16 h-16 text-muted-foreground mb-4" />
                 <h3 className="text-lg font-semibold mb-2">No Team Members Yet</h3>
                 <p className="text-muted-foreground text-center mb-4 max-w-md">
-                  You don't belong to any team yet. Start by inviting team members to collaborate on your events.
+                  You don't belong to any team yet. Start by creating a team or inviting team members to collaborate on your events.
                 </p>
-                <Button 
-                  onClick={() => setIsInviteDialogOpen(true)}
-                  className="bg-gradient-to-r from-primary to-secondary"
-                >
-                  <UserPlus className="w-4 h-4 mr-2" />
-                  Invite Your First Member
-                </Button>
+                <div className="flex gap-3">
+                  <Button 
+                    onClick={() => setIsCreateTeamDialogOpen(true)}
+                    className="bg-gradient-to-r from-primary to-secondary"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create Team
+                  </Button>
+                  <Button 
+                    onClick={() => setIsInviteDialogOpen(true)}
+                    variant="outline"
+                  >
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    Invite Member
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ) : (
