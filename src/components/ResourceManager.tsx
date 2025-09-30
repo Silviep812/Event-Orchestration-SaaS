@@ -10,6 +10,14 @@ import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
   DndContext,
   DragEndEvent,
   DragOverlay,
@@ -72,11 +80,18 @@ interface ResourceManagerProps {
   eventId?: string;
 }
 
+interface Event {
+  userid: string;
+  event_theme: string[] | null;
+  event_start_date: string | null;
+}
+
 const ResourceManager = ({ eventId }: ResourceManagerProps) => {
   const [resources, setResources] = useState<Resource[]>([]);
   const [filteredResources, setFilteredResources] = useState<Resource[]>([]);
   const [categories, setCategories] = useState<ResourceCategory[]>([]);
   const [statuses, setStatuses] = useState<ResourceStatus[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
   const [locations, setLocations] = useState<string[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<string>('all');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -84,6 +99,17 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [groupBy, setGroupBy] = useState<'location' | 'category'>('location');
   const [loading, setLoading] = useState(true);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [newResource, setNewResource] = useState({
+    name: '',
+    category_id: '',
+    status_id: '',
+    location: '',
+    available: 0,
+    allocated: 0,
+    total: 0,
+    event_id: eventId || '',
+  });
   const { toast } = useToast();
 
   const sensors = useSensors(
@@ -94,7 +120,7 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
     })
   );
 
-  // Fetch categories, statuses, and resources from Supabase
+  // Fetch categories, statuses, events, and resources from Supabase
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -116,6 +142,15 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
         
         if (statusesError) throw statusesError;
         setStatuses(statusesData || []);
+
+        // Fetch events
+        const { data: eventsData, error: eventsError } = await supabase
+          .from('Create Event')
+          .select('userid, event_theme, event_start_date')
+          .order('event_start_date', { ascending: false });
+        
+        if (eventsError) throw eventsError;
+        setEvents(eventsData || []);
 
         // Fetch resources with joins - filter by eventId if provided
         let resourcesQuery = supabase
@@ -290,6 +325,85 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
         variant: "destructive",
       });
     };
+  };
+
+  const handleAddResource = async () => {
+    try {
+      const { error } = await supabase
+        .from('resources')
+        .insert([{
+          name: newResource.name,
+          category_id: parseInt(newResource.category_id),
+          status_id: parseInt(newResource.status_id),
+          location: newResource.location,
+          available: newResource.available,
+          allocated: newResource.allocated,
+          total: newResource.total,
+          event_id: newResource.event_id || null,
+        }]);
+
+      if (error) throw error;
+
+      toast({
+        title: "Resource Added",
+        description: "The resource has been added successfully",
+      });
+
+      setIsAddDialogOpen(false);
+      setNewResource({
+        name: '',
+        category_id: '',
+        status_id: '',
+        location: '',
+        available: 0,
+        allocated: 0,
+        total: 0,
+        event_id: eventId || '',
+      });
+
+      // Refresh resources
+      const fetchData = async () => {
+        let resourcesQuery = supabase
+          .from('resources')
+          .select(`
+            *,
+            category:resource_categories!category_id(name),
+            status:resource_status!status_id(name)
+          `);
+
+        if (eventId) {
+          resourcesQuery = resourcesQuery.eq('event_id', eventId);
+        }
+
+        const { data: resourcesData, error: resourcesError } = await resourcesQuery.order('name');
+        
+        if (resourcesError) throw resourcesError;
+
+        const mappedResources = (resourcesData || []).map((resource: any) => ({
+          id: resource.id,
+          name: resource.name,
+          category_id: resource.category_id,
+          category_name: resource.category?.name,
+          status_id: resource.status_id,
+          status_name: resource.status?.name,
+          location: resource.location || '',
+          available: resource.available || 0,
+          allocated: resource.allocated || 0,
+          total: resource.total || 0,
+          event_id: resource.event_id,
+        }));
+
+        setResources(mappedResources);
+      };
+      fetchData();
+    } catch (error) {
+      console.error('Error adding resource:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add resource",
+        variant: "destructive",
+      });
+    }
   };
 
   const SortableResourceCard = ({ resource }: { resource: Resource }) => {
@@ -476,7 +590,7 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
         </div>
         
         <div className="flex items-center gap-2">
-          <Button variant="default" size="sm">
+          <Button variant="default" size="sm" onClick={() => setIsAddDialogOpen(true)}>
             + Add Resource
           </Button>
           <Button variant="outline" size="sm">
@@ -494,6 +608,128 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
           </Select>
         </div>
       </div>
+
+      {/* Add Resource Dialog */}
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Add New Resource</DialogTitle>
+            <DialogDescription>
+              Add a new resource to your event inventory
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                value={newResource.name}
+                onChange={(e) => setNewResource({ ...newResource, name: e.target.value })}
+                placeholder="Resource name"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="category">Category</Label>
+              <Select
+                value={newResource.category_id}
+                onValueChange={(value) => setNewResource({ ...newResource, category_id: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.id.toString()}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="status">Status</Label>
+              <Select
+                value={newResource.status_id}
+                onValueChange={(value) => setNewResource({ ...newResource, status_id: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {statuses.map((status) => (
+                    <SelectItem key={status.id} value={status.id.toString()}>
+                      {status.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="location">Location</Label>
+              <Input
+                id="location"
+                value={newResource.location}
+                onChange={(e) => setNewResource({ ...newResource, location: e.target.value })}
+                placeholder="Resource location"
+              />
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="available">Available</Label>
+                <Input
+                  id="available"
+                  type="number"
+                  value={newResource.available}
+                  onChange={(e) => setNewResource({ ...newResource, available: parseInt(e.target.value) || 0 })}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="allocated">Allocated</Label>
+                <Input
+                  id="allocated"
+                  type="number"
+                  value={newResource.allocated}
+                  onChange={(e) => setNewResource({ ...newResource, allocated: parseInt(e.target.value) || 0 })}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="total">Total</Label>
+                <Input
+                  id="total"
+                  type="number"
+                  value={newResource.total}
+                  onChange={(e) => setNewResource({ ...newResource, total: parseInt(e.target.value) || 0 })}
+                />
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="event">Event (Optional)</Label>
+              <Select
+                value={newResource.event_id}
+                onValueChange={(value) => setNewResource({ ...newResource, event_id: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select event" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">No event</SelectItem>
+                  {events.map((event) => (
+                    <SelectItem key={event.userid} value={event.userid}>
+                      {event.event_theme?.[0] || 'Untitled Event'} - {event.event_start_date}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddResource}>Add Resource</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Filters */}
       <Card className="bg-gradient-subtle border-0">
