@@ -428,7 +428,7 @@ export default function Analytics({ onInteractionTrack }: AnalyticsProps = {}) {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Activity className="h-5 w-5 text-primary" />
-                Event Frequency by Location & Theme
+                Event Frequency by Location
               </CardTitle>
             </CardHeader>
             <CardContent>
