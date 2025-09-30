@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import {
   DndContext,
   DragEndEvent,
@@ -43,18 +44,28 @@ import {
   Settings
 } from "lucide-react";
 
+interface ResourceCategory {
+  id: number;
+  name: string;
+}
+
+interface ResourceStatus {
+  id: number;
+  name: string;
+}
+
 interface Resource {
   id: string;
   name: string;
-  category: 'venue' | 'catering' | 'equipment' | 'decoration' | 'staff' | 'transportation';
+  category_id: number;
+  category_name?: string;
+  status_id: number;
+  status_name?: string;
   location: string;
   available: number;
   allocated: number;
   total: number;
-  status: 'available' | 'shortage' | 'critical';
-  assignedTo?: string;
-  eventId?: string;
-  notes?: string;
+  event_id?: string;
 }
 
 interface ResourceManagerProps {
@@ -64,12 +75,15 @@ interface ResourceManagerProps {
 const ResourceManager = ({ eventId }: ResourceManagerProps) => {
   const [resources, setResources] = useState<Resource[]>([]);
   const [filteredResources, setFilteredResources] = useState<Resource[]>([]);
+  const [categories, setCategories] = useState<ResourceCategory[]>([]);
+  const [statuses, setStatuses] = useState<ResourceStatus[]>([]);
   const [locations, setLocations] = useState<string[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<string>('all');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeId, setActiveId] = useState<string | null>(null);
   const [groupBy, setGroupBy] = useState<'location' | 'category'>('location');
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   const sensors = useSensors(
@@ -80,84 +94,75 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
     })
   );
 
-  // Mock resource data
+  // Fetch categories, statuses, and resources from Supabase
   useEffect(() => {
-    const mockResources: Resource[] = [
-      {
-        id: '1',
-        name: 'Grand Ballroom',
-        category: 'venue',
-        location: 'Downtown Hotel',
-        available: 1,
-        allocated: 0,
-        total: 1,
-        status: 'available',
-        eventId
-      },
-      {
-        id: '2',
-        name: 'Sound System',
-        category: 'equipment',
-        location: 'Downtown Hotel',
-        available: 2,
-        allocated: 1,
-        total: 3,
-        status: 'available',
-        eventId
-      },
-      {
-        id: '3',
-        name: 'Catering Service',
-        category: 'catering',
-        location: 'Convention Center',
-        available: 0,
-        allocated: 3,
-        total: 3,
-        status: 'critical',
-        assignedTo: 'Event A',
-        eventId
-      },
-      {
-        id: '4',
-        name: 'Event Staff',
-        category: 'staff',
-        location: 'Both Locations',
-        available: 5,
-        allocated: 15,
-        total: 20,
-        status: 'shortage',
-        eventId
-      },
-      {
-        id: '5',
-        name: 'Shuttle Service',
-        category: 'transportation',
-        location: 'Convention Center',
-        available: 3,
-        allocated: 0,
-        total: 3,
-        status: 'available',
-        eventId
-      },
-      {
-        id: '6',
-        name: 'Floral Arrangements',
-        category: 'decoration',
-        location: 'Downtown Hotel',
-        available: 1,
-        allocated: 4,
-        total: 5,
-        status: 'shortage',
-        eventId
-      }
-    ];
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        // Fetch categories
+        const { data: categoriesData, error: categoriesError } = await supabase
+          .from('resource_categories')
+          .select('*')
+          .order('name');
+        
+        if (categoriesError) throw categoriesError;
+        setCategories(categoriesData || []);
 
-    setResources(mockResources);
-    
-    // Extract unique locations
-    const uniqueLocations = [...new Set(mockResources.map(r => r.location))];
-    setLocations(uniqueLocations);
-  }, [eventId]);
+        // Fetch statuses
+        const { data: statusesData, error: statusesError } = await supabase
+          .from('resource_status')
+          .select('*')
+          .order('name');
+        
+        if (statusesError) throw statusesError;
+        setStatuses(statusesData || []);
+
+        // Fetch resources with joins
+        const { data: resourcesData, error: resourcesError } = await supabase
+          .from('resources')
+          .select(`
+            *,
+            category:resource_categories!category_id(name),
+            status:resource_status!status_id(name)
+          `)
+          .order('name');
+        
+        if (resourcesError) throw resourcesError;
+
+        // Map the data to include category and status names
+        const mappedResources = (resourcesData || []).map((resource: any) => ({
+          id: resource.id,
+          name: resource.name,
+          category_id: resource.category_id,
+          category_name: resource.category?.name,
+          status_id: resource.status_id,
+          status_name: resource.status?.name,
+          location: resource.location || '',
+          available: resource.available || 0,
+          allocated: resource.allocated || 0,
+          total: resource.total || 0,
+          event_id: resource.event_id,
+        }));
+
+        setResources(mappedResources);
+        
+        // Extract unique locations
+        const uniqueLocations = [...new Set(mappedResources.map(r => r.location).filter(Boolean))];
+        setLocations(uniqueLocations);
+      } catch (error) {
+        console.error('Error fetching resources:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load resources",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [eventId, toast]);
 
   // Filter resources based on search, location, and category
   useEffect(() => {
@@ -174,39 +179,36 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
     }
 
     if (selectedCategory !== 'all') {
-      filtered = filtered.filter(resource => resource.category === selectedCategory);
+      filtered = filtered.filter(resource => resource.category_id === parseInt(selectedCategory));
     }
 
     setFilteredResources(filtered);
   }, [resources, searchQuery, selectedLocation, selectedCategory]);
 
-  const getStatusColor = (status: Resource['status']) => {
-    switch (status) {
-      case 'available': return 'text-green-600 bg-green-50 border-green-200';
-      case 'shortage': return 'text-orange-600 bg-orange-50 border-orange-200';
-      case 'critical': return 'text-red-600 bg-red-50 border-red-200';
-      default: return 'text-gray-600 bg-gray-50 border-gray-200';
-    }
+  const getStatusColor = (statusName?: string) => {
+    const lowerStatus = statusName?.toLowerCase();
+    if (lowerStatus?.includes('available')) return 'text-green-600 bg-green-50 border-green-200';
+    if (lowerStatus?.includes('use') || lowerStatus?.includes('maintenance')) return 'text-orange-600 bg-orange-50 border-orange-200';
+    if (lowerStatus?.includes('unavailable') || lowerStatus?.includes('critical')) return 'text-red-600 bg-red-50 border-red-200';
+    return 'text-gray-600 bg-gray-50 border-gray-200';
   };
 
-  const getStatusIcon = (status: Resource['status']) => {
-    switch (status) {
-      case 'available': return <CheckCircle className="h-4 w-4" />;
-      case 'shortage': return <AlertTriangle className="h-4 w-4" />;
-      case 'critical': return <XCircle className="h-4 w-4" />;
-    }
+  const getStatusIcon = (statusName?: string) => {
+    const lowerStatus = statusName?.toLowerCase();
+    if (lowerStatus?.includes('available')) return <CheckCircle className="h-4 w-4" />;
+    if (lowerStatus?.includes('use') || lowerStatus?.includes('maintenance')) return <AlertTriangle className="h-4 w-4" />;
+    if (lowerStatus?.includes('unavailable') || lowerStatus?.includes('critical')) return <XCircle className="h-4 w-4" />;
+    return <Package className="h-4 w-4" />;
   };
 
-  const getCategoryIcon = (category: Resource['category']) => {
-    switch (category) {
-      case 'venue': return <MapPin className="h-4 w-4" />;
-      case 'catering': return <Utensils className="h-4 w-4" />;
-      case 'equipment': return <Settings className="h-4 w-4" />;
-      case 'decoration': return <Palette className="h-4 w-4" />;
-      case 'staff': return <Users className="h-4 w-4" />;
-      case 'transportation': return <Truck className="h-4 w-4" />;
-      default: return <Package className="h-4 w-4" />;
-    }
+  const getCategoryIcon = (categoryName?: string) => {
+    const lowerCategory = categoryName?.toLowerCase();
+    if (lowerCategory?.includes('venue')) return <MapPin className="h-4 w-4" />;
+    if (lowerCategory?.includes('personnel') || lowerCategory?.includes('staff')) return <Users className="h-4 w-4" />;
+    if (lowerCategory?.includes('equipment')) return <Settings className="h-4 w-4" />;
+    if (lowerCategory?.includes('transportation')) return <Truck className="h-4 w-4" />;
+    if (lowerCategory?.includes('supplies')) return <Package className="h-4 w-4" />;
+    return <Package className="h-4 w-4" />;
   };
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -283,12 +285,12 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              {getCategoryIcon(resource.category)}
+              {getCategoryIcon(resource.category_name)}
               <h3 className="font-medium">{resource.name}</h3>
             </div>
-            <Badge variant="outline" className={getStatusColor(resource.status)}>
-              {getStatusIcon(resource.status)}
-              {resource.status}
+            <Badge variant="outline" className={getStatusColor(resource.status_name)}>
+              {getStatusIcon(resource.status_name)}
+              {resource.status_name}
             </Badge>
           </div>
         </CardHeader>
@@ -305,17 +307,11 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
               <span>{resource.allocated}/{resource.total}</span>
             </div>
             <Progress value={utilizationPercent} className="h-2" />
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>Available: {resource.available}</span>
-              <span>Allocated: {resource.allocated}</span>
-            </div>
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>Available: {resource.available}</span>
+            <span>Allocated: {resource.allocated}</span>
           </div>
-          
-          {resource.assignedTo && (
-            <div className="text-xs text-primary">
-              Assigned to: {resource.assignedTo}
-            </div>
-          )}
+        </div>
           
           <div className="flex gap-2">
             <Button
@@ -354,12 +350,12 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              {getCategoryIcon(resource.category)}
+              {getCategoryIcon(resource.category_name)}
               <h3 className="font-medium">{resource.name}</h3>
             </div>
-            <Badge variant="outline" className={getStatusColor(resource.status)}>
-              {getStatusIcon(resource.status)}
-              {resource.status}
+            <Badge variant="outline" className={getStatusColor(resource.status_name)}>
+              {getStatusIcon(resource.status_name)}
+              {resource.status_name}
             </Badge>
           </div>
         </CardHeader>
@@ -376,17 +372,11 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
               <span>{resource.allocated}/{resource.total}</span>
             </div>
             <Progress value={utilizationPercent} className="h-2" />
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>Available: {resource.available}</span>
-              <span>Allocated: {resource.allocated}</span>
-            </div>
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>Available: {resource.available}</span>
+            <span>Allocated: {resource.allocated}</span>
           </div>
-          
-          {resource.assignedTo && (
-            <div className="text-xs text-primary">
-              Assigned to: {resource.assignedTo}
-            </div>
-          )}
+        </div>
           
           <div className="flex gap-2">
             <Button
@@ -423,13 +413,20 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
         return acc;
       }, {} as Record<string, Resource[]>);
     } else {
-      const categories = ['venue', 'catering', 'equipment', 'decoration', 'staff', 'transportation'];
       return categories.reduce((acc, category) => {
-        acc[category] = filteredResources.filter(r => r.category === category);
+        acc[category.name] = filteredResources.filter(r => r.category_id === category.id);
         return acc;
       }, {} as Record<string, Resource[]>);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-muted-foreground">Loading resources...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -498,12 +495,11 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Categories</SelectItem>
-                  <SelectItem value="venue">Venue</SelectItem>
-                  <SelectItem value="catering">Catering</SelectItem>
-                  <SelectItem value="equipment">Equipment</SelectItem>
-                  <SelectItem value="decoration">Decoration</SelectItem>
-                  <SelectItem value="staff">Staff</SelectItem>
-                  <SelectItem value="transportation">Transportation</SelectItem>
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.id.toString()}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
