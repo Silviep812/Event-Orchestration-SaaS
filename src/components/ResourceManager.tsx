@@ -331,6 +331,14 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
   };
 
   const handleAddResource = async () => {
+    if (!newResource.name.trim() || !newResource.category_id || !newResource.location.trim()) {
+      toast({
+        title: "Missing Required Fields",
+        description: "Name, Category, and Location are required.",
+        variant: "destructive",
+      });
+      return;
+    }
     try {
       const { error } = await supabase
         .from('resources')
@@ -411,6 +419,14 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
 
   const handleEditResource = async () => {
     if (!editResource) return;
+    if (!editResource.name.trim() || !editResource.category_id || !editResource.location.trim()) {
+      toast({
+        title: "Missing Required Fields",
+        description: "Name, Category, and Location are required.",
+        variant: "destructive",
+      });
+      return;
+    }
     try {
       const { error } = await supabase
         .from('resources')
@@ -669,19 +685,21 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="name">Name</Label>
+              <Label htmlFor="name">Name *</Label>
               <Input
                 id="name"
                 value={newResource.name}
                 onChange={(e) => setNewResource({ ...newResource, name: e.target.value })}
                 placeholder="Resource name"
+                required
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="category">Category</Label>
+              <Label htmlFor="category">Category *</Label>
               <Select
                 value={newResource.category_id}
                 onValueChange={(value) => setNewResource({ ...newResource, category_id: value })}
+                required
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select category" />
@@ -714,12 +732,13 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
               </Select>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="location">Location</Label>
+              <Label htmlFor="location">Location *</Label>
               <Input
                 id="location"
                 value={newResource.location}
                 onChange={(e) => setNewResource({ ...newResource, location: e.target.value })}
                 placeholder="Resource location"
+                required
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -767,6 +786,7 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
                   id="edit-name"
                   value={editResource.name}
                   onChange={e => setEditResource({ ...editResource, name: e.target.value })}
+                  required
                 />
               </div>
               <div className="grid gap-2">
@@ -774,6 +794,7 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
                 <Select
                   value={editResource.category_id.toString()}
                   onValueChange={val => setEditResource({ ...editResource, category_id: parseInt(val) })}
+                  required
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select category" />
@@ -807,6 +828,7 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
                   id="edit-location"
                   value={editResource.location}
                   onChange={e => setEditResource({ ...editResource, location: e.target.value })}
+                  required
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
