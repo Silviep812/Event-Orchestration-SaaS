@@ -35,11 +35,10 @@ const DashboardHome = () => {
         // Fetch events data for current user only
         const { data: events, error: eventsError } = await supabase
           .from('events')
-          .select('*')
+          .select('id, user_id, title, description, start_date, created_at')
           .eq('user_id', userId)
           .order('created_at', { ascending: false })
           .limit(10);
-
         if (eventsError) throw eventsError;
 
         // Fetch tasks data for current user only
@@ -47,8 +46,21 @@ const DashboardHome = () => {
           .from('tasks')
           .select('*')
           .eq('created_by', userId);
-
         if (tasksError) throw tasksError;
+
+        // Get all event IDs for this user
+        const userEventIds = (events || []).map(e => e.id);
+
+        // Fetch resources for these events
+        let resources = [];
+        if (userEventIds.length > 0) {
+          const { data: resourcesData, error: resourcesError } = await supabase
+            .from('resources')
+            .select('allocated, total, event_id')
+            .in('event_id', userEventIds);
+          if (resourcesError) throw resourcesError;
+          resources = resourcesData || [];
+        }
 
         // Calculate analytics
         const totalEvents = events?.length || 0;
@@ -56,10 +68,18 @@ const DashboardHome = () => {
         const totalTasks = tasks?.length || 0;
         const taskCompletionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
+        // Calculate resource utilization
+        let resourceUtilization = 0;
+        if (resources && resources.length > 0) {
+          const totalAllocated = resources.reduce((sum, r) => sum + (r.allocated || 0), 0);
+          const totalCapacity = resources.reduce((sum, r) => sum + (r.total || 0), 0);
+          resourceUtilization = totalCapacity > 0 ? Math.round((totalAllocated / totalCapacity) * 100) : 0;
+        }
+
         setAnalytics({
           totalEvents,
           taskCompletionRate,
-          resourceUtilization: 76, // Placeholder
+          resourceUtilization,
           leadConversion: 13, // Placeholder
           recentEvents: events?.slice(0, 3) || []
         });
