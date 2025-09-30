@@ -673,16 +673,7 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
                 placeholder="Resource location"
               />
             </div>
-            <div className="grid grid-cols-3 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="available">Available</Label>
-                <Input
-                  id="available"
-                  type="number"
-                  value={newResource.available}
-                  onChange={(e) => setNewResource({ ...newResource, available: parseInt(e.target.value) || 0 })}
-                />
-              </div>
+            <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="allocated">Allocated</Label>
                 <Input
