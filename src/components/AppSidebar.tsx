@@ -134,63 +134,63 @@ const menuGroups = [
         hoverColor: "hover:bg-orange-50"
       },
       {
-        title: "Themes Directory",
+        title: "Themes",
         url: "/dashboard/themes",
         icon: Palette,
         color: "text-orange-600",
         hoverColor: "hover:bg-orange-50"
       },
       {
-        title: "Bookings Directory",
+        title: "Bookings",
         url: "/dashboard/bookings",
         icon: Calendar,
         color: "text-orange-600",
         hoverColor: "hover:bg-orange-50"
       },
       {
-        title: "Venue Directory",
+        title: "Venues",
         url: "/dashboard/venue",
         icon: Building2,
         color: "text-orange-600",
         hoverColor: "hover:bg-orange-50"
       },
       {
-        title: "Hospitality Directory",
+        title: "Hospitality",
         url: "/dashboard/hospitality",
         icon: Coffee,
         color: "text-orange-600",
         hoverColor: "hover:bg-orange-50"
       },
       {
-        title: "Vendor Service Rental/Buy Directory",
+        title: "Vendor Service Rental/Buy",
         url: "/dashboard/vendor-service",
         icon: ShoppingCart,
         color: "text-orange-600",
         hoverColor: "hover:bg-orange-50"
       },
       {
-        title: "Service Vendor Supplier Directory",
+        title: "Service Vendor Supplier",
         url: "/dashboard/service-vendor",
         icon: Truck,
         color: "text-orange-600",
         hoverColor: "hover:bg-orange-50"
       },
       {
-        title: "Transportation Directory",
+        title: "Transportation",
         url: "/dashboard/transportation",
         icon: Car,
         color: "text-orange-600",
         hoverColor: "hover:bg-orange-50"
       },
       {
-        title: "Entertainment Directory",
+        title: "Entertainment",
         url: "/dashboard/entertainment",
         icon: Users,
         color: "text-orange-600",
         hoverColor: "hover:bg-orange-50"
       },
       {
-        title: "Supplier Directory",
+        title: "Suppliers",
         url: "/dashboard/supplier",
         icon: Package,
         color: "text-orange-600",
