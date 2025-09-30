@@ -49,7 +49,8 @@ import {
   Utensils,
   Music,
   Palette,
-  Settings
+  Settings,
+  Pencil
 } from "lucide-react";
 
 interface ResourceCategory {
@@ -110,6 +111,8 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
     total: 0,
     event_id: eventId || '',
   });
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editResource, setEditResource] = useState<Resource | null>(null);
   const { toast } = useToast();
 
   const sensors = useSensors(
@@ -406,6 +409,57 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
     }
   };
 
+  const handleEditResource = async () => {
+    if (!editResource) return;
+    try {
+      const { error } = await supabase
+        .from('resources')
+        .update({
+          name: editResource.name,
+          category_id: editResource.category_id,
+          status_id: editResource.status_id,
+          location: editResource.location,
+          available: editResource.available,
+          allocated: editResource.allocated,
+          total: editResource.total,
+        })
+        .eq('id', editResource.id);
+      if (error) throw error;
+      toast({ title: 'Resource Updated', description: 'Resource info updated successfully.' });
+      setIsEditDialogOpen(false);
+      setEditResource(null);
+      // Refresh resources
+      let resourcesQuery = supabase
+        .from('resources')
+        .select(`
+          *,
+          category:resource_categories!category_id(name),
+          status:resource_status!status_id(name)
+        `);
+      if (eventId) {
+        resourcesQuery = resourcesQuery.eq('event_id', eventId);
+      }
+      const { data: resourcesData, error: resourcesError } = await resourcesQuery.order('name');
+      if (resourcesError) throw resourcesError;
+      const mappedResources = (resourcesData || []).map((resource: any) => ({
+        id: resource.id,
+        name: resource.name,
+        category_id: resource.category_id,
+        category_name: resource.category?.name,
+        status_id: resource.status_id,
+        status_name: resource.status?.name,
+        location: resource.location || '',
+        available: resource.available || 0,
+        allocated: resource.allocated || 0,
+        total: resource.total || 0,
+        event_id: resource.event_id,
+      }));
+      setResources(mappedResources);
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to update resource', variant: 'destructive' });
+    }
+  };
+
   const SortableResourceCard = ({ resource }: { resource: Resource }) => {
     const {
       attributes,
@@ -477,14 +531,11 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
               size="sm"
               variant="ghost"
               onClick={() => {
-                // Simulate recalculation
-                toast({
-                  title: "Processes Recalculated",
-                  description: "All downstream processes have been updated",
-                });
+                setEditResource(resource);
+                setIsEditDialogOpen(true);
               }}
             >
-              <RotateCcw className="h-4 w-4" />
+              <Pencil className="h-4 w-4" />
             </Button>
           </div>
         </CardContent>
@@ -542,13 +593,11 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
               size="sm"
               variant="ghost"
               onClick={() => {
-                toast({
-                  title: "Processes Recalculated",
-                  description: "All downstream processes have been updated",
-                });
+                setEditResource(resource);
+                setIsEditDialogOpen(true);
               }}
             >
-              <RotateCcw className="h-4 w-4" />
+              <Pencil className="h-4 w-4" />
             </Button>
           </div>
         </CardContent>
@@ -699,6 +748,94 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
               Cancel
             </Button>
             <Button onClick={handleAddResource}>Add Resource</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Resource Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Edit Resource</DialogTitle>
+            <DialogDescription>Edit the resource information below.</DialogDescription>
+          </DialogHeader>
+          {editResource && (
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-name">Name</Label>
+                <Input
+                  id="edit-name"
+                  value={editResource.name}
+                  onChange={e => setEditResource({ ...editResource, name: e.target.value })}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-category">Category</Label>
+                <Select
+                  value={editResource.category_id.toString()}
+                  onValueChange={val => setEditResource({ ...editResource, category_id: parseInt(val) })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map(cat => (
+                      <SelectItem key={cat.id} value={cat.id.toString()}>{cat.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-status">Status</Label>
+                <Select
+                  value={editResource.status_id.toString()}
+                  onValueChange={val => setEditResource({ ...editResource, status_id: parseInt(val) })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {statuses.map(stat => (
+                      <SelectItem key={stat.id} value={stat.id.toString()}>{stat.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-location">Location</Label>
+                <Input
+                  id="edit-location"
+                  value={editResource.location}
+                  onChange={e => setEditResource({ ...editResource, location: e.target.value })}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-allocated">Allocated</Label>
+                  <Input
+                    id="edit-allocated"
+                    type="number"
+                    value={editResource.allocated}
+                    onChange={e => setEditResource({ ...editResource, allocated: parseInt(e.target.value) || 0 })}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-total">Total</Label>
+                  <Input
+                    id="edit-total"
+                    type="number"
+                    value={editResource.total}
+                    onChange={e => setEditResource({ ...editResource, total: parseInt(e.target.value) || 0 })}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleEditResource}>Save Changes</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
