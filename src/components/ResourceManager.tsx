@@ -339,7 +339,7 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
           available: newResource.available,
           allocated: newResource.allocated,
           total: newResource.total,
-          event_id: newResource.event_id || null,
+          event_id: eventId || null,
         }]);
 
       if (error) throw error;
