@@ -124,87 +124,72 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
   );
 
   // Fetch categories, statuses, events, and resources from Supabase
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        // Fetch categories
-        const { data: categoriesData, error: categoriesError } = await supabase
-          .from('resource_categories')
-          .select('*')
-          .order('name');
-        
-        if (categoriesError) throw categoriesError;
-        setCategories(categoriesData || []);
-
-        // Fetch statuses
-        const { data: statusesData, error: statusesError } = await supabase
-          .from('resource_status')
-          .select('*')
-          .order('name');
-        
-        if (statusesError) throw statusesError;
-        setStatuses(statusesData || []);
-
-        // Fetch events
-        const { data: eventsData, error: eventsError } = await supabase
-          .from('Create Event')
-          .select('userid, event_theme, event_start_date')
-          .order('event_start_date', { ascending: false });
-        
-        if (eventsError) throw eventsError;
-        setEvents(eventsData || []);
-
-        // Fetch resources with joins - filter by eventId if provided
-        let resourcesQuery = supabase
-          .from('resources')
-          .select(`
-            *,
-            category:resource_categories!category_id(name),
-            status:resource_status!status_id(name)
-          `);
-
-        // Filter by event_id if eventId is provided
-        if (eventId) {
-          resourcesQuery = resourcesQuery.eq('event_id', eventId);
-        }
-
-        const { data: resourcesData, error: resourcesError } = await resourcesQuery.order('name');
-        
-        if (resourcesError) throw resourcesError;
-
-        // Map the data to include category and status names
-        const mappedResources = (resourcesData || []).map((resource: any) => ({
-          id: resource.id,
-          name: resource.name,
-          category_id: resource.category_id,
-          category_name: resource.category?.name,
-          status_id: resource.status_id,
-          status_name: resource.status?.name,
-          location: resource.location || '',
-          available: resource.available || 0,
-          allocated: resource.allocated || 0,
-          total: resource.total || 0,
-          event_id: resource.event_id,
-        }));
-
-        setResources(mappedResources);
-        
-        // Extract unique locations
-        const uniqueLocations = [...new Set(mappedResources.map(r => r.location).filter(Boolean))];
-        setLocations(uniqueLocations);
-      } catch (error) {
-        console.error('Error fetching resources:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load resources",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      // Fetch categories
+      const { data: categoriesData, error: categoriesError } = await supabase
+        .from('resource_categories')
+        .select('*')
+        .order('name');
+      if (categoriesError) throw categoriesError;
+      setCategories(categoriesData || []);
+      // Fetch statuses
+      const { data: statusesData, error: statusesError } = await supabase
+        .from('resource_status')
+        .select('*')
+        .order('name');
+      if (statusesError) throw statusesError;
+      setStatuses(statusesData || []);
+      // Fetch events
+      const { data: eventsData, error: eventsError } = await supabase
+        .from('Create Event')
+        .select('userid, event_theme, event_start_date')
+        .order('event_start_date', { ascending: false });
+      if (eventsError) throw eventsError;
+      setEvents(eventsData || []);
+      // Fetch resources with joins - filter by eventId if provided
+      let resourcesQuery = supabase
+        .from('resources')
+        .select(`
+          *,
+          category:resource_categories!category_id(name),
+          status:resource_status!status_id(name)
+        `);
+      if (eventId) {
+        resourcesQuery = resourcesQuery.eq('event_id', eventId);
       }
-    };
+      const { data: resourcesData, error: resourcesError } = await resourcesQuery.order('name');
+      if (resourcesError) throw resourcesError;
+      const mappedResources = (resourcesData || []).map((resource: any) => ({
+        id: resource.id,
+        name: resource.name,
+        category_id: resource.category_id,
+        category_name: resource.category?.name,
+        status_id: resource.status_id,
+        status_name: resource.status?.name,
+        location: resource.location || '',
+        available: resource.available || 0,
+        allocated: resource.allocated || 0,
+        total: resource.total || 0,
+        event_id: resource.event_id,
+      }));
+      setResources(mappedResources);
+      const uniqueLocations = [...new Set(mappedResources.map(r => r.location).filter(Boolean))];
+      setLocations(uniqueLocations);
+    } catch (error) {
+      console.error('Error fetching resources:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load resources",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchData();
   }, [eventId, toast]);
 
@@ -373,39 +358,6 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
       });
 
       // Refresh resources
-      const fetchData = async () => {
-        let resourcesQuery = supabase
-          .from('resources')
-          .select(`
-            *,
-            category:resource_categories!category_id(name),
-            status:resource_status!status_id(name)
-          `);
-
-        if (eventId) {
-          resourcesQuery = resourcesQuery.eq('event_id', eventId);
-        }
-
-        const { data: resourcesData, error: resourcesError } = await resourcesQuery.order('name');
-        
-        if (resourcesError) throw resourcesError;
-
-        const mappedResources = (resourcesData || []).map((resource: any) => ({
-          id: resource.id,
-          name: resource.name,
-          category_id: resource.category_id,
-          category_name: resource.category?.name,
-          status_id: resource.status_id,
-          status_name: resource.status?.name,
-          location: resource.location || '',
-          available: resource.available || 0,
-          allocated: resource.allocated || 0,
-          total: resource.total || 0,
-          event_id: resource.event_id,
-        }));
-
-        setResources(mappedResources);
-      };
       fetchData();
     } catch (error) {
       console.error('Error adding resource:', error);
