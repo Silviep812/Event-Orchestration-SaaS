@@ -412,13 +412,17 @@ export default function Analytics({ onInteractionTrack }: AnalyticsProps = {}) {
                       outerRadius={80}
                       fill="#8884d8"
                       dataKey="value"
+                      nameKey="status"
                     >
                       {analyticsData.taskCompletion.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
                     <Tooltip />
-                    <Legend />
+                    <Legend formatter={(value) => {
+                      const entry = analyticsData.taskCompletion.find(e => e.status === value);
+                      return entry ? entry.status : value;
+                    }} />
                   </PieChart>
                 </ResponsiveContainer>
               </CardContent>
