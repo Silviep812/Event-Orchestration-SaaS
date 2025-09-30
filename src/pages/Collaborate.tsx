@@ -81,6 +81,34 @@ export default function Collaborate() {
   const [isMemberDialogOpen, setIsMemberDialogOpen] = useState(false);
   const [isCreateTeamDialogOpen, setIsCreateTeamDialogOpen] = useState(false);
   const [teamName, setTeamName] = useState("");
+  const [userTeam, setUserTeam] = useState<{ id: string; name: string } | null>(null);
+
+  // Fetch user's team if they're an admin
+  useEffect(() => {
+    const fetchUserTeam = async () => {
+      if (!user) return;
+
+      try {
+        const { data: teamAssignment, error } = await supabase
+          .from('team_assignments')
+          .select('team_id, team_admin, teams(id, name)')
+          .eq('user_id', user.id)
+          .eq('team_admin', true)
+          .single();
+
+        if (!error && teamAssignment?.teams) {
+          setUserTeam({
+            id: (teamAssignment.teams as any).id,
+            name: (teamAssignment.teams as any).name
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching user team:', error);
+      }
+    };
+
+    fetchUserTeam();
+  }, [user]);
 
   // Fetch real team members data
   useEffect(() => {
@@ -389,6 +417,9 @@ export default function Collaborate() {
 
       setTeamName("");
       setIsCreateTeamDialogOpen(false);
+      
+      // Update userTeam state
+      setUserTeam({ id: teamData.id, name: teamData.name });
     } catch (error) {
       console.error('Error creating team:', error);
       toast({
@@ -557,6 +588,22 @@ export default function Collaborate() {
           </TabsTrigger>
         </TabsList>
 
+        {userTeam && (
+          <Card className="border-primary/20 bg-primary/5">
+            <CardContent className="py-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <Users className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Your Team</p>
+                  <h3 className="text-lg font-semibold">{userTeam.name}</h3>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <TabsContent value="team" className="space-y-4">
           {teamMembers.length === 0 ? (
             <Card>
@@ -567,13 +614,15 @@ export default function Collaborate() {
                   You don't belong to any team yet. Start by creating a team and inviting team members to collaborate on your events.
                 </p>
                 <div className="flex gap-3">
-                  <Button 
-                    onClick={() => setIsCreateTeamDialogOpen(true)}
-                    className="bg-gradient-to-r from-primary to-secondary"
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Create Team
-                  </Button>
+                  {!userTeam && (
+                    <Button 
+                      onClick={() => setIsCreateTeamDialogOpen(true)}
+                      className="bg-gradient-to-r from-primary to-secondary"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Create Team
+                    </Button>
+                  )}
                   <Button 
                     onClick={() => setIsInviteDialogOpen(true)}
                     variant="outline"
