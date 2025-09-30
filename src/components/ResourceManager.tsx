@@ -928,18 +928,54 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
       </Card>
 
       {/* Resource Groups */}
-      <Tabs defaultValue="drag-drop">
-        <TabsList>
-          <TabsTrigger value="drag-drop">Drag & Drop View</TabsTrigger>
-          <TabsTrigger value="standard">Standard View</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="drag-drop" className="space-y-6">
-          <DndContext
-            sensors={sensors}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-          >
+      {filteredResources.length === 0 ? (
+        <div className="py-12 text-center text-muted-foreground">
+          <p>No resources found for this event. Add your first resource to get started.</p>
+        </div>
+      ) : (
+        <Tabs defaultValue="drag-drop">
+          <TabsList>
+            <TabsTrigger value="drag-drop">Drag & Drop View</TabsTrigger>
+            <TabsTrigger value="standard">Standard View</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="drag-drop" className="space-y-6">
+            <DndContext
+              sensors={sensors}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+            >
+              {Object.entries(groupedResources()).map(([group, groupResources]) => (
+                groupResources.length > 0 && (
+                  <div key={group} className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-lg font-medium capitalize">{group}</h3>
+                      <Badge variant="secondary">{groupResources.length} resources</Badge>
+                    </div>
+                    
+                    <SortableContext
+                      items={groupResources.map(r => r.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
+                        {groupResources.map((resource) => (
+                          <SortableResourceCard key={resource.id} resource={resource} />
+                        ))}
+                      </div>
+                    </SortableContext>
+                  </div>
+                )
+              ))}
+              
+              <DragOverlay>
+                {activeId ? (
+                  <ResourceCard resource={resources.find(r => r.id === activeId)!} />
+                ) : null}
+              </DragOverlay>
+            </DndContext>
+          </TabsContent>
+          
+          <TabsContent value="standard" className="space-y-6">
             {Object.entries(groupedResources()).map(([group, groupResources]) => (
               groupResources.length > 0 && (
                 <div key={group} className="space-y-4">
@@ -948,47 +984,17 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
                     <Badge variant="secondary">{groupResources.length} resources</Badge>
                   </div>
                   
-                  <SortableContext
-                    items={groupResources.map(r => r.id)}
-                    strategy={verticalListSortingStrategy}
-                  >
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
-                      {groupResources.map((resource) => (
-                        <SortableResourceCard key={resource.id} resource={resource} />
-                      ))}
-                    </div>
-                  </SortableContext>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
+                    {groupResources.map((resource) => (
+                      <ResourceCard key={resource.id} resource={resource} />
+                    ))}
+                  </div>
                 </div>
               )
             ))}
-            
-            <DragOverlay>
-              {activeId ? (
-                <ResourceCard resource={resources.find(r => r.id === activeId)!} />
-              ) : null}
-            </DragOverlay>
-          </DndContext>
-        </TabsContent>
-        
-        <TabsContent value="standard" className="space-y-6">
-          {Object.entries(groupedResources()).map(([group, groupResources]) => (
-            groupResources.length > 0 && (
-              <div key={group} className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-lg font-medium capitalize">{group}</h3>
-                  <Badge variant="secondary">{groupResources.length} resources</Badge>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
-                  {groupResources.map((resource) => (
-                    <ResourceCard key={resource.id} resource={resource} />
-                  ))}
-                </div>
-              </div>
-            )
-          ))}
-        </TabsContent>
-      </Tabs>
+          </TabsContent>
+        </Tabs>
+      )}
     </div>
   );
 };
