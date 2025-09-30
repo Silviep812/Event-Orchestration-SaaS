@@ -117,15 +117,21 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
         if (statusesError) throw statusesError;
         setStatuses(statusesData || []);
 
-        // Fetch resources with joins
-        const { data: resourcesData, error: resourcesError } = await supabase
+        // Fetch resources with joins - filter by eventId if provided
+        let resourcesQuery = supabase
           .from('resources')
           .select(`
             *,
             category:resource_categories!category_id(name),
             status:resource_status!status_id(name)
-          `)
-          .order('name');
+          `);
+
+        // Filter by event_id if eventId is provided
+        if (eventId) {
+          resourcesQuery = resourcesQuery.eq('event_id', eventId);
+        }
+
+        const { data: resourcesData, error: resourcesError } = await resourcesQuery.order('name');
         
         if (resourcesError) throw resourcesError;
 
