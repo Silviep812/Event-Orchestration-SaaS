@@ -419,10 +419,6 @@ export default function Analytics({ onInteractionTrack }: AnalyticsProps = {}) {
                       ))}
                     </Pie>
                     <Tooltip />
-                    <Legend formatter={(value) => {
-                      const entry = analyticsData.taskCompletion.find(e => e.status === value);
-                      return entry ? entry.status : value;
-                    }} />
                   </PieChart>
                 </ResponsiveContainer>
               </CardContent>
