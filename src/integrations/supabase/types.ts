@@ -1292,6 +1292,106 @@ export type Database = {
         }
         Relationships: []
       }
+      resource_categories: {
+        Row: {
+          created_at: string
+          id: number
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          name?: string
+        }
+        Relationships: []
+      }
+      resource_status: {
+        Row: {
+          created_at: string
+          id: number
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          name?: string
+        }
+        Relationships: []
+      }
+      resources: {
+        Row: {
+          allocated: number
+          available: number
+          category_id: number | null
+          created_at: string
+          event_id: string
+          id: string
+          location: string | null
+          name: string
+          status_id: number | null
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          allocated?: number
+          available?: number
+          category_id?: number | null
+          created_at?: string
+          event_id: string
+          id?: string
+          location?: string | null
+          name: string
+          status_id?: number | null
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          allocated?: number
+          available?: number
+          category_id?: number | null
+          created_at?: string
+          event_id?: string
+          id?: string
+          location?: string | null
+          name?: string
+          status_id?: number | null
+          total?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resources_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "resource_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resources_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resources_status_id_fkey"
+            columns: ["status_id"]
+            isOneToOne: false
+            referencedRelation: "resource_status"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       serv_vendor_rental_assignments: {
         Row: {
           created_at: string
