@@ -693,25 +693,6 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
                 />
               </div>
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="event">Event (Optional)</Label>
-              <Select
-                value={newResource.event_id || "none"}
-                onValueChange={(value) => setNewResource({ ...newResource, event_id: value === "none" ? "" : value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select event" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">No event</SelectItem>
-                  {events.map((event) => (
-                    <SelectItem key={event.userid} value={event.userid}>
-                      {event.event_theme?.[0] || 'Untitled Event'} - {event.event_start_date}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
