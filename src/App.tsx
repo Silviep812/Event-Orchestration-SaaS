@@ -33,6 +33,7 @@ import TransportationDirectory from "./pages/TransportationDirectory";
 import EntertainmentDirectory from "./pages/EntertainmentDirectory";
 import SupplierDirectory from "./pages/SupplierDirectory";
 import Profile from "./pages/Profile";
+import Contact from "./pages/Contact";
 
 const queryClient = new QueryClient();
 
@@ -46,6 +47,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/contact" element={<Contact />} />
             <Route path="/dashboard" element={<Dashboard />}>
               <Route index element={<DashboardHome />} />
               <Route path="workflow" element={<WorkflowSetup />} />

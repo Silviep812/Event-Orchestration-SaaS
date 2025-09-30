@@ -72,7 +72,7 @@ const Index = () => {
             <div className="hidden md:flex items-center space-x-4">
               <Button variant="ghost" onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}>Features</Button>
               <Button variant="ghost">Pricing</Button>
-              <Button variant="ghost">Contact</Button>
+              <Button variant="ghost" onClick={() => navigate('/contact')}>Contact</Button>
               <Button 
                 variant="outline" 
                 onClick={(e) => {
@@ -108,8 +108,11 @@ const Index = () => {
                   setMobileMenuOpen(false);
                 }}>Features</Button>
                 <Button variant="ghost" className="w-full justify-start">Pricing</Button>
-                <Button variant="ghost" className="w-full justify-start">Contact</Button>
-                <Button 
+                <Button variant="ghost" className="w-full justify-start" onClick={() => {
+                  navigate('/contact');
+                  setMobileMenuOpen(false);
+                }}>Contact</Button>
+                <Button
                   variant="outline" 
                   className="w-full"
                   onClick={() => {
