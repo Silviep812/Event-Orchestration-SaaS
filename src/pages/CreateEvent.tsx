@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DatePickerWithRange } from "@/components/ui/date-picker";
-import { Badge } from "@/components/ui/badge";
 import { Plus, X, Calendar, MapPin, Users, DollarSign } from "lucide-react";
 import { DateRange } from "react-day-picker";
 import { useToast } from "@/hooks/use-toast";
@@ -26,8 +25,6 @@ interface EventFormData {
 
 export default function CreateEvent() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
-  const [tags, setTags] = useState<string[]>([]);
-  const [newTag, setNewTag] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -99,17 +96,6 @@ useEffect(() => {
     setValue("type", "");
   }, [selectedThemeId, setValue]);
 
-  const addTag = () => {
-    if (newTag.trim() && !tags.includes(newTag.trim())) {
-      setTags([...tags, newTag.trim()]);
-      setNewTag("");
-    }
-  };
-
-  const removeTag = (tagToRemove: string) => {
-    setTags(tags.filter(tag => tag !== tagToRemove));
-  };
-
   const onSubmit = async (data: EventFormData) => {
     if (!dateRange?.from) {
       toast({
@@ -147,7 +133,6 @@ useEffect(() => {
         end_date: dateRange.to ? dateRange.to.toISOString().split('T')[0] : null,
         budget: data.budget ? parseFloat(data.budget) : null,
         expected_attendees: data.expectedAttendees ? parseInt(data.expectedAttendees) : null,
-        tags: tags.length > 0 ? tags : null,
         theme_id: data.theme_id,
       };
 
@@ -175,7 +160,6 @@ useEffect(() => {
       // Reset form
       reset();
       setDateRange(undefined);
-      setTags([]);
 
       // Redirect to manage event page
       navigate('/dashboard/manage-event');
@@ -363,36 +347,6 @@ useEffect(() => {
                   placeholder="Enter budget amount"
                 />
               </div>
-
-              {/* Tags */}
-              <div>
-                <Label>Tags</Label>
-                <div className="flex gap-2 mb-2">
-                  <Input
-                    value={newTag}
-                    onChange={(e) => setNewTag(e.target.value)}
-                    placeholder="Add a tag"
-                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
-                  />
-                  <Button type="button" onClick={addTag} size="icon" variant="outline">
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {tags.map((tag) => (
-                    <Badge key={tag} variant="secondary" className="flex items-center gap-1">
-                      {tag}
-                      <button
-                        type="button"
-                        onClick={() => removeTag(tag)}
-                        className="ml-1 hover:text-destructive"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  ))}
-                </div>
-              </div>
             </CardContent>
           </Card>
         </div>
@@ -402,7 +356,6 @@ useEffect(() => {
           <Button type="button" variant="outline" onClick={() => {
             reset();
             setDateRange(undefined);
-            setTags([]);
           }}>
             Clear Form
           </Button>
