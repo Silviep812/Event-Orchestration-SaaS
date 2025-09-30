@@ -562,7 +562,7 @@ export default function Collaborate() {
                 <Users className="w-16 h-16 text-muted-foreground mb-4" />
                 <h3 className="text-lg font-semibold mb-2">No Team Members Yet</h3>
                 <p className="text-muted-foreground text-center mb-4 max-w-md">
-                  You don't belong to any team yet. Start by creating a team or inviting team members to collaborate on your events.
+                  You don't belong to any team yet. Start by creating a team and inviting team members to collaborate on your events.
                 </p>
                 <div className="flex gap-3">
                   <Button 
