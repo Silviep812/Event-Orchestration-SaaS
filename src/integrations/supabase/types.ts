@@ -1331,7 +1331,6 @@ export type Database = {
       resources: {
         Row: {
           allocated: number
-          available: number
           category_id: number
           created_at: string
           event_id: string
@@ -1344,7 +1343,6 @@ export type Database = {
         }
         Insert: {
           allocated?: number
-          available?: number
           category_id: number
           created_at?: string
           event_id: string
@@ -1357,7 +1355,6 @@ export type Database = {
         }
         Update: {
           allocated?: number
-          available?: number
           category_id?: number
           created_at?: string
           event_id?: string
