@@ -242,25 +242,54 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
     setActiveId(null);
   };
 
-  const assignResource = (resourceId: string, eventName: string) => {
-    setResources(prev => prev.map(resource => {
-      if (resource.id === resourceId && resource.available > 0) {
-        return {
-          ...resource,
-          allocated: resource.allocated + 1,
-          available: resource.available - 1,
-          assignedTo: eventName,
-          status: resource.available - 1 === 0 ? 'critical' : 
-                   resource.available - 1 < resource.total * 0.3 ? 'shortage' : 'available'
-        };
-      }
-      return resource;
-    }));
+  const assignResource = async (resourceId: string, eventName: string) => {
+    try {
+      // First update the database
+      const { data: resource, error: fetchError } = await supabase
+        .from('resources')
+        .select('allocated, available')
+        .eq('id', resourceId)
+        .single();
 
-    toast({
-      title: "Resource Assigned",
-      description: "Downstream processes are being recalculated",
-    });
+      if (fetchError) throw fetchError;
+
+      const { error: updateError } = await supabase
+        .from('resources')
+        .update({ 
+          allocated: resource.allocated + 1,
+          available: resource.available - 1
+        })
+        .eq('id', resourceId);
+
+      if (updateError) throw updateError;
+
+      // Then update the local state
+      setResources(prev => prev.map(resource => {
+        if (resource.id === resourceId && resource.available > 0) {
+          return {
+            ...resource,
+            allocated: resource.allocated + 1,
+            available: resource.available - 1,
+            assignedTo: eventName,
+            status: resource.available - 1 === 0 ? 'critical' : 
+                     resource.available - 1 < resource.total * 0.3 ? 'shortage' : 'available'
+          };
+        }
+        return resource;
+      }));
+
+      toast({
+        title: "Resource Assigned",
+        description: "Resource allocation updated successfully",
+      });
+    } catch (error) {
+      console.error('Error assigning resource:', error);
+      toast({
+        title: "Error",
+        description: "Failed to assign resource",
+        variant: "destructive",
+      });
+    };
   };
 
   const SortableResourceCard = ({ resource }: { resource: Resource }) => {
@@ -580,7 +609,7 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
                   <Badge variant="secondary">{groupResources.length} resources</Badge>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
                   {groupResources.map((resource) => (
                     <ResourceCard key={resource.id} resource={resource} />
                   ))}
