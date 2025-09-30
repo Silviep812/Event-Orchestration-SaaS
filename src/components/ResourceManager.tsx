@@ -753,7 +753,7 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
               <div className="grid gap-2">
                 <Label htmlFor="edit-category">Category</Label>
                 <Select
-                  value={editResource.category_id.toString()}
+                  value={editResource.category_id != null ? editResource.category_id.toString() : ''}
                   onValueChange={val => setEditResource({ ...editResource, category_id: parseInt(val) })}
                   required
                 >
@@ -770,7 +770,7 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
               <div className="grid gap-2">
                 <Label htmlFor="edit-status">Status</Label>
                 <Select
-                  value={editResource.status_id.toString()}
+                  value={editResource.status_id != null ? editResource.status_id.toString() : ''}
                   onValueChange={val => setEditResource({ ...editResource, status_id: parseInt(val) })}
                 >
                   <SelectTrigger>
