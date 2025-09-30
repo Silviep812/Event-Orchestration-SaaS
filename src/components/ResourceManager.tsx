@@ -476,6 +476,9 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
         </div>
         
         <div className="flex items-center gap-2">
+          <Button variant="default" size="sm">
+            + Add Resource
+          </Button>
           <Button variant="outline" size="sm">
             <Filter className="h-4 w-4 mr-2" />
             Quick Filters
