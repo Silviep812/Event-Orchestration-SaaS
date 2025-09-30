@@ -194,7 +194,7 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
   const getStatusColor = (statusName?: string) => {
     const lowerStatus = statusName?.toLowerCase();
     if (lowerStatus?.includes('available')) return 'text-green-600 bg-green-50 border-green-200';
-    if (lowerStatus?.includes('use') || lowerStatus?.includes('maintenance')) return 'text-orange-600 bg-orange-50 border-orange-200';
+    if (lowerStatus?.includes('shortage')) return 'text-orange-600 bg-orange-50 border-orange-200';
     if (lowerStatus?.includes('unavailable') || lowerStatus?.includes('critical')) return 'text-red-600 bg-red-50 border-red-200';
     return 'text-gray-600 bg-gray-50 border-gray-200';
   };
@@ -202,7 +202,7 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
   const getStatusIcon = (statusName?: string) => {
     const lowerStatus = statusName?.toLowerCase();
     if (lowerStatus?.includes('available')) return <CheckCircle className="h-4 w-4" />;
-    if (lowerStatus?.includes('use') || lowerStatus?.includes('maintenance')) return <AlertTriangle className="h-4 w-4" />;
+    if (lowerStatus?.includes('shortage')) return <AlertTriangle className="h-4 w-4" />;
     if (lowerStatus?.includes('unavailable') || lowerStatus?.includes('critical')) return <XCircle className="h-4 w-4" />;
     return <Package className="h-4 w-4" />;
   };
@@ -210,10 +210,11 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
   const getCategoryIcon = (categoryName?: string) => {
     const lowerCategory = categoryName?.toLowerCase();
     if (lowerCategory?.includes('venue')) return <MapPin className="h-4 w-4" />;
-    if (lowerCategory?.includes('personnel') || lowerCategory?.includes('staff')) return <Users className="h-4 w-4" />;
+    if (lowerCategory?.includes('catering')) return <Utensils className="h-4 w-4" />;
     if (lowerCategory?.includes('equipment')) return <Settings className="h-4 w-4" />;
+    if (lowerCategory?.includes('decoration')) return <Palette className="h-4 w-4" />;
+    if (lowerCategory?.includes('staff')) return <Users className="h-4 w-4" />;
     if (lowerCategory?.includes('transportation')) return <Truck className="h-4 w-4" />;
-    if (lowerCategory?.includes('supplies')) return <Package className="h-4 w-4" />;
     return <Package className="h-4 w-4" />;
   };
 
