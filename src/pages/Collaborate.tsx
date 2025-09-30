@@ -372,9 +372,11 @@ export default function Collaborate() {
 
       if (assignmentError) {
         console.error('Error creating team assignment:', assignmentError);
+        const msg = (assignmentError as any)?.message || "Failed to assign team admin.";
+        const details = (assignmentError as any)?.details ? ` Details: ${(assignmentError as any).details}` : "";
         toast({
-          title: "Error",
-          description: "Failed to assign team admin. Please try again.",
+          title: "Failed to assign team admin",
+          description: `${msg}${details}`,
           variant: "destructive"
         });
         return;
