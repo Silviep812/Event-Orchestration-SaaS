@@ -454,45 +454,64 @@ export default function Collaborate() {
         </TabsList>
 
         <TabsContent value="team" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {teamMembers.map((member) => (
-              <Card 
-                key={member.id} 
-                className="cursor-pointer hover:shadow-md transition-shadow"
-                onClick={() => handleMemberClick(member)}
-              >
-                <CardHeader className="pb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="relative">
-                      <Avatar>
-                        <AvatarImage src={member.avatar} />
-                        <AvatarFallback>
-                          {member.name.split(' ').map(n => n[0]).join('')}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-white ${getStatusColor(member.status)}`} />
+          {teamMembers.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <Users className="w-16 h-16 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No Team Members Yet</h3>
+                <p className="text-muted-foreground text-center mb-4 max-w-md">
+                  You don't belong to any team yet. Start by inviting team members to collaborate on your events.
+                </p>
+                <Button 
+                  onClick={() => setIsInviteDialogOpen(true)}
+                  className="bg-gradient-to-r from-primary to-secondary"
+                >
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Invite Your First Member
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {teamMembers.map((member) => (
+                <Card 
+                  key={member.id} 
+                  className="cursor-pointer hover:shadow-md transition-shadow"
+                  onClick={() => handleMemberClick(member)}
+                >
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="relative">
+                        <Avatar>
+                          <AvatarImage src={member.avatar} />
+                          <AvatarFallback>
+                            {member.name.split(' ').map(n => n[0]).join('')}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-white ${getStatusColor(member.status)}`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold truncate">{member.name}</h3>
+                        <p className="text-sm text-muted-foreground truncate">{member.email}</p>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold truncate">{member.name}</h3>
-                      <p className="text-sm text-muted-foreground truncate">{member.email}</p>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <Badge variant="secondary">{member.role.replace('_', ' ')}</Badge>
+                      <p className="text-sm text-muted-foreground">
+                        Joined {new Date(member.joinedAt).toLocaleDateString()}
+                      </p>
+                      <div className="flex items-center gap-2 text-sm">
+                        <div className={`w-2 h-2 rounded-full ${getStatusColor(member.status)}`} />
+                        <span className="capitalize">{member.status}</span>
+                      </div>
                     </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <Badge variant="secondary">{member.role.replace('_', ' ')}</Badge>
-                    <p className="text-sm text-muted-foreground">
-                      Joined {new Date(member.joinedAt).toLocaleDateString()}
-                    </p>
-                    <div className="flex items-center gap-2 text-sm">
-                      <div className={`w-2 h-2 rounded-full ${getStatusColor(member.status)}`} />
-                      <span className="capitalize">{member.status}</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="chat" className="space-y-4">
