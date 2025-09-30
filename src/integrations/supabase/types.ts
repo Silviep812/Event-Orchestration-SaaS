@@ -1332,11 +1332,11 @@ export type Database = {
         Row: {
           allocated: number
           available: number
-          category_id: number | null
+          category_id: number
           created_at: string
           event_id: string
           id: string
-          location: string | null
+          location: string
           name: string
           status_id: number | null
           total: number
@@ -1345,11 +1345,11 @@ export type Database = {
         Insert: {
           allocated?: number
           available?: number
-          category_id?: number | null
+          category_id: number
           created_at?: string
           event_id: string
           id?: string
-          location?: string | null
+          location: string
           name: string
           status_id?: number | null
           total?: number
@@ -1358,11 +1358,11 @@ export type Database = {
         Update: {
           allocated?: number
           available?: number
-          category_id?: number | null
+          category_id?: number
           created_at?: string
           event_id?: string
           id?: string
-          location?: string | null
+          location?: string
           name?: string
           status_id?: number | null
           total?: number
