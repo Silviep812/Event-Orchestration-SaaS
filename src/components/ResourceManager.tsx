@@ -619,10 +619,7 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
           <Button variant="default" size="sm" onClick={() => setIsAddDialogOpen(true)}>
             + Add Resource
           </Button>
-          <Button variant="outline" size="sm">
-            <Filter className="h-4 w-4 mr-2" />
-            Quick Filters
-          </Button>
+          <span className="text-sm text-muted-foreground">Quick Filters</span>
           <Select value={groupBy} onValueChange={(value: 'location' | 'category') => setGroupBy(value)}>
             <SelectTrigger className="w-32">
               <SelectValue />
