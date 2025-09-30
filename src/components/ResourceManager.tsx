@@ -71,7 +71,6 @@ interface Resource {
   status_id: number;
   status_name?: string;
   location: string;
-  available: number;
   allocated: number;
   total: number;
   event_id?: string;
@@ -106,7 +105,6 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
     category_id: '',
     status_id: '',
     location: '',
-    available: 0,
     allocated: 0,
     total: 0,
     event_id: eventId || '',
@@ -169,7 +167,6 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
         status_id: resource.status_id,
         status_name: resource.status?.name,
         location: resource.location || '',
-        available: resource.available || 0,
         allocated: resource.allocated || 0,
         total: resource.total || 0,
         event_id: resource.event_id,
@@ -267,38 +264,45 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
 
   const assignResource = async (resourceId: string, eventName: string) => {
     try {
-      // First update the database
+      // First fetch current resource data
       const { data: resource, error: fetchError } = await supabase
         .from('resources')
-        .select('allocated, available')
+        .select('allocated, total')
         .eq('id', resourceId)
         .single();
 
       if (fetchError) throw fetchError;
 
+      const available = resource.total - resource.allocated;
+      
+      if (available <= 0) {
+        toast({
+          title: "Resource Unavailable",
+          description: "No available units to assign",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const { error: updateError } = await supabase
         .from('resources')
         .update({ 
           allocated: resource.allocated + 1,
-          available: resource.available - 1
         })
         .eq('id', resourceId);
 
       if (updateError) throw updateError;
 
       // Then update the local state
-      setResources(prev => prev.map(resource => {
-        if (resource.id === resourceId && resource.available > 0) {
+      setResources(prev => prev.map(r => {
+        if (r.id === resourceId) {
+          const newAllocated = r.allocated + 1;
           return {
-            ...resource,
-            allocated: resource.allocated + 1,
-            available: resource.available - 1,
-            assignedTo: eventName,
-            status: resource.available - 1 === 0 ? 'critical' : 
-                     resource.available - 1 < resource.total * 0.3 ? 'shortage' : 'available'
+            ...r,
+            allocated: newAllocated,
           };
         }
-        return resource;
+        return r;
       }));
 
       toast({
@@ -332,7 +336,6 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
           category_id: parseInt(newResource.category_id),
           status_id: parseInt(newResource.status_id),
           location: newResource.location,
-          available: newResource.available,
           allocated: newResource.allocated,
           total: newResource.total,
           event_id: eventId || null,
@@ -351,7 +354,6 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
         category_id: '',
         status_id: '',
         location: '',
-        available: 0,
         allocated: 0,
         total: 0,
         event_id: eventId || '',
@@ -387,7 +389,6 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
           category_id: editResource.category_id,
           status_id: editResource.status_id,
           location: editResource.location,
-          available: editResource.available,
           allocated: editResource.allocated,
           total: editResource.total,
         })
@@ -417,7 +418,6 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
         status_id: resource.status_id,
         status_name: resource.status?.name,
         location: resource.location || '',
-        available: resource.available || 0,
         allocated: resource.allocated || 0,
         total: resource.total || 0,
         event_id: resource.event_id,
@@ -480,7 +480,7 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
             </div>
             <Progress value={utilizationPercent} className="h-2" />
           <div className="flex justify-between text-xs text-muted-foreground">
-            <span>Available: {resource.available}</span>
+            <span>Available: {resource.total - resource.allocated}</span>
             <span>Allocated: {resource.allocated}</span>
           </div>
         </div>
@@ -490,7 +490,7 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
               size="sm"
               variant="outline"
               onClick={() => assignResource(resource.id, 'Current Event')}
-              disabled={resource.available === 0}
+              disabled={resource.total - resource.allocated === 0}
               className="flex-1"
             >
               Assign
@@ -542,7 +542,7 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
             </div>
             <Progress value={utilizationPercent} className="h-2" />
           <div className="flex justify-between text-xs text-muted-foreground">
-            <span>Available: {resource.available}</span>
+            <span>Available: {resource.total - resource.allocated}</span>
             <span>Allocated: {resource.allocated}</span>
           </div>
         </div>
@@ -552,7 +552,7 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
               size="sm"
               variant="outline"
               onClick={() => assignResource(resource.id, 'Current Event')}
-              disabled={resource.available === 0}
+              disabled={resource.total - resource.allocated === 0}
               className="flex-1"
             >
               Assign
@@ -658,7 +658,7 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
             <div className="grid gap-2">
               <Label htmlFor="category">Category *</Label>
               <Select
-                value={newResource.category_id}
+                value={newResource.category_id || undefined}
                 onValueChange={(value) => setNewResource({ ...newResource, category_id: value })}
                 required
               >
@@ -677,7 +677,7 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
             <div className="grid gap-2">
               <Label htmlFor="status">Status</Label>
               <Select
-                value={newResource.status_id}
+                value={newResource.status_id || undefined}
                 onValueChange={(value) => setNewResource({ ...newResource, status_id: value })}
               >
                 <SelectTrigger>
