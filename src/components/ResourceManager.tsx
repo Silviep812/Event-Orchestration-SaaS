@@ -204,7 +204,7 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
     }
 
     if (selectedLocation !== 'all') {
-      filtered = filtered.filter(resource => resource.location === selectedLocation);
+      filtered = filtered.filter(resource => resource.location.toLowerCase() === selectedLocation.toLowerCase());
     }
 
     if (selectedCategory !== 'all') {
@@ -575,13 +575,22 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
 
   const groupedResources = () => {
     if (groupBy === 'location') {
-      return locations.reduce((acc, location) => {
-        acc[location] = filteredResources.filter(r => r.location === location);
+      // Group by lowercased location
+      const locationMap: Record<string, { display: string; resources: Resource[] }> = {};
+      filteredResources.forEach(r => {
+        const key = r.location.toLowerCase();
+        if (!locationMap[key]) {
+          locationMap[key] = { display: r.location, resources: [] };
+        }
+        locationMap[key].resources.push(r);
+      });
+      return Object.entries(locationMap).reduce((acc, [key, val]) => {
+        acc[val.display] = val.resources;
         return acc;
       }, {} as Record<string, Resource[]>);
     } else {
       return categories.reduce((acc, category) => {
-        acc[category.name] = filteredResources.filter(r => r.category_id === category.id);
+        acc[category.name] = filteredResources.filter((r) => r.category_id === category.id);
         return acc;
       }, {} as Record<string, Resource[]>);
     }
