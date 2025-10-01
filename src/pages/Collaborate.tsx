@@ -666,7 +666,7 @@ export default function Collaborate() {
                     </div>
                   </div>
                   {!team.isAdmin && (
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 bg-white rounded-b-lg p-6">
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 py-4">
                       {team.members.map(member => (
                         <TeamMemberCard
                           key={member.id}
