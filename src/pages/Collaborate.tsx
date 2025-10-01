@@ -138,9 +138,9 @@ export default function Collaborate() {
         // Get user details from User table
         const userIds = assignments.map(a => a.user_id);
         const { data: usersData, error: usersError } = await supabase
-          .from('User')
-          .select('userid, user_name, email, contact_name')
-          .in('userid', userIds);
+          .from('profiles')
+          .select('user_id, display_name')
+          .in('user_id', userIds);
 
         if (usersError) {
           console.error('Error fetching user details:', usersError);
@@ -157,7 +157,7 @@ export default function Collaborate() {
         }
 
         // Create maps for quick lookup
-        const usersMap = new Map(usersData?.map(u => [u.userid, u]) || []);
+        const usersMap = new Map(usersData?.map(u => [u.user_id, u]) || []);
         const rolesMap = new Map(userRolesData?.map(r => [r.user_id, r.role]) || []);
 
         // Combine data
@@ -176,8 +176,7 @@ export default function Collaborate() {
 
           return {
             id: assignment.user_id,
-            name: userDetails?.user_name || userDetails?.contact_name || userDetails?.email?.split('@')[0] || 'Unknown User',
-            email: userDetails?.email || '',
+            name: userDetails?.display_name || 'Unknown User',
             role: roleDisplay,
             status: 'offline' as const,
             joinedAt: new Date().toISOString()
