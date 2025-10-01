@@ -90,6 +90,7 @@ const ManageEvent = () => {
 
   // Auto-save debounce
   const [saveTimeout, setSaveTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [budgetInput, setBudgetInput] = useState<string>('');
 
   const fetchEvents = async () => {
     if (!user) {
@@ -401,6 +402,15 @@ const ManageEvent = () => {
       fetchChangeLogs(selectedEvent.id);
     }
   }, [selectedEvent?.id]);
+
+  // Sync budget input with selectedEvent.budget
+  useEffect(() => {
+    if (selectedEvent && selectedEvent.budget !== undefined && selectedEvent.budget !== null) {
+      setBudgetInput(Number(selectedEvent.budget).toFixed(2));
+    } else {
+      setBudgetInput('');
+    }
+  }, [selectedEvent?.budget]);
 
   if (loading) {
     return (
@@ -770,8 +780,22 @@ const ManageEvent = () => {
                         <Input
                           id="budget"
                           type="number"
-                          value={selectedEvent.budget || ''}
-                          onChange={(e) => handleFieldChange('budget', e.target.value ? parseFloat(e.target.value) : undefined)}
+                          value={budgetInput}
+                          onChange={(e) => setBudgetInput(e.target.value)}
+                          onBlur={() => {
+                            if (budgetInput) {
+                              const formatted = parseFloat(budgetInput).toFixed(2);
+                              setBudgetInput(formatted);
+                              handleFieldChange('budget', parseFloat(formatted));
+                            } else {
+                              handleFieldChange('budget', undefined);
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              (e.target as HTMLInputElement).blur();
+                            }
+                          }}
                           placeholder="Enter budget"
                         />
                       </div>
