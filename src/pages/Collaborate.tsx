@@ -78,6 +78,7 @@ export default function Collaborate() {
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("");
+  const [inviteAttributes, setInviteAttributes] = useState<{ coordinator: boolean; viewer: boolean }>({ coordinator: false, viewer: false });
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
   const [isMemberDialogOpen, setIsMemberDialogOpen] = useState(false);
   const [isCreateTeamDialogOpen, setIsCreateTeamDialogOpen] = useState(false);
@@ -343,8 +344,27 @@ export default function Collaborate() {
         description: `Invitation sent to ${inviteEmail} as ${inviteRole}.`,
       });
 
+      // Set attributes in team_assignments if needed
+      if (userTeam) {
+        let updateFields: any = {};
+        if (inviteAttributes.coordinator) {
+          updateFields.is_coordinator = true;
+          updateFields.is_viewer = null;
+        } else if (inviteAttributes.viewer) {
+          updateFields.is_viewer = true;
+          updateFields.is_coordinator = null;
+        } else {
+          updateFields.is_coordinator = null;
+          updateFields.is_viewer = null;
+        }
+        await supabase.from('team_assignments').update(updateFields)
+          .eq('team_id', userTeam.id)
+          .eq('user_id', data?.invitedUserId || '');
+      }
+
       setInviteEmail("");
       setInviteRole("");
+      setInviteAttributes({ coordinator: false, viewer: false });
       setIsInviteDialogOpen(false);
       
       // Refresh team members list with updated roles
@@ -536,6 +556,27 @@ export default function Collaborate() {
                       <SelectItem value="hospitality_provider">Hospitality Provider</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Attributes (optional)</label>
+                  <div className="flex gap-4 mt-2">
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={inviteAttributes.coordinator}
+                        onChange={e => setInviteAttributes(a => ({ coordinator: e.target.checked, viewer: e.target.checked ? false : a.viewer }))}
+                      />
+                      Coordinator
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={inviteAttributes.viewer}
+                        onChange={e => setInviteAttributes(a => ({ viewer: e.target.checked, coordinator: e.target.checked ? false : a.coordinator }))}
+                      />
+                      Viewer
+                    </label>
+                  </div>
                 </div>
                 <Button onClick={handleInviteMember} className="w-full">
                   Send Invitation
