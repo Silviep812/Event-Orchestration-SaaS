@@ -501,49 +501,57 @@ export default function Collaborate() {
           </p>
         </div>
         
-        <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
-          {userTeam && (
+        {userTeam ? (
+          <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
             <DialogTrigger asChild>
               <Button className="bg-gradient-to-r from-primary to-secondary">
                 <UserPlus className="w-4 h-4 mr-2" />
                 Invite Member
               </Button>
             </DialogTrigger>
-          )}
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Invite Team Member to {userTeam?.name}</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium">Email Address</label>
-                <Input
-                  placeholder="colleague@example.com"
-                  value={inviteEmail}
-                  onChange={(e) => setInviteEmail(e.target.value)}
-                />
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Invite Team Member to {userTeam?.name}</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium">Email Address</label>
+                  <Input
+                    placeholder="colleague@example.com"
+                    value={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Role</label>
+                  <Select value={inviteRole} onValueChange={setInviteRole}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="host">Host</SelectItem>
+                      <SelectItem value="organizer">Organizer</SelectItem>
+                      <SelectItem value="event_planner">Event Planner</SelectItem>
+                      <SelectItem value="venue_owner">Venue Owner</SelectItem>
+                      <SelectItem value="hospitality_provider">Hospitality Provider</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button onClick={handleInviteMember} className="w-full">
+                  Send Invitation
+                </Button>
               </div>
-              <div>
-                <label className="text-sm font-medium">Role</label>
-                <Select value={inviteRole} onValueChange={setInviteRole}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="host">Host</SelectItem>
-                    <SelectItem value="organizer">Organizer</SelectItem>
-                    <SelectItem value="event_planner">Event Planner</SelectItem>
-                    <SelectItem value="venue_owner">Venue Owner</SelectItem>
-                    <SelectItem value="hospitality_provider">Hospitality Provider</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button onClick={handleInviteMember} className="w-full">
-                Send Invitation
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
+        ) : (
+          <Button 
+            onClick={() => setIsCreateTeamDialogOpen(true)}
+            className="bg-gradient-to-r from-primary to-secondary"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Create Team
+          </Button>
+        )}
 
         {/* Create Team Dialog */}
         <Dialog open={isCreateTeamDialogOpen} onOpenChange={setIsCreateTeamDialogOpen}>
