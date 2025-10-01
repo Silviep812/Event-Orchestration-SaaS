@@ -121,11 +121,11 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
   const fetchUsers = async () => {
     try {
       const { data, error } = await supabase
-        .from('User')
-        .select('userid, user_name, contact_name');
+        .from('profiles')
+        .select('user_id, display_name');
       
       if (error) throw error;
-      setUsers(data || []);
+      setUsers((data || []).map(u => ({ userid: u.user_id, user_name: u.display_name, contact_name: u.display_name })));
     } catch (error) {
       console.error('Error fetching users:', error);
     }
@@ -888,7 +888,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                       <SelectItem value="none">No assignment</SelectItem>
                       {users.map((user) => (
                         <SelectItem key={user.userid} value={user.userid}>
-                          {user.user_name || user.contact_name}
+                          {user.user_name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -1126,7 +1126,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                       <SelectItem value="none">No assignment</SelectItem>
                       {users.map((user) => (
                         <SelectItem key={user.userid} value={user.userid}>
-                          {user.user_name || user.contact_name}
+                          {user.user_name}
                         </SelectItem>
                       ))}
                     </SelectContent>
