@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Wrench, Users, Camera, UtensilsCrossed, Music, Car } from "lucide-react";
+import { Wrench, Users, Camera, UtensilsCrossed, Music, Car, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface VendorSupplier {
@@ -252,14 +252,21 @@ export function ServiceSelector({ onSelectServiceVendor, onSelectServiceRental, 
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
-                    {filteredServices.map((service) => (
+                    {filteredServices.map((service) => {
+                      const isSelected = selectedServiceVendor === service.id;
+                      return (
                       <Card 
                         key={service.id}
-                        className={`cursor-pointer transition-all hover:shadow-md ${
-                          selectedServiceVendor === service.id ? 'ring-2 ring-primary' : ''
+                        className={`cursor-pointer transition-all duration-300 hover:scale-105 border-2 ${
+                          isSelected ? 'border-primary shadow-lg' : 'border-border'
                         }`}
                         onClick={() => onSelectServiceVendor(service.id)}
                       >
+                        <CardHeader className="pb-3">
+                          <div className="flex items-start justify-between">
+                            {isSelected && <CheckCircle2 className="h-5 w-5 text-primary" />}
+                          </div>
+                        </CardHeader>
                         <CardContent className="p-4">
                           <div className="space-y-2">
                             <div className="flex items-start justify-between">
@@ -283,12 +290,13 @@ export function ServiceSelector({ onSelectServiceVendor, onSelectServiceRental, 
                               className="flex-1" 
                               size="sm"
                             >
-                              Select Service
+                              {isSelected ? "Selected" : "Select Service"}
                             </Button>
                           </div>
                         </CardContent>
                       </Card>
-                    ))}
+                      )}
+                    )}
                   </div>
                 </>
               )}
@@ -320,43 +328,52 @@ export function ServiceSelector({ onSelectServiceVendor, onSelectServiceRental, 
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
-                    {filteredServices.map((service) => (
-                      <Card 
-                        key={service.id}
-                        className={`cursor-pointer transition-all hover:shadow-md ${
-                          selectedServiceRental === service.id ? 'ring-2 ring-primary' : ''
-                        }`}
-                        onClick={() => onSelectServiceRental(service.id)}
-                      >
-                        <CardContent className="p-4">
-                          <div className="space-y-2">
-                            <div className="flex items-start justify-between">
-                              <h4 className="font-semibold text-sm">{service.business_name}</h4>
-                              <Badge variant="outline" className="text-xs flex items-center gap-1">
-                                {getServiceIcon(service.type)}
-                                {service.type}
-                              </Badge>
-                            </div>
-                            
-                            <div className="space-y-1 text-sm text-muted-foreground">
-                              {service.contact_name && (
-                                <p className="text-xs"><strong>Contact:</strong> {service.contact_name}</p>
-                              )}
-                              <p className="text-xs"><strong>Location:</strong> {service.location}</p>
-                              <p className="text-xs">{service.description}</p>
-                            </div>
+                    {filteredServices.map((service) => {
+                      const isSelected = selectedServiceRental === service.id;
+
+                      return (
+                        <Card 
+                          key={service.id}
+                          className={`cursor-pointer transition-all hover:shadow-md ${
+                            selectedServiceRental === service.id ? 'ring-2 ring-primary' : ''
+                          }`}
+                          onClick={() => onSelectServiceRental(service.id)}
+                        >
+                        <CardHeader className="pb-3">
+                          <div className="flex items-start justify-between">
+                            {isSelected && <CheckCircle2 className="h-5 w-5 text-primary" />}
                           </div>
-                          <div className="flex gap-2">
-                            <Button 
-                              className="flex-1" 
-                              size="sm"
-                            >
-                              Select Rental
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                        </CardHeader>
+                          <CardContent className="p-4">
+                            <div className="space-y-2">
+                              <div className="flex items-start justify-between">
+                                <h4 className="font-semibold text-sm">{service.business_name}</h4>
+                                <Badge variant="outline" className="text-xs flex items-center gap-1">
+                                  {getServiceIcon(service.type)}
+                                  {service.type}
+                                </Badge>
+                              </div>
+                              
+                              <div className="space-y-1 text-sm text-muted-foreground">
+                                {service.contact_name && (
+                                  <p className="text-xs"><strong>Contact:</strong> {service.contact_name}</p>
+                                )}
+                                <p className="text-xs"><strong>Location:</strong> {service.location}</p>
+                                <p className="text-xs">{service.description}</p>
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button 
+                                className="flex-1" 
+                                size="sm"
+                              >
+                                {isSelected ? "Selected" : "Select Rental"}
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )
+                    })}
                   </div>
                 </>
               )}
