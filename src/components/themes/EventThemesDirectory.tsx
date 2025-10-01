@@ -270,7 +270,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
     
     // Define recommended themes based on user requirements
     const recommendedThemeNames = [
-      'celebration theme', 'celebration', 'festival theme', 'festival', 'holiday party'
+      'marketplace', 'celebration theme', 'celebration', 'festival theme', 'festival', 'holiday party'
     ];
     
     // Filter themes that match recommended names
