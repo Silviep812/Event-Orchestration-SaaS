@@ -29,7 +29,7 @@ import {
 import { TeamMemberCard } from "@/components/TeamMemberCard";
 import { NoTeamMembersCard } from "@/components/NoTeamMembersCard";
 
-interface TeamMember {
+export interface TeamMember {
   id: string;
   name: string;
   email: string;

@@ -44,6 +44,8 @@ const categoryColors = {
   marketing: "bg-orange-100 text-orange-800",
   supplies: "bg-indigo-100 text-indigo-800",
   services: "bg-cyan-100 text-cyan-800",
+  vendors: "bg-teal-100 text-teal-800",
+  misc: "bg-gray-100 text-gray-800",
   other: "bg-gray-100 text-gray-800"
 };
 
@@ -363,6 +365,8 @@ export function BudgetTracker({ eventId, selectedEventFilter }: BudgetTrackerPro
                       <SelectItem value="marketing">Marketing</SelectItem>
                       <SelectItem value="supplies">Supplies</SelectItem>
                       <SelectItem value="services">Services</SelectItem>
+                      <SelectItem value="vendors">Vendors</SelectItem>
+                      <SelectItem value="misc">Miscellaneous</SelectItem>
                       <SelectItem value="other">Other</SelectItem>
                     </SelectContent>
                   </Select>
