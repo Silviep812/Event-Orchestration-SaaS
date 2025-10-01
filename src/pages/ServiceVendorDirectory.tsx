@@ -3,7 +3,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ChefHat, Camera, Utensils, Cake, Truck, Flower } from "lucide-react";
+import { ChefHat, Camera, Utensils, Cake, Truck, Flower, Package, Car, PersonStanding } from "lucide-react";
 
 const ServiceVendorDirectory = () => {
   const [vendorTypes, setVendorTypes] = useState<any[]>([]);
@@ -72,7 +72,12 @@ const ServiceVendorDirectory = () => {
       'beverage': Utensils,
       'brewery': Utensils,
       'winery': Utensils,
-      'photo': Camera
+      'photo': Camera,
+      'rentals': Truck,
+      'delivery': Package,
+      'transport': Truck,
+      'security': Car,
+      'volunteer': PersonStanding,
     };
 
     const lowerName = typeName.toLowerCase();
