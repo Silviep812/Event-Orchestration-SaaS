@@ -117,6 +117,17 @@ useEffect(() => {
       return;
     }
 
+    // Trial version date restriction
+    const trialEnd = new Date('2025-12-31T23:59:59');
+    if (dateRange.from > trialEnd) {
+      toast({
+        title: "Trial Limitation",
+        description: "The trial version doesn't allow creating events after December 31st, 2025.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
