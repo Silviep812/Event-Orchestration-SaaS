@@ -255,51 +255,54 @@ export function ServiceSelector({ onSelectServiceVendor, onSelectServiceRental, 
                     {filteredServices.map((service) => {
                       const isSelected = selectedServiceVendor === service.id;
                       return (
-                      <Card 
-                        key={service.id}
-                        className={`cursor-pointer transition-all duration-300 hover:scale-105 border-2 ${
-                          isSelected ? 'border-primary shadow-lg' : 'border-border'
-                        }`}
-                        onClick={() => onSelectServiceVendor(service.id)}
-                      >
-                        <CardHeader className="pb-3">
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <CardTitle className="text-lg flex items-center gap-2">
-                                <Building className="h-5 w-5" />
-                                {service.business_name || 'Service'}
-                              </CardTitle>
-                            </div>
-                            {isSelected && <CheckCircle2 className="h-5 w-5 text-primary" />}
-                          </div>
-                        </CardHeader>
-                        <CardContent className="p-4">
-                          <div className="space-y-2">
+                        <Card
+                          key={service.id}
+                          className={`cursor-pointer transition-all duration-300 hover:scale-105 border-2 ${
+                            isSelected ? 'border-primary shadow-lg' : 'border-border'
+                          }`}
+                          onClick={() => onSelectServiceVendor(service.id)}
+                        >
+                          <CardHeader className="pb-3">
                             <div className="flex items-start justify-between">
-                              <Badge variant="outline" className="text-xs flex items-center gap-1">
-                                {getServiceIcon(service.type)}
-                                {service.type}
-                              </Badge>
-                            </div>
-                            
-                            <div className="space-y-1 text-sm text-muted-foreground">
-                              {service.contact_name && (
-                                <p className="text-xs"><strong>Contact:</strong> {service.contact_name}</p>
+                              <div>
+                                <CardTitle className="text-lg flex items-center gap-2">
+                                  <Building className="h-5 w-5" />
+                                  {service.business_name || 'Service'}
+                                </CardTitle>
+                              </div>
+                              {isSelected && (
+                                <CheckCircle2 className="h-5 w-5 text-primary" />
                               )}
-                              <p className="text-xs"><strong>Location:</strong> {service.location}</p>
-                              <p className="text-xs">{service.description}</p>
                             </div>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button 
-                              className="flex-1" 
-                              size="sm"
-                            >
-                              {isSelected ? "Selected" : "Select Service"}
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
+                          </CardHeader>
+                          <CardContent className="p-4">
+                            <div className="space-y-2">
+                              <div className="flex items-start justify-between">
+                                <Badge variant="outline" className="text-xs flex items-center gap-1">
+                                  {getServiceIcon(service.type)}
+                                  {service.type}
+                                </Badge>
+                              </div>
+                              
+                              <div className="space-y-1 text-sm text-muted-foreground">
+                                {service.contact_name && (
+                                  <p className="text-xs">
+                                    <strong>Contact:</strong> {service.contact_name}
+                                  </p>
+                                )}
+                                <p className="text-xs">
+                                  <strong>Location:</strong> {service.location}
+                                </p>
+                                <p className="text-xs">{service.description}</p>
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button className="flex-1" size="sm">
+                                {isSelected ? "Selected" : "Select Service"}
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
                       )}
                     )}
                   </div>
@@ -323,12 +326,16 @@ export function ServiceSelector({ onSelectServiceVendor, onSelectServiceRental, 
                   <div className="space-y-2">
                     <Label>Available Rental Types:</Label>
                     <div className="flex flex-wrap gap-2">
-                      {serviceTypes.map((type) => (
-                        <Badge key={type} variant="secondary" className="flex items-center gap-1">
-                          {getServiceIcon(type)}
-                          {type}
-                        </Badge>
-                      ))}
+                      {filteredServices.flatMap((service) =>
+                        service.category === 'rental'
+                          ? service.type.split(',').map((type, idx) => (
+                              <Badge key={service.id + '-' + idx} variant="secondary" className="flex items-center gap-1">
+                                {getServiceIcon(type.trim())}
+                                {type.trim()}
+                              </Badge>
+                            ))
+                          : []
+                      )}
                     </div>
                   </div>
 
@@ -337,45 +344,48 @@ export function ServiceSelector({ onSelectServiceVendor, onSelectServiceRental, 
                       const isSelected = selectedServiceRental === service.id;
 
                       return (
-                        <Card 
+                        <Card
                           key={service.id}
-                          className="cursor-pointer transition-all hover:shadow-md"
+                          className={`cursor-pointer transition-all duration-300 hover:scale-105 border-2 ${
+                            isSelected ? 'border-primary shadow-lg' : 'border-border'
+                          }`}
                           onClick={() => onSelectServiceRental(service.id)}
                         >
-                        <CardHeader className="pb-3">
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <CardTitle className="text-lg flex items-center gap-2">
-                                <Building className="h-5 w-5" />
-                                {service.business_name || 'Service'}
-                              </CardTitle>
+                          <CardHeader className="pb-3">
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <CardTitle className="text-lg flex items-center gap-2">
+                                  <Building className="h-5 w-5" />
+                                  {service.business_name || 'Service'}
+                                </CardTitle>
+                              </div>
+                              {isSelected && (
+                                <CheckCircle2 className="h-5 w-5 text-primary" />
+                              )}
                             </div>
-                            {isSelected && <CheckCircle2 className="h-5 w-5 text-primary" />}
-                          </div>
-                        </CardHeader>
+                          </CardHeader>
                           <CardContent className="p-4">
                             <div className="space-y-2">
                               <div className="flex items-start justify-between">
-                                <h4 className="font-semibold text-sm">{service.business_name}</h4>
                                 <Badge variant="outline" className="text-xs flex items-center gap-1">
                                   {getServiceIcon(service.type)}
                                   {service.type}
                                 </Badge>
                               </div>
-                              
                               <div className="space-y-1 text-sm text-muted-foreground">
                                 {service.contact_name && (
-                                  <p className="text-xs"><strong>Contact:</strong> {service.contact_name}</p>
+                                  <p className="text-xs">
+                                    <strong>Contact:</strong> {service.contact_name}
+                                  </p>
                                 )}
-                                <p className="text-xs"><strong>Location:</strong> {service.location}</p>
+                                <p className="text-xs">
+                                  <strong>Location:</strong> {service.location}
+                                </p>
                                 <p className="text-xs">{service.description}</p>
                               </div>
                             </div>
                             <div className="flex gap-2">
-                              <Button 
-                                className="flex-1" 
-                                size="sm"
-                              >
+                              <Button className="flex-1" size="sm">
                                 {isSelected ? "Selected" : "Select Rental"}
                               </Button>
                             </div>
