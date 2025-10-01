@@ -38,7 +38,8 @@ interface Task {
   estimated_hours: number | null;
   actual_hours: number | null;
   event_id: string;
-  assigned_role?: string | null;
+  assigned_user_id?: string | null;
+  assigned_user_name?: string | null;
 }
 
 
@@ -91,24 +92,37 @@ export default function TrackProgress() {
       
       if (error) throw error;
 
-      // Fetch assigned roles for each task
-      const tasksWithRoles = await Promise.all(
+      // Fetch assigned users for each task
+      const tasksWithUsers = await Promise.all(
         (tasksData || []).map(async (task) => {
           const { data: assignmentData } = await supabase
             .from('task_assignments')
-            .select('assigned_role')
+            .select('user_id')
             .eq('task_id', task.id)
             .limit(1)
             .maybeSingle();
 
+          let assigned_user_name: string | null = null;
+          const assigned_user_id = assignmentData?.user_id || null;
+          
+          if (assigned_user_id) {
+            const { data: userData } = await supabase
+              .from('User')
+              .select('user_name')
+              .eq('userid', assigned_user_id)
+              .maybeSingle();
+            assigned_user_name = userData?.user_name || null;
+          }
+
           return {
             ...task,
-            assigned_role: assignmentData?.assigned_role || null
+            assigned_user_id,
+            assigned_user_name
           };
         })
       );
       
-      setTasks(tasksWithRoles);
+      setTasks(tasksWithUsers);
     } catch (error) {
       console.error('Error fetching tasks:', error);
       toast({
@@ -445,9 +459,9 @@ export default function TrackProgress() {
                             <Badge variant={getPriorityColor(task.priority) as any}>
                               {task.priority}
                             </Badge>
-                            {task.assigned_role && (
+                            {task.assigned_user_name && (
                               <Badge variant="outline">
-                                {task.assigned_role.replace('_', ' ')}
+                                {task.assigned_user_name}
                               </Badge>
                             )}
                           </div>
@@ -463,10 +477,10 @@ export default function TrackProgress() {
                                 Due: {new Date(task.due_date).toLocaleDateString()}
                               </div>
                             )}
-                            {task.assigned_role && (
+                            {task.assigned_user_name && (
                               <div className="flex items-center gap-1">
                                 <Users className="w-4 h-4" />
-                                {task.assigned_role.replace('_', ' ')}
+                                {task.assigned_user_name}
                               </div>
                             )}
                             <div className="flex items-center gap-1">
@@ -495,8 +509,8 @@ export default function TrackProgress() {
                       
                       <Avatar className="w-8 h-8">
                         <AvatarFallback className="text-xs">
-                          {task.assigned_role ? 
-                            task.assigned_role.split('_').map(w => w[0].toUpperCase()).join('') : 
+                          {task.assigned_user_name ? 
+                            task.assigned_user_name.split(' ').map(w => w[0].toUpperCase()).join('').slice(0, 2) : 
                             'UN'
                           }
                         </AvatarFallback>

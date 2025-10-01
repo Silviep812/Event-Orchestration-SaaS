@@ -20,7 +20,8 @@ interface Task {
   title: string;
   description?: string;
   assigned_to?: string;
-  assigned_role?: string; // Single app_role enum value
+  assigned_user_id?: string;
+  assigned_user_name?: string;
   status: 'not_started' | 'in_progress' | 'completed' | 'on_hold' | 'cancelled';
   priority: 'low' | 'medium' | 'high' | 'urgent';
   estimated_hours?: number;
@@ -37,6 +38,12 @@ interface AvailableTask {
   id: string;
   title: string;
   status: 'not_started' | 'in_progress' | 'completed' | 'on_hold' | 'cancelled';
+}
+
+interface User {
+  userid: string;
+  user_name: string;
+  contact_name: string;
 }
 
 interface TaskManagerProps {
@@ -70,6 +77,7 @@ const statusIcons = {
 export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [availableTasks, setAvailableTasks] = useState<AvailableTask[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [showArchived, setShowArchived] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -94,7 +102,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
   const [newTask, setNewTask] = useState({
     title: "",
     description: "",
-    assigned_role: "",
+    assigned_user_id: "",
     priority: "medium" as const,
     estimated_hours: "",
     due_date: "",
@@ -107,7 +115,21 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
 
   useEffect(() => {
     fetchTasks();
+    fetchUsers();
   }, [eventId, user, selectedEventFilter, showArchived]);
+
+  const fetchUsers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('User')
+        .select('userid, user_name, contact_name');
+      
+      if (error) throw error;
+      setUsers(data || []);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    }
+  };
 
   const fetchTasks = async () => {
     try {
@@ -132,17 +154,30 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
             .select('depends_on_task_id')
             .eq('task_id', task.id);
           
-          // Fetch role assignment (single)
+          // Fetch user assignment
           const { data: assignments } = await supabase
             .from('task_assignments')
-            .select('assigned_role')
+            .select('user_id')
             .eq('task_id', task.id)
             .limit(1);
+          
+          let assigned_user_name: string | undefined;
+          const assigned_user_id = assignments?.[0]?.user_id || undefined;
+          
+          if (assigned_user_id) {
+            const { data: userData } = await supabase
+              .from('User')
+              .select('user_name')
+              .eq('userid', assigned_user_id)
+              .single();
+            assigned_user_name = userData?.user_name || undefined;
+          }
           
           return {
             ...task,
             dependencies: deps?.map(d => d.depends_on_task_id) || [],
-            assigned_role: assignments?.[0]?.assigned_role || undefined
+            assigned_user_id,
+            assigned_user_name
           };
         })
       );
@@ -491,13 +526,13 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
 
       if (error) throw error;
 
-      // Save role assignment if provided
-      if (newTask.assigned_role) {
+      // Save user assignment if provided
+      if (newTask.assigned_user_id) {
         const { error: assignmentError } = await supabase
           .from('task_assignments')
           .insert({
             task_id: createdTask.id,
-            assigned_role: newTask.assigned_role as 'host' | 'organizer' | 'event_planner' | 'venue_owner' | 'hospitality_provider',
+            user_id: newTask.assigned_user_id,
             created_by: user.id
           });
 
@@ -517,7 +552,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
       setNewTask({
         title: "",
         description: "",
-        assigned_role: "",
+        assigned_user_id: "",
         priority: "medium",
         estimated_hours: "",
         due_date: "",
@@ -538,7 +573,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
     }
   };
 
-  const updateTaskAssignment = async (taskId: string, assignedRole?: string) => {
+  const updateTaskAssignment = async (taskId: string, assignedUserId?: string) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
@@ -550,12 +585,12 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         .eq('task_id', taskId);
 
       // Then add new assignment if provided
-      if (assignedRole) {
+      if (assignedUserId) {
         const { error } = await supabase
           .from('task_assignments')
           .insert({
             task_id: taskId,
-            assigned_role: assignedRole as 'host' | 'organizer' | 'event_planner' | 'venue_owner' | 'hospitality_provider',
+            user_id: assignedUserId,
             created_by: user.id
           });
 
@@ -569,8 +604,8 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
 
   const updateTask = async (taskId: string, updates: Partial<Task>) => {
     try {
-      // Remove assigned_role from updates as it's handled separately
-      const { assigned_role, ...taskUpdates } = updates;
+      // Remove assigned_user_id and assigned_user_name from updates as they're handled separately
+      const { assigned_user_id, assigned_user_name, ...taskUpdates } = updates;
       
       const { error } = await supabase
         .from('tasks')
@@ -579,9 +614,9 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
 
       if (error) throw error;
 
-      // Handle role assignment if provided
-      if (assigned_role !== undefined) {
-        await updateTaskAssignment(taskId, assigned_role);
+      // Handle user assignment if provided
+      if (assigned_user_id !== undefined) {
+        await updateTaskAssignment(taskId, assigned_user_id);
       }
 
       setTasks(tasks.map(task => 
@@ -661,7 +696,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         title: taskToUpdate.title,
         description: taskToUpdate.description,
         priority: taskToUpdate.priority,
-        assigned_role: taskToUpdate.assigned_role,
+        assigned_user_id: taskToUpdate.assigned_user_id,
         estimated_hours: taskToUpdate.estimated_hours,
         due_date: taskToUpdate.due_date,
       });
@@ -706,7 +741,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         title: taskToUpdate.title,
         description: taskToUpdate.description,
         priority: taskToUpdate.priority,
-        assigned_role: taskToUpdate.assigned_role,
+        assigned_user_id: taskToUpdate.assigned_user_id,
         estimated_hours: taskToUpdate.estimated_hours,
         due_date: overrideDueDate || taskToUpdate.due_date,
       });
@@ -844,18 +879,18 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="assigned-role">Assigned Role</Label>
-                  <Select value={newTask.assigned_role} onValueChange={(value) => setNewTask({ ...newTask, assigned_role: value === "none" ? "" : value })}>
+                  <Label htmlFor="assigned-user">Assign To</Label>
+                  <Select value={newTask.assigned_user_id} onValueChange={(value) => setNewTask({ ...newTask, assigned_user_id: value === "none" ? "" : value })}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a role" />
+                      <SelectValue placeholder="Select a person" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">No assignment</SelectItem>
-                      <SelectItem value="host">Host</SelectItem>
-                      <SelectItem value="organizer">Organizer</SelectItem>
-                      <SelectItem value="event_planner">Event Planner</SelectItem>
-                      <SelectItem value="venue_owner">Venue Owner</SelectItem>
-                      <SelectItem value="hospitality_provider">Hospitality Provider</SelectItem>
+                      {users.map((user) => (
+                        <SelectItem key={user.userid} value={user.userid}>
+                          {user.user_name || user.contact_name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -973,11 +1008,11 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                   </Select>
                 </div>
 
-                {task.assigned_role && (
+                {task.assigned_user_name && (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <User className="h-3 w-3" />
-                    <span className="capitalize">
-                      {task.assigned_role.replace('_', ' ')}
+                    <span>
+                      {task.assigned_user_name}
                     </span>
                   </div>
                 )}
@@ -1082,18 +1117,18 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="edit-assigned-role">Assigned Role</Label>
-                  <Select value={selectedTask.assigned_role || "none"} onValueChange={(value) => setSelectedTask({ ...selectedTask, assigned_role: value === "none" ? undefined : value })}>
+                  <Label htmlFor="edit-assigned-user">Assign To</Label>
+                  <Select value={selectedTask.assigned_user_id || "none"} onValueChange={(value) => setSelectedTask({ ...selectedTask, assigned_user_id: value === "none" ? undefined : value })}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a role" />
+                      <SelectValue placeholder="Select a person" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">No assignment</SelectItem>
-                      <SelectItem value="host">Host</SelectItem>
-                      <SelectItem value="organizer">Organizer</SelectItem>
-                      <SelectItem value="event_planner">Event Planner</SelectItem>
-                      <SelectItem value="venue_owner">Venue Owner</SelectItem>
-                      <SelectItem value="hospitality_provider">Hospitality Provider</SelectItem>
+                      {users.map((user) => (
+                        <SelectItem key={user.userid} value={user.userid}>
+                          {user.user_name || user.contact_name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
