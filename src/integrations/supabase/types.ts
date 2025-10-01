@@ -3192,6 +3192,8 @@ export type Database = {
         | "services"
         | "other"
         | "hospitality"
+        | "misc"
+        | "vendors"
       event_status_enum: "pending" | "in_progress" | "completed" | "cancelled"
       task_priority: "low" | "medium" | "high" | "urgent"
       task_status:
@@ -3345,6 +3347,8 @@ export const Constants = {
         "services",
         "other",
         "hospitality",
+        "misc",
+        "vendors",
       ],
       event_status_enum: ["pending", "in_progress", "completed", "cancelled"],
       task_priority: ["low", "medium", "high", "urgent"],
