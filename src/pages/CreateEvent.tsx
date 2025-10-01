@@ -223,7 +223,7 @@ useEffect(() => {
                         <SelectValue placeholder="Select event theme" />
                       </SelectTrigger>
                       <SelectContent>
-                        {eventThemes.map((theme) => (
+                        {eventThemes.filter(theme => theme.premium !== true).map((theme) => (
                           <SelectItem key={theme.id} value={theme.id.toString()}>
                             {theme.name}
                           </SelectItem>
