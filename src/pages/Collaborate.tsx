@@ -16,7 +16,6 @@ import {
   Users, 
   MessageSquare, 
   FileText, 
-  Calendar,
   Plus,
   Send,
   UserPlus,
@@ -248,15 +247,34 @@ export default function Collaborate() {
           // Get all members for this team
           const { data: memberAssignments } = await supabase
             .from('team_assignments')
-            .select('user_id, team_admin, users(id, email, name)')
+            .select('user_id, team_admin')
             .eq('team_id', teamId);
+
+          const userIds = (memberAssignments || []).map((ma: any) => ma.user_id);
+
+          let usersMap: Record<string, { id: string; name: string; email: string }> = {};
+          if (userIds.length > 0) {
+            const { data: profilesData } = await supabase
+              .from('profiles')
+              .select('user_id, display_name, username')
+              .in('user_id', userIds);
+
+            if (profilesData) {
+              usersMap = profilesData.reduce((acc: any, u: any) => {
+                acc[u.user_id] = { id: u.user_id, name: u.display_name, email: '' };
+                return acc;
+              }, {});
+            }
+          }
+
+          const mappedUsers = Object.values(usersMap).map(u => u.name);
           const members: TeamMember[] = (memberAssignments || []).map((ma: any) => ({
-            id: ma.users?.id || ma.user_id,
-            name: ma.users?.name || 'Unknown',
-            email: ma.users?.email || '',
+            id: ma.user_id,
+            name: usersMap[ma.user_id]?.name || usersMap[ma.user_id]?.name || "Unknown",
+            email: '',
             role: ma.team_admin ? 'Admin' : 'Member',
-            status: 'offline', // Status can be improved if available
-            joinedAt: '' // Joined date can be improved if available
+            status: 'offline',
+            joinedAt: ''
           }));
           return { id: teamId, name: teamName, members, isAdmin };
         }));
@@ -628,7 +646,6 @@ export default function Collaborate() {
           </TabsTrigger>
         </TabsList>
 
-        {console.log('userTeams', userTeams)}
         {/* Show all teams the user belongs to and their members */}
         {userTeams.length > 0 && (
           <div className="space-y-4 mt-4">
