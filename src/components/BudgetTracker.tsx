@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -78,6 +78,9 @@ export function BudgetTracker({ eventId, selectedEventFilter }: BudgetTrackerPro
   });
   const { toast } = useToast();
   const { events } = useEventFilter();
+
+  // Local state for editing cost fields
+  const [editingCost, setEditingCost] = useState<{ [id: string]: { estimated?: string; actual?: string } }>({});
 
   useEffect(() => {
     fetchBudgetItems();
@@ -557,10 +560,43 @@ export function BudgetTracker({ eventId, selectedEventFilter }: BudgetTrackerPro
                     type="number"
                     step="0.01"
                     placeholder="0.00"
-                    value={item.estimated_cost || ''}
-                    onChange={(e) => {
-                      const value = parseFloat(e.target.value) || 0;
-                      updateEstimatedCost(item.id, value);
+                    value={
+                      editingCost[item.id]?.estimated !== undefined
+                        ? editingCost[item.id]?.estimated
+                        : (item.estimated_cost !== undefined && item.estimated_cost !== null
+                            ? Number(item.estimated_cost).toFixed(2)
+                            : '')
+                    }
+                    onChange={e => {
+                      setEditingCost(prev => ({
+                        ...prev,
+                        [item.id]: {
+                          ...prev[item.id],
+                          estimated: e.target.value
+                        }
+                      }));
+                    }}
+                    onBlur={e => {
+                      const val = e.target.value;
+                      if (val) {
+                        const formatted = parseFloat(val).toFixed(2);
+                        setEditingCost(prev => ({
+                          ...prev,
+                          [item.id]: { ...prev[item.id], estimated: formatted }
+                        }));
+                        updateEstimatedCost(item.id, parseFloat(formatted));
+                      } else {
+                        updateEstimatedCost(item.id, 0);
+                        setEditingCost(prev => ({
+                          ...prev,
+                          [item.id]: { ...prev[item.id], estimated: '' }
+                        }));
+                      }
+                    }}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        (e.target as HTMLInputElement).blur();
+                      }
                     }}
                   />
                 </div>
@@ -572,10 +608,43 @@ export function BudgetTracker({ eventId, selectedEventFilter }: BudgetTrackerPro
                     type="number"
                     step="0.01"
                     placeholder="0.00"
-                    value={item.actual_cost || ''}
-                    onChange={(e) => {
-                      const value = parseFloat(e.target.value) || 0;
-                      updateActualCost(item.id, value);
+                    value={
+                      editingCost[item.id]?.actual !== undefined
+                        ? editingCost[item.id]?.actual
+                        : (item.actual_cost !== undefined && item.actual_cost !== null
+                            ? Number(item.actual_cost).toFixed(2)
+                            : '')
+                    }
+                    onChange={e => {
+                      setEditingCost(prev => ({
+                        ...prev,
+                        [item.id]: {
+                          ...prev[item.id],
+                          actual: e.target.value
+                        }
+                      }));
+                    }}
+                    onBlur={e => {
+                      const val = e.target.value;
+                      if (val) {
+                        const formatted = parseFloat(val).toFixed(2);
+                        setEditingCost(prev => ({
+                          ...prev,
+                          [item.id]: { ...prev[item.id], actual: formatted }
+                        }));
+                        updateActualCost(item.id, parseFloat(formatted));
+                      } else {
+                        updateActualCost(item.id, 0);
+                        setEditingCost(prev => ({
+                          ...prev,
+                          [item.id]: { ...prev[item.id], actual: '' }
+                        }));
+                      }
+                    }}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        (e.target as HTMLInputElement).blur();
+                      }
                     }}
                   />
                 </div>
