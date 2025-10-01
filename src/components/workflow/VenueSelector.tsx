@@ -456,16 +456,6 @@ export const VenueSelector = ({ onSelectVenue, selectedVenue }: VenueSelectorPro
           </div>
         </DialogContent>
       </Dialog>
-
-      {filteredVenues.length === 0 && (
-        <Card>
-          <CardContent className="p-6 text-center">
-            <p className="text-muted-foreground">
-              No venues found matching your location criteria. Try adjusting your filters.
-            </p>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 };
