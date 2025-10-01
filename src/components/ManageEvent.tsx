@@ -266,6 +266,20 @@ const ManageEvent = () => {
   const handleFieldChange = async (field: string, value: any) => {
     if (!selectedEvent) return;
 
+    // Trial version date restriction
+    if ((field === 'start_date' || field === 'end_date') && value) {
+      const trialEnd = new Date('2025-12-31T23:59:59');
+      const newDate = new Date(value);
+      if (newDate > trialEnd) {
+        toast({
+          title: "Trial Limitation",
+          description: "The trial version doesn't allow events with dates after December 31st, 2025.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     // Capture old value for logging
     const oldValue = selectedEvent[field as keyof ManageEventData];
     
