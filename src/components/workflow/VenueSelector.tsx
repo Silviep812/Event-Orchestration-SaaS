@@ -424,25 +424,30 @@ export const VenueSelector = ({ onSelectVenue, selectedVenue }: VenueSelectorPro
               </Select>
             </div>
             <Button className="w-full" onClick={async () => {
-              // Save to DB
-              const { data, error } = await supabase.from('venues').insert({
+              // Prepare venue data, only include numeric fields if valid
+              const venueData: any = {
                 business_name: newVenue.business_name,
                 contact_name: newVenue.contact_name,
                 email: newVenue.email,
                 phone_number: newVenue.phone_number,
                 city: newVenue.city,
                 state: newVenue.state,
-                zip: newVenue.zip,
-                price: newVenue.price ? Number(newVenue.price) : null,
-                capacity: newVenue.capacity ? Number(newVenue.capacity) : null,
-                venue_type_id: newVenue.venue_type_id ? Number(newVenue.venue_type_id) : null
-              }).select().single();
+                zip: newVenue.zip
+              };
+              if (newVenue.capacity && !isNaN(Number(newVenue.capacity))) {
+                venueData.capacity = Number(newVenue.capacity);
+              }
+              if (newVenue.venue_type_id && !isNaN(Number(newVenue.venue_type_id))) {
+                venueData.venue_type_id = Number(newVenue.venue_type_id);
+              }
+              // Save to DB
+              const { data, error } = await supabase.from('venues').insert(venueData).select().single();
               if (error) {
                 toast({ title: 'Error', description: 'Failed to add venue', variant: 'destructive' });
               } else {
                 setVenues(prev => [...prev, data]);
                 setIsAddVenueDialogOpen(false);
-                setNewVenue({ business_name: '', contact_name: '', email: '', phone_number: '', city: '', state: '', zip: '', price: '', capacity: '', venue_type_id: '' });
+                setNewVenue({ business_name: '', contact_name: '', email: '', phone_number: '', city: '', state: '', zip: '', capacity: '', venue_type_id: '' });
                 toast({ title: 'Venue Added', description: 'Your venue has been added.' });
               }
             }}>
