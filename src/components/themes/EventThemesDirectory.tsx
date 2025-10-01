@@ -157,24 +157,26 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
         }
 
         // Transform Supabase data into ThemeDetails format
-        const transformedThemes: ThemeDetails[] = data.map((theme) => {
-          const category = getCategoryFromName(theme.name);
-          const styles = getThemeStyles(category);
-          console.log('Transforming theme:', theme.name, 'Category:', category, 'Styles:', styles);
-          
-          return {
-            id: theme.id,
-            name: theme.name,
-            description: theme.description || getThemeDescription(category),
-            category,
-            tags: theme?.tags || [],
-            icon: getThemeIcon(theme.name),
-            color: styles.color,
-            bgColor: styles.bgColor,
-            usageCount: Math.floor(Math.random() * 2000) + 100, // Mock data for usage count
-            premium: theme.premium,
-          };
-        });
+        const transformedThemes: ThemeDetails[] = data
+          .filter(theme => theme.premium !== true)
+          .map((theme) => {
+            const category = getCategoryFromName(theme.name);
+            const styles = getThemeStyles(category);
+            console.log('Transforming theme:', theme.name, 'Category:', category, 'Styles:', styles);
+            
+            return {
+              id: theme.id,
+              name: theme.name,
+              description: theme.description || getThemeDescription(category),
+              category,
+              tags: theme?.tags || [],
+              icon: getThemeIcon(theme.name),
+              color: styles.color,
+              bgColor: styles.bgColor,
+              usageCount: Math.floor(Math.random() * 2000) + 100, // Mock data for usage count
+              premium: theme.premium,
+            };
+          });
 
         console.log('Transformed themes:', transformedThemes);
         setThemes(transformedThemes);
