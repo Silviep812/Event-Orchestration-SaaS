@@ -19,6 +19,7 @@ import {
   DollarSign
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface VenueOption {
   id?: string;
@@ -30,7 +31,6 @@ interface VenueOption {
   city?: string;
   state?: string;
   zip?: string;
-  price?: number;
   capacity?: number;
   created_at?: string;
 }
@@ -56,6 +56,18 @@ export const VenueSelector = ({ onSelectVenue, selectedVenue }: VenueSelectorPro
   const [stateFilter, setStateFilter] = useState("");
   const [zipFilter, setZipFilter] = useState("");
   const [venueTypeFilter, setVenueTypeFilter] = useState("");
+  const [isAddVenueDialogOpen, setIsAddVenueDialogOpen] = useState(false);
+  const [newVenue, setNewVenue] = useState({
+    business_name: '',
+    contact_name: '',
+    email: '',
+    phone_number: '',
+    city: '',
+    state: '',
+    zip: '',
+    capacity: '',
+    venue_type_id: ''
+  });
   const { toast } = useToast();
 
   useEffect(() => {
@@ -326,12 +338,6 @@ export const VenueSelector = ({ onSelectVenue, selectedVenue }: VenueSelectorPro
                       <span>Capacity: {venue.capacity} guests</span>
                     </div>
                   )}
-                  {venue.price && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <DollarSign className="h-4 w-4 text-muted-foreground" />
-                      <span>Price: ${venue.price}</span>
-                    </div>
-                  )}
                 </div>
 
                 <div className="flex gap-2">
@@ -348,7 +354,103 @@ export const VenueSelector = ({ onSelectVenue, selectedVenue }: VenueSelectorPro
             </Card>
           );
         })}
+        {/* Add Your Own Venue Card */}
+        <Card className="border-dashed border-2 border-primary flex flex-col justify-center items-center min-h-[260px]">
+          <CardContent className="flex flex-col items-center justify-center p-6">
+            <Building className="h-10 w-10 text-primary mb-2" />
+            <h3 className="text-lg font-semibold mb-2">Add Your Own Venue</h3>
+            <p className="text-muted-foreground mb-4 text-center">Can't find your venue? Add your own venue information here.</p>
+            <Button onClick={() => setIsAddVenueDialogOpen(true)}>
+              + Add Venue
+            </Button>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Add Venue Dialog */}
+      <Dialog open={isAddVenueDialogOpen} onOpenChange={setIsAddVenueDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Your Venue</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Business Name</Label>
+              <Input value={newVenue.business_name} onChange={e => setNewVenue({ ...newVenue, business_name: e.target.value })} />
+            </div>
+            <div>
+              <Label>Contact Name</Label>
+              <Input value={newVenue.contact_name} onChange={e => setNewVenue({ ...newVenue, contact_name: e.target.value })} />
+            </div>
+            <div>
+              <Label>Email</Label>
+              <Input value={newVenue.email} onChange={e => setNewVenue({ ...newVenue, email: e.target.value })} />
+            </div>
+            <div>
+              <Label>Phone Number</Label>
+              <Input value={newVenue.phone_number} onChange={e => setNewVenue({ ...newVenue, phone_number: e.target.value })} />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+              <div>
+                <Label>City</Label>
+                <Input value={newVenue.city} onChange={e => setNewVenue({ ...newVenue, city: e.target.value })} />
+              </div>
+              <div>
+                <Label>State</Label>
+                <Input value={newVenue.state} onChange={e => setNewVenue({ ...newVenue, state: e.target.value })} />
+              </div>
+              <div>
+                <Label>ZIP</Label>
+                <Input value={newVenue.zip} onChange={e => setNewVenue({ ...newVenue, zip: e.target.value })} />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              <div>
+                <Label>Capacity</Label>
+                <Input type="number" value={newVenue.capacity} onChange={e => setNewVenue({ ...newVenue, capacity: e.target.value })} />
+              </div>
+            </div>
+            <div>
+              <Label>Venue Type</Label>
+              <Select value={newVenue.venue_type_id} onValueChange={value => setNewVenue({ ...newVenue, venue_type_id: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {venueTypes.map(type => (
+                    <SelectItem key={type.id} value={type.id.toString()}>{type.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button className="w-full" onClick={async () => {
+              // Save to DB
+              const { data, error } = await supabase.from('venues').insert({
+                business_name: newVenue.business_name,
+                contact_name: newVenue.contact_name,
+                email: newVenue.email,
+                phone_number: newVenue.phone_number,
+                city: newVenue.city,
+                state: newVenue.state,
+                zip: newVenue.zip,
+                price: newVenue.price ? Number(newVenue.price) : null,
+                capacity: newVenue.capacity ? Number(newVenue.capacity) : null,
+                venue_type_id: newVenue.venue_type_id ? Number(newVenue.venue_type_id) : null
+              }).select().single();
+              if (error) {
+                toast({ title: 'Error', description: 'Failed to add venue', variant: 'destructive' });
+              } else {
+                setVenues(prev => [...prev, data]);
+                setIsAddVenueDialogOpen(false);
+                setNewVenue({ business_name: '', contact_name: '', email: '', phone_number: '', city: '', state: '', zip: '', price: '', capacity: '', venue_type_id: '' });
+                toast({ title: 'Venue Added', description: 'Your venue has been added.' });
+              }
+            }}>
+              Save Venue
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {filteredVenues.length === 0 && (
         <Card>
