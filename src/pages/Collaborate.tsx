@@ -26,6 +26,7 @@ import {
   Download,
   Upload
 } from "lucide-react";
+import { TeamMemberCard } from "@/components/TeamMemberCard";
 
 interface TeamMember {
   id: string;
@@ -709,41 +710,11 @@ export default function Collaborate() {
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {teamMembers.map((member) => (
-                <Card 
-                  key={member.id} 
-                  className="cursor-pointer hover:shadow-md transition-shadow"
-                  onClick={() => handleMemberClick(member)}
-                >
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="relative">
-                        <Avatar>
-                          <AvatarImage src={member.avatar} />
-                          <AvatarFallback>
-                            {member.name.split(' ').map(n => n[0]).join('')}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-white ${getStatusColor(member.status)}`} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold truncate">{member.name}</h3>
-                        <p className="text-sm text-muted-foreground truncate">{member.email}</p>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <Badge variant="secondary">{member.role.replace('_', ' ')}</Badge>
-                      <p className="text-sm text-muted-foreground">
-                        Joined {new Date(member.joinedAt).toLocaleDateString()}
-                      </p>
-                      <div className="flex items-center gap-2 text-sm">
-                        <div className={`w-2 h-2 rounded-full ${getStatusColor(member.status)}`} />
-                        <span className="capitalize">{member.status}</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                <TeamMemberCard
+                  key={member.id}
+                  member={member}
+                  onClick={handleMemberClick}
+                />
               ))}
             </div>
           )}
