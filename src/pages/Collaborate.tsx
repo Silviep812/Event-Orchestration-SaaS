@@ -82,7 +82,7 @@ export default function Collaborate() {
   const [isCreateTeamDialogOpen, setIsCreateTeamDialogOpen] = useState(false);
   const [teamName, setTeamName] = useState("");
   const [userTeam, setUserTeam] = useState<{ id: string; name: string } | null>(null);
-  const [userTeams, setUserTeams] = useState<{ id: string; name: string; members: TeamMember[] }[]>([]);
+  const [userTeams, setUserTeams] = useState<{ id: string; name: string; members: TeamMember[]; isAdmin: boolean }[]>([]);
 
   // Fetch user's team if they're an admin
   useEffect(() => {
@@ -237,13 +237,14 @@ export default function Collaborate() {
         // Get all team assignments for the user
         const { data: assignments, error: assignmentsError } = await supabase
           .from('team_assignments')
-          .select('team_id, teams(id, name)')
+          .select('team_id, team_admin, teams(id, name)')
           .eq('user_id', user.id);
         if (assignmentsError || !assignments) return;
         // For each team, fetch its members
         const teamsWithMembers = await Promise.all(assignments.map(async (assignment: any) => {
           const teamId = assignment.team_id;
           const teamName = assignment.teams?.name || 'Unnamed Team';
+          const isAdmin = !!assignment.team_admin;
           // Get all members for this team
           const { data: memberAssignments } = await supabase
             .from('team_assignments')
@@ -257,7 +258,7 @@ export default function Collaborate() {
             status: 'offline', // Status can be improved if available
             joinedAt: '' // Joined date can be improved if available
           }));
-          return { id: teamId, name: teamName, members };
+          return { id: teamId, name: teamName, members, isAdmin };
         }));
         setUserTeams(teamsWithMembers);
       } catch (error) {
@@ -639,7 +640,9 @@ export default function Collaborate() {
                       <Users className="w-5 h-5 text-primary" />
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Team</p>
+                      <p className="text-sm text-muted-foreground">
+                        {team.isAdmin ? 'Team Admin' : 'Team Member'}
+                      </p>
                       <h3 className="text-lg font-semibold">{team.name}</h3>
                     </div>
                   </div>
