@@ -649,10 +649,10 @@ export default function Collaborate() {
         <TabsContent value="team" className="space-y-4">
           {/* Show all teams the user belongs to and their members */}
           {userTeams.length > 0 && (
-            <div className="space-y-4 mt-4">
+            <div className="space-y-8 mt-4">
               {userTeams.map(team => (
-                <Card key={team.id} className="border-primary/20 bg-primary/5">
-                  <CardContent className="py-4">
+                <div key={team.id}>
+                  <div className="border-primary/20 bg-primary/5 rounded-lg px-6 py-4">
                     <div className="flex items-center gap-3 mb-2">
                       <div className="p-2 rounded-lg bg-primary/10">
                         <Users className="w-5 h-5 text-primary" />
@@ -664,17 +664,17 @@ export default function Collaborate() {
                         <h3 className="text-lg font-semibold">{team.name}</h3>
                       </div>
                     </div>
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                      {team.members.map(member => (
-                        <TeamMemberCard
-                          key={member.id}
-                          member={member}
-                          onClick={handleMemberClick}
-                        />
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 bg-white rounded-b-lg p-6">
+                    {team.members.map(member => (
+                      <TeamMemberCard
+                        key={member.id}
+                        member={member}
+                        onClick={handleMemberClick}
+                      />
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
           )}
