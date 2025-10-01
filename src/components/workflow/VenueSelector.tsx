@@ -424,6 +424,14 @@ export const VenueSelector = ({ onSelectVenue, selectedVenue }: VenueSelectorPro
               </Select>
             </div>
             <Button className="w-full" onClick={async () => {
+              // Get the current user
+              const { data: { user } } = await supabase.auth.getUser();
+              
+              if (!user) {
+                toast({ title: 'Error', description: 'You must be logged in to add a venue', variant: 'destructive' });
+                return;
+              }
+              
               // Prepare venue data, only include numeric fields if valid
               const venueData: any = {
                 business_name: newVenue.business_name,
@@ -432,7 +440,8 @@ export const VenueSelector = ({ onSelectVenue, selectedVenue }: VenueSelectorPro
                 phone_number: newVenue.phone_number,
                 city: newVenue.city,
                 state: newVenue.state,
-                zip: newVenue.zip
+                zip: newVenue.zip,
+                user_id: user.id
               };
               if (newVenue.capacity && !isNaN(Number(newVenue.capacity))) {
                 venueData.capacity = Number(newVenue.capacity);
