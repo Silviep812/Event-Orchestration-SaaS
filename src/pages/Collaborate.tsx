@@ -512,7 +512,7 @@ export default function Collaborate() {
           )}
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Invite Team Member</DialogTitle>
+              <DialogTitle>Invite Team Member to {userTeam?.name}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
