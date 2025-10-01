@@ -150,23 +150,23 @@ export const EventThemeSelector = ({ userType, onSelectTheme, selectedTheme }: E
         }
 
         // Transform Supabase data into EventTheme format
-        const transformedThemes: EventTheme[] = data.map((theme) => {
-          const category = getCategoryFromName(theme.name);
-          const styles = getThemeStyles(category);
-          
-          return {
-            id: theme.id,
-            name: theme.name,
-            description: theme.description || getThemeDescription(category),
-            category,
-            tags: theme?.tags || [],
-            icon: getThemeIcon(theme.name),
-            color: styles.color,
-            bgColor: styles.bgColor,
-            premium: theme.premium,
-          };
-        });
-
+        const transformedThemes: EventTheme[] = data
+          .filter(theme => theme.premium !== true)
+          .map((theme) => {
+            const category = getCategoryFromName(theme.name);
+            const styles = getThemeStyles(category);
+            return {
+              id: theme.id,
+              name: theme.name,
+              description: theme.description || getThemeDescription(category),
+              category,
+              tags: theme?.tags || [],
+              icon: getThemeIcon(theme.name),
+              color: styles.color,
+              bgColor: styles.bgColor,
+              premium: theme.premium,
+            };
+          });
         setThemes(transformedThemes);
       } catch (error) {
         console.error('Error in fetchThemes:', error);
