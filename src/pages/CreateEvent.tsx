@@ -37,6 +37,7 @@ export default function CreateEvent() {
   const selectedThemeId = watch("theme_id");
 
   const [themesLoaded, setThemesLoaded] = useState(false);
+  const [budgetInput, setBudgetInput] = useState('');
 
   useEffect(() => {
     const fetchThemes = async () => {
@@ -95,6 +96,16 @@ useEffect(() => {
     // Reset event type when theme changes
     setValue("type", "");
   }, [selectedThemeId, setValue]);
+
+  // Sync budget input with react-hook-form
+  useEffect(() => {
+    const sub = watch((value, { name }) => {
+      if (name === 'budget') {
+        setBudgetInput(value.budget ?? '');
+      }
+    });
+    return () => sub.unsubscribe();
+  }, [watch]);
 
   const onSubmit = async (data: EventFormData) => {
     if (!dateRange?.from) {
@@ -343,7 +354,23 @@ useEffect(() => {
                 </Label>
                 <Input
                   id="budget"
-                  {...register("budget")}
+                  value={budgetInput}
+                  onChange={e => {
+                    setBudgetInput(e.target.value);
+                    setValue('budget', e.target.value);
+                  }}
+                  onBlur={() => {
+                    if (budgetInput) {
+                      const formatted = parseFloat(budgetInput).toFixed(2);
+                      setBudgetInput(formatted);
+                      setValue('budget', formatted);
+                    }
+                  }}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      (e.target as HTMLInputElement).blur();
+                    }
+                  }}
                   placeholder="Enter budget amount"
                 />
               </div>
