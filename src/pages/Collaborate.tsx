@@ -502,12 +502,14 @@ export default function Collaborate() {
         </div>
         
         <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-gradient-to-r from-primary to-secondary">
-              <UserPlus className="w-4 h-4 mr-2" />
-              Invite Member
-            </Button>
-          </DialogTrigger>
+          {userTeam && (
+            <DialogTrigger asChild>
+              <Button className="bg-gradient-to-r from-primary to-secondary">
+                <UserPlus className="w-4 h-4 mr-2" />
+                Invite Member
+              </Button>
+            </DialogTrigger>
+          )}
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Invite Team Member</DialogTitle>
