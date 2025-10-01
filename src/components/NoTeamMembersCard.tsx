@@ -4,11 +4,13 @@ import { Button } from "@/components/ui/button";
 
 interface NoTeamMembersCardProps {
   userTeam: { id: string; name: string } | null;
+  userTeams: { id: string; name: string; members: any[]; isAdmin: boolean }[];
   onCreateTeam: () => void;
   onInviteMember: () => void;
 }
 
-export function NoTeamMembersCard({ userTeam, onCreateTeam, onInviteMember }: NoTeamMembersCardProps) {
+export function NoTeamMembersCard({ userTeam, userTeams, onCreateTeam, onInviteMember }: NoTeamMembersCardProps) {
+  const showCreateOnly = !userTeam && userTeams.length > 0;
   return (
     <Card>
       <CardContent className="flex flex-col items-center justify-center py-12">
@@ -20,7 +22,7 @@ export function NoTeamMembersCard({ userTeam, onCreateTeam, onInviteMember }: No
             : "Your team has no members. Start by inviting team members to collaborate on your events."}
         </p>
         <div className="flex gap-3">
-          {!userTeam && (
+          {(!userTeam || showCreateOnly) && (
             <Button 
               onClick={onCreateTeam}
               className="bg-gradient-to-r from-primary to-secondary"
@@ -29,13 +31,15 @@ export function NoTeamMembersCard({ userTeam, onCreateTeam, onInviteMember }: No
               Create Team
             </Button>
           )}
-          <Button 
-            onClick={onInviteMember}
-            variant="outline"
-          >
-            <UserPlus className="w-4 h-4 mr-2" />
-            Invite Member
-          </Button>
+          {!showCreateOnly && userTeam && (
+            <Button 
+              onClick={onInviteMember}
+              variant="outline"
+            >
+              <UserPlus className="w-4 h-4 mr-2" />
+              Invite Member
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>

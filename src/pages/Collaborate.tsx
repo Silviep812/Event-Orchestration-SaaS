@@ -669,6 +669,7 @@ export default function Collaborate() {
                   {team.members.length === 0 ? (
                     <NoTeamMembersCard
                       userTeam={userTeam}
+                      userTeams={userTeams}
                       onCreateTeam={() => setIsCreateTeamDialogOpen(true)}
                       onInviteMember={() => setIsInviteDialogOpen(true)}
                     />
@@ -688,9 +689,10 @@ export default function Collaborate() {
             </div>
           )}
 
-          {teamMembers.length === 0 ? (
+          {teamMembers.length === 0 && (userTeams.length === 0 || userTeam) ? (
             <NoTeamMembersCard
               userTeam={userTeam}
+              userTeams={userTeams}
               onCreateTeam={() => setIsCreateTeamDialogOpen(true)}
               onInviteMember={() => setIsInviteDialogOpen(true)}
             />
