@@ -2078,6 +2078,8 @@ export type Database = {
         Row: {
           created_at: string
           id: number
+          is_coordinator: boolean
+          is_viewer: boolean
           team_admin: boolean
           team_id: string
           updated_at: string
@@ -2086,6 +2088,8 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: number
+          is_coordinator?: boolean
+          is_viewer?: boolean
           team_admin?: boolean
           team_id: string
           updated_at?: string
@@ -2094,6 +2098,8 @@ export type Database = {
         Update: {
           created_at?: string
           id?: number
+          is_coordinator?: boolean
+          is_viewer?: boolean
           team_admin?: boolean
           team_id?: string
           updated_at?: string
