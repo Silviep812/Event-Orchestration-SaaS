@@ -116,58 +116,85 @@ export default function Collaborate() {
   // Fetch real team members data
   useEffect(() => {
     const fetchTeamMembers = async () => {
-      if (!user) return;
+      if (!user || !userTeam) return;
 
       try {
-        // Get users from get-invited-users function
-        const { data, error } = await supabase.functions.invoke('get-invited-users', {
-          headers: {
-            Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
-          }
-        });
+        // Get team members from team_assignments table
+        const { data: assignments, error: assignmentsError } = await supabase
+          .from('team_assignments')
+          .select('user_id, team_admin, is_coordinator, is_viewer')
+          .eq('team_id', userTeam.id);
 
-        if (error) {
-          console.error('Error fetching team members:', error);
+        if (assignmentsError) {
+          console.error('Error fetching team assignments:', assignmentsError);
           return;
         }
 
-        if (data.success) {
-          // Get roles from user_roles table
-          const { data: userRolesData, error: rolesError } = await supabase
-            .from('user_roles')
-            .select('user_id, role');
+        if (!assignments || assignments.length === 0) {
+          setTeamMembers([]);
+          return;
+        }
 
-          if (rolesError) {
-            console.error('Error fetching user roles:', rolesError);
-            // If roles fetch fails, still show users but with default role
-            setTeamMembers(data.teamMembers.map((member: TeamMember) => ({
-              ...member,
-              role: 'Member'
-            })));
-            return;
+        // Get user details from User table
+        const userIds = assignments.map(a => a.user_id);
+        const { data: usersData, error: usersError } = await supabase
+          .from('User')
+          .select('userid, user_name, email, contact_name')
+          .in('userid', userIds);
+
+        if (usersError) {
+          console.error('Error fetching user details:', usersError);
+        }
+
+        // Get roles from user_roles table
+        const { data: userRolesData, error: rolesError } = await supabase
+          .from('user_roles')
+          .select('user_id, role')
+          .in('user_id', userIds);
+
+        if (rolesError) {
+          console.error('Error fetching user roles:', rolesError);
+        }
+
+        // Create maps for quick lookup
+        const usersMap = new Map(usersData?.map(u => [u.userid, u]) || []);
+        const rolesMap = new Map(userRolesData?.map(r => [r.user_id, r.role]) || []);
+
+        // Combine data
+        const members: TeamMember[] = assignments.map(assignment => {
+          const userDetails = usersMap.get(assignment.user_id);
+          const role = rolesMap.get(assignment.user_id);
+          
+          let roleDisplay = role || 'Member';
+          if (assignment.team_admin) {
+            roleDisplay = 'Admin';
+          } else if (assignment.is_coordinator) {
+            roleDisplay = 'Coordinator';
+          } else if (assignment.is_viewer) {
+            roleDisplay = 'Viewer';
           }
 
-          // Create a map of user roles for quick lookup
-          const rolesMap = new Map();
-          userRolesData?.forEach(role => {
-            rolesMap.set(role.user_id, role.role);
-          });
+          return {
+            id: assignment.user_id,
+            name: userDetails?.user_name || userDetails?.contact_name || userDetails?.email?.split('@')[0] || 'Unknown User',
+            email: userDetails?.email || '',
+            role: roleDisplay,
+            status: 'offline' as const,
+            joinedAt: new Date().toISOString()
+          };
+        });
 
-          // Combine user data with roles from database
-          const membersWithRoles = data.teamMembers.map((member: TeamMember) => ({
-            ...member,
-            role: rolesMap.get(member.id) || 'Member'
-          }));
-
-          setTeamMembers(membersWithRoles);
-        }
+        setTeamMembers(members);
       } catch (error) {
         console.error('Error fetching team members:', error);
       }
     };
 
     fetchTeamMembers();
+  }, [user, userTeam]);
 
+  // Set mock data for messages, files, and activities
+  useEffect(() => {
     setMessages([
       {
         id: "1",
