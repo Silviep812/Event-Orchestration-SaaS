@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Building, Home, Utensils, MapPin, Trees, Dumbbell, Warehouse, Users, Building2, Hotel, ShoppingBag, HelpCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 const VenueDirectory = () => {
   const [venueProfiles, setVenueProfiles] = useState<any[]>([]);
@@ -12,6 +13,7 @@ const VenueDirectory = () => {
   const [selectedVenueTypes, setSelectedVenueTypes] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   // Fetch venue profiles and types from Supabase
   useEffect(() => {
@@ -23,30 +25,32 @@ const VenueDirectory = () => {
       setLoading(true);
       
       // Fetch both venues and venue types
-      const [venuesResponse, typesResponse] = await Promise.all([
+      const results = await Promise.all([
         supabase.from('venues').select('*'),
         supabase.from('venue_types').select('*')
       ]);
+      const venuesResponse = results[0];
+      const typesResponse = results[1];
 
-      if (venuesResponse.error) {
+      if (venuesResponse && venuesResponse.error) {
         console.error('Error fetching venues:', venuesResponse.error);
         toast({
           title: "Error",
           description: "Failed to load venues. Please try again.",
           variant: "destructive"
         });
-      } else {
+      } else if (venuesResponse) {
         setVenueProfiles(venuesResponse.data || []);
       }
 
-      if (typesResponse.error) {
+      if (typesResponse && typesResponse.error) {
         console.error('Error fetching venue types:', typesResponse.error);
         toast({
           title: "Error", 
           description: "Failed to load venue types. Please try again.",
           variant: "destructive"
         });
-      } else {
+      } else if (typesResponse) {
         setVenueTypes(typesResponse.data || []);
       }
     } catch (error) {
@@ -66,10 +70,13 @@ const VenueDirectory = () => {
     return venueTypes.find(type => type.id === typeId);
   };
 
-  // Filter profiles based on selected venue types
-  const filteredProfiles = selectedVenueTypes.length > 0 
-    ? venueProfiles.filter(profile => selectedVenueTypes.includes(profile.venue_type_id))
-    : venueProfiles;
+  // Filter profiles based on selected venue types and user_id
+  const filteredProfiles = venueProfiles.filter(profile => {
+    return (
+      (!profile.user_id || (user && profile.user_id === user.id)) &&
+      (selectedVenueTypes.length === 0 || selectedVenueTypes.includes(profile.venue_type_id))
+    );
+  });
 
   // Create venue type options from fetched data
   const getIconForType = (typeName: string) => {
