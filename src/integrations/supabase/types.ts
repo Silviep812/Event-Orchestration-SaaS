@@ -1873,25 +1873,25 @@ export type Database = {
       }
       task_assignments: {
         Row: {
-          assigned_role: Database["public"]["Enums"]["app_role"]
           created_at: string
           created_by: string
           id: string
           task_id: string
+          user_id: string | null
         }
         Insert: {
-          assigned_role: Database["public"]["Enums"]["app_role"]
           created_at?: string
           created_by: string
           id?: string
           task_id: string
+          user_id?: string | null
         }
         Update: {
-          assigned_role?: Database["public"]["Enums"]["app_role"]
           created_at?: string
           created_by?: string
           id?: string
           task_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
