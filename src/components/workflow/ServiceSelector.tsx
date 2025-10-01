@@ -187,6 +187,13 @@ export function ServiceSelector({ onSelectServiceVendor, onSelectServiceRental, 
 
   const serviceTypes = [...new Set(filteredServices.map(service => service.type))];
 
+  // Get unique rental types for tags
+  const uniqueRentalTypes = Array.from(new Set(
+    filteredServices
+      .filter(service => service.category === 'rental')
+      .flatMap(service => service.type.split(',').map(type => type.trim()))
+  ));
+
   return (
     <div className="space-y-6">
       <Card>
@@ -326,16 +333,12 @@ export function ServiceSelector({ onSelectServiceVendor, onSelectServiceRental, 
                   <div className="space-y-2">
                     <Label>Available Rental Types:</Label>
                     <div className="flex flex-wrap gap-2">
-                      {filteredServices.flatMap((service) =>
-                        service.category === 'rental'
-                          ? service.type.split(',').map((type, idx) => (
-                              <Badge key={service.id + '-' + idx} variant="secondary" className="flex items-center gap-1">
-                                {getServiceIcon(type.trim())}
-                                {type.trim()}
-                              </Badge>
-                            ))
-                          : []
-                      )}
+                      {uniqueRentalTypes.map((type) => (
+                        <Badge key={type} variant="secondary" className="flex items-center gap-1">
+                          {getServiceIcon(type)}
+                          {type}
+                        </Badge>
+                      ))}
                     </div>
                   </div>
 
