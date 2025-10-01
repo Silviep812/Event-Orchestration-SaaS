@@ -325,7 +325,10 @@ export default function Collaborate() {
           email: inviteEmail,
           role: inviteRole,
           inviterName: user?.email?.split('@')[0] || 'Team Admin',
-          inviterEmail: user?.email || 'admin@example.com'
+          inviterEmail: user?.email || 'admin@example.com',
+          teamId: userTeam?.id,
+          isCoordinator: inviteAttributes.coordinator,
+          isViewer: inviteAttributes.viewer,
         }
       });
 
@@ -343,24 +346,6 @@ export default function Collaborate() {
         title: "Invitation sent",
         description: `Invitation sent to ${inviteEmail} as ${inviteRole}.`,
       });
-
-      // Set attributes in team_assignments if needed
-      if (userTeam) {
-        let updateFields: any = {};
-        if (inviteAttributes.coordinator) {
-          updateFields.is_coordinator = true;
-          updateFields.is_viewer = null;
-        } else if (inviteAttributes.viewer) {
-          updateFields.is_viewer = true;
-          updateFields.is_coordinator = null;
-        } else {
-          updateFields.is_coordinator = null;
-          updateFields.is_viewer = null;
-        }
-        await supabase.from('team_assignments').update(updateFields)
-          .eq('team_id', userTeam.id)
-          .eq('user_id', data?.invitedUserId || '');
-      }
 
       setInviteEmail("");
       setInviteRole("");

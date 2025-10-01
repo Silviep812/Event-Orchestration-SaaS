@@ -22,6 +22,9 @@ interface TeamInvitationRequest {
   role: string;
   inviterName: string;
   inviterEmail: string;
+  teamId?: string;
+  isCoordinator?: boolean;
+  isViewer?: boolean;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -38,6 +41,9 @@ const handler = async (req: Request): Promise<Response> => {
       role,
       inviterName,
       inviterEmail,
+      teamId,
+      isCoordinator,
+      isViewer,
     }: TeamInvitationRequest = await req.json();
 
     console.log("Sending team invitation to:", email);
@@ -59,7 +65,6 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Store the role in user_roles table for the invited user
-    // Note: We use the email to identify the user since they don't have a user_id yet
     if (data.user && data.user.id) {
       const { error: roleError } = await supabase
         .from('user_roles')
@@ -72,9 +77,27 @@ const handler = async (req: Request): Promise<Response> => {
 
       if (roleError) {
         console.error("Error storing role in database:", roleError);
-        // Don't fail the invitation if role storage fails
       } else {
         console.log("Role stored in database for user:", data.user.id);
+      }
+
+      // Create team_assignments record with attributes if teamId provided
+      if (teamId) {
+        const { error: teamError } = await supabase
+          .from('team_assignments')
+          .insert({
+            user_id: data.user.id,
+            team_id: teamId,
+            team_admin: false,
+            is_coordinator: isCoordinator || false,
+            is_viewer: isViewer || false,
+          });
+
+        if (teamError) {
+          console.error("Error creating team assignment:", teamError);
+        } else {
+          console.log("Team assignment created for user:", data.user.id);
+        }
       }
     }
 
