@@ -85,6 +85,9 @@ const getServiceIcon = (type: string) => {
   }
 };
 
+// Helper to get array of types for a service
+const getServiceTypesArray = (service: Service) => service.type.split(',').map(t => t.trim());
+
 export function ServiceSelector({ onSelectServiceVendor, onSelectServiceRental, selectedServiceVendor, selectedServiceRental }: ServiceSelectorProps) {
   const [locationFilter, setLocationFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
@@ -284,13 +287,14 @@ export function ServiceSelector({ onSelectServiceVendor, onSelectServiceRental, 
                           </CardHeader>
                           <CardContent className="p-4">
                             <div className="space-y-2">
-                              <div className="flex items-start justify-between">
-                                <Badge variant="outline" className="text-xs flex items-center gap-1">
-                                  {getServiceIcon(service.type)}
-                                  {service.type}
-                                </Badge>
+                              <div className="flex items-start flex-wrap gap-2">
+                                {getServiceTypesArray(service).map((type, idx) => (
+                                  <Badge key={service.id + '-' + idx} variant="outline" className="text-xs flex items-center gap-1">
+                                    {getServiceIcon(type)}
+                                    {type}
+                                  </Badge>
+                                ))}
                               </div>
-                              
                               <div className="space-y-1 text-sm text-muted-foreground">
                                 {service.contact_name && (
                                   <p className="text-xs">
@@ -369,11 +373,13 @@ export function ServiceSelector({ onSelectServiceVendor, onSelectServiceRental, 
                           </CardHeader>
                           <CardContent className="p-4">
                             <div className="space-y-2">
-                              <div className="flex items-start justify-between">
-                                <Badge variant="outline" className="text-xs flex items-center gap-1">
-                                  {getServiceIcon(service.type)}
-                                  {service.type}
-                                </Badge>
+                              <div className="flex items-start flex-wrap gap-2">
+                                {getServiceTypesArray(service).map((type, idx) => (
+                                  <Badge key={service.id + '-' + idx} variant="outline" className="text-xs flex items-center gap-1">
+                                    {getServiceIcon(type)}
+                                    {type}
+                                  </Badge>
+                                ))}
                               </div>
                               <div className="space-y-1 text-sm text-muted-foreground">
                                 {service.contact_name && (
