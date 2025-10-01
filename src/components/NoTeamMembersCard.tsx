@@ -19,7 +19,7 @@ export function NoTeamMembersCard({ userTeam, userTeams, onCreateTeam, onInviteM
         <p className="text-muted-foreground text-center mb-4 max-w-md">
           {!userTeam
             ? "You don't belong to any team. Start by creating a team and inviting team members to collaborate on your events."
-            : "Your team has no members. Start by inviting team members to collaborate on your events."}
+            : `${userTeam.name} has no members. Start by inviting team members to collaborate on your events.`}
         </p>
         <div className="flex gap-3">
           {(!userTeam || showCreateOnly) && (
