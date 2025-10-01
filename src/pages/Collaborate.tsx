@@ -82,6 +82,7 @@ export default function Collaborate() {
   const [isCreateTeamDialogOpen, setIsCreateTeamDialogOpen] = useState(false);
   const [teamName, setTeamName] = useState("");
   const [userTeam, setUserTeam] = useState<{ id: string; name: string } | null>(null);
+  const [userTeams, setUserTeams] = useState<{ id: string; name: string; members: TeamMember[] }[]>([]);
 
   // Fetch user's team if they're an admin
   useEffect(() => {
@@ -226,6 +227,44 @@ export default function Collaborate() {
         type: "member"
       }
     ]);
+  }, [user]);
+
+  // Fetch user's teams and their members
+  useEffect(() => {
+    const fetchUserTeams = async () => {
+      if (!user) return;
+      try {
+        // Get all team assignments for the user
+        const { data: assignments, error: assignmentsError } = await supabase
+          .from('team_assignments')
+          .select('team_id, teams(id, name)')
+          .eq('user_id', user.id);
+        if (assignmentsError || !assignments) return;
+        // For each team, fetch its members
+        const teamsWithMembers = await Promise.all(assignments.map(async (assignment: any) => {
+          const teamId = assignment.team_id;
+          const teamName = assignment.teams?.name || 'Unnamed Team';
+          // Get all members for this team
+          const { data: memberAssignments } = await supabase
+            .from('team_assignments')
+            .select('user_id, team_admin, users(id, email, name)')
+            .eq('team_id', teamId);
+          const members: TeamMember[] = (memberAssignments || []).map((ma: any) => ({
+            id: ma.users?.id || ma.user_id,
+            name: ma.users?.name || 'Unknown',
+            email: ma.users?.email || '',
+            role: ma.team_admin ? 'Admin' : 'Member',
+            status: 'offline', // Status can be improved if available
+            joinedAt: '' // Joined date can be improved if available
+          }));
+          return { id: teamId, name: teamName, members };
+        }));
+        setUserTeams(teamsWithMembers);
+      } catch (error) {
+        console.error('Error fetching user teams:', error);
+      }
+    };
+    fetchUserTeams();
   }, [user]);
 
   const handleSendMessage = () => {
@@ -588,20 +627,33 @@ export default function Collaborate() {
           </TabsTrigger>
         </TabsList>
 
-        {userTeam && (
-          <Card className="border-primary/20 bg-primary/5">
-            <CardContent className="py-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-primary/10">
-                  <Users className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Your Team</p>
-                  <h3 className="text-lg font-semibold">{userTeam.name}</h3>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        {console.log('userTeams', userTeams)}
+        {/* Show all teams the user belongs to and their members */}
+        {userTeams.length > 0 && (
+          <div className="space-y-4 mt-4">
+            {userTeams.map(team => (
+              <Card key={team.id} className="border-primary/20 bg-primary/5">
+                <CardContent className="py-4">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <Users className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Team</p>
+                      <h3 className="text-lg font-semibold">{team.name}</h3>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {team.members.map(member => (
+                      <Badge key={member.id} variant="secondary">
+                        {member.name} ({member.role})
+                      </Badge>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         )}
 
         <TabsContent value="team" className="space-y-4">
