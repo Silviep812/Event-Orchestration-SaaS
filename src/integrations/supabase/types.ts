@@ -2827,6 +2827,7 @@ export type Database = {
           email: string | null
           id: string
           phone_number: string | null
+          show_in_dir: boolean
           state: string | null
           updated_at: string
           venue_type_id: number | null
@@ -2841,6 +2842,7 @@ export type Database = {
           email?: string | null
           id?: string
           phone_number?: string | null
+          show_in_dir?: boolean
           state?: string | null
           updated_at?: string
           venue_type_id?: number | null
@@ -2855,6 +2857,7 @@ export type Database = {
           email?: string | null
           id?: string
           phone_number?: string | null
+          show_in_dir?: boolean
           state?: string | null
           updated_at?: string
           venue_type_id?: number | null
