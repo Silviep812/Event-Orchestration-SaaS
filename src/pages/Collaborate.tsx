@@ -267,7 +267,6 @@ export default function Collaborate() {
             }
           }
 
-          const mappedUsers = Object.values(usersMap).map(u => u.name);
           const members: TeamMember[] = (memberAssignments || []).map((ma: any) => ({
             id: ma.user_id,
             name: usersMap[ma.user_id]?.name || usersMap[ma.user_id]?.name || "Unknown",
@@ -646,37 +645,39 @@ export default function Collaborate() {
           </TabsTrigger>
         </TabsList>
 
-        {/* Show all teams the user belongs to and their members */}
-        {userTeams.length > 0 && (
-          <div className="space-y-4 mt-4">
-            {userTeams.map(team => (
-              <Card key={team.id} className="border-primary/20 bg-primary/5">
-                <CardContent className="py-4">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="p-2 rounded-lg bg-primary/10">
-                      <Users className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">
-                        {team.isAdmin ? 'Team Admin' : 'Team Member'}
-                      </p>
-                      <h3 className="text-lg font-semibold">{team.name}</h3>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {team.members.map(member => (
-                      <Badge key={member.id} variant="secondary">
-                        {member.name} ({member.role})
-                      </Badge>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-
         <TabsContent value="team" className="space-y-4">
+          {/* Show all teams the user belongs to and their members */}
+          {userTeams.length > 0 && (
+            <div className="space-y-4 mt-4">
+              {userTeams.map(team => (
+                <Card key={team.id} className="border-primary/20 bg-primary/5">
+                  <CardContent className="py-4">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="p-2 rounded-lg bg-primary/10">
+                        <Users className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">
+                          {team.isAdmin ? 'Team Admin' : 'Team Member'}
+                        </p>
+                        <h3 className="text-lg font-semibold">{team.name}</h3>
+                      </div>
+                    </div>
+                    {!team.isAdmin && (
+                      <div className="flex flex-wrap gap-2">
+                        {team.members.map(member => (
+                          <Badge key={member.id} variant="secondary">
+                            {member.name} ({member.role})
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+
           {teamMembers.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
