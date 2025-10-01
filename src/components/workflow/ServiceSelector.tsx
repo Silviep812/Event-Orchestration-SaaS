@@ -251,7 +251,7 @@ export function ServiceSelector({ onSelectServiceVendor, onSelectServiceRental, 
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
                     {filteredServices.map((service) => (
                       <Card 
                         key={service.id}
@@ -277,6 +277,14 @@ export function ServiceSelector({ onSelectServiceVendor, onSelectServiceRental, 
                               <p className="text-xs"><strong>Location:</strong> {service.location}</p>
                               <p className="text-xs">{service.description}</p>
                             </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button 
+                              className="flex-1" 
+                              size="sm"
+                            >
+                              Select Service
+                            </Button>
                           </div>
                         </CardContent>
                       </Card>
@@ -311,7 +319,7 @@ export function ServiceSelector({ onSelectServiceVendor, onSelectServiceRental, 
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
                     {filteredServices.map((service) => (
                       <Card 
                         key={service.id}
@@ -337,6 +345,14 @@ export function ServiceSelector({ onSelectServiceVendor, onSelectServiceRental, 
                               <p className="text-xs"><strong>Location:</strong> {service.location}</p>
                               <p className="text-xs">{service.description}</p>
                             </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button 
+                              className="flex-1" 
+                              size="sm"
+                            >
+                              Select Rental
+                            </Button>
                           </div>
                         </CardContent>
                       </Card>
