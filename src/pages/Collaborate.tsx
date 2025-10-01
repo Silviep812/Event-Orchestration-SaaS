@@ -665,15 +665,17 @@ export default function Collaborate() {
                       </div>
                     </div>
                   </div>
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 bg-white rounded-b-lg p-6">
-                    {team.members.map(member => (
-                      <TeamMemberCard
-                        key={member.id}
-                        member={member}
-                        onClick={handleMemberClick}
-                      />
-                    ))}
-                  </div>
+                  {!team.isAdmin && (
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 bg-white rounded-b-lg p-6">
+                      {team.members.map(member => (
+                        <TeamMemberCard
+                          key={member.id}
+                          member={member}
+                          onClick={handleMemberClick}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
