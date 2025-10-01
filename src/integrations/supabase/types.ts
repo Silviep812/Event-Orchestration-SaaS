@@ -3084,6 +3084,10 @@ export type Database = {
       }
     }
     Functions: {
+      are_team_members: {
+        Args: { _user_id_1: string; _user_id_2: string }
+        Returns: boolean
+      }
       execute_raw_sql: {
         Args: { query: string }
         Returns: Json
