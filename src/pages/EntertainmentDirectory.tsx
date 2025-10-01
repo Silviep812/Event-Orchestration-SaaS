@@ -68,7 +68,11 @@ const EntertainmentDirectory = () => {
       'speaker': Presentation,
       'stage': Theater,
       'production': Theater,
-      'other': HelpCircle
+      'other': HelpCircle,
+      'concert' : Music,
+      'band': Music,
+      'singer': Mic,
+      'choir': Mic
     };
 
     const lowerName = typeName.toLowerCase();
