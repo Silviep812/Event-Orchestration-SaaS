@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useAuth } from "@/hooks/useAuth";
 
 interface VenueOption {
   id?: string;
@@ -69,6 +70,7 @@ export const VenueSelector = ({ onSelectVenue, selectedVenue }: VenueSelectorPro
     venue_type_id: ''
   });
   const { toast } = useToast();
+  const { user } = useAuth();
 
   useEffect(() => {
     fetchData();
@@ -123,6 +125,9 @@ export const VenueSelector = ({ onSelectVenue, selectedVenue }: VenueSelectorPro
 
   const filterVenues = () => {
     let filtered = [...venues];
+
+    // Only show venues with user_id null or matching current user
+    filtered = filtered.filter(venue => !('user_id' in venue) || !venue.user_id || (user && venue.user_id === user.id));
 
     if (searchTerm) {
       filtered = filtered.filter(venue => 
