@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Wrench, Users, Camera, UtensilsCrossed, Music, Car, CheckCircle2 } from "lucide-react";
+import { Wrench, Users, Camera, UtensilsCrossed, Music, Car, CheckCircle2, Building } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface VendorSupplier {
@@ -264,13 +264,18 @@ export function ServiceSelector({ onSelectServiceVendor, onSelectServiceRental, 
                       >
                         <CardHeader className="pb-3">
                           <div className="flex items-start justify-between">
+                            <div>
+                              <CardTitle className="text-lg flex items-center gap-2">
+                                <Building className="h-5 w-5" />
+                                {service.business_name || 'Service'}
+                              </CardTitle>
+                            </div>
                             {isSelected && <CheckCircle2 className="h-5 w-5 text-primary" />}
                           </div>
                         </CardHeader>
                         <CardContent className="p-4">
                           <div className="space-y-2">
                             <div className="flex items-start justify-between">
-                              <h4 className="font-semibold text-sm">{service.business_name}</h4>
                               <Badge variant="outline" className="text-xs flex items-center gap-1">
                                 {getServiceIcon(service.type)}
                                 {service.type}
@@ -334,13 +339,17 @@ export function ServiceSelector({ onSelectServiceVendor, onSelectServiceRental, 
                       return (
                         <Card 
                           key={service.id}
-                          className={`cursor-pointer transition-all hover:shadow-md ${
-                            selectedServiceRental === service.id ? 'ring-2 ring-primary' : ''
-                          }`}
+                          className="cursor-pointer transition-all hover:shadow-md"
                           onClick={() => onSelectServiceRental(service.id)}
                         >
                         <CardHeader className="pb-3">
                           <div className="flex items-start justify-between">
+                            <div>
+                              <CardTitle className="text-lg flex items-center gap-2">
+                                <Building className="h-5 w-5" />
+                                {service.business_name || 'Service'}
+                              </CardTitle>
+                            </div>
                             {isSelected && <CheckCircle2 className="h-5 w-5 text-primary" />}
                           </div>
                         </CardHeader>
