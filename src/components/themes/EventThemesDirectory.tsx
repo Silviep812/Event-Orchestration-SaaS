@@ -322,7 +322,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                 
                 <div className="flex items-center justify-between">
                   <div className="flex flex-wrap gap-1">
-                    {theme.tags.slice(0, 3).map((tag, index) => (
+                    {theme.tags.map((tag, index) => (
                       <Badge key={index} variant="outline" className="text-xs">
                         {tag}
                       </Badge>
@@ -377,7 +377,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
         
         <CardContent className="pt-0 space-y-3">
           <div className="flex flex-wrap gap-1">
-            {theme.tags.slice(0, 3).map((tag, index) => (
+            {theme.tags.map((tag, index) => (
               <Badge key={index} variant="outline" className="text-xs">
                 {tag}
               </Badge>
