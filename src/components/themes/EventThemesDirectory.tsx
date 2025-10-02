@@ -224,7 +224,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
 
   const getThemeDescription = (category: string): string => {
     const descriptions: { [key: string]: string } = {
-      celebration: "Perfect for special occasions and memorable celebrations",
+      celebration: "Holidays and Personal",
       social: "Great for community gatherings and social events",
       entertainment: "Ideal for festivals and entertainment events",
       business: "Professional events and corporate gatherings",

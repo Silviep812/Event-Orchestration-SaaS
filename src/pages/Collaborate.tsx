@@ -32,7 +32,7 @@ import { NoTeamMembersCard } from "@/components/NoTeamMembersCard";
 export interface TeamMember {
   id: string;
   name: string;
-  email: string;
+  email?: string;
   role: string;
   avatar?: string;
   status: 'online' | 'offline' | 'busy' | 'invited';
