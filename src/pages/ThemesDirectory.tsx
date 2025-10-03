@@ -55,15 +55,16 @@ export default function ThemesDirectory() {
                 </div>
                 <div>
                   <h3 className="font-semibold">Theme Selected</h3>
-                  <p className="text-sm text-muted-foreground">
-                    You've selected theme <Badge variant="outline" className="mx-1">{selectedTheme.name}</Badge>
+                  <div className="text-sm text-muted-foreground flex items-center flex-wrap gap-1">
+                    <span>You've selected theme</span>
+                    <Badge variant="outline">{selectedTheme.name}</Badge>
                     {selectedTheme.subType && (
                       <>
-                        {" - "}
-                        <Badge variant="secondary" className="mx-1">{selectedTheme.subType}</Badge>
+                        <span>-</span>
+                        <Badge variant="secondary">{selectedTheme.subType}</Badge>
                       </>
                     )}
-                  </p>
+                  </div>
                 </div>
               </div>
               <Button onClick={handleUseTheme}>
