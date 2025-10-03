@@ -146,6 +146,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
   const [contemporaryEventTypes, setContemporaryEventTypes] = useState<{id: number; name: string}[]>([]);
   const [buffetEventTypes, setBuffetEventTypes] = useState<{id: number; name: string}[]>([]);
   const [fineDiningEventTypes, setFineDiningEventTypes] = useState<{id: number; name: string}[]>([]);
+  const [peacefulEventTypes, setPeacefulEventTypes] = useState<{id: number; name: string}[]>([]);
 
   // Fetch themes from Supabase
   useEffect(() => {
@@ -418,6 +419,33 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
         console.log('Fine Dining event types set to:', fineDiningData);
       } else {
         console.error('Fine Dining parent not found or error:', fineDiningParentError);
+      }
+
+      // Fetch Peaceful - first find the Peaceful event type under Health and Wellness
+      console.log('Fetching Peaceful parent...');
+      const { data: peacefulParent, error: peacefulParentError } = await supabase
+        .from('event_types')
+        .select('id')
+        .eq('name', 'Peaceful')
+        .eq('parent_id', 16) // Health & Wellness parent
+        .single();
+      
+      console.log('Peaceful parent result:', { peacefulParent, peacefulParentError });
+      
+      if (peacefulParent) {
+        // Then fetch all peaceful types under Peaceful
+        console.log('Fetching peaceful types for parent id:', peacefulParent.id);
+        const { data: peacefulData, error: peacefulDataError } = await supabase
+          .from('event_types')
+          .select('id, name')
+          .eq('parent_id', peacefulParent.id)
+          .order('name');
+        
+        console.log('Peaceful data result:', { peacefulData, peacefulDataError });
+        setPeacefulEventTypes(peacefulData || []);
+        console.log('Peaceful event types set to:', peacefulData);
+      } else {
+        console.error('Peaceful parent not found or error:', peacefulParentError);
       }
       
       setHolidayEventTypes(holidaysData || []);
@@ -963,6 +991,50 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                                     }}
                                   >
                                     {fineDining.name}
+                                  </button>
+                                ))
+                              ) : (
+                                <div className="px-3 py-2 text-sm text-muted-foreground">Loading...</div>
+                              )}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      );
+                    }
+
+                    // Special handling for Peaceful tag in Health and Wellness theme
+                    if (theme.name === "Health and Wellness" && tag === "Peaceful") {
+                      return (
+                        <Popover key={index}>
+                          <PopoverTrigger asChild>
+                            <button className="inline-flex items-center gap-1">
+                              <Badge 
+                                variant="outline" 
+                                className="text-xs cursor-pointer hover:bg-primary/10 transition-colors inline-flex items-center gap-1"
+                              >
+                                {tag}
+                                <ChevronDown className="h-3.5 w-3.5 opacity-70" />
+                              </Badge>
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent 
+                            className="w-56 p-2 bg-popover border shadow-lg max-h-96 overflow-y-auto"
+                            style={{ zIndex: 9999 }}
+                            sideOffset={5}
+                          >
+                            <div className="space-y-1">
+                              {peacefulEventTypes.length > 0 ? (
+                                peacefulEventTypes.map((peaceful) => (
+                                  <button
+                                    key={peaceful.id}
+                                    className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
+                                    onClick={() => {
+                                      setSelectedSubTypes(prev => ({ ...prev, [theme.id]: peaceful.name }));
+                                      onSelectTheme(theme.id, theme.name, peaceful.name);
+                                      console.log("Selected peaceful type:", peaceful.name);
+                                    }}
+                                  >
+                                    {peaceful.name}
                                   </button>
                                 ))
                               ) : (
