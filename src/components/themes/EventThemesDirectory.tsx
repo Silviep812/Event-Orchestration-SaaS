@@ -531,28 +531,20 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
   }, [themes, searchTerm, selectedCategory, selectedPricing, sortBy]);
 
   const recommendedThemes = useMemo(() => {
-    const recommended = themes.filter(theme => {
-      if (!userType) return false;
-      
-      const userTypeThemes: { [key: string]: string[] } = {
-        'personal-planner': ['celebration', 'social'],
-        'professional-planner': ['celebration', 'business', 'entertainment', 'social', 'conference', 'health'],
-        'corporate-planner': ['business', 'conference', 'social'],
-        'event-coordinator': ['entertainment', 'social', 'business', 'celebration', 'conference', 'health'],
-      };
-      
-      const categories = userTypeThemes[userType] || [];
-      return categories.includes(theme.category);
-    });
-    
-    return recommended.length > 0 ? recommended : themes.slice().sort((a, b) => b.usageCount - a.usageCount).slice(0, 3);
-  }, [userType, themes]);
+    // Hardcode recommended themes: Celebration, Festival, Marketplace
+    const recommendedNames = ['Celebration', 'Festival', 'Marketplace'];
+    return themes.filter(theme => 
+      recommendedNames.some(name => theme.name.toLowerCase() === name.toLowerCase())
+    );
+  }, [themes]);
 
-  const recommendedIds = useMemo(() => new Set(recommendedThemes.map((t) => t.id)), [recommendedThemes]);
-  const nonRecommendedThemes = useMemo(
-    () => filteredAndSortedThemes.filter((t) => !recommendedIds.has(t.id)),
-    [filteredAndSortedThemes, recommendedIds]
-  );
+  const allThemes = useMemo(() => {
+    // Only show Dining, Health and Wellness, and Meetup in All Themes
+    const allThemesNames = ['Dining', 'Health and Wellness', 'Meetup'];
+    return filteredAndSortedThemes.filter(theme => 
+      allThemesNames.some(name => theme.name.toLowerCase() === name.toLowerCase())
+    );
+  }, [filteredAndSortedThemes]);
 
   // Helper function to render dropdown for specific tags
   const renderTagDropdown = (theme: ThemeDetails, tag: string, index: number) => {
@@ -843,9 +835,9 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
 
       <div className="space-y-4">
         <h2 className="text-2xl font-bold">All Themes</h2>
-        {nonRecommendedThemes.length > 0 ? (
+        {allThemes.length > 0 ? (
           <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" : "space-y-4"}>
-            {nonRecommendedThemes.map((theme) => (
+            {allThemes.map((theme) => (
               <ThemeCard key={theme.id} theme={theme} />
             ))}
           </div>
