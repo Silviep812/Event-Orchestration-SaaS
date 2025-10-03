@@ -742,21 +742,32 @@ export type Database = {
           created_at: string
           id: number
           name: string
+          parent_id: number | null
           theme_id: number | null
         }
         Insert: {
           created_at?: string
           id?: number
           name: string
+          parent_id?: number | null
           theme_id?: number | null
         }
         Update: {
           created_at?: string
           id?: number
           name?: string
+          parent_id?: number | null
           theme_id?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "event_types_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "event_types"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       events: {
         Row: {

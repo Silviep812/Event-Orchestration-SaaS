@@ -33,8 +33,10 @@ export default function CreateEvent() {
   const { register, handleSubmit, formState: { errors }, reset, control, watch, setValue } = useForm<EventFormData>();
 
   const [eventThemes, setEventThemes] = useState<{ id: number; name: string; premium: boolean }[]>([]);
-  const [eventTypes, setEventTypes] = useState<{ id: number; name: string; theme_id: number }[]>([]);
+  const [eventTypes, setEventTypes] = useState<{ id: number; name: string; theme_id: number; parent_id: number | null }[]>([]);
+  const [subEventTypes, setSubEventTypes] = useState<{ id: number; name: string; theme_id: number; parent_id: number | null }[]>([]);
   const selectedThemeId = watch("theme_id");
+  const selectedEventType = watch("type");
 
   const [themesLoaded, setThemesLoaded] = useState(false);
   const [budgetInput, setBudgetInput] = useState('');
@@ -74,13 +76,16 @@ useEffect(() => {
     const fetchEventTypes = async () => {
       if (!selectedThemeId) {
         setEventTypes([]);
+        setSubEventTypes([]);
         return;
       }
 
+      // Fetch parent event types (categories like Holidays, Personal)
       const { data, error } = await supabase
         .from('event_types')
-        .select('id, name, theme_id')
+        .select('id, name, theme_id, parent_id')
         .eq('theme_id', selectedThemeId)
+        .is('parent_id', null)
         .order('name');
       
       if (error) {
@@ -90,28 +95,59 @@ useEffect(() => {
       }
       
       setEventTypes(data || []);
+    };
+    
+    fetchEventTypes();
+  }, [selectedThemeId]);
+
+  // Fetch sub-types when a parent event type is selected
+  useEffect(() => {
+    const fetchSubEventTypes = async () => {
+      if (!selectedEventType) {
+        setSubEventTypes([]);
+        return;
+      }
+
+      const parentId = parseInt(selectedEventType);
+      if (isNaN(parentId)) {
+        setSubEventTypes([]);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('event_types')
+        .select('id, name, theme_id, parent_id')
+        .eq('parent_id', parentId)
+        .order('name');
       
-      // Pre-populate event type from URL parameter if present
+      if (error) {
+        console.error('Error fetching sub event types:', error);
+        setSubEventTypes([]);
+        return;
+      }
+      
+      setSubEventTypes(data || []);
+      
+      // Pre-populate sub-type from URL parameter if present
       const subTypeParam = searchParams.get('subType');
       console.log('SubType from URL:', subTypeParam);
-      console.log('Event types fetched:', data);
+      console.log('Sub event types fetched:', data);
       
       if (subTypeParam && data) {
         const matchingType = data.find(type => type.name === subTypeParam);
-        console.log('Matching type found:', matchingType);
+        console.log('Matching sub-type found:', matchingType);
         
         if (matchingType) {
-          // Use setTimeout to ensure the form is ready
           setTimeout(() => {
             setValue("type", matchingType.id.toString(), { shouldValidate: true });
-            console.log('Set type value to:', matchingType.id.toString());
+            console.log('Set sub-type value to:', matchingType.id.toString());
           }, 0);
         }
       }
     };
     
-    fetchEventTypes();
-  }, [selectedThemeId, setValue, searchParams]);
+    fetchSubEventTypes();
+  }, [selectedEventType, setValue, searchParams]);
 
   // Sync budget input with react-hook-form
   useEffect(() => {
@@ -276,11 +312,11 @@ useEffect(() => {
               </div>
 
               <div>
-                <Label htmlFor="type">Event Type *</Label>
+                <Label htmlFor="type">Event Category *</Label>
                 <Controller
                   name="type"
                   control={control}
-                  rules={{ required: "Event type is required" }}
+                  rules={{ required: "Event category is required" }}
                   render={({ field }) => (
                     <Select 
                       value={field.value} 
@@ -291,7 +327,7 @@ useEffect(() => {
                         <SelectValue 
                           placeholder={
                             selectedThemeId 
-                              ? "Select event type" 
+                              ? "Select event category" 
                               : "Select theme first"
                           } 
                         />
@@ -311,10 +347,38 @@ useEffect(() => {
                 )}
                 {!selectedThemeId && (
                   <p className="text-sm text-muted-foreground mt-1">
-                    Please select an event theme first to see available types.
+                    Please select an event theme first to see available categories.
                   </p>
                 )}
               </div>
+
+              {subEventTypes.length > 0 && (
+                <div>
+                  <Label htmlFor="subType">Event Type *</Label>
+                  <Controller
+                    name="type"
+                    control={control}
+                    rules={{ required: "Event type is required" }}
+                    render={({ field }) => (
+                      <Select 
+                        value={field.value} 
+                        onValueChange={field.onChange}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select specific event type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {subEventTypes.map((type) => (
+                            <SelectItem key={type.id} value={type.id.toString()}>
+                              {type.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                </div>
+              )}
 
               <div>
                 <Label>Event Dates *</Label>
