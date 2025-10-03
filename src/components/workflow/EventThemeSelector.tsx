@@ -342,6 +342,9 @@ export const EventThemeSelector = ({ userType, onSelectTheme, selectedTheme }: E
 
   // Show event types when category is selected
   if (selectedCategory && eventTypes.length > 0) {
+    console.log('Rendering event types, count:', eventTypes.length);
+    console.log('Event types:', eventTypes);
+    
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-4">
@@ -353,10 +356,13 @@ export const EventThemeSelector = ({ userType, onSelectTheme, selectedTheme }: E
             <h2 className="text-2xl font-bold">
               Select {selectedCategory === 'holidays' ? 'Holiday' : 'Personal'} Event
             </h2>
+            <p className="text-sm text-muted-foreground mt-2">
+              {eventTypes.length} events available
+            </p>
           </div>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 w-full">
           {eventTypes.map((type) => (
             <Card 
               key={type.id}
