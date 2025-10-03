@@ -4,6 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Heart, 
@@ -25,7 +30,8 @@ import {
   PersonStanding,
   Utensils,
   Store,
-  Calendar1
+  Calendar1,
+  ChevronDown
 } from "lucide-react";
 
 interface ThemeDetails {
@@ -128,6 +134,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
   const [sortBy, setSortBy] = useState("name");
   const [themes, setThemes] = useState<ThemeDetails[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedHolidayType, setSelectedHolidayType] = useState<string | null>(null);
 
   // Fetch themes from Supabase
   useEffect(() => {
@@ -322,11 +329,43 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                 
                 <div className="flex items-center justify-between">
                   <div className="flex flex-wrap gap-1">
-                    {theme.tags.map((tag, index) => (
-                      <Badge key={index} variant="outline" className="text-xs">
-                        {tag}
-                      </Badge>
-                    ))}
+                    {theme.tags.map((tag, index) => {
+                      // Special handling for Holidays tag in Celebration theme
+                      if (theme.name === "Celebration" && tag === "Holidays") {
+                        return (
+                          <Popover key={index}>
+                            <PopoverTrigger asChild>
+                              <Badge 
+                                variant="outline" 
+                                className="text-xs cursor-pointer hover:bg-primary/10 transition-colors"
+                              >
+                                {tag}
+                                <ChevronDown className="ml-1 h-3 w-3" />
+                              </Badge>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-48 p-2 bg-background border shadow-lg z-50">
+                              <div className="space-y-1">
+                                <button
+                                  className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
+                                  onClick={() => {
+                                    setSelectedHolidayType("New Years");
+                                    console.log("Selected holiday type: New Years");
+                                  }}
+                                >
+                                  New Years
+                                </button>
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+                        );
+                      }
+                      
+                      return (
+                        <Badge key={index} variant="outline" className="text-xs">
+                          {tag}
+                        </Badge>
+                      );
+                    })}
                   </div>
                   
                   <div className="flex gap-2">
