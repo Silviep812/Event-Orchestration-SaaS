@@ -148,6 +148,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
   const [fineDiningEventTypes, setFineDiningEventTypes] = useState<{id: number; name: string}[]>([]);
   const [peacefulEventTypes, setPeacefulEventTypes] = useState<{id: number; name: string}[]>([]);
   const [spiritualEventTypes, setSpiritualEventTypes] = useState<{id: number; name: string}[]>([]);
+  const [rejuvenatingEventTypes, setRejuvenatingEventTypes] = useState<{id: number; name: string}[]>([]);
 
   // Fetch themes from Supabase
   useEffect(() => {
@@ -450,6 +451,31 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
       } else {
         console.error('Spiritual parent not found or error:', spiritualParentError);
       }
+
+      console.log('Fetching Rejuvenating parent...');
+      const { data: rejuvenatingParent, error: rejuvenatingParentError } = await supabase
+        .from('event_types')
+        .select('id')
+        .eq('name', 'Rejuvenating')
+        .eq('parent_id', 16)
+        .single();
+      
+      console.log('Rejuvenating parent result:', { rejuvenatingParent, rejuvenatingParentError });
+      
+      if (rejuvenatingParent) {
+        console.log('Fetching rejuvenating types for parent id:', rejuvenatingParent.id);
+        const { data: rejuvenatingData, error: rejuvenatingDataError } = await supabase
+          .from('event_types')
+          .select('id, name')
+          .eq('parent_id', rejuvenatingParent.id)
+          .order('name');
+        
+        console.log('Rejuvenating data result:', { rejuvenatingData, rejuvenatingDataError });
+        setRejuvenatingEventTypes(rejuvenatingData || []);
+        console.log('Rejuvenating event types set to:', rejuvenatingData);
+      } else {
+        console.error('Rejuvenating parent not found or error:', rejuvenatingParentError);
+      }
       
       setHolidayEventTypes(holidaysData || []);
       setPersonalEventTypes(personalData || []);
@@ -562,6 +588,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
       'Dining-Fine Dining': { types: fineDiningEventTypes, themeName: 'Dining', tagName: 'Fine Dining' },
       'Health and Wellness-Peaceful': { types: peacefulEventTypes, themeName: 'Health and Wellness', tagName: 'Peaceful' },
       'Health and Wellness-Spiritual': { types: spiritualEventTypes, themeName: 'Health and Wellness', tagName: 'Spiritual' },
+      'Health and Wellness-Rejuvenating': { types: rejuvenatingEventTypes, themeName: 'Health and Wellness', tagName: 'Rejuvenating' },
     };
 
     const configKey = `${theme.name}-${tag}`;
