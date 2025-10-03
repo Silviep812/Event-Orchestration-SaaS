@@ -218,6 +218,9 @@ export const EventThemeSelector = ({ userType, onSelectTheme, selectedTheme }: E
         return;
       }
 
+      console.log('Category:', categoryName, 'Parent ID:', parentData.id);
+      console.log('Fetched event types:', data);
+      console.log('Number of event types:', data?.length);
       setEventTypes(data || []);
     };
 
