@@ -126,12 +126,13 @@ useEffect(() => {
         return;
       }
       
+      console.log('Sub event types fetched:', data);
+      console.log('Number of sub event types:', data?.length);
       setSubEventTypes(data || []);
       
       // Pre-populate sub-type from URL parameter if present
       const subTypeParam = searchParams.get('subType');
       console.log('SubType from URL:', subTypeParam);
-      console.log('Sub event types fetched:', data);
       
       if (subTypeParam && data) {
         const matchingType = data.find(type => type.name === subTypeParam);
