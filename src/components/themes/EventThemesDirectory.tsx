@@ -145,6 +145,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
   const [vintageEventTypes, setVintageEventTypes] = useState<{id: number; name: string}[]>([]);
   const [contemporaryEventTypes, setContemporaryEventTypes] = useState<{id: number; name: string}[]>([]);
   const [buffetEventTypes, setBuffetEventTypes] = useState<{id: number; name: string}[]>([]);
+  const [fineDiningEventTypes, setFineDiningEventTypes] = useState<{id: number; name: string}[]>([]);
 
   // Fetch themes from Supabase
   useEffect(() => {
@@ -390,6 +391,33 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
         console.log('Buffet event types set to:', buffetData);
       } else {
         console.error('Buffet parent not found or error:', buffetParentError);
+      }
+
+      // Fetch Fine Dining - first find the Fine Dining event type under Dining
+      console.log('Fetching Fine Dining parent...');
+      const { data: fineDiningParent, error: fineDiningParentError } = await supabase
+        .from('event_types')
+        .select('id')
+        .eq('name', 'Fine Dining')
+        .eq('theme_id', 7) // Dining theme
+        .single();
+      
+      console.log('Fine Dining parent result:', { fineDiningParent, fineDiningParentError });
+      
+      if (fineDiningParent) {
+        // Then fetch all fine dining types under Fine Dining
+        console.log('Fetching fine dining types for parent id:', fineDiningParent.id);
+        const { data: fineDiningData, error: fineDiningDataError } = await supabase
+          .from('event_types')
+          .select('id, name')
+          .eq('parent_id', fineDiningParent.id)
+          .order('name');
+        
+        console.log('Fine Dining data result:', { fineDiningData, fineDiningDataError });
+        setFineDiningEventTypes(fineDiningData || []);
+        console.log('Fine Dining event types set to:', fineDiningData);
+      } else {
+        console.error('Fine Dining parent not found or error:', fineDiningParentError);
       }
       
       setHolidayEventTypes(holidaysData || []);
@@ -901,6 +929,50 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                         </Popover>
                       );
                     }
+
+                    // Special handling for Fine Dining tag in Dining theme
+                    if (theme.name === "Dining" && tag === "Fine Dining") {
+                      return (
+                        <Popover key={index}>
+                          <PopoverTrigger asChild>
+                            <button className="inline-flex items-center gap-1">
+                              <Badge 
+                                variant="outline" 
+                                className="text-xs cursor-pointer hover:bg-primary/10 transition-colors inline-flex items-center gap-1"
+                              >
+                                {tag}
+                                <ChevronDown className="h-3.5 w-3.5 opacity-70" />
+                              </Badge>
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent 
+                            className="w-56 p-2 bg-popover border shadow-lg max-h-96 overflow-y-auto"
+                            style={{ zIndex: 9999 }}
+                            sideOffset={5}
+                          >
+                            <div className="space-y-1">
+                              {fineDiningEventTypes.length > 0 ? (
+                                fineDiningEventTypes.map((fineDining) => (
+                                  <button
+                                    key={fineDining.id}
+                                    className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
+                                    onClick={() => {
+                                      setSelectedSubTypes(prev => ({ ...prev, [theme.id]: fineDining.name }));
+                                      onSelectTheme(theme.id, theme.name, fineDining.name);
+                                      console.log("Selected fine dining type:", fineDining.name);
+                                    }}
+                                  >
+                                    {fineDining.name}
+                                  </button>
+                                ))
+                              ) : (
+                                <div className="px-3 py-2 text-sm text-muted-foreground">Loading...</div>
+                              )}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      );
+                    }
                     
                     return (
                       <Badge key={index} variant="outline" className="text-xs">
@@ -1316,6 +1388,50 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                               }}
                             >
                               {buffet.name}
+                            </button>
+                          ))
+                        ) : (
+                          <div className="px-3 py-2 text-sm text-muted-foreground">Loading...</div>
+                        )}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                );
+              }
+
+              // Special handling for Fine Dining tag in Dining theme
+              if (theme.name === "Dining" && tag === "Fine Dining") {
+                return (
+                  <Popover key={index}>
+                    <PopoverTrigger asChild>
+                      <button className="inline-flex items-center gap-1">
+                        <Badge 
+                          variant="outline" 
+                          className="text-xs cursor-pointer hover:bg-primary/10 transition-colors inline-flex items-center gap-1"
+                        >
+                          {tag}
+                          <ChevronDown className="h-3.5 w-3.5 opacity-70" />
+                        </Badge>
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent 
+                      className="w-56 p-2 bg-popover border shadow-lg max-h-96 overflow-y-auto"
+                      style={{ zIndex: 9999 }}
+                      sideOffset={5}
+                    >
+                      <div className="space-y-1">
+                        {fineDiningEventTypes.length > 0 ? (
+                          fineDiningEventTypes.map((fineDining) => (
+                            <button
+                              key={fineDining.id}
+                              className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
+                              onClick={() => {
+                                setSelectedSubTypes(prev => ({ ...prev, [theme.id]: fineDining.name }));
+                                onSelectTheme(theme.id, theme.name, fineDining.name);
+                                console.log("Selected fine dining type:", fineDining.name);
+                              }}
+                            >
+                              {fineDining.name}
                             </button>
                           ))
                         ) : (
