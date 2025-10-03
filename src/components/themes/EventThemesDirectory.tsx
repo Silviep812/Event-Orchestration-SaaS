@@ -144,6 +144,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
   const [vendorEventTypes, setVendorEventTypes] = useState<{id: number; name: string}[]>([]);
   const [vintageEventTypes, setVintageEventTypes] = useState<{id: number; name: string}[]>([]);
   const [contemporaryEventTypes, setContemporaryEventTypes] = useState<{id: number; name: string}[]>([]);
+  const [buffetEventTypes, setBuffetEventTypes] = useState<{id: number; name: string}[]>([]);
 
   // Fetch themes from Supabase
   useEffect(() => {
@@ -362,6 +363,26 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
         
         setContemporaryEventTypes(contemporaryData || []);
         console.log('Contemporary event types:', contemporaryData);
+      }
+      
+      // Fetch Buffet - first find the Buffet event type under Dining
+      const { data: buffetParent } = await supabase
+        .from('event_types')
+        .select('id')
+        .eq('name', 'Buffet')
+        .eq('theme_id', 7) // Dining theme
+        .single();
+      
+      if (buffetParent) {
+        // Then fetch all buffet types under Buffet
+        const { data: buffetData } = await supabase
+          .from('event_types')
+          .select('id, name')
+          .eq('parent_id', buffetParent.id)
+          .order('name');
+        
+        setBuffetEventTypes(buffetData || []);
+        console.log('Buffet event types:', buffetData);
       }
       
       setHolidayEventTypes(holidaysData || []);
@@ -822,6 +843,42 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                                   }}
                                 >
                                   {contemporary.name}
+                                </button>
+                              ))}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      );
+                    }
+
+                    // Special handling for Buffet tag in Dining theme
+                    if (theme.name === "Dining" && tag === "Buffet") {
+                      return (
+                        <Popover key={index}>
+                          <PopoverTrigger asChild>
+                            <button className="inline-flex items-center gap-1">
+                              <Badge 
+                                variant="outline" 
+                                className="text-xs cursor-pointer hover:bg-primary/10 transition-colors inline-flex items-center gap-1"
+                              >
+                                {tag}
+                                <ChevronDown className="h-3.5 w-3.5 opacity-70" />
+                              </Badge>
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-56 p-2 bg-background border shadow-lg z-50 max-h-96 overflow-y-auto">
+                            <div className="space-y-1">
+                              {buffetEventTypes.map((buffet) => (
+                                <button
+                                  key={buffet.id}
+                                  className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
+                                  onClick={() => {
+                                    setSelectedSubTypes(prev => ({ ...prev, [theme.id]: buffet.name }));
+                                    onSelectTheme(theme.id, theme.name, buffet.name);
+                                    console.log("Selected buffet type:", buffet.name);
+                                  }}
+                                >
+                                  {buffet.name}
                                 </button>
                               ))}
                             </div>
