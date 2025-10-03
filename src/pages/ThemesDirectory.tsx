@@ -11,9 +11,7 @@ export default function ThemesDirectory() {
   const navigate = useNavigate();
 
   const handleThemeSelection = (themeId: number, themeName?: string, subType?: string) => {
-    console.log('handleThemeSelection called:', themeId, themeName, 'subType:', subType);
     setSelectedTheme({ id: themeId, name: themeName || `Theme #${themeId}`, subType });
-    console.log('selectedTheme state updated to:', { id: themeId, name: themeName || `Theme #${themeId}`, subType });
   };
 
   const handleUseTheme = () => {
@@ -47,7 +45,7 @@ export default function ThemesDirectory() {
 
       {/* Selected Theme Banner */}
       {selectedTheme && (
-        <Card className="border-primary bg-primary/5">
+        <Card key={`${selectedTheme.id}-${selectedTheme.subType || 'none'}`} className="border-primary bg-primary/5">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
