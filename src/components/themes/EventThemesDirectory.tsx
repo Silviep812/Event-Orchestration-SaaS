@@ -366,23 +366,30 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
       }
       
       // Fetch Buffet - first find the Buffet event type under Dining
-      const { data: buffetParent } = await supabase
+      console.log('Fetching Buffet parent...');
+      const { data: buffetParent, error: buffetParentError } = await supabase
         .from('event_types')
         .select('id')
         .eq('name', 'Buffet')
         .eq('theme_id', 7) // Dining theme
         .single();
       
+      console.log('Buffet parent result:', { buffetParent, buffetParentError });
+      
       if (buffetParent) {
         // Then fetch all buffet types under Buffet
-        const { data: buffetData } = await supabase
+        console.log('Fetching buffet types for parent id:', buffetParent.id);
+        const { data: buffetData, error: buffetDataError } = await supabase
           .from('event_types')
           .select('id, name')
           .eq('parent_id', buffetParent.id)
           .order('name');
         
+        console.log('Buffet data result:', { buffetData, buffetDataError });
         setBuffetEventTypes(buffetData || []);
-        console.log('Buffet event types:', buffetData);
+        console.log('Buffet event types set to:', buffetData);
+      } else {
+        console.error('Buffet parent not found or error:', buffetParentError);
       }
       
       setHolidayEventTypes(holidaysData || []);
