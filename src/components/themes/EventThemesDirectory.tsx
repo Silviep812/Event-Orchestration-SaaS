@@ -508,11 +508,135 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
         
         <CardContent className="pt-0 space-y-3">
           <div className="flex flex-wrap gap-1">
-            {theme.tags.map((tag, index) => (
-              <Badge key={index} variant="outline" className="text-xs">
-                {tag}
-              </Badge>
-            ))}
+            {theme.tags.map((tag, index) => {
+              // Special handling for Holidays tag in Celebration theme
+              if (theme.name === "Celebration" && tag === "Holidays") {
+                return (
+                  <Popover key={index}>
+                    <PopoverTrigger asChild>
+                      <button className="inline-flex items-center gap-1">
+                        <Badge 
+                          variant="outline" 
+                          className="text-xs cursor-pointer hover:bg-primary/10 transition-colors inline-flex items-center gap-1"
+                        >
+                          {tag}
+                          <ChevronDown className="h-3.5 w-3.5 opacity-70" />
+                        </Badge>
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-56 p-2 bg-background border shadow-lg z-50 max-h-96 overflow-y-auto">
+                      <div className="space-y-1">
+                        <button
+                          className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
+                          onClick={() => {
+                            setSelectedHolidayType("New Year's Day");
+                            console.log("Selected holiday type: New Year's Day");
+                          }}
+                        >
+                          New Year's Day
+                        </button>
+                        <button
+                          className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
+                          onClick={() => {
+                            setSelectedHolidayType("Martin Luther King Jr. Day");
+                            console.log("Selected holiday type: Martin Luther King Jr. Day");
+                          }}
+                        >
+                          Martin Luther King Jr. Day
+                        </button>
+                        <button
+                          className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
+                          onClick={() => {
+                            setSelectedHolidayType("Presidents Day");
+                            console.log("Selected holiday type: Presidents Day");
+                          }}
+                        >
+                          Presidents Day
+                        </button>
+                        <button
+                          className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
+                          onClick={() => {
+                            setSelectedHolidayType("Memorial Day");
+                            console.log("Selected holiday type: Memorial Day");
+                          }}
+                        >
+                          Memorial Day
+                        </button>
+                        <button
+                          className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
+                          onClick={() => {
+                            setSelectedHolidayType("Juneteenth");
+                            console.log("Selected holiday type: Juneteenth");
+                          }}
+                        >
+                          Juneteenth
+                        </button>
+                        <button
+                          className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
+                          onClick={() => {
+                            setSelectedHolidayType("Independence Day");
+                            console.log("Selected holiday type: Independence Day");
+                          }}
+                        >
+                          Independence Day
+                        </button>
+                        <button
+                          className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
+                          onClick={() => {
+                            setSelectedHolidayType("Labor Day");
+                            console.log("Selected holiday type: Labor Day");
+                          }}
+                        >
+                          Labor Day
+                        </button>
+                        <button
+                          className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
+                          onClick={() => {
+                            setSelectedHolidayType("Columbus Day");
+                            console.log("Selected holiday type: Columbus Day");
+                          }}
+                        >
+                          Columbus Day
+                        </button>
+                        <button
+                          className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
+                          onClick={() => {
+                            setSelectedHolidayType("Veterans Day");
+                            console.log("Selected holiday type: Veterans Day");
+                          }}
+                        >
+                          Veterans Day
+                        </button>
+                        <button
+                          className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
+                          onClick={() => {
+                            setSelectedHolidayType("Thanksgiving");
+                            console.log("Selected holiday type: Thanksgiving");
+                          }}
+                        >
+                          Thanksgiving
+                        </button>
+                        <button
+                          className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
+                          onClick={() => {
+                            setSelectedHolidayType("Christmas");
+                            console.log("Selected holiday type: Christmas");
+                          }}
+                        >
+                          Christmas
+                        </button>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                );
+              }
+              
+              return (
+                <Badge key={index} variant="outline" className="text-xs">
+                  {tag}
+                </Badge>
+              );
+            })}
           </div>
           
           <div className="flex gap-2">
