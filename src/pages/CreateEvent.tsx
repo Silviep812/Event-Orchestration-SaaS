@@ -102,7 +102,7 @@ useEffect(() => {
 
       // If we have a subType from URL, find and select the parent category
       const subTypeParam = searchParams.get('subType');
-      if (subTypeParam && data) {
+      if (subTypeParam && data && data.length > 0) {
         // Search through all parent categories to find which one contains this subType
         for (const parentType of data) {
           const { data: subTypes, error: subError } = await supabase
@@ -112,9 +112,18 @@ useEffect(() => {
             .eq('name', subTypeParam);
 
           if (!subError && subTypes && subTypes.length > 0) {
-            // Found the matching subType, set its parent as selected in Event Category
+            // Found the matching subType
+            // First, load the sub-types for this parent
+            const { data: allSubTypes } = await supabase
+              .from('event_types')
+              .select('id, name, theme_id, parent_id')
+              .eq('parent_id', parentType.id)
+              .order('name');
+            
+            setSubEventTypes(allSubTypes || []);
+            
+            // Then set both values
             setValue("type", parentType.id.toString(), { shouldValidate: true });
-            // Set the actual subType ID in the subType field
             setValue("subType", subTypes[0].id.toString(), { shouldValidate: true });
             break;
           }
@@ -125,9 +134,15 @@ useEffect(() => {
     fetchEventTypes();
   }, [selectedThemeId, searchParams, setValue]);
 
-  // Fetch sub-types when a parent event type is selected
+  // Fetch sub-types when a parent event type is selected (only if not from URL)
   useEffect(() => {
     const fetchSubEventTypes = async () => {
+      // Don't refetch if we already loaded from URL params
+      const subTypeParam = searchParams.get('subType');
+      if (subTypeParam && subEventTypes.length > 0) {
+        return;
+      }
+
       if (!selectedEventType) {
         setSubEventTypes([]);
         return;
@@ -155,7 +170,7 @@ useEffect(() => {
     };
     
     fetchSubEventTypes();
-  }, [selectedEventType, setValue, searchParams]);
+  }, [selectedEventType, searchParams, subEventTypes.length]);
 
   // Sync budget input with react-hook-form
   useEffect(() => {
@@ -327,7 +342,7 @@ useEffect(() => {
                 <Controller
                   name="type"
                   control={control}
-                  rules={{ required: "Event category is required" }}
+                  rules={{ required: subEventTypes.length > 0 ? false : "Event category is required" }}
                   render={({ field }) => (
                     <Select 
                       value={field.value} 
@@ -353,7 +368,7 @@ useEffect(() => {
                     </Select>
                   )}
                 />
-                {errors.type && (
+                {errors.type && subEventTypes.length === 0 && (
                   <p className="text-sm text-destructive mt-1">{errors.type.message}</p>
                 )}
                 {!selectedThemeId && (
