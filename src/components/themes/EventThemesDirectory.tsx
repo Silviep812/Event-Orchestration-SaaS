@@ -686,10 +686,10 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
             </div>
             
             <div className="space-y-2 flex-1">
-              <div className="flex items-center gap-2">
-                <CardTitle className="text-lg">{theme.name}</CardTitle>
-                {isRecommended && <Badge variant="secondary" className="text-xs">Recommended</Badge>}
-                {theme.premium == true && <Badge variant="outline" className="text-xs">Premium</Badge>}
+              <div className="flex items-center gap-2 flex-wrap">
+                <CardTitle className="text-lg leading-none">{theme.name}</CardTitle>
+                {isRecommended && <Badge variant="secondary" className="text-xs h-5 flex items-center">Recommended</Badge>}
+                {theme.premium == true && <Badge variant="outline" className="text-xs h-5 flex items-center">Premium</Badge>}
               </div>
               <CardDescription className="text-sm">{theme.description}</CardDescription>
             </div>
