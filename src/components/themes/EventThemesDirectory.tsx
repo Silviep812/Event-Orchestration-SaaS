@@ -1013,7 +1013,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                                 className="text-xs cursor-pointer hover:bg-primary/10 transition-colors inline-flex items-center gap-1"
                               >
                                 {tag}
-                                <ChevronDown className="h-3.5 w-3.5 opacity-70" />
+                                <ChevronDown className="h-4 w-4 text-foreground ml-1 flex-shrink-0" />
                               </Badge>
                             </button>
                           </PopoverTrigger>
