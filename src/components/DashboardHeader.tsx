@@ -93,7 +93,7 @@ export function DashboardHeader() {
   return (
     <header className="h-16 border-b bg-card flex items-center justify-between px-4 lg:px-6">
       <div className="flex items-center gap-3 lg:gap-4">
-        <SidebarTrigger />
+        <SidebarTrigger className="h-9 w-9 hover:bg-accent" />
         <div className="flex items-center gap-4 lg:gap-6">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2" aria-label="IEP Dashboard">
