@@ -335,13 +335,15 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                         return (
                           <Popover key={index}>
                             <PopoverTrigger asChild>
-                              <Badge 
-                                variant="outline" 
-                                className="text-xs cursor-pointer hover:bg-primary/10 transition-colors"
-                              >
-                                {tag}
-                                <ChevronDown className="ml-1 h-3 w-3" />
-                              </Badge>
+                              <button className="inline-flex items-center gap-1">
+                                <Badge 
+                                  variant="outline" 
+                                  className="text-xs cursor-pointer hover:bg-primary/10 transition-colors inline-flex items-center gap-1"
+                                >
+                                  {tag}
+                                  <ChevronDown className="h-3.5 w-3.5 opacity-70" />
+                                </Badge>
+                              </button>
                             </PopoverTrigger>
                             <PopoverContent className="w-56 p-2 bg-background border shadow-lg z-50 max-h-96 overflow-y-auto">
                               <div className="space-y-1">
