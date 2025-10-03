@@ -93,10 +93,19 @@ useEffect(() => {
       
       // Pre-populate event type from URL parameter if present
       const subTypeParam = searchParams.get('subType');
+      console.log('SubType from URL:', subTypeParam);
+      console.log('Event types fetched:', data);
+      
       if (subTypeParam && data) {
         const matchingType = data.find(type => type.name === subTypeParam);
+        console.log('Matching type found:', matchingType);
+        
         if (matchingType) {
-          setValue("type", matchingType.id.toString());
+          // Use setTimeout to ensure the form is ready
+          setTimeout(() => {
+            setValue("type", matchingType.id.toString(), { shouldValidate: true });
+            console.log('Set type value to:', matchingType.id.toString());
+          }, 0);
         }
       }
     };
