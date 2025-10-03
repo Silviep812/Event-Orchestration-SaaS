@@ -138,6 +138,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
   const [holidayEventTypes, setHolidayEventTypes] = useState<{id: number; name: string}[]>([]);
   const [personalEventTypes, setPersonalEventTypes] = useState<{id: number; name: string}[]>([]);
   const [culturalEventTypes, setCulturalEventTypes] = useState<{id: number; name: string}[]>([]);
+  const [communityEventTypes, setCommunityEventTypes] = useState<{id: number; name: string}[]>([]);
 
   // Fetch themes from Supabase
   useEffect(() => {
@@ -201,7 +202,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
     fetchThemes();
   }, []);
 
-  // Fetch holiday, personal, and cultural event types
+  // Fetch holiday, personal, cultural, and community event types
   useEffect(() => {
     const fetchEventTypes = async () => {
       // Fetch Holidays (parent_id = 2)
@@ -236,6 +237,26 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
         
         setCulturalEventTypes(culturalData || []);
         console.log('Cultural event types:', culturalData);
+      }
+      
+      // Fetch Community - first find the Community event type under Festival
+      const { data: communityParent } = await supabase
+        .from('event_types')
+        .select('id')
+        .eq('name', 'Community')
+        .eq('theme_id', 4) // Festival theme
+        .single();
+      
+      if (communityParent) {
+        // Then fetch all community groups under Community
+        const { data: communityData } = await supabase
+          .from('event_types')
+          .select('id, name')
+          .eq('parent_id', communityParent.id)
+          .order('name');
+        
+        setCommunityEventTypes(communityData || []);
+        console.log('Community event types:', communityData);
       }
       
       setHolidayEventTypes(holidaysData || []);
@@ -487,6 +508,42 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                         </Popover>
                       );
                     }
+
+                    // Special handling for Community tag in Festival theme
+                    if (theme.name === "Festival" && tag === "Community") {
+                      return (
+                        <Popover key={index}>
+                          <PopoverTrigger asChild>
+                            <button className="inline-flex items-center gap-1">
+                              <Badge 
+                                variant="outline" 
+                                className="text-xs cursor-pointer hover:bg-primary/10 transition-colors inline-flex items-center gap-1"
+                              >
+                                {tag}
+                                <ChevronDown className="h-3.5 w-3.5 opacity-70" />
+                              </Badge>
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-56 p-2 bg-background border shadow-lg z-50 max-h-96 overflow-y-auto">
+                            <div className="space-y-1">
+                              {communityEventTypes.map((community) => (
+                                <button
+                                  key={community.id}
+                                  className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
+                                  onClick={() => {
+                                    setSelectedSubTypes(prev => ({ ...prev, [theme.id]: community.name }));
+                                    onSelectTheme(theme.id, theme.name, community.name);
+                                    console.log("Selected community type:", community.name);
+                                  }}
+                                >
+                                  {community.name}
+                                </button>
+                              ))}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      );
+                    }
                     
                     return (
                       <Badge key={index} variant="outline" className="text-xs">
@@ -645,6 +702,42 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                             }}
                           >
                             {cultural.name}
+                          </button>
+                        ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                );
+              }
+
+              // Special handling for Community tag in Festival theme
+              if (theme.name === "Festival" && tag === "Community") {
+                return (
+                  <Popover key={index}>
+                    <PopoverTrigger asChild>
+                      <button className="inline-flex items-center gap-1">
+                        <Badge 
+                          variant="outline" 
+                          className="text-xs cursor-pointer hover:bg-primary/10 transition-colors inline-flex items-center gap-1"
+                        >
+                          {tag}
+                          <ChevronDown className="h-3.5 w-3.5 opacity-70" />
+                        </Badge>
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-56 p-2 bg-background border shadow-lg z-50 max-h-96 overflow-y-auto">
+                      <div className="space-y-1">
+                        {communityEventTypes.map((community) => (
+                          <button
+                            key={community.id}
+                            className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
+                            onClick={() => {
+                              setSelectedSubTypes(prev => ({ ...prev, [theme.id]: community.name }));
+                              onSelectTheme(theme.id, theme.name, community.name);
+                              console.log("Selected community type:", community.name);
+                            }}
+                          >
+                            {community.name}
                           </button>
                         ))}
                       </div>
