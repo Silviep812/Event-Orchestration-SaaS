@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,7 +19,8 @@ import {
   PersonStanding,
   Utensils,
   Store,
-  Calendar1
+  Calendar1,
+  ArrowLeft
 } from "lucide-react";
 
 interface EventTheme {
@@ -124,9 +126,14 @@ const getThemeDescription = (category: string): string => {
 };
 
 export const EventThemeSelector = ({ userType, onSelectTheme, selectedTheme }: EventThemeSelectorProps) => {
+  const navigate = useNavigate();
   const [hoveredTheme, setHoveredTheme] = useState<number | null>(null);
   const [themes, setThemes] = useState<EventTheme[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showCelebrationCategories, setShowCelebrationCategories] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [eventTypes, setEventTypes] = useState<any[]>([]);
+  const [celebrationThemeId, setCelebrationThemeId] = useState<number | null>(null);
 
   // Fetch themes from Supabase
   useEffect(() => {
@@ -179,6 +186,44 @@ export const EventThemeSelector = ({ userType, onSelectTheme, selectedTheme }: E
     fetchThemes();
   }, []);
 
+  // Fetch event types when category is selected
+  useEffect(() => {
+    const fetchEventTypes = async () => {
+      if (!selectedCategory || !celebrationThemeId) return;
+
+      // First, fetch the parent category ID (Holidays or Personal)
+      const categoryName = selectedCategory === 'holidays' ? 'Holidays' : 'Personal';
+      const { data: parentData, error: parentError } = await supabase
+        .from('event_types')
+        .select('id')
+        .eq('theme_id', celebrationThemeId)
+        .eq('name', categoryName)
+        .is('parent_id', null)
+        .single();
+
+      if (parentError || !parentData) {
+        console.error('Error fetching parent category:', parentError);
+        return;
+      }
+
+      // Then fetch the child event types
+      const { data, error } = await supabase
+        .from('event_types')
+        .select('id, name, theme_id, parent_id')
+        .eq('parent_id', parentData.id)
+        .order('name');
+
+      if (error) {
+        console.error('Error fetching event types:', error);
+        return;
+      }
+
+      setEventTypes(data || []);
+    };
+
+    fetchEventTypes();
+  }, [selectedCategory, celebrationThemeId]);
+
   // Define recommended themes based on user type
   const getRecommendedThemes = () => {
     const recommendedCategories: { [key: string]: string[] } = {
@@ -195,6 +240,34 @@ export const EventThemeSelector = ({ userType, onSelectTheme, selectedTheme }: E
 
   const relevantThemes = getRecommendedThemes();
   const otherThemes = themes.filter(theme => !relevantThemes.some(rt => rt.id === theme.id));
+
+  const handleThemeClick = (theme: EventTheme) => {
+    if (theme.name === "Celebration") {
+      setCelebrationThemeId(theme.id);
+      setShowCelebrationCategories(true);
+    } else {
+      onSelectTheme(theme.id, theme.name);
+    }
+  };
+
+  const handleCategoryClick = (category: string) => {
+    setSelectedCategory(category);
+  };
+
+  const handleEventTypeClick = (eventType: any) => {
+    // Navigate to create event with pre-filled theme and sub-type
+    navigate(`/dashboard/create-event?theme=${celebrationThemeId}&subType=${eventType.name}`);
+  };
+
+  const handleBack = () => {
+    if (selectedCategory) {
+      setSelectedCategory(null);
+      setEventTypes([]);
+    } else if (showCelebrationCategories) {
+      setShowCelebrationCategories(false);
+      setCelebrationThemeId(null);
+    }
+  };
 
   const ThemeCard = ({ theme, isRecommended = false }: { theme: EventTheme; isRecommended?: boolean }) => {
     const IconComponent = theme.icon;
@@ -213,7 +286,7 @@ export const EventThemeSelector = ({ userType, onSelectTheme, selectedTheme }: E
         } ${isRecommended ? 'ring-2 ring-primary/20' : ''}`}
         onMouseEnter={() => setHoveredTheme(theme.id)}
         onMouseLeave={() => setHoveredTheme(null)}
-        onClick={() => onSelectTheme(theme.id, theme.name)}
+        onClick={() => handleThemeClick(theme)}
       >
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
@@ -260,6 +333,103 @@ export const EventThemeSelector = ({ userType, onSelectTheme, selectedTheme }: E
       <div className="flex items-center justify-center p-8">
         <Loader2 className="h-8 w-8 animate-spin" />
         <span className="ml-2">Loading themes...</span>
+      </div>
+    );
+  }
+
+  // Show event types when category is selected
+  if (selectedCategory && eventTypes.length > 0) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Button variant="outline" size="sm" onClick={handleBack}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
+          </Button>
+          <div className="text-center flex-1">
+            <h2 className="text-2xl font-bold">
+              Select {selectedCategory === 'holidays' ? 'Holiday' : 'Personal'} Event
+            </h2>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {eventTypes.map((type) => (
+            <Card 
+              key={type.id}
+              className="cursor-pointer transition-all duration-300 hover:scale-105 border-2 hover:border-primary"
+              onClick={() => handleEventTypeClick(type)}
+            >
+              <CardHeader>
+                <CardTitle className="text-lg">{type.name}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Button className="w-full" variant="outline" size="sm">
+                  Select & Create Event
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Show categories when Celebration theme is selected
+  if (showCelebrationCategories) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Button variant="outline" size="sm" onClick={handleBack}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Themes
+          </Button>
+          <div className="text-center flex-1">
+            <h2 className="text-2xl font-bold">Choose Celebration Category</h2>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
+          <Card 
+            className="cursor-pointer transition-all duration-300 hover:scale-105 border-2 hover:border-primary"
+            onClick={() => handleCategoryClick('holidays')}
+          >
+            <CardHeader>
+              <div className="flex items-center justify-center mb-4">
+                <Calendar1 className="h-12 w-12 text-pink-600" />
+              </div>
+              <CardTitle className="text-xl text-center">Holidays</CardTitle>
+              <p className="text-sm text-muted-foreground text-center">
+                National holidays and special occasions
+              </p>
+            </CardHeader>
+            <CardContent>
+              <Button className="w-full" variant="outline">
+                View Holiday Events
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card 
+            className="cursor-pointer transition-all duration-300 hover:scale-105 border-2 hover:border-primary"
+            onClick={() => handleCategoryClick('personal')}
+          >
+            <CardHeader>
+              <div className="flex items-center justify-center mb-4">
+                <Cake className="h-12 w-12 text-pink-600" />
+              </div>
+              <CardTitle className="text-xl text-center">Personal</CardTitle>
+              <p className="text-sm text-muted-foreground text-center">
+                Birthdays, anniversaries, and personal celebrations
+              </p>
+            </CardHeader>
+            <CardContent>
+              <Button className="w-full" variant="outline">
+                View Personal Events
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }

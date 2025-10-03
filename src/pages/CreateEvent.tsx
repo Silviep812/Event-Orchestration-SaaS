@@ -64,6 +64,8 @@ useEffect(() => {
   // Only set theme_id from URL param after themes are loaded
   if (!themesLoaded) return;
   const themeParam = searchParams.get('theme');
+  const subTypeParam = searchParams.get('subType');
+  
   if (themeParam) {
     const themeId = parseInt(themeParam, 10);
     if (!isNaN(themeId)) {
@@ -95,10 +97,30 @@ useEffect(() => {
       }
       
       setEventTypes(data || []);
+
+      // If we have a subType from URL, find and select the parent category
+      const subTypeParam = searchParams.get('subType');
+      if (subTypeParam && data) {
+        // Search through all parent categories to find which one contains this subType
+        for (const parentType of data) {
+          const { data: subTypes, error: subError } = await supabase
+            .from('event_types')
+            .select('id, name')
+            .eq('parent_id', parentType.id)
+            .eq('name', subTypeParam)
+            .single();
+
+          if (!subError && subTypes) {
+            // Found the matching subType, set its parent as selected
+            setValue("type", parentType.id.toString(), { shouldValidate: true });
+            break;
+          }
+        }
+      }
     };
     
     fetchEventTypes();
-  }, [selectedThemeId]);
+  }, [selectedThemeId, searchParams, setValue]);
 
   // Fetch sub-types when a parent event type is selected
   useEffect(() => {
@@ -126,22 +148,17 @@ useEffect(() => {
         return;
       }
       
-      console.log('Sub event types fetched:', data);
-      console.log('Number of sub event types:', data?.length);
       setSubEventTypes(data || []);
       
       // Pre-populate sub-type from URL parameter if present
       const subTypeParam = searchParams.get('subType');
-      console.log('SubType from URL:', subTypeParam);
       
       if (subTypeParam && data) {
         const matchingType = data.find(type => type.name === subTypeParam);
-        console.log('Matching sub-type found:', matchingType);
         
         if (matchingType) {
           setTimeout(() => {
             setValue("type", matchingType.id.toString(), { shouldValidate: true });
-            console.log('Set sub-type value to:', matchingType.id.toString());
           }, 0);
         }
       }
