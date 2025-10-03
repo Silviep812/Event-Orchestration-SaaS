@@ -500,6 +500,10 @@ useEffect(() => {
           <Button type="button" variant="outline" onClick={() => {
             reset();
             setDateRange(undefined);
+            setBudgetInput('');
+            setSubEventTypes([]);
+            // Clear URL parameters to prevent form repopulation
+            navigate('/dashboard/create-event', { replace: true });
           }}>
             Clear Form
           </Button>
