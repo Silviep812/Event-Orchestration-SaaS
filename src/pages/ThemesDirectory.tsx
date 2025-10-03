@@ -7,18 +7,22 @@ import { ArrowLeft, Palette, Download, Star, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 export default function ThemesDirectory() {
-  const [selectedTheme, setSelectedTheme] = useState<{ id: number; name: string } | undefined>();
+  const [selectedTheme, setSelectedTheme] = useState<{ id: number; name: string; subType?: string } | undefined>();
   const navigate = useNavigate();
 
-  const handleThemeSelection = (themeId: number, themeName?: string) => {
-    console.log('selected theme', themeId, themeName);
-    setSelectedTheme({ id: themeId, name: themeName || `Theme #${themeId}` });
+  const handleThemeSelection = (themeId: number, themeName?: string, subType?: string) => {
+    console.log('selected theme', themeId, themeName, 'subType:', subType);
+    setSelectedTheme({ id: themeId, name: themeName || `Theme #${themeId}`, subType });
   };
 
   const handleUseTheme = () => {
     if (selectedTheme) {
-      // Navigate to create event with selected theme
-      navigate(`/dashboard/create-event?theme=${selectedTheme.id}`);
+      // Navigate to create event with selected theme and sub-type
+      const params = new URLSearchParams({ theme: selectedTheme.id.toString() });
+      if (selectedTheme.subType) {
+        params.append('subType', selectedTheme.subType);
+      }
+      navigate(`/dashboard/create-event?${params.toString()}`);
     }
   };
 
@@ -53,6 +57,12 @@ export default function ThemesDirectory() {
                   <h3 className="font-semibold">Theme Selected</h3>
                   <p className="text-sm text-muted-foreground">
                     You've selected theme <Badge variant="outline" className="mx-1">{selectedTheme.name}</Badge>
+                    {selectedTheme.subType && (
+                      <>
+                        {" - "}
+                        <Badge variant="secondary" className="mx-1">{selectedTheme.subType}</Badge>
+                      </>
+                    )}
                   </p>
                 </div>
               </div>
@@ -66,7 +76,7 @@ export default function ThemesDirectory() {
 
       {/* Themes Directory */}
       <EventThemesDirectory 
-        onSelectTheme={(themeId, themeName) => handleThemeSelection(themeId, themeName)}
+        onSelectTheme={(themeId, themeName, subType) => handleThemeSelection(themeId, themeName, subType)}
         selectedTheme={selectedTheme?.id}
         userType="professional-planner" // This could be dynamic based on user profile
       />

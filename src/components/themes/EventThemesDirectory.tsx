@@ -121,7 +121,7 @@ const getCategoryFromName = (themeName: string): string => {
 };
 
 interface EventThemesDirectoryProps {
-  onSelectTheme: (themeId: number, themeName: string) => void;
+  onSelectTheme: (themeId: number, themeName: string, subType?: string) => void;
   selectedTheme?: number;
   userType?: string;
 }
@@ -350,100 +350,111 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                               <div className="space-y-1">
                                 <button
                                   className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
-                                  onClick={() => {
-                                    setSelectedHolidayType("New Year's Day");
-                                    console.log("Selected holiday type: New Year's Day");
-                                  }}
+                                onClick={() => {
+                                  setSelectedHolidayType("New Year's Day");
+                                  onSelectTheme(theme.id, theme.name, "New Year's Day");
+                                  console.log("Selected holiday type: New Year's Day");
+                                }}
                                 >
                                   New Year's Day
                                 </button>
                                 <button
                                   className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
-                                  onClick={() => {
-                                    setSelectedHolidayType("Martin Luther King Jr. Day");
-                                    console.log("Selected holiday type: Martin Luther King Jr. Day");
-                                  }}
+                                onClick={() => {
+                                  setSelectedHolidayType("Martin Luther King Jr. Day");
+                                  onSelectTheme(theme.id, theme.name, "Martin Luther King Jr. Day");
+                                  console.log("Selected holiday type: Martin Luther King Jr. Day");
+                                }}
                                 >
                                   Martin Luther King Jr. Day
                                 </button>
                                 <button
                                   className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
-                                  onClick={() => {
-                                    setSelectedHolidayType("Presidents Day");
-                                    console.log("Selected holiday type: Presidents Day");
-                                  }}
+                                onClick={() => {
+                                  setSelectedHolidayType("Presidents Day");
+                                  onSelectTheme(theme.id, theme.name, "Presidents Day");
+                                  console.log("Selected holiday type: Presidents Day");
+                                }}
                                 >
                                   Presidents Day
                                 </button>
                                 <button
                                   className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
-                                  onClick={() => {
-                                    setSelectedHolidayType("Memorial Day");
-                                    console.log("Selected holiday type: Memorial Day");
-                                  }}
+                                onClick={() => {
+                                  setSelectedHolidayType("Memorial Day");
+                                  onSelectTheme(theme.id, theme.name, "Memorial Day");
+                                  console.log("Selected holiday type: Memorial Day");
+                                }}
                                 >
                                   Memorial Day
                                 </button>
                                 <button
                                   className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
-                                  onClick={() => {
-                                    setSelectedHolidayType("Juneteenth");
-                                    console.log("Selected holiday type: Juneteenth");
-                                  }}
+                                onClick={() => {
+                                  setSelectedHolidayType("Juneteenth");
+                                  onSelectTheme(theme.id, theme.name, "Juneteenth");
+                                  console.log("Selected holiday type: Juneteenth");
+                                }}
                                 >
                                   Juneteenth
                                 </button>
                                 <button
                                   className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
-                                  onClick={() => {
-                                    setSelectedHolidayType("Independence Day");
-                                    console.log("Selected holiday type: Independence Day");
-                                  }}
+                                onClick={() => {
+                                  setSelectedHolidayType("Independence Day");
+                                  onSelectTheme(theme.id, theme.name, "Independence Day");
+                                  console.log("Selected holiday type: Independence Day");
+                                }}
                                 >
                                   Independence Day
                                 </button>
                                 <button
                                   className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
-                                  onClick={() => {
-                                    setSelectedHolidayType("Labor Day");
-                                    console.log("Selected holiday type: Labor Day");
-                                  }}
+                                onClick={() => {
+                                  setSelectedHolidayType("Labor Day");
+                                  onSelectTheme(theme.id, theme.name, "Labor Day");
+                                  console.log("Selected holiday type: Labor Day");
+                                }}
                                 >
                                   Labor Day
                                 </button>
                                 <button
                                   className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
-                                  onClick={() => {
-                                    setSelectedHolidayType("Columbus Day");
-                                    console.log("Selected holiday type: Columbus Day");
-                                  }}
+                                onClick={() => {
+                                  setSelectedHolidayType("Columbus Day");
+                                  onSelectTheme(theme.id, theme.name, "Columbus Day");
+                                  console.log("Selected holiday type: Columbus Day");
+                                }}
                                 >
                                   Columbus Day
                                 </button>
                                 <button
                                   className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
-                                  onClick={() => {
-                                    setSelectedHolidayType("Veterans Day");
-                                    console.log("Selected holiday type: Veterans Day");
-                                  }}
+                                onClick={() => {
+                                  setSelectedHolidayType("Veterans Day");
+                                  onSelectTheme(theme.id, theme.name, "Veterans Day");
+                                  console.log("Selected holiday type: Veterans Day");
+                                }}
                                 >
                                   Veterans Day
                                 </button>
                                 <button
                                   className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
-                                  onClick={() => {
-                                    setSelectedHolidayType("Thanksgiving");
-                                    console.log("Selected holiday type: Thanksgiving");
-                                  }}
+                                onClick={() => {
+                                  setSelectedHolidayType("Thanksgiving");
+                                  onSelectTheme(theme.id, theme.name, "Thanksgiving");
+                                  console.log("Selected holiday type: Thanksgiving");
+                                }}
                                 >
                                   Thanksgiving
                                 </button>
                                 <button
                                   className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
-                                  onClick={() => {
-                                    setSelectedHolidayType("Christmas");
-                                    console.log("Selected holiday type: Christmas");
-                                  }}
+                                onClick={() => {
+                                  setSelectedHolidayType("Christmas");
+                                  onSelectTheme(theme.id, theme.name, "Christmas");
+                                  console.log("Selected holiday type: Christmas");
+                                }}
                                 >
                                   Christmas
                                 </button>
@@ -474,6 +485,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                                 className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
                                 onClick={() => {
                                   setSelectedPersonalType("Anniversary");
+                                  onSelectTheme(theme.id, theme.name, "Anniversary");
                                   console.log("Selected personal type: Anniversary");
                                 }}
                               >
@@ -483,6 +495,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                                 className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
                                 onClick={() => {
                                   setSelectedPersonalType("Baby Shower");
+                                  onSelectTheme(theme.id, theme.name, "Baby Shower");
                                   console.log("Selected personal type: Baby Shower");
                                 }}
                               >
@@ -492,6 +505,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                                 className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
                                 onClick={() => {
                                   setSelectedPersonalType("Birthday");
+                                  onSelectTheme(theme.id, theme.name, "Birthday");
                                   console.log("Selected personal type: Birthday");
                                 }}
                               >
@@ -501,6 +515,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                                 className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
                                 onClick={() => {
                                   setSelectedPersonalType("Barmitzma");
+                                  onSelectTheme(theme.id, theme.name, "Barmitzma");
                                   console.log("Selected personal type: Barmitzma");
                                 }}
                               >
@@ -510,6 +525,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                                 className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
                                 onClick={() => {
                                   setSelectedPersonalType("Graduation");
+                                  onSelectTheme(theme.id, theme.name, "Graduation");
                                   console.log("Selected personal type: Graduation");
                                 }}
                               >
@@ -519,6 +535,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                                 className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
                                 onClick={() => {
                                   setSelectedPersonalType("Kwanzaa");
+                                  onSelectTheme(theme.id, theme.name, "Kwanzaa");
                                   console.log("Selected personal type: Kwanzaa");
                                 }}
                               >
@@ -528,6 +545,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                                 className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
                                 onClick={() => {
                                   setSelectedPersonalType("Party");
+                                  onSelectTheme(theme.id, theme.name, "Party");
                                   console.log("Selected personal type: Party");
                                 }}
                               >
@@ -617,6 +635,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                           className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
                           onClick={() => {
                             setSelectedHolidayType("New Year's Day");
+                            onSelectTheme(theme.id, theme.name, "New Year's Day");
                             console.log("Selected holiday type: New Year's Day");
                           }}
                         >
@@ -626,6 +645,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                           className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
                           onClick={() => {
                             setSelectedHolidayType("Martin Luther King Jr. Day");
+                            onSelectTheme(theme.id, theme.name, "Martin Luther King Jr. Day");
                             console.log("Selected holiday type: Martin Luther King Jr. Day");
                           }}
                         >
@@ -635,6 +655,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                           className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
                           onClick={() => {
                             setSelectedHolidayType("Presidents Day");
+                            onSelectTheme(theme.id, theme.name, "Presidents Day");
                             console.log("Selected holiday type: Presidents Day");
                           }}
                         >
@@ -644,6 +665,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                           className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
                           onClick={() => {
                             setSelectedHolidayType("Memorial Day");
+                            onSelectTheme(theme.id, theme.name, "Memorial Day");
                             console.log("Selected holiday type: Memorial Day");
                           }}
                         >
@@ -653,6 +675,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                           className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
                           onClick={() => {
                             setSelectedHolidayType("Juneteenth");
+                            onSelectTheme(theme.id, theme.name, "Juneteenth");
                             console.log("Selected holiday type: Juneteenth");
                           }}
                         >
@@ -662,6 +685,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                           className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
                           onClick={() => {
                             setSelectedHolidayType("Independence Day");
+                            onSelectTheme(theme.id, theme.name, "Independence Day");
                             console.log("Selected holiday type: Independence Day");
                           }}
                         >
@@ -671,6 +695,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                           className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
                           onClick={() => {
                             setSelectedHolidayType("Labor Day");
+                            onSelectTheme(theme.id, theme.name, "Labor Day");
                             console.log("Selected holiday type: Labor Day");
                           }}
                         >
@@ -680,6 +705,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                           className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
                           onClick={() => {
                             setSelectedHolidayType("Columbus Day");
+                            onSelectTheme(theme.id, theme.name, "Columbus Day");
                             console.log("Selected holiday type: Columbus Day");
                           }}
                         >
@@ -689,6 +715,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                           className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
                           onClick={() => {
                             setSelectedHolidayType("Veterans Day");
+                            onSelectTheme(theme.id, theme.name, "Veterans Day");
                             console.log("Selected holiday type: Veterans Day");
                           }}
                         >
@@ -698,6 +725,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                           className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
                           onClick={() => {
                             setSelectedHolidayType("Thanksgiving");
+                            onSelectTheme(theme.id, theme.name, "Thanksgiving");
                             console.log("Selected holiday type: Thanksgiving");
                           }}
                         >
@@ -707,6 +735,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                           className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
                           onClick={() => {
                             setSelectedHolidayType("Christmas");
+                            onSelectTheme(theme.id, theme.name, "Christmas");
                             console.log("Selected holiday type: Christmas");
                           }}
                         >
@@ -739,6 +768,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                           className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
                           onClick={() => {
                             setSelectedPersonalType("Anniversary");
+                            onSelectTheme(theme.id, theme.name, "Anniversary");
                             console.log("Selected personal type: Anniversary");
                           }}
                         >
@@ -748,6 +778,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                           className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
                           onClick={() => {
                             setSelectedPersonalType("Baby Shower");
+                            onSelectTheme(theme.id, theme.name, "Baby Shower");
                             console.log("Selected personal type: Baby Shower");
                           }}
                         >
@@ -757,6 +788,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                           className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
                           onClick={() => {
                             setSelectedPersonalType("Birthday");
+                            onSelectTheme(theme.id, theme.name, "Birthday");
                             console.log("Selected personal type: Birthday");
                           }}
                         >
@@ -766,6 +798,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                           className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
                           onClick={() => {
                             setSelectedPersonalType("Barmitzma");
+                            onSelectTheme(theme.id, theme.name, "Barmitzma");
                             console.log("Selected personal type: Barmitzma");
                           }}
                         >
@@ -775,6 +808,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                           className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
                           onClick={() => {
                             setSelectedPersonalType("Graduation");
+                            onSelectTheme(theme.id, theme.name, "Graduation");
                             console.log("Selected personal type: Graduation");
                           }}
                         >
@@ -784,6 +818,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                           className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
                           onClick={() => {
                             setSelectedPersonalType("Kwanzaa");
+                            onSelectTheme(theme.id, theme.name, "Kwanzaa");
                             console.log("Selected personal type: Kwanzaa");
                           }}
                         >
@@ -793,6 +828,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                           className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
                           onClick={() => {
                             setSelectedPersonalType("Party");
+                            onSelectTheme(theme.id, theme.name, "Party");
                             console.log("Selected personal type: Party");
                           }}
                         >
