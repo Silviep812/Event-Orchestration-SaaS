@@ -1002,7 +1002,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                       );
                     }
 
-                    // Special handling for Peaceful tag in Health and Wellness theme
+                    // Special handling for Peaceful tag in Health and Wellness theme (LIST VIEW)
                     if (theme.name === "Health and Wellness" && tag === "Peaceful") {
                       return (
                         <Popover key={index}>
@@ -1051,476 +1051,10 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                         {tag}
                       </Badge>
                     );
-                  })}
-                  </div>
-                  
-                  <div className="flex gap-2">
-                    <Button 
-                      size="sm" 
-                      variant={isSelected ? "default" : "outline"}
-                      onClick={() => onSelectTheme(theme.id, theme.name, currentSubType)}
-                    >
-                      {isSelected ? (
-                        <>
-                          <CheckCircle2 className="h-4 w-4 mr-1" />
-                          Selected
-                        </>
-                      ) : (
-                        "Select Theme"
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      );
-    }
-
-    return (
-      <Card className={`cursor-pointer transition-all duration-300 hover:scale-105 border-2 ${
-        isSelected ? 'border-primary shadow-lg' : 'border-border'
-      } ${isRecommended ? 'ring-2 ring-primary/20' : ''}`}>
-        <CardHeader className="pb-3">
-          <div className="flex items-start justify-between">
-            <div className={`p-3 rounded-lg ${theme.bgColor}/10 border border-current/20`}>
-              <IconComponent className={`h-6 w-6 ${theme.color}`} />
-            </div>
-            <div className="flex flex-col items-end gap-1">
-              {isSelected && <CheckCircle2 className="h-5 w-5 text-primary" />}
-              {isRecommended && <Badge variant="secondary" className="text-xs">Recommended</Badge>}
-              {theme.premium == true && <Badge variant="outline" className="text-xs">Premium</Badge>}
-            </div>
-          </div>
-          
-          <div className="space-y-2">
-            <CardTitle className="text-lg">{theme.name}</CardTitle>
-            <CardDescription className="text-sm">{theme.description}</CardDescription>
-          </div>
-        </CardHeader>
-        
-        <CardContent className="pt-0 space-y-3">
-          <div className="flex flex-wrap gap-1">
-            {theme.tags.map((tag, index) => {
-              // Special handling for Holidays tag in Celebration theme
-              if (theme.name === "Celebration" && tag === "Holidays") {
-                return (
-                  <Popover key={index}>
-                    <PopoverTrigger asChild>
-                      <button className="inline-flex items-center gap-1">
-                        <Badge 
-                          variant="outline" 
-                          className="text-xs cursor-pointer hover:bg-primary/10 transition-colors inline-flex items-center gap-1"
-                        >
-                          {tag}
-                          <ChevronDown className="h-3.5 w-3.5 opacity-70" />
-                        </Badge>
-                      </button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-56 p-2 bg-background border shadow-lg z-50 max-h-96 overflow-y-auto">
-                      <div className="space-y-1">
-                        {holidayEventTypes.map((holiday) => (
-                          <button
-                            key={holiday.id}
-                            className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
-                            onClick={() => {
-                              setSelectedSubTypes(prev => ({ ...prev, [theme.id]: holiday.name }));
-                              onSelectTheme(theme.id, theme.name, holiday.name);
-                              console.log("Selected holiday type:", holiday.name);
-                            }}
-                          >
-                            {holiday.name}
-                          </button>
-                        ))}
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                );
-              }
-
-              // Special handling for Personal tag in Celebration theme
-              if (theme.name === "Celebration" && tag === "Personal") {
-                return (
-                  <Popover key={index}>
-                    <PopoverTrigger asChild>
-                      <button className="inline-flex items-center gap-1">
-                        <Badge 
-                          variant="outline" 
-                          className="text-xs cursor-pointer hover:bg-primary/10 transition-colors inline-flex items-center gap-1"
-                        >
-                          {tag}
-                          <ChevronDown className="h-3.5 w-3.5 opacity-70" />
-                        </Badge>
-                      </button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-56 p-2 bg-background border shadow-lg z-50 max-h-96 overflow-y-auto">
-                      <div className="space-y-1">
-                        {personalEventTypes.map((personal) => (
-                          <button
-                            key={personal.id}
-                            className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
-                            onClick={() => {
-                              setSelectedSubTypes(prev => ({ ...prev, [theme.id]: personal.name }));
-                              onSelectTheme(theme.id, theme.name, personal.name);
-                              console.log("Selected personal type:", personal.name);
-                            }}
-                          >
-                            {personal.name}
-                          </button>
-                        ))}
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                );
-              }
-
-              // Special handling for Cultural tag in Festival theme
-              if (theme.name === "Festival" && tag === "Cultural") {
-                return (
-                  <Popover key={index}>
-                    <PopoverTrigger asChild>
-                      <button className="inline-flex items-center gap-1">
-                        <Badge 
-                          variant="outline" 
-                          className="text-xs cursor-pointer hover:bg-primary/10 transition-colors inline-flex items-center gap-1"
-                        >
-                          {tag}
-                          <ChevronDown className="h-3.5 w-3.5 opacity-70" />
-                        </Badge>
-                      </button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-56 p-2 bg-background border shadow-lg z-50 max-h-96 overflow-y-auto">
-                      <div className="space-y-1">
-                        {culturalEventTypes.map((cultural) => (
-                          <button
-                            key={cultural.id}
-                            className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
-                            onClick={() => {
-                              setSelectedSubTypes(prev => ({ ...prev, [theme.id]: cultural.name }));
-                              onSelectTheme(theme.id, theme.name, cultural.name);
-                              console.log("Selected cultural type:", cultural.name);
-                            }}
-                          >
-                            {cultural.name}
-                          </button>
-                        ))}
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                );
-              }
-
-              // Special handling for Community tag in Festival theme
-              if (theme.name === "Festival" && tag === "Community") {
-                return (
-                  <Popover key={index}>
-                    <PopoverTrigger asChild>
-                      <button className="inline-flex items-center gap-1">
-                        <Badge 
-                          variant="outline" 
-                          className="text-xs cursor-pointer hover:bg-primary/10 transition-colors inline-flex items-center gap-1"
-                        >
-                          {tag}
-                          <ChevronDown className="h-3.5 w-3.5 opacity-70" />
-                        </Badge>
-                      </button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-56 p-2 bg-background border shadow-lg z-50 max-h-96 overflow-y-auto">
-                      <div className="space-y-1">
-                        {communityEventTypes.map((community) => (
-                          <button
-                            key={community.id}
-                            className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
-                            onClick={() => {
-                              setSelectedSubTypes(prev => ({ ...prev, [theme.id]: community.name }));
-                              onSelectTheme(theme.id, theme.name, community.name);
-                              console.log("Selected community type:", community.name);
-                            }}
-                          >
-                            {community.name}
-                          </button>
-                        ))}
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                );
-              }
-
-              // Special handling for Artisans tag in Marketplace theme
-              if (theme.name === "Marketplace" && tag === "Artisans") {
-                return (
-                  <Popover key={index}>
-                    <PopoverTrigger asChild>
-                      <button className="inline-flex items-center gap-1">
-                        <Badge 
-                          variant="outline" 
-                          className="text-xs cursor-pointer hover:bg-primary/10 transition-colors inline-flex items-center gap-1"
-                        >
-                          {tag}
-                          <ChevronDown className="h-3.5 w-3.5 opacity-70" />
-                        </Badge>
-                      </button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-56 p-2 bg-background border shadow-lg z-50 max-h-96 overflow-y-auto">
-                      <div className="space-y-1">
-                        {artisanEventTypes.map((artisan) => (
-                          <button
-                            key={artisan.id}
-                            className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
-                            onClick={() => {
-                              setSelectedSubTypes(prev => ({ ...prev, [theme.id]: artisan.name }));
-                              onSelectTheme(theme.id, theme.name, artisan.name);
-                              console.log("Selected artisan type:", artisan.name);
-                            }}
-                          >
-                            {artisan.name}
-                          </button>
-                        ))}
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                );
-              }
-
-              // Special handling for Food tag in Marketplace theme
-              if (theme.name === "Marketplace" && tag === "Food") {
-                return (
-                  <Popover key={index}>
-                    <PopoverTrigger asChild>
-                      <button className="inline-flex items-center gap-1">
-                        <Badge 
-                          variant="outline" 
-                          className="text-xs cursor-pointer hover:bg-primary/10 transition-colors inline-flex items-center gap-1"
-                        >
-                          {tag}
-                          <ChevronDown className="h-3.5 w-3.5 opacity-70" />
-                        </Badge>
-                      </button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-56 p-2 bg-background border shadow-lg z-50 max-h-96 overflow-y-auto">
-                      <div className="space-y-1">
-                        {foodEventTypes.map((food) => (
-                          <button
-                            key={food.id}
-                            className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
-                            onClick={() => {
-                              setSelectedSubTypes(prev => ({ ...prev, [theme.id]: food.name }));
-                              onSelectTheme(theme.id, theme.name, food.name);
-                              console.log("Selected food type:", food.name);
-                            }}
-                          >
-                            {food.name}
-                          </button>
-                        ))}
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                );
-              }
-
-              // Special handling for Vendors tag in Marketplace theme
-              if (theme.name === "Marketplace" && tag === "Vendors") {
-                return (
-                  <Popover key={index}>
-                    <PopoverTrigger asChild>
-                      <button className="inline-flex items-center gap-1">
-                        <Badge 
-                          variant="outline" 
-                          className="text-xs cursor-pointer hover:bg-primary/10 transition-colors inline-flex items-center gap-1"
-                        >
-                          {tag}
-                          <ChevronDown className="h-3.5 w-3.5 opacity-70" />
-                        </Badge>
-                      </button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-56 p-2 bg-background border shadow-lg z-50 max-h-96 overflow-y-auto">
-                      <div className="space-y-1">
-                        {vendorEventTypes.map((vendor) => (
-                          <button
-                            key={vendor.id}
-                            className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
-                            onClick={() => {
-                              setSelectedSubTypes(prev => ({ ...prev, [theme.id]: vendor.name }));
-                              onSelectTheme(theme.id, theme.name, vendor.name);
-                              console.log("Selected vendor type:", vendor.name);
-                            }}
-                          >
-                            {vendor.name}
-                          </button>
-                        ))}
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                );
-              }
-
-              // Special handling for Vintage tag in Marketplace theme
-              if (theme.name === "Marketplace" && tag === "Vintage") {
-                return (
-                  <Popover key={index}>
-                    <PopoverTrigger asChild>
-                      <button className="inline-flex items-center gap-1">
-                        <Badge 
-                          variant="outline" 
-                          className="text-xs cursor-pointer hover:bg-primary/10 transition-colors inline-flex items-center gap-1"
-                        >
-                          {tag}
-                          <ChevronDown className="h-3.5 w-3.5 opacity-70" />
-                        </Badge>
-                      </button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-56 p-2 bg-background border shadow-lg z-50 max-h-96 overflow-y-auto">
-                      <div className="space-y-1">
-                        {vintageEventTypes.map((vintage) => (
-                          <button
-                            key={vintage.id}
-                            className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
-                            onClick={() => {
-                              setSelectedSubTypes(prev => ({ ...prev, [theme.id]: vintage.name }));
-                              onSelectTheme(theme.id, theme.name, vintage.name);
-                              console.log("Selected vintage type:", vintage.name);
-                            }}
-                          >
-                            {vintage.name}
-                          </button>
-                        ))}
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                );
-              }
-
-              // Special handling for Contemporary tag in Dining theme
-              if (theme.name === "Dining" && tag === "Contemporary") {
-                return (
-                  <Popover key={index}>
-                    <PopoverTrigger asChild>
-                      <button className="inline-flex items-center gap-1">
-                        <Badge 
-                          variant="outline" 
-                          className="text-xs cursor-pointer hover:bg-primary/10 transition-colors inline-flex items-center gap-1"
-                        >
-                          {tag}
-                          <ChevronDown className="h-3.5 w-3.5 opacity-70" />
-                        </Badge>
-                      </button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-56 p-2 bg-background border shadow-lg z-50 max-h-96 overflow-y-auto">
-                      <div className="space-y-1">
-                        {contemporaryEventTypes.map((contemporary) => (
-                          <button
-                            key={contemporary.id}
-                            className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
-                            onClick={() => {
-                              setSelectedSubTypes(prev => ({ ...prev, [theme.id]: contemporary.name }));
-                              onSelectTheme(theme.id, theme.name, contemporary.name);
-                              console.log("Selected contemporary type:", contemporary.name);
-                            }}
-                          >
-                            {contemporary.name}
-                          </button>
-                        ))}
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                );
-              }
-
-              // Special handling for Buffet tag in Dining theme
-              if (theme.name === "Dining" && tag === "Buffet") {
-                return (
-                  <Popover key={index}>
-                    <PopoverTrigger asChild>
-                      <button className="inline-flex items-center gap-1">
-                        <Badge 
-                          variant="outline" 
-                          className="text-xs cursor-pointer hover:bg-primary/10 transition-colors inline-flex items-center gap-1"
-                        >
-                          {tag}
-                          <ChevronDown className="h-3.5 w-3.5 opacity-70" />
-                        </Badge>
-                      </button>
-                    </PopoverTrigger>
-                    <PopoverContent 
-                      className="w-56 p-2 bg-popover border shadow-lg max-h-96 overflow-y-auto"
-                      style={{ zIndex: 9999 }}
-                      sideOffset={5}
-                    >
-                      <div className="space-y-1">
-                        {buffetEventTypes.length > 0 ? (
-                          buffetEventTypes.map((buffet) => (
-                            <button
-                              key={buffet.id}
-                              className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
-                              onClick={() => {
-                                setSelectedSubTypes(prev => ({ ...prev, [theme.id]: buffet.name }));
-                                onSelectTheme(theme.id, theme.name, buffet.name);
-                                console.log("Selected buffet type:", buffet.name);
-                              }}
-                            >
-                              {buffet.name}
-                            </button>
-                          ))
-                        ) : (
-                          <div className="px-3 py-2 text-sm text-muted-foreground">Loading...</div>
-                        )}
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                );
-              }
-
-              // Special handling for Fine Dining tag in Dining theme
-              if (theme.name === "Dining" && tag === "Fine Dining") {
-                return (
-                  <Popover key={index}>
-                    <PopoverTrigger asChild>
-                      <button className="inline-flex items-center gap-1">
-                        <Badge 
-                          variant="outline" 
-                          className="text-xs cursor-pointer hover:bg-primary/10 transition-colors inline-flex items-center gap-1"
-                        >
-                          {tag}
-                          <ChevronDown className="h-3.5 w-3.5 opacity-70" />
-                        </Badge>
-                      </button>
-                    </PopoverTrigger>
-                    <PopoverContent 
-                      className="w-56 p-2 bg-popover border shadow-lg max-h-96 overflow-y-auto"
-                      style={{ zIndex: 9999 }}
-                      sideOffset={5}
-                    >
-                      <div className="space-y-1">
-                        {fineDiningEventTypes.length > 0 ? (
-                          fineDiningEventTypes.map((fineDining) => (
-                            <button
-                              key={fineDining.id}
-                              className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
-                              onClick={() => {
-                                setSelectedSubTypes(prev => ({ ...prev, [theme.id]: fineDining.name }));
-                                onSelectTheme(theme.id, theme.name, fineDining.name);
-                                console.log("Selected fine dining type:", fineDining.name);
-                              }}
-                            >
-                              {fineDining.name}
-                            </button>
-                          ))
-                        ) : (
-                          <div className="px-3 py-2 text-sm text-muted-foreground">Loading...</div>
-                        )}
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                );
-              }
-              
-              return (
-                <Badge key={index} variant="outline" className="text-xs">
-                  {tag}
-                </Badge>
-              );
             })}
+          </div>
+          </div>
+          </div>
           </div>
           
           <div className="flex gap-2">
@@ -1536,7 +1070,92 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
         </CardContent>
       </Card>
     );
-  };
+  }
+
+  // Grid view
+  return (
+    <Card className={`cursor-pointer transition-all duration-300 hover:shadow-md border-2 ${
+      isSelected ? 'border-primary shadow-lg' : 'border-border'
+    }`}>
+      <CardHeader className="pb-3">
+        <div className="flex items-center gap-3">
+          <div className={`p-2 rounded-lg ${theme.bgColor} border border-current/20`}>
+            <IconComponent className={`h-6 w-6 ${theme.color}`} />
+          </div>
+          
+          <div className="space-y-2">
+            <CardTitle className="text-lg">{theme.name}</CardTitle>
+            <CardDescription className="text-sm">{theme.description}</CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+      
+      <CardContent className="pt-0 space-y-3">
+        <div className="flex flex-wrap gap-1">
+          {theme.tags.map((tag, index) => {
+            // Special handling for Peaceful tag in Health and Wellness theme (GRID VIEW)
+            if (theme.name === "Health and Wellness" && tag === "Peaceful") {
+              return (
+                <Popover key={index}>
+                  <PopoverTrigger asChild>
+                    <button className="inline-flex items-center gap-1">
+                      <Badge 
+                        variant="outline" 
+                        className="text-xs cursor-pointer hover:bg-primary/10 transition-colors inline-flex items-center gap-1"
+                      >
+                        {tag}
+                        <ChevronDown className="h-4 w-4 text-foreground ml-1 flex-shrink-0" />
+                      </Badge>
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent 
+                    className="w-56 p-2 bg-popover border shadow-lg max-h-96 overflow-y-auto"
+                    style={{ zIndex: 9999 }}
+                    sideOffset={5}
+                  >
+                    <div className="space-y-1">
+                      {peacefulEventTypes.length > 0 ? (
+                        peacefulEventTypes.map((peaceful) => (
+                          <button
+                            key={peaceful.id}
+                            className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
+                            onClick={() => {
+                              setSelectedSubTypes(prev => ({ ...prev, [theme.id]: peaceful.name }));
+                              onSelectTheme(theme.id, theme.name, peaceful.name);
+                              console.log("Selected peaceful type:", peaceful.name);
+                            }}
+                          >
+                            {peaceful.name}
+                          </button>
+                        ))
+                      ) : (
+                        <div className="px-3 py-2 text-sm text-muted-foreground">Loading...</div>
+                      )}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              );
+            }
+            
+            return (
+              <Badge key={index} variant="outline" className="text-xs">
+                {tag}
+              </Badge>
+            );
+          })}
+        </div>
+        
+        <Button 
+          className="w-full"
+          variant={isSelected ? "default" : "outline"}
+          onClick={() => onSelectTheme(theme.id, theme.name, currentSubType)}
+        >
+          {isSelected ? "Selected" : "Select Theme"}
+        </Button>
+      </CardContent>
+    </Card>
+  );
+};
 
   if (loading) {
     return (
