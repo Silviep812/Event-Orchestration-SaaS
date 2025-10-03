@@ -90,12 +90,19 @@ useEffect(() => {
       }
       
       setEventTypes(data || []);
+      
+      // Pre-populate event type from URL parameter if present
+      const subTypeParam = searchParams.get('subType');
+      if (subTypeParam && data) {
+        const matchingType = data.find(type => type.name === subTypeParam);
+        if (matchingType) {
+          setValue("type", matchingType.id.toString());
+        }
+      }
     };
     
     fetchEventTypes();
-    // Reset event type when theme changes
-    setValue("type", "");
-  }, [selectedThemeId, setValue]);
+  }, [selectedThemeId, setValue, searchParams]);
 
   // Sync budget input with react-hook-form
   useEffect(() => {
