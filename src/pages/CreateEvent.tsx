@@ -17,6 +17,7 @@ interface EventFormData {
   title: string;
   description: string;
   type: string;
+  subType?: string;
   venue: string;
   budget: string;
   expectedAttendees: string;
@@ -37,6 +38,7 @@ export default function CreateEvent() {
   const [subEventTypes, setSubEventTypes] = useState<{ id: number; name: string; theme_id: number; parent_id: number | null }[]>([]);
   const selectedThemeId = watch("theme_id");
   const selectedEventType = watch("type");
+  const selectedSubType = watch("subType");
 
   const [themesLoaded, setThemesLoaded] = useState(false);
   const [budgetInput, setBudgetInput] = useState('');
@@ -107,12 +109,13 @@ useEffect(() => {
             .from('event_types')
             .select('id, name')
             .eq('parent_id', parentType.id)
-            .eq('name', subTypeParam)
-            .single();
+            .eq('name', subTypeParam);
 
-          if (!subError && subTypes) {
-            // Found the matching subType, set its parent as selected
+          if (!subError && subTypes && subTypes.length > 0) {
+            // Found the matching subType, set its parent as selected in Event Category
             setValue("type", parentType.id.toString(), { shouldValidate: true });
+            // Set the actual subType ID in the subType field
+            setValue("subType", subTypes[0].id.toString(), { shouldValidate: true });
             break;
           }
         }
@@ -149,19 +152,6 @@ useEffect(() => {
       }
       
       setSubEventTypes(data || []);
-      
-      // Pre-populate sub-type from URL parameter if present
-      const subTypeParam = searchParams.get('subType');
-      
-      if (subTypeParam && data) {
-        const matchingType = data.find(type => type.name === subTypeParam);
-        
-        if (matchingType) {
-          setTimeout(() => {
-            setValue("type", matchingType.id.toString(), { shouldValidate: true });
-          }, 0);
-        }
-      }
     };
     
     fetchSubEventTypes();
@@ -215,11 +205,14 @@ useEffect(() => {
       }
 
       // Prepare event data for the new events table
+      // Use subType if available, otherwise use type
+      const typeId = data.subType ? parseInt(data.subType) : parseInt(data.type);
+      
       const eventData = {
         user_id: user.id,
         title: data.title,
         description: data.description || null,
-        type_id: parseInt(data.type),
+        type_id: typeId,
         venue: data.venue,
         start_date: dateRange.from.toISOString().split('T')[0],
         end_date: dateRange.to ? dateRange.to.toISOString().split('T')[0] : null,
@@ -374,7 +367,7 @@ useEffect(() => {
                 <div>
                   <Label htmlFor="subType">Event Type *</Label>
                   <Controller
-                    name="type"
+                    name="subType"
                     control={control}
                     rules={{ required: "Event type is required" }}
                     render={({ field }) => (
