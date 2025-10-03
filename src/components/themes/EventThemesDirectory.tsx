@@ -304,6 +304,8 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
     const IconComponent = theme.icon;
     const isSelected = selectedTheme === theme.id;
     const currentSubType = selectedSubTypes[theme.id];
+    
+    console.log('ThemeCard render:', theme.name, 'isSelected:', isSelected, 'currentSubType:', currentSubType, 'selectedSubTypes:', selectedSubTypes);
 
     if (viewMode === "list") {
       return (
@@ -569,7 +571,10 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                     <Button 
                       size="sm" 
                       variant={isSelected ? "default" : "outline"}
-                      onClick={() => onSelectTheme(theme.id, theme.name, currentSubType)}
+                      onClick={() => {
+                        console.log('Select Theme button clicked, currentSubType:', currentSubType);
+                        onSelectTheme(theme.id, theme.name, currentSubType);
+                      }}
                     >
                       {isSelected ? (
                         <>
@@ -853,7 +858,10 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
               size="sm" 
               className="flex-1"
               variant={isSelected ? "default" : "outline"}
-              onClick={() => onSelectTheme(theme.id, theme.name, currentSubType)}
+              onClick={() => {
+                console.log('Select Theme button (grid) clicked, currentSubType:', currentSubType);
+                onSelectTheme(theme.id, theme.name, currentSubType);
+              }}
             >
               {isSelected ? "Selected" : "Select"}
             </Button>

@@ -11,8 +11,9 @@ export default function ThemesDirectory() {
   const navigate = useNavigate();
 
   const handleThemeSelection = (themeId: number, themeName?: string, subType?: string) => {
-    console.log('selected theme', themeId, themeName, 'subType:', subType);
+    console.log('handleThemeSelection called:', themeId, themeName, 'subType:', subType);
     setSelectedTheme({ id: themeId, name: themeName || `Theme #${themeId}`, subType });
+    console.log('selectedTheme state updated to:', { id: themeId, name: themeName || `Theme #${themeId}`, subType });
   };
 
   const handleUseTheme = () => {
