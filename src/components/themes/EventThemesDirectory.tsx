@@ -135,6 +135,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
   const [themes, setThemes] = useState<ThemeDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedHolidayType, setSelectedHolidayType] = useState<string | null>(null);
+  const [selectedPersonalType, setSelectedPersonalType] = useState<string | null>(null);
 
   // Fetch themes from Supabase
   useEffect(() => {
@@ -449,15 +450,101 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                               </div>
                             </PopoverContent>
                           </Popover>
-                        );
-                      }
-                      
-                      return (
-                        <Badge key={index} variant="outline" className="text-xs">
-                          {tag}
-                        </Badge>
                       );
-                    })}
+                    }
+
+                    // Special handling for Personal tag in Celebration theme
+                    if (theme.name === "Celebration" && tag === "Personal") {
+                      return (
+                        <Popover key={index}>
+                          <PopoverTrigger asChild>
+                            <button className="inline-flex items-center gap-1">
+                              <Badge 
+                                variant="outline" 
+                                className="text-xs cursor-pointer hover:bg-primary/10 transition-colors inline-flex items-center gap-1"
+                              >
+                                {tag}
+                                <ChevronDown className="h-3.5 w-3.5 opacity-70" />
+                              </Badge>
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-56 p-2 bg-background border shadow-lg z-50 max-h-96 overflow-y-auto">
+                            <div className="space-y-1">
+                              <button
+                                className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
+                                onClick={() => {
+                                  setSelectedPersonalType("Anniversary");
+                                  console.log("Selected personal type: Anniversary");
+                                }}
+                              >
+                                Anniversary
+                              </button>
+                              <button
+                                className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
+                                onClick={() => {
+                                  setSelectedPersonalType("Baby Shower");
+                                  console.log("Selected personal type: Baby Shower");
+                                }}
+                              >
+                                Baby Shower
+                              </button>
+                              <button
+                                className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
+                                onClick={() => {
+                                  setSelectedPersonalType("Birthday");
+                                  console.log("Selected personal type: Birthday");
+                                }}
+                              >
+                                Birthday
+                              </button>
+                              <button
+                                className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
+                                onClick={() => {
+                                  setSelectedPersonalType("Barmitzma");
+                                  console.log("Selected personal type: Barmitzma");
+                                }}
+                              >
+                                Barmitzma
+                              </button>
+                              <button
+                                className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
+                                onClick={() => {
+                                  setSelectedPersonalType("Graduation");
+                                  console.log("Selected personal type: Graduation");
+                                }}
+                              >
+                                Graduation
+                              </button>
+                              <button
+                                className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
+                                onClick={() => {
+                                  setSelectedPersonalType("Kwanzaa");
+                                  console.log("Selected personal type: Kwanzaa");
+                                }}
+                              >
+                                Kwanzaa
+                              </button>
+                              <button
+                                className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
+                                onClick={() => {
+                                  setSelectedPersonalType("Party");
+                                  console.log("Selected personal type: Party");
+                                }}
+                              >
+                                Party
+                              </button>
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      );
+                    }
+                    
+                    return (
+                      <Badge key={index} variant="outline" className="text-xs">
+                        {tag}
+                      </Badge>
+                    );
+                  })}
                   </div>
                   
                   <div className="flex gap-2">
@@ -624,6 +711,92 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                           }}
                         >
                           Christmas
+                        </button>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                );
+              }
+
+              // Special handling for Personal tag in Celebration theme
+              if (theme.name === "Celebration" && tag === "Personal") {
+                return (
+                  <Popover key={index}>
+                    <PopoverTrigger asChild>
+                      <button className="inline-flex items-center gap-1">
+                        <Badge 
+                          variant="outline" 
+                          className="text-xs cursor-pointer hover:bg-primary/10 transition-colors inline-flex items-center gap-1"
+                        >
+                          {tag}
+                          <ChevronDown className="h-3.5 w-3.5 opacity-70" />
+                        </Badge>
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-56 p-2 bg-background border shadow-lg z-50 max-h-96 overflow-y-auto">
+                      <div className="space-y-1">
+                        <button
+                          className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
+                          onClick={() => {
+                            setSelectedPersonalType("Anniversary");
+                            console.log("Selected personal type: Anniversary");
+                          }}
+                        >
+                          Anniversary
+                        </button>
+                        <button
+                          className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
+                          onClick={() => {
+                            setSelectedPersonalType("Baby Shower");
+                            console.log("Selected personal type: Baby Shower");
+                          }}
+                        >
+                          Baby Shower
+                        </button>
+                        <button
+                          className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
+                          onClick={() => {
+                            setSelectedPersonalType("Birthday");
+                            console.log("Selected personal type: Birthday");
+                          }}
+                        >
+                          Birthday
+                        </button>
+                        <button
+                          className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
+                          onClick={() => {
+                            setSelectedPersonalType("Barmitzma");
+                            console.log("Selected personal type: Barmitzma");
+                          }}
+                        >
+                          Barmitzma
+                        </button>
+                        <button
+                          className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
+                          onClick={() => {
+                            setSelectedPersonalType("Graduation");
+                            console.log("Selected personal type: Graduation");
+                          }}
+                        >
+                          Graduation
+                        </button>
+                        <button
+                          className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
+                          onClick={() => {
+                            setSelectedPersonalType("Kwanzaa");
+                            console.log("Selected personal type: Kwanzaa");
+                          }}
+                        >
+                          Kwanzaa
+                        </button>
+                        <button
+                          className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
+                          onClick={() => {
+                            setSelectedPersonalType("Party");
+                            console.log("Selected personal type: Party");
+                          }}
+                        >
+                          Party
                         </button>
                       </div>
                     </PopoverContent>
