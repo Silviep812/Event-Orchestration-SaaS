@@ -465,7 +465,7 @@ export const EventThemeSelector = ({ userType, onSelectTheme, selectedTheme }: E
         <div className="space-y-4">
           <h3 className="text-lg font-semibold flex items-center gap-2">
             <CheckCircle2 className="h-5 w-5 text-primary" />
-            Recommended for Your Role
+            Recommended for You
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {relevantThemes.map((theme) => (
