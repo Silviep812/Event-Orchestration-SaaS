@@ -143,6 +143,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
   const [foodEventTypes, setFoodEventTypes] = useState<{id: number; name: string}[]>([]);
   const [vendorEventTypes, setVendorEventTypes] = useState<{id: number; name: string}[]>([]);
   const [vintageEventTypes, setVintageEventTypes] = useState<{id: number; name: string}[]>([]);
+  const [contemporaryEventTypes, setContemporaryEventTypes] = useState<{id: number; name: string}[]>([]);
 
   // Fetch themes from Supabase
   useEffect(() => {
@@ -341,6 +342,26 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
         
         setVintageEventTypes(vintageData || []);
         console.log('Vintage event types:', vintageData);
+      }
+      
+      // Fetch Contemporary - first find the Contemporary event type under Dining
+      const { data: contemporaryParent } = await supabase
+        .from('event_types')
+        .select('id')
+        .eq('name', 'Contemporary')
+        .eq('theme_id', 7) // Dining theme
+        .single();
+      
+      if (contemporaryParent) {
+        // Then fetch all contemporary types under Contemporary
+        const { data: contemporaryData } = await supabase
+          .from('event_types')
+          .select('id, name')
+          .eq('parent_id', contemporaryParent.id)
+          .order('name');
+        
+        setContemporaryEventTypes(contemporaryData || []);
+        console.log('Contemporary event types:', contemporaryData);
       }
       
       setHolidayEventTypes(holidaysData || []);
@@ -772,6 +793,42 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                         </Popover>
                       );
                     }
+
+                    // Special handling for Contemporary tag in Dining theme
+                    if (theme.name === "Dining" && tag === "Contemporary") {
+                      return (
+                        <Popover key={index}>
+                          <PopoverTrigger asChild>
+                            <button className="inline-flex items-center gap-1">
+                              <Badge 
+                                variant="outline" 
+                                className="text-xs cursor-pointer hover:bg-primary/10 transition-colors inline-flex items-center gap-1"
+                              >
+                                {tag}
+                                <ChevronDown className="h-3.5 w-3.5 opacity-70" />
+                              </Badge>
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-56 p-2 bg-background border shadow-lg z-50 max-h-96 overflow-y-auto">
+                            <div className="space-y-1">
+                              {contemporaryEventTypes.map((contemporary) => (
+                                <button
+                                  key={contemporary.id}
+                                  className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
+                                  onClick={() => {
+                                    setSelectedSubTypes(prev => ({ ...prev, [theme.id]: contemporary.name }));
+                                    onSelectTheme(theme.id, theme.name, contemporary.name);
+                                    console.log("Selected contemporary type:", contemporary.name);
+                                  }}
+                                >
+                                  {contemporary.name}
+                                </button>
+                              ))}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      );
+                    }
                     
                     return (
                       <Badge key={index} variant="outline" className="text-xs">
@@ -1110,6 +1167,42 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                             }}
                           >
                             {vintage.name}
+                          </button>
+                        ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                );
+              }
+
+              // Special handling for Contemporary tag in Dining theme
+              if (theme.name === "Dining" && tag === "Contemporary") {
+                return (
+                  <Popover key={index}>
+                    <PopoverTrigger asChild>
+                      <button className="inline-flex items-center gap-1">
+                        <Badge 
+                          variant="outline" 
+                          className="text-xs cursor-pointer hover:bg-primary/10 transition-colors inline-flex items-center gap-1"
+                        >
+                          {tag}
+                          <ChevronDown className="h-3.5 w-3.5 opacity-70" />
+                        </Badge>
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-56 p-2 bg-background border shadow-lg z-50 max-h-96 overflow-y-auto">
+                      <div className="space-y-1">
+                        {contemporaryEventTypes.map((contemporary) => (
+                          <button
+                            key={contemporary.id}
+                            className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
+                            onClick={() => {
+                              setSelectedSubTypes(prev => ({ ...prev, [theme.id]: contemporary.name }));
+                              onSelectTheme(theme.id, theme.name, contemporary.name);
+                              console.log("Selected contemporary type:", contemporary.name);
+                            }}
+                          >
+                            {contemporary.name}
                           </button>
                         ))}
                       </div>
