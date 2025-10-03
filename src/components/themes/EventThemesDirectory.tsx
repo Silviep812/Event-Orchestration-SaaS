@@ -505,116 +505,19 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                     </PopoverTrigger>
                     <PopoverContent className="w-56 p-2 bg-background border shadow-lg z-50 max-h-96 overflow-y-auto">
                       <div className="space-y-1">
-                        <button
-                          className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
-                          onClick={() => {
-                            setSelectedSubTypes(prev => ({ ...prev, [theme.id]: "New Year's Day" }));
-                            onSelectTheme(theme.id, theme.name, "New Year's Day");
-                            console.log("Selected holiday type: New Year's Day");
-                          }}
-                        >
-                          New Year's Day
-                        </button>
-                        <button
-                          className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
-                          onClick={() => {
-                            setSelectedSubTypes(prev => ({ ...prev, [theme.id]: "Martin Luther King Jr. Day" }));
-                            onSelectTheme(theme.id, theme.name, "Martin Luther King Jr. Day");
-                            console.log("Selected holiday type: Martin Luther King Jr. Day");
-                          }}
-                        >
-                          Martin Luther King Jr. Day
-                        </button>
-                        <button
-                          className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
-                          onClick={() => {
-                            setSelectedSubTypes(prev => ({ ...prev, [theme.id]: "Presidents Day" }));
-                            onSelectTheme(theme.id, theme.name, "Presidents Day");
-                            console.log("Selected holiday type: Presidents Day");
-                          }}
-                        >
-                          Presidents Day
-                        </button>
-                        <button
-                          className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
-                          onClick={() => {
-                            setSelectedSubTypes(prev => ({ ...prev, [theme.id]: "Memorial Day" }));
-                            onSelectTheme(theme.id, theme.name, "Memorial Day");
-                            console.log("Selected holiday type: Memorial Day");
-                          }}
-                        >
-                          Memorial Day
-                        </button>
-                        <button
-                          className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
-                          onClick={() => {
-                            setSelectedSubTypes(prev => ({ ...prev, [theme.id]: "Juneteenth" }));
-                            onSelectTheme(theme.id, theme.name, "Juneteenth");
-                            console.log("Selected holiday type: Juneteenth");
-                          }}
-                        >
-                          Juneteenth
-                        </button>
-                        <button
-                          className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
-                          onClick={() => {
-                            setSelectedSubTypes(prev => ({ ...prev, [theme.id]: "Independence Day" }));
-                            onSelectTheme(theme.id, theme.name, "Independence Day");
-                            console.log("Selected holiday type: Independence Day");
-                          }}
-                        >
-                          Independence Day
-                        </button>
-                        <button
-                          className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
-                          onClick={() => {
-                            setSelectedSubTypes(prev => ({ ...prev, [theme.id]: "Labor Day" }));
-                            onSelectTheme(theme.id, theme.name, "Labor Day");
-                            console.log("Selected holiday type: Labor Day");
-                          }}
-                        >
-                          Labor Day
-                        </button>
-                        <button
-                          className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
-                          onClick={() => {
-                            setSelectedSubTypes(prev => ({ ...prev, [theme.id]: "Columbus Day" }));
-                            onSelectTheme(theme.id, theme.name, "Columbus Day");
-                            console.log("Selected holiday type: Columbus Day");
-                          }}
-                        >
-                          Columbus Day
-                        </button>
-                        <button
-                          className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
-                          onClick={() => {
-                            setSelectedSubTypes(prev => ({ ...prev, [theme.id]: "Veterans Day" }));
-                            onSelectTheme(theme.id, theme.name, "Veterans Day");
-                            console.log("Selected holiday type: Veterans Day");
-                          }}
-                        >
-                          Veterans Day
-                        </button>
-                        <button
-                          className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
-                          onClick={() => {
-                            setSelectedSubTypes(prev => ({ ...prev, [theme.id]: "Thanksgiving" }));
-                            onSelectTheme(theme.id, theme.name, "Thanksgiving");
-                            console.log("Selected holiday type: Thanksgiving");
-                          }}
-                        >
-                          Thanksgiving
-                        </button>
-                        <button
-                          className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
-                          onClick={() => {
-                            setSelectedSubTypes(prev => ({ ...prev, [theme.id]: "Christmas" }));
-                            onSelectTheme(theme.id, theme.name, "Christmas");
-                            console.log("Selected holiday type: Christmas");
-                          }}
-                        >
-                          Christmas
-                        </button>
+                        {holidayEventTypes.map((holiday) => (
+                          <button
+                            key={holiday.id}
+                            className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
+                            onClick={() => {
+                              setSelectedSubTypes(prev => ({ ...prev, [theme.id]: holiday.name }));
+                              onSelectTheme(theme.id, theme.name, holiday.name);
+                              console.log("Selected holiday type:", holiday.name);
+                            }}
+                          >
+                            {holiday.name}
+                          </button>
+                        ))}
                       </div>
                     </PopoverContent>
                   </Popover>
@@ -638,76 +541,19 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                     </PopoverTrigger>
                     <PopoverContent className="w-56 p-2 bg-background border shadow-lg z-50 max-h-96 overflow-y-auto">
                       <div className="space-y-1">
-                        <button
-                          className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
-                          onClick={() => {
-                            setSelectedSubTypes(prev => ({ ...prev, [theme.id]: "Anniversary" }));
-                            onSelectTheme(theme.id, theme.name, "Anniversary");
-                            console.log("Selected personal type: Anniversary");
-                          }}
-                        >
-                          Anniversary
-                        </button>
-                        <button
-                          className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
-                          onClick={() => {
-                            setSelectedSubTypes(prev => ({ ...prev, [theme.id]: "Baby Shower" }));
-                            onSelectTheme(theme.id, theme.name, "Baby Shower");
-                            console.log("Selected personal type: Baby Shower");
-                          }}
-                        >
-                          Baby Shower
-                        </button>
-                        <button
-                          className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
-                          onClick={() => {
-                            setSelectedSubTypes(prev => ({ ...prev, [theme.id]: "Birthday" }));
-                            onSelectTheme(theme.id, theme.name, "Birthday");
-                            console.log("Selected personal type: Birthday");
-                          }}
-                        >
-                          Birthday
-                        </button>
-                        <button
-                          className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
-                          onClick={() => {
-                            setSelectedSubTypes(prev => ({ ...prev, [theme.id]: "Barmitzma" }));
-                            onSelectTheme(theme.id, theme.name, "Barmitzma");
-                            console.log("Selected personal type: Barmitzma");
-                          }}
-                        >
-                          Barmitzma
-                        </button>
-                        <button
-                          className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
-                          onClick={() => {
-                            setSelectedSubTypes(prev => ({ ...prev, [theme.id]: "Graduation" }));
-                            onSelectTheme(theme.id, theme.name, "Graduation");
-                            console.log("Selected personal type: Graduation");
-                          }}
-                        >
-                          Graduation
-                        </button>
-                        <button
-                          className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
-                          onClick={() => {
-                            setSelectedSubTypes(prev => ({ ...prev, [theme.id]: "Kwanzaa" }));
-                            onSelectTheme(theme.id, theme.name, "Kwanzaa");
-                            console.log("Selected personal type: Kwanzaa");
-                          }}
-                        >
-                          Kwanzaa
-                        </button>
-                        <button
-                          className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
-                          onClick={() => {
-                            setSelectedSubTypes(prev => ({ ...prev, [theme.id]: "Party" }));
-                            onSelectTheme(theme.id, theme.name, "Party");
-                            console.log("Selected personal type: Party");
-                          }}
-                        >
-                          Party
-                        </button>
+                        {personalEventTypes.map((personal) => (
+                          <button
+                            key={personal.id}
+                            className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
+                            onClick={() => {
+                              setSelectedSubTypes(prev => ({ ...prev, [theme.id]: personal.name }));
+                              onSelectTheme(theme.id, theme.name, personal.name);
+                              console.log("Selected personal type:", personal.name);
+                            }}
+                          >
+                            {personal.name}
+                          </button>
+                        ))}
                       </div>
                     </PopoverContent>
                   </Popover>
