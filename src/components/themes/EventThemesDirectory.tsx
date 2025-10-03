@@ -140,6 +140,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
   const [culturalEventTypes, setCulturalEventTypes] = useState<{id: number; name: string}[]>([]);
   const [communityEventTypes, setCommunityEventTypes] = useState<{id: number; name: string}[]>([]);
   const [artisanEventTypes, setArtisanEventTypes] = useState<{id: number; name: string}[]>([]);
+  const [foodEventTypes, setFoodEventTypes] = useState<{id: number; name: string}[]>([]);
 
   // Fetch themes from Supabase
   useEffect(() => {
@@ -278,6 +279,26 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
         
         setArtisanEventTypes(artisansData || []);
         console.log('Artisan event types:', artisansData);
+      }
+      
+      // Fetch Food - first find the Food event type under Marketplace
+      const { data: foodParent } = await supabase
+        .from('event_types')
+        .select('id')
+        .eq('name', 'Food')
+        .eq('theme_id', 11) // Marketplace theme
+        .single();
+      
+      if (foodParent) {
+        // Then fetch all food types under Food
+        const { data: foodData } = await supabase
+          .from('event_types')
+          .select('id, name')
+          .eq('parent_id', foodParent.id)
+          .order('name');
+        
+        setFoodEventTypes(foodData || []);
+        console.log('Food event types:', foodData);
       }
       
       setHolidayEventTypes(holidaysData || []);
@@ -601,6 +622,42 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                         </Popover>
                       );
                     }
+
+                    // Special handling for Food tag in Marketplace theme
+                    if (theme.name === "Marketplace" && tag === "Food") {
+                      return (
+                        <Popover key={index}>
+                          <PopoverTrigger asChild>
+                            <button className="inline-flex items-center gap-1">
+                              <Badge 
+                                variant="outline" 
+                                className="text-xs cursor-pointer hover:bg-primary/10 transition-colors inline-flex items-center gap-1"
+                              >
+                                {tag}
+                                <ChevronDown className="h-3.5 w-3.5 opacity-70" />
+                              </Badge>
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-56 p-2 bg-background border shadow-lg z-50 max-h-96 overflow-y-auto">
+                            <div className="space-y-1">
+                              {foodEventTypes.map((food) => (
+                                <button
+                                  key={food.id}
+                                  className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
+                                  onClick={() => {
+                                    setSelectedSubTypes(prev => ({ ...prev, [theme.id]: food.name }));
+                                    onSelectTheme(theme.id, theme.name, food.name);
+                                    console.log("Selected food type:", food.name);
+                                  }}
+                                >
+                                  {food.name}
+                                </button>
+                              ))}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      );
+                    }
                     
                     return (
                       <Badge key={index} variant="outline" className="text-xs">
@@ -831,6 +888,42 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                             }}
                           >
                             {artisan.name}
+                          </button>
+                        ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                );
+              }
+
+              // Special handling for Food tag in Marketplace theme
+              if (theme.name === "Marketplace" && tag === "Food") {
+                return (
+                  <Popover key={index}>
+                    <PopoverTrigger asChild>
+                      <button className="inline-flex items-center gap-1">
+                        <Badge 
+                          variant="outline" 
+                          className="text-xs cursor-pointer hover:bg-primary/10 transition-colors inline-flex items-center gap-1"
+                        >
+                          {tag}
+                          <ChevronDown className="h-3.5 w-3.5 opacity-70" />
+                        </Badge>
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-56 p-2 bg-background border shadow-lg z-50 max-h-96 overflow-y-auto">
+                      <div className="space-y-1">
+                        {foodEventTypes.map((food) => (
+                          <button
+                            key={food.id}
+                            className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
+                            onClick={() => {
+                              setSelectedSubTypes(prev => ({ ...prev, [theme.id]: food.name }));
+                              onSelectTheme(theme.id, theme.name, food.name);
+                              console.log("Selected food type:", food.name);
+                            }}
+                          >
+                            {food.name}
                           </button>
                         ))}
                       </div>
