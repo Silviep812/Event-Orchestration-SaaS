@@ -685,8 +685,12 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
               <IconComponent className={`h-6 w-6 ${theme.color}`} />
             </div>
             
-            <div className="space-y-2">
-              <CardTitle className="text-lg">{theme.name}</CardTitle>
+            <div className="space-y-2 flex-1">
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-lg">{theme.name}</CardTitle>
+                {isRecommended && <Badge variant="secondary" className="text-xs">Recommended</Badge>}
+                {theme.premium == true && <Badge variant="outline" className="text-xs">Premium</Badge>}
+              </div>
               <CardDescription className="text-sm">{theme.description}</CardDescription>
             </div>
           </div>
