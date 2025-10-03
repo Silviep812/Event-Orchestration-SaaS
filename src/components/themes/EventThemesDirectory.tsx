@@ -147,6 +147,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
   const [buffetEventTypes, setBuffetEventTypes] = useState<{id: number; name: string}[]>([]);
   const [fineDiningEventTypes, setFineDiningEventTypes] = useState<{id: number; name: string}[]>([]);
   const [peacefulEventTypes, setPeacefulEventTypes] = useState<{id: number; name: string}[]>([]);
+  const [spiritualEventTypes, setSpiritualEventTypes] = useState<{id: number; name: string}[]>([]);
 
   // Fetch themes from Supabase
   useEffect(() => {
@@ -446,6 +447,33 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
         console.log('Peaceful event types set to:', peacefulData);
       } else {
         console.error('Peaceful parent not found or error:', peacefulParentError);
+      }
+
+      // Fetch Spiritual - first find the Spiritual event type under Health and Wellness
+      console.log('Fetching Spiritual parent...');
+      const { data: spiritualParent, error: spiritualParentError } = await supabase
+        .from('event_types')
+        .select('id')
+        .eq('name', 'Spiritual')
+        .eq('parent_id', 16) // Health & Wellness parent
+        .single();
+      
+      console.log('Spiritual parent result:', { spiritualParent, spiritualParentError });
+      
+      if (spiritualParent) {
+        // Then fetch all spiritual types under Spiritual
+        console.log('Fetching spiritual types for parent id:', spiritualParent.id);
+        const { data: spiritualData, error: spiritualDataError } = await supabase
+          .from('event_types')
+          .select('id, name')
+          .eq('parent_id', spiritualParent.id)
+          .order('name');
+        
+        console.log('Spiritual data result:', { spiritualData, spiritualDataError });
+        setSpiritualEventTypes(spiritualData || []);
+        console.log('Spiritual event types set to:', spiritualData);
+      } else {
+        console.error('Spiritual parent not found or error:', spiritualParentError);
       }
       
       setHolidayEventTypes(holidaysData || []);
@@ -1045,6 +1073,50 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                         </Popover>
                       );
                     }
+
+                    // Special handling for Spiritual tag in Health and Wellness theme (LIST VIEW)
+                    if (theme.name === "Health and Wellness" && tag === "Spiritual") {
+                      return (
+                        <Popover key={index}>
+                          <PopoverTrigger asChild>
+                            <button className="inline-flex items-center gap-1">
+                              <Badge 
+                                variant="outline" 
+                                className="text-xs cursor-pointer hover:bg-primary/10 transition-colors inline-flex items-center gap-1"
+                              >
+                                {tag}
+                                <ChevronDown className="h-4 w-4 text-foreground ml-1 flex-shrink-0" />
+                              </Badge>
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent 
+                            className="w-56 p-2 bg-popover border shadow-lg max-h-96 overflow-y-auto"
+                            style={{ zIndex: 9999 }}
+                            sideOffset={5}
+                          >
+                            <div className="space-y-1">
+                              {spiritualEventTypes.length > 0 ? (
+                                spiritualEventTypes.map((spiritual) => (
+                                  <button
+                                    key={spiritual.id}
+                                    className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
+                                    onClick={() => {
+                                      setSelectedSubTypes(prev => ({ ...prev, [theme.id]: spiritual.name }));
+                                      onSelectTheme(theme.id, theme.name, spiritual.name);
+                                      console.log("Selected spiritual type:", spiritual.name);
+                                    }}
+                                  >
+                                    {spiritual.name}
+                                  </button>
+                                ))
+                              ) : (
+                                <div className="px-3 py-2 text-sm text-muted-foreground">Loading...</div>
+                              )}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      );
+                    }
                     
                     return (
                       <Badge key={index} variant="outline" className="text-xs">
@@ -1126,6 +1198,50 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                             }}
                           >
                             {peaceful.name}
+                          </button>
+                        ))
+                      ) : (
+                        <div className="px-3 py-2 text-sm text-muted-foreground">Loading...</div>
+                      )}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              );
+            }
+
+            // Special handling for Spiritual tag in Health and Wellness theme (GRID VIEW)
+            if (theme.name === "Health and Wellness" && tag === "Spiritual") {
+              return (
+                <Popover key={index}>
+                  <PopoverTrigger asChild>
+                    <button className="inline-flex items-center gap-1">
+                      <Badge 
+                        variant="outline" 
+                        className="text-xs cursor-pointer hover:bg-primary/10 transition-colors inline-flex items-center gap-1"
+                      >
+                        {tag}
+                        <ChevronDown className="h-4 w-4 text-foreground ml-1 flex-shrink-0" />
+                      </Badge>
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent 
+                    className="w-56 p-2 bg-popover border shadow-lg max-h-96 overflow-y-auto"
+                    style={{ zIndex: 9999 }}
+                    sideOffset={5}
+                  >
+                    <div className="space-y-1">
+                      {spiritualEventTypes.length > 0 ? (
+                        spiritualEventTypes.map((spiritual) => (
+                          <button
+                            key={spiritual.id}
+                            className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
+                            onClick={() => {
+                              setSelectedSubTypes(prev => ({ ...prev, [theme.id]: spiritual.name }));
+                              onSelectTheme(theme.id, theme.name, spiritual.name);
+                              console.log("Selected spiritual type:", spiritual.name);
+                            }}
+                          >
+                            {spiritual.name}
                           </button>
                         ))
                       ) : (
