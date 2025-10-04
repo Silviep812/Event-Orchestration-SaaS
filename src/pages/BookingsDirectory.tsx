@@ -3,11 +3,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Calendar, CheckCircle, Clock } from "lucide-react";
+import { Calendar, CheckCircle, Clock, QrCode } from "lucide-react";
 import RSVPInvitation from "@/components/RSVPInvitation";
 import ConfirmationForm from "@/components/ConfirmationForm";
 import ReservationForm from "@/components/ReservationForm";
 import RegistryForm from "@/components/RegistryForm";
+import BarCodeForm from "@/components/BarCodeForm";
 
 const BookingsDirectory = () => {
   const [bookings, setBookings] = useState<any[]>([]);
@@ -40,7 +41,8 @@ const BookingsDirectory = () => {
     { value: "reservation", label: "Reservation", icon: Calendar },
     { value: "confirmation", label: "Confirmation", icon: CheckCircle },
     { value: "rsvp", label: "RSVP", icon: Clock },
-    { value: "registry", label: "Registry", icon: Calendar }
+    { value: "registry", label: "Registry", icon: Calendar },
+    { value: "barcode", label: "BarCode", icon: QrCode }
   ];
 
   return (
@@ -130,6 +132,12 @@ const BookingsDirectory = () => {
       {selectedBookingTypes.includes('registry') && (
         <div className="animate-fade-in">
           <RegistryForm />
+        </div>
+      )}
+
+      {selectedBookingTypes.includes('barcode') && (
+        <div className="animate-fade-in">
+          <BarCodeForm />
         </div>
       )}
 
