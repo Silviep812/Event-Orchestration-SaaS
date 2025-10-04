@@ -188,8 +188,14 @@ const HospitalityDirectory = () => {
                       <div className="flex items-center gap-2 text-sm">
                         <MapPin size={16} className="text-muted-foreground" />
                         <span>{[profile.city, profile.state, profile.zip].filter(Boolean).join(', ')}</span>
-                        
                       </div>
+
+                      {profile.cost && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <DollarSign size={16} className="text-muted-foreground" />
+                          <span className="font-semibold">${profile.cost.toLocaleString()}</span>
+                        </div>
+                      )}
 
                       {profile.website && (
                         <div className="flex items-center gap-2 text-sm">
