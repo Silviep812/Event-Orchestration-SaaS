@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Hotel, Home, MapPin, Coffee, Phone, Mail, Globe, DollarSign } from "lucide-react";
+import { Hotel, Home, MapPin, Coffee, Phone, Mail, Globe, DollarSign, Users, ExternalLink } from "lucide-react";
 
 const HospitalityDirectory = () => {
   const [hospitalityProfiles, setHospitalityProfiles] = useState<any[]>([]);
@@ -197,6 +197,13 @@ const HospitalityDirectory = () => {
                         </div>
                       )}
 
+                      {profile.capacity && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <Users size={16} className="text-muted-foreground" />
+                          <span>Capacity: {profile.capacity} guests</span>
+                        </div>
+                      )}
+
                       {profile.website && (
                         <div className="flex items-center gap-2 text-sm">
                           <Globe size={16} className="text-muted-foreground" />
@@ -208,6 +215,20 @@ const HospitalityDirectory = () => {
                           >
                             {profile.website}
                           </a>
+                        </div>
+                      )}
+
+                      {profile.make_reservations && (
+                        <div className="pt-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="w-full"
+                            onClick={() => window.open(profile.make_reservations, '_blank')}
+                          >
+                            <ExternalLink size={14} className="mr-2" />
+                            Make Reservation
+                          </Button>
                         </div>
                       )}
                       

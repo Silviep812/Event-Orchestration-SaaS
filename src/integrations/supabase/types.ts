@@ -1025,6 +1025,7 @@ export type Database = {
       hospitality_profiles: {
         Row: {
           business_name: string
+          capacity: number | null
           city: string | null
           contact_name: string | null
           cost: number | null
@@ -1032,6 +1033,7 @@ export type Database = {
           email: string | null
           hospitality_type: number | null
           id: string
+          make_reservations: string | null
           phone_number: string | null
           state: string | null
           updated_at: string
@@ -1040,6 +1042,7 @@ export type Database = {
         }
         Insert: {
           business_name: string
+          capacity?: number | null
           city?: string | null
           contact_name?: string | null
           cost?: number | null
@@ -1047,6 +1050,7 @@ export type Database = {
           email?: string | null
           hospitality_type?: number | null
           id?: string
+          make_reservations?: string | null
           phone_number?: string | null
           state?: string | null
           updated_at?: string
@@ -1055,6 +1059,7 @@ export type Database = {
         }
         Update: {
           business_name?: string
+          capacity?: number | null
           city?: string | null
           contact_name?: string | null
           cost?: number | null
@@ -1062,6 +1067,7 @@ export type Database = {
           email?: string | null
           hospitality_type?: number | null
           id?: string
+          make_reservations?: string | null
           phone_number?: string | null
           state?: string | null
           updated_at?: string
