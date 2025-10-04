@@ -11,7 +11,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { rsvpSchema } from "@/lib/validation/bookingsValidation";
 import { PrivateResidenceForm } from "@/components/PrivateResidenceForm";
 
-const RSVPInvitation = () => {
+interface RSVPInvitationProps {
+  isPrivateResidence?: boolean;
+  venueName?: string;
+  venueLocation?: string;
+}
+
+const RSVPInvitation = ({ isPrivateResidence, venueName, venueLocation }: RSVPInvitationProps) => {
   const { toast } = useToast();
   const [response, setResponse] = useState<string>("");
   const [guestName, setGuestName] = useState("");
@@ -56,8 +62,8 @@ const RSVPInvitation = () => {
         description: "Thank you for your response!",
       });
 
-      // Show Private Residence form for attendees
-      if (response === "attending") {
+      // Show Private Residence form for Private Residence venues and attendees
+      if (response === "attending" && isPrivateResidence) {
         setShowPrivateResidenceForm(true);
       }
 
@@ -130,7 +136,9 @@ const RSVPInvitation = () => {
           You're Invited!
         </CardTitle>
         <CardDescription className="text-base md:text-lg">
-          We would be delighted to have you join us for our special event
+          {isPrivateResidence 
+            ? `We would be delighted to have you join us at our private residence` 
+            : 'We would be delighted to have you join us for our special event'}
         </CardDescription>
       </CardHeader>
 
@@ -160,8 +168,14 @@ const RSVPInvitation = () => {
               <MapPin className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Venue</p>
-              <p className="font-semibold">Grand Ballroom</p>
+              <p className="text-xs text-muted-foreground">
+                {isPrivateResidence ? 'Location' : 'Venue'}
+              </p>
+              <p className="font-semibold">
+                {isPrivateResidence 
+                  ? (venueLocation || 'Private Residence') 
+                  : (venueName || 'Grand Ballroom')}
+              </p>
             </div>
           </div>
         </div>
@@ -298,8 +312,8 @@ const RSVPInvitation = () => {
           * Required fields. Please respond by March 1, 2025
         </p>
 
-        {/* Private Residence Form - Only shown to RSVP recipients who are attending */}
-        {showPrivateResidenceForm && (
+        {/* Private Residence Form - Only shown to RSVP recipients who are attending at a Private Residence */}
+        {showPrivateResidenceForm && isPrivateResidence && (
           <div className="mt-8 pt-8 border-t">
             <PrivateResidenceForm 
               onSuccess={() => {
@@ -307,6 +321,7 @@ const RSVPInvitation = () => {
                   title: "Success",
                   description: "Your private residence information has been saved.",
                 });
+                setShowPrivateResidenceForm(false);
               }} 
             />
           </div>

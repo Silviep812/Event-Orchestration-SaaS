@@ -31,15 +31,21 @@ const BookingsDirectory = () => {
     venueName?: string;
     venueLocation?: string;
     venueCapacity?: number;
+    venueTypeId?: string;
+    venueTypeName?: string;
+    isPrivateResidence?: boolean;
     autoSelectReservation?: boolean;
+    autoSelectRSVP?: boolean;
   } | null;
 
   useEffect(() => {
     fetchBookings();
     fetchSubmissionCounts();
     
-    // Auto-select reservation if coming from venue
-    if (venueData?.autoSelectReservation && !selectedBookingTypes.includes('reservation')) {
+    // Auto-select booking type based on venue type
+    if (venueData?.autoSelectRSVP && !selectedBookingTypes.includes('rsvp')) {
+      setSelectedBookingTypes(['rsvp']);
+    } else if (venueData?.autoSelectReservation && !selectedBookingTypes.includes('reservation')) {
       setSelectedBookingTypes(['reservation']);
     }
   }, []);
@@ -99,6 +105,18 @@ const BookingsDirectory = () => {
         <p className="text-muted-foreground">
           Manage your event bookings and reservations
         </p>
+        {venueData && (
+          <div className="mt-4 p-4 bg-muted/50 rounded-lg border">
+            <h3 className="font-semibold mb-2">Booking for:</h3>
+            <div className="flex items-center gap-2">
+              {venueData.isPrivateResidence && <Badge variant="secondary">Private Residence</Badge>}
+              <span className="font-medium">{venueData.venueName}</span>
+            </div>
+            {venueData.venueLocation && (
+              <p className="text-sm text-muted-foreground mt-1">{venueData.venueLocation}</p>
+            )}
+          </div>
+        )}
       </div>
 
       <Card>
@@ -171,7 +189,11 @@ const BookingsDirectory = () => {
 
       {selectedBookingTypes.includes('rsvp') && (
         <div className="animate-fade-in">
-          <RSVPInvitation />
+          <RSVPInvitation 
+            isPrivateResidence={venueData?.isPrivateResidence}
+            venueName={venueData?.venueName}
+            venueLocation={venueData?.venueLocation}
+          />
         </div>
       )}
 

@@ -264,6 +264,7 @@ const VenueDirectory = () => {
                             e.stopPropagation();
                             console.log('Button clicked for venue:', profile.id, profile.business_name);
                             const locationStr = [profile.city, profile.state, profile.zip].filter(Boolean).join(', ');
+                            const isPrivateResidence = venueType?.name?.toLowerCase().includes('residence');
                             try {
                               navigate('/dashboard/bookings', { 
                                 state: { 
@@ -271,7 +272,11 @@ const VenueDirectory = () => {
                                   venueName: profile.business_name || 'Venue',
                                   venueLocation: locationStr,
                                   venueCapacity: profile.capacity,
-                                  autoSelectReservation: true
+                                  venueTypeId: profile.venue_type_id,
+                                  venueTypeName: venueType?.name,
+                                  isPrivateResidence: isPrivateResidence,
+                                  autoSelectReservation: !isPrivateResidence,
+                                  autoSelectRSVP: isPrivateResidence
                                 }
                               });
                               console.log('Navigation initiated');
