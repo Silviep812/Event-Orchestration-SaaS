@@ -149,6 +149,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
   const [peacefulEventTypes, setPeacefulEventTypes] = useState<{id: number; name: string}[]>([]);
   const [spiritualEventTypes, setSpiritualEventTypes] = useState<{id: number; name: string}[]>([]);
   const [rejuvenatingEventTypes, setRejuvenatingEventTypes] = useState<{id: number; name: string}[]>([]);
+  const [holisticEventTypes, setHolisticEventTypes] = useState<{id: number; name: string}[]>([]);
 
   // Fetch themes from Supabase
   useEffect(() => {
@@ -476,6 +477,31 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
       } else {
         console.error('Rejuvenating parent not found or error:', rejuvenatingParentError);
       }
+
+      console.log('Fetching Holistic parent...');
+      const { data: holisticParent, error: holisticParentError } = await supabase
+        .from('event_types')
+        .select('id')
+        .eq('name', 'Holistic')
+        .eq('parent_id', 16)
+        .single();
+      
+      console.log('Holistic parent result:', { holisticParent, holisticParentError });
+      
+      if (holisticParent) {
+        console.log('Fetching holistic types for parent id:', holisticParent.id);
+        const { data: holisticData, error: holisticDataError } = await supabase
+          .from('event_types')
+          .select('id, name')
+          .eq('parent_id', holisticParent.id)
+          .order('name');
+        
+        console.log('Holistic data result:', { holisticData, holisticDataError });
+        setHolisticEventTypes(holisticData || []);
+        console.log('Holistic event types set to:', holisticData);
+      } else {
+        console.error('Holistic parent not found or error:', holisticParentError);
+      }
       
       setHolidayEventTypes(holidaysData || []);
       setPersonalEventTypes(personalData || []);
@@ -589,6 +615,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
       'Health and Wellness-Peaceful': { types: peacefulEventTypes, themeName: 'Health and Wellness', tagName: 'Peaceful' },
       'Health and Wellness-Spiritual': { types: spiritualEventTypes, themeName: 'Health and Wellness', tagName: 'Spiritual' },
       'Health and Wellness-Rejuvenating': { types: rejuvenatingEventTypes, themeName: 'Health and Wellness', tagName: 'Rejuvenating' },
+      'Health and Wellness-Holistic': { types: holisticEventTypes, themeName: 'Health and Wellness', tagName: 'Holistic' },
     };
 
     const configKey = `${theme.name}-${tag}`;
