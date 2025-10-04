@@ -29,6 +29,7 @@ import VenueDirectory from "./pages/VenueDirectory";
 import HospitalityDirectory from "./pages/HospitalityDirectory";
 import VendorServiceDirectory from "./pages/VendorServiceDirectory";
 import ServiceVendorDirectory from "./pages/ServiceVendorDirectory";
+import TransportationDirectory from "./pages/TransportationDirectory";
 import EntertainmentDirectory from "./pages/EntertainmentDirectory";
 import SupplierDirectory from "./pages/SupplierDirectory";
 import Profile from "./pages/Profile";
@@ -69,6 +70,7 @@ const App = () => (
               <Route path="hospitality" element={<HospitalityDirectory />} />
               <Route path="vendor-service" element={<VendorServiceDirectory />} />
               <Route path="service-vendor" element={<ServiceVendorDirectory />} />
+              <Route path="transportation" element={<TransportationDirectory />} />
               <Route path="entertainment" element={<EntertainmentDirectory />} />
               <Route path="supplier" element={<SupplierDirectory />} />
               <Route path="profile" element={<Profile />} />
