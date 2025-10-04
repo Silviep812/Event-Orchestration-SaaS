@@ -151,6 +151,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
   const [rejuvenatingEventTypes, setRejuvenatingEventTypes] = useState<{id: number; name: string}[]>([]);
   const [holisticEventTypes, setHolisticEventTypes] = useState<{id: number; name: string}[]>([]);
   const [meetupCommunityEventTypes, setMeetupCommunityEventTypes] = useState<{id: number; name: string}[]>([]);
+  const [meetupInclusiveEventTypes, setMeetupInclusiveEventTypes] = useState<{id: number; name: string}[]>([]);
 
   // Fetch themes from Supabase
   useEffect(() => {
@@ -533,6 +534,32 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
       } else {
         console.error('Meetup Community parent not found or error:', meetupCommunityParentError);
       }
+
+      console.log('Fetching Meetup Inclusive parent...');
+      const { data: meetupInclusiveParent, error: meetupInclusiveParentError } = await supabase
+        .from('event_types')
+        .select('id')
+        .eq('name', 'Inclusive')
+        .eq('theme_id', 1)
+        .is('parent_id', null)
+        .single();
+      
+      console.log('Meetup Inclusive parent result:', { meetupInclusiveParent, meetupInclusiveParentError });
+      
+      if (meetupInclusiveParent) {
+        console.log('Fetching meetup inclusive types for parent id:', meetupInclusiveParent.id);
+        const { data: meetupInclusiveData, error: meetupInclusiveDataError } = await supabase
+          .from('event_types')
+          .select('id, name')
+          .eq('parent_id', meetupInclusiveParent.id)
+          .order('name');
+        
+        console.log('Meetup Inclusive data result:', { meetupInclusiveData, meetupInclusiveDataError });
+        setMeetupInclusiveEventTypes(meetupInclusiveData || []);
+        console.log('Meetup Inclusive event types set to:', meetupInclusiveData);
+      } else {
+        console.error('Meetup Inclusive parent not found or error:', meetupInclusiveParentError);
+      }
       
       setHolidayEventTypes(holidaysData || []);
       setPersonalEventTypes(personalData || []);
@@ -648,6 +675,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
       'Health and Wellness-Rejuvenating': { types: rejuvenatingEventTypes, themeName: 'Health and Wellness', tagName: 'Rejuvenating' },
       'Health and Wellness-Holistic': { types: holisticEventTypes, themeName: 'Health and Wellness', tagName: 'Holistic' },
       'Meetup-Community': { types: meetupCommunityEventTypes, themeName: 'Meetup', tagName: 'Community' },
+      'Meetup-Inclusive': { types: meetupInclusiveEventTypes, themeName: 'Meetup', tagName: 'Inclusive' },
     };
 
     const configKey = `${theme.name}-${tag}`;
