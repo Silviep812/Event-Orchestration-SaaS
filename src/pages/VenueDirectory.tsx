@@ -226,11 +226,7 @@ const VenueDirectory = () => {
                 const IconComponent = typeOption?.icon || HelpCircle;
                 
                 return (
-                  <Card key={profile.id || profile.created_at} className="hover:shadow-lg transition-shadow relative"
-                    onClick={(e) => {
-                      console.log('Card clicked:', profile.id);
-                    }}
-                  >
+                  <Card key={profile.id || profile.created_at} className="hover:shadow-lg transition-shadow relative overflow-visible">
                     <CardHeader className="pb-3">
                       <div className="flex items-center gap-2">
                         <IconComponent className="h-5 w-5 text-primary" />
@@ -261,20 +257,27 @@ const VenueDirectory = () => {
                       
                       <div className="pt-3 border-t mt-3">
                         <Button 
-                          className="w-full relative z-10 cursor-pointer"
+                          type="button"
+                          className="w-full relative z-20 pointer-events-auto"
                           onClick={(e) => {
+                            e.preventDefault();
                             e.stopPropagation();
-                            console.log('Button clicked for venue:', profile.id);
+                            console.log('Button clicked for venue:', profile.id, profile.business_name);
                             const locationStr = [profile.city, profile.state, profile.zip].filter(Boolean).join(', ');
-                            navigate('/dashboard/bookings', { 
-                              state: { 
-                                venueId: profile.id,
-                                venueName: profile.business_name || 'Venue',
-                                venueLocation: locationStr,
-                                venueCapacity: profile.capacity,
-                                autoSelectReservation: true
-                              }
-                            });
+                            try {
+                              navigate('/dashboard/bookings', { 
+                                state: { 
+                                  venueId: profile.id,
+                                  venueName: profile.business_name || 'Venue',
+                                  venueLocation: locationStr,
+                                  venueCapacity: profile.capacity,
+                                  autoSelectReservation: true
+                                }
+                              });
+                              console.log('Navigation initiated');
+                            } catch (error) {
+                              console.error('Navigation error:', error);
+                            }
                           }}
                         >
                           <Calendar className="w-4 h-4 mr-2" />
