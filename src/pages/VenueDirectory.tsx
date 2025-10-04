@@ -1,7 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,7 +13,7 @@ import { useAuth } from "@/hooks/useAuth";
 const VenueDirectory = () => {
   const [venueProfiles, setVenueProfiles] = useState<any[]>([]);
   const [venueTypes, setVenueTypes] = useState<any[]>([]);
-  const [selectedVenueTypes, setSelectedVenueTypes] = useState<string[]>([]);
+  const [selectedVenueType, setSelectedVenueType] = useState<string>("");
   const [locationFilter, setLocationFilter] = useState("");
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -74,10 +75,10 @@ const VenueDirectory = () => {
     return venueTypes.find(type => type.id === typeId);
   };
 
-  // Filter profiles based on selected venue types, location, and user_id
+  // Filter profiles based on selected venue type, location, and user_id
   const filteredProfiles = venueProfiles.filter(profile => {
     const matchesUser = !profile.user_id || (user && profile.user_id === user.id);
-    const matchesType = selectedVenueTypes.length === 0 || selectedVenueTypes.includes(profile.venue_type_id);
+    const matchesType = !selectedVenueType || profile.venue_type_id === selectedVenueType;
     
     const matchesLocation = !locationFilter || 
       profile.city?.toLowerCase().includes(locationFilter.toLowerCase()) ||
@@ -151,54 +152,55 @@ const VenueDirectory = () => {
           </div>
           
           <div className="space-y-3">
-            <label className="text-sm font-medium">Venue Types (select all that apply)</label>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {venueTypeOptions.map((option) => {
-                const IconComponent = option.icon;
-                const isChecked = selectedVenueTypes.includes(option.value);
-                return (
-                  <div key={option.value} className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50">
-                    <Checkbox
-                      id={option.value}
-                      checked={isChecked}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setSelectedVenueTypes([...selectedVenueTypes, option.value]);
-                        } else {
-                          setSelectedVenueTypes(selectedVenueTypes.filter(type => type !== option.value));
-                        }
-                      }}
-                    />
-                    <label htmlFor={option.value} className="flex items-center gap-2 cursor-pointer text-sm font-medium">
-                      <IconComponent size={16} />
-                      {option.label}
-                    </label>
-                  </div>
-                );
-              })}
-            </div>
+            <label className="text-sm font-medium">Select Venue Type</label>
+            <RadioGroup value={selectedVenueType} onValueChange={setSelectedVenueType}>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {venueTypeOptions.map((option) => {
+                  const IconComponent = option.icon;
+                  const isSelected = selectedVenueType === option.value;
+                  return (
+                    <div key={option.value} className="relative">
+                      <RadioGroupItem
+                        value={option.value}
+                        id={option.value}
+                        className="peer sr-only"
+                      />
+                      <Label
+                        htmlFor={option.value}
+                        className={`flex items-center gap-3 p-3 border-2 rounded-lg cursor-pointer transition-all ${
+                          isSelected
+                            ? "border-primary bg-primary/5 shadow-sm"
+                            : "border-border hover:border-primary/50 hover:bg-muted/50"
+                        }`}
+                      >
+                        <IconComponent className={`w-5 h-5 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
+                        <span className={`text-sm font-medium ${isSelected ? "text-primary" : ""}`}>
+                          {option.label}
+                        </span>
+                      </Label>
+                    </div>
+                  );
+                })}
+              </div>
+            </RadioGroup>
           </div>
           
-          {selectedVenueTypes.length > 0 && (
+          {selectedVenueType && (
             <div className="p-4 bg-muted rounded-lg">
-              <h3 className="font-medium mb-2">Selected Venue Types:</h3>
-              <div className="flex flex-wrap gap-2">
-                {selectedVenueTypes.map(type => (
-                  <span key={type} className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
-                    {venueTypeOptions.find(opt => opt.value === type)?.label}
-                  </span>
-                ))}
-              </div>
+              <h3 className="font-medium mb-2">Selected Venue Type:</h3>
+              <span className="text-sm bg-primary/10 text-primary px-3 py-1.5 rounded-full">
+                {venueTypeOptions.find(opt => opt.value === selectedVenueType)?.label}
+              </span>
             </div>
           )}
 
           <Button 
             onClick={() => {
-              setSelectedVenueTypes([]);
+              setSelectedVenueType("");
               setLocationFilter("");
             }} 
             variant="outline"
-            disabled={selectedVenueTypes.length === 0 && !locationFilter}
+            disabled={!selectedVenueType && !locationFilter}
           >
             Clear All Filters
           </Button>
