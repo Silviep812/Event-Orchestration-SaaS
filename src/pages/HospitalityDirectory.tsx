@@ -221,7 +221,7 @@ const HospitalityDirectory = () => {
                       {profile.make_reservations && (
                         <div className="pt-2">
                           <Button 
-                            variant="outline" 
+                            variant="default" 
                             size="sm" 
                             className="w-full"
                             onClick={() => window.open(profile.make_reservations, '_blank')}
