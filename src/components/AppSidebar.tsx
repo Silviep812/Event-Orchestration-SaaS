@@ -176,7 +176,7 @@ const menuGroups = [
         hoverColor: "hover:bg-orange-50"
       },
       {
-        title: "Transportation Directory",
+        title: "Transportation",
         url: "/dashboard/transportation",
         icon: Car,
         color: "text-orange-600",
