@@ -409,6 +409,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
         .select('id')
         .eq('name', 'Peaceful')
         .eq('parent_id', 16)
+        .eq('theme_id', 8)
         .single();
       
       console.log('Peaceful parent result:', { peacefulParent, peacefulParentError });
@@ -434,6 +435,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
         .select('id')
         .eq('name', 'Spiritual')
         .eq('parent_id', 16)
+        .eq('theme_id', 8)
         .single();
       
       console.log('Spiritual parent result:', { spiritualParent, spiritualParentError });
@@ -459,6 +461,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
         .select('id')
         .eq('name', 'Rejuvenating')
         .eq('parent_id', 16)
+        .eq('theme_id', 8)
         .single();
       
       console.log('Rejuvenating parent result:', { rejuvenatingParent, rejuvenatingParentError });
@@ -484,6 +487,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
         .select('id')
         .eq('name', 'Holistic')
         .eq('parent_id', 16)
+        .eq('theme_id', 8)
         .single();
       
       console.log('Holistic parent result:', { holisticParent, holisticParentError });
