@@ -648,10 +648,10 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
   }, [themes]);
 
   const allThemes = useMemo(() => {
-    // Only show Dining, Health and Wellness, and Meetup in All Themes
-    const allThemesNames = ['Dining', 'Health and Wellness', 'Meetup'];
+    // Show all non-recommended themes in All Themes section
+    const recommendedNames = ['Celebration', 'Festival', 'Marketplace'];
     return filteredAndSortedThemes.filter(theme => 
-      allThemesNames.some(name => theme.name.toLowerCase() === name.toLowerCase())
+      !recommendedNames.some(name => theme.name.toLowerCase() === name.toLowerCase())
     );
   }, [filteredAndSortedThemes]);
 
