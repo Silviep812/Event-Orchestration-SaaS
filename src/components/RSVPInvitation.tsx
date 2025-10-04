@@ -9,6 +9,7 @@ import { CheckCircle, XCircle, HelpCircle, Calendar, MapPin, Clock, User, Mail, 
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { rsvpSchema } from "@/lib/validation/bookingsValidation";
+import { PrivateResidenceForm } from "@/components/PrivateResidenceForm";
 
 const RSVPInvitation = () => {
   const { toast } = useToast();
@@ -19,6 +20,7 @@ const RSVPInvitation = () => {
   const [specialRequests, setSpecialRequests] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showPrivateResidenceForm, setShowPrivateResidenceForm] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,6 +55,11 @@ const RSVPInvitation = () => {
         title: "RSVP Submitted",
         description: "Thank you for your response!",
       });
+
+      // Show Private Residence form for attendees
+      if (response === "attending") {
+        setShowPrivateResidenceForm(true);
+      }
 
       // Reset form
       setResponse("");
@@ -290,6 +297,20 @@ const RSVPInvitation = () => {
         <p className="text-xs text-muted-foreground text-center pt-4">
           * Required fields. Please respond by March 1, 2025
         </p>
+
+        {/* Private Residence Form - Only shown to RSVP recipients who are attending */}
+        {showPrivateResidenceForm && (
+          <div className="mt-8 pt-8 border-t">
+            <PrivateResidenceForm 
+              onSuccess={() => {
+                toast({
+                  title: "Success",
+                  description: "Your private residence information has been saved.",
+                });
+              }} 
+            />
+          </div>
+        )}
       </CardContent>
     </Card>
   );

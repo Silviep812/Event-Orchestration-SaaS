@@ -1327,6 +1327,39 @@ export type Database = {
         }
         Relationships: []
       }
+      private_residence_responses: {
+        Row: {
+          created_at: string
+          email: string
+          event_id: string | null
+          id: string
+          phone_number: string
+          street_address: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          event_id?: string | null
+          id?: string
+          phone_number: string
+          street_address: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          event_id?: string | null
+          id?: string
+          phone_number?: string
+          street_address?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
