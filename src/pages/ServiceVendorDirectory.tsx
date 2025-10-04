@@ -92,7 +92,7 @@ const ServiceVendorDirectory = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Service Vendor Supplier Directory</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Supplier Vendor Directory</h1>
         <p className="text-muted-foreground">
           Manage service vendors and suppliers
         </p>
