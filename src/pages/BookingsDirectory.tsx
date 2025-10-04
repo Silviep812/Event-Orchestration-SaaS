@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Calendar, CheckCircle, Clock } from "lucide-react";
 import RSVPInvitation from "@/components/RSVPInvitation";
 import ConfirmationForm from "@/components/ConfirmationForm";
+import ReservationForm from "@/components/ReservationForm";
 
 const BookingsDirectory = () => {
   const [bookings, setBookings] = useState<any[]>([]);
@@ -106,6 +107,12 @@ const BookingsDirectory = () => {
           </Button>
         </CardContent>
       </Card>
+
+      {selectedBookingTypes.includes('reservation') && (
+        <div className="animate-fade-in">
+          <ReservationForm />
+        </div>
+      )}
 
       {selectedBookingTypes.includes('rsvp') && (
         <div className="animate-fade-in">
