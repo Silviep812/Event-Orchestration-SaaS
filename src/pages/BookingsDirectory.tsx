@@ -7,6 +7,7 @@ import { Calendar, CheckCircle, Clock } from "lucide-react";
 import RSVPInvitation from "@/components/RSVPInvitation";
 import ConfirmationForm from "@/components/ConfirmationForm";
 import ReservationForm from "@/components/ReservationForm";
+import RegistryForm from "@/components/RegistryForm";
 
 const BookingsDirectory = () => {
   const [bookings, setBookings] = useState<any[]>([]);
@@ -123,6 +124,12 @@ const BookingsDirectory = () => {
       {selectedBookingTypes.includes('confirmation') && (
         <div className="animate-fade-in">
           <ConfirmationForm />
+        </div>
+      )}
+
+      {selectedBookingTypes.includes('registry') && (
+        <div className="animate-fade-in">
+          <RegistryForm />
         </div>
       )}
 
