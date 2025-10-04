@@ -3,9 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { CheckCircle, Calendar, Clock, MapPin } from "lucide-react";
+import { CheckCircle, Calendar, Clock, MapPin, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { confirmationSchema } from "@/lib/validation/bookingsValidation";
 
 const ConfirmationForm = () => {
   const { toast } = useToast();
@@ -16,13 +18,70 @@ const ConfirmationForm = () => {
     phone: "",
     notes: ""
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: "Confirmation Received",
-      description: "Your booking has been confirmed successfully.",
-    });
+    setErrors({});
+    setIsSubmitting(true);
+
+    try {
+      const validatedData = confirmationSchema.parse({
+        confirmation_number: formData.confirmationNumber,
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone || undefined,
+        notes: formData.notes || undefined,
+      });
+
+      const { error } = await supabase
+        .from('confirmation_submissions')
+        .insert([{
+          book_id: `conf_${Date.now()}`,
+          confirmation_number: validatedData.confirmation_number,
+          name: validatedData.name,
+          email: validatedData.email,
+          phone: validatedData.phone,
+          notes: validatedData.notes,
+        }]);
+
+      if (error) throw error;
+
+      toast({
+        title: "Confirmation Received",
+        description: "Your booking has been confirmed successfully.",
+      });
+
+      setFormData({
+        confirmationNumber: "",
+        name: "",
+        email: "",
+        phone: "",
+        notes: ""
+      });
+    } catch (error: any) {
+      if (error.errors) {
+        const fieldErrors: Record<string, string> = {};
+        error.errors.forEach((err: any) => {
+          fieldErrors[err.path[0]] = err.message;
+        });
+        setErrors(fieldErrors);
+        toast({
+          title: "Validation Error",
+          description: "Please check the form and try again",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Submission Failed",
+          description: error.message || "An error occurred. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -30,6 +89,14 @@ const ConfirmationForm = () => {
       ...prev,
       [e.target.name]: e.target.value
     }));
+    // Clear error for this field
+    if (errors[e.target.name]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[e.target.name];
+        return newErrors;
+      });
+    }
   };
 
   return (
@@ -148,18 +215,41 @@ const ConfirmationForm = () => {
             />
           </div>
 
+          {/* Error Messages */}
+          {Object.keys(errors).length > 0 && (
+            <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+              <p className="text-sm text-destructive font-medium mb-2">Please fix the following errors:</p>
+              <ul className="list-disc list-inside text-sm text-destructive space-y-1">
+                {Object.entries(errors).map(([field, message]) => (
+                  <li key={field}>{message}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           <div className="pt-4 flex flex-col sm:flex-row gap-4">
             <Button 
               type="submit" 
+              disabled={isSubmitting}
               className="flex-1 h-12 text-base font-semibold"
             >
-              <CheckCircle className="w-5 h-5 mr-2" />
-              Confirm Booking
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  Confirming...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="w-5 h-5 mr-2" />
+                  Confirm Booking
+                </>
+              )}
             </Button>
             <Button 
               type="button" 
               variant="outline" 
               className="flex-1 h-12 text-base"
+              disabled={isSubmitting}
               onClick={() => {
                 setFormData({
                   confirmationNumber: "",
@@ -168,6 +258,7 @@ const ConfirmationForm = () => {
                   phone: "",
                   notes: ""
                 });
+                setErrors({});
               }}
             >
               Clear Form

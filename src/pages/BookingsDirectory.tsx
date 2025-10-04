@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Calendar, CheckCircle, Clock, QrCode } from "lucide-react";
@@ -14,10 +15,40 @@ const BookingsDirectory = () => {
   const [bookings, setBookings] = useState<any[]>([]);
   const [selectedBookingTypes, setSelectedBookingTypes] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [submissionCounts, setSubmissionCounts] = useState({
+    rsvp: 0,
+    confirmation: 0,
+    reservation: 0,
+    registry: 0,
+    barcode: 0,
+  });
 
   useEffect(() => {
     fetchBookings();
+    fetchSubmissionCounts();
   }, []);
+
+  const fetchSubmissionCounts = async () => {
+    try {
+      const [rsvpRes, confirmRes, reservRes, regRes, barcodeRes] = await Promise.all([
+        supabase.from('rsvp_submissions').select('id', { count: 'exact', head: true }),
+        supabase.from('confirmation_submissions').select('id', { count: 'exact', head: true }),
+        supabase.from('reservation_submissions').select('id', { count: 'exact', head: true }),
+        supabase.from('registry_submissions').select('id', { count: 'exact', head: true }),
+        supabase.from('barcode_submissions').select('id', { count: 'exact', head: true }),
+      ]);
+
+      setSubmissionCounts({
+        rsvp: rsvpRes.count || 0,
+        confirmation: confirmRes.count || 0,
+        reservation: reservRes.count || 0,
+        registry: regRes.count || 0,
+        barcode: barcodeRes.count || 0,
+      });
+    } catch (error) {
+      console.error('Error fetching submission counts:', error);
+    }
+  };
 
   const fetchBookings = async () => {
     try {
@@ -143,12 +174,52 @@ const BookingsDirectory = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>Active Bookings</CardTitle>
+          <CardTitle>Booking Statistics</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground">
-            {loading ? 'Loading booking data...' : 'No bookings found. Create new bookings to see them here.'}
-          </p>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="flex flex-col items-center p-4 bg-muted rounded-lg">
+              <Clock className="w-6 h-6 text-primary mb-2" />
+              <span className="text-2xl font-bold">{submissionCounts.rsvp}</span>
+              <span className="text-sm text-muted-foreground">RSVPs</span>
+            </div>
+            <div className="flex flex-col items-center p-4 bg-muted rounded-lg">
+              <CheckCircle className="w-6 h-6 text-primary mb-2" />
+              <span className="text-2xl font-bold">{submissionCounts.confirmation}</span>
+              <span className="text-sm text-muted-foreground">Confirmations</span>
+            </div>
+            <div className="flex flex-col items-center p-4 bg-muted rounded-lg">
+              <Calendar className="w-6 h-6 text-primary mb-2" />
+              <span className="text-2xl font-bold">{submissionCounts.reservation}</span>
+              <span className="text-sm text-muted-foreground">Reservations</span>
+            </div>
+            <div className="flex flex-col items-center p-4 bg-muted rounded-lg">
+              <Calendar className="w-6 h-6 text-primary mb-2" />
+              <span className="text-2xl font-bold">{submissionCounts.registry}</span>
+              <span className="text-sm text-muted-foreground">Registry</span>
+            </div>
+            <div className="flex flex-col items-center p-4 bg-muted rounded-lg">
+              <QrCode className="w-6 h-6 text-primary mb-2" />
+              <span className="text-2xl font-bold">{submissionCounts.barcode}</span>
+              <span className="text-sm text-muted-foreground">Barcodes</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Submissions</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <p className="text-muted-foreground">
+              {loading ? 'Loading submission data...' : `Total submissions across all booking types: ${Object.values(submissionCounts).reduce((a, b) => a + b, 0)}`}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Submissions are securely stored and can be reviewed through your admin panel.
+            </p>
+          </div>
         </CardContent>
       </Card>
     </div>

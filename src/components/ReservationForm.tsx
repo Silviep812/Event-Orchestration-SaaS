@@ -3,13 +3,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar as CalendarIcon, Clock, Users, MapPin, Phone, Mail } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, Users, MapPin, Phone, Mail, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { reservationSchema } from "@/lib/validation/bookingsValidation";
 
 const ReservationForm = () => {
   const { toast } = useToast();
@@ -22,13 +24,80 @@ const ReservationForm = () => {
     time: "",
     specialRequests: ""
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: "Reservation Submitted",
-      description: "We'll confirm your reservation shortly via email.",
-    });
+    setErrors({});
+    setIsSubmitting(true);
+
+    try {
+      if (!date) {
+        throw new Error("Please select a date");
+      }
+
+      const validatedData = reservationSchema.parse({
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        party_size: parseInt(formData.partySize),
+        preferred_date: format(date, "yyyy-MM-dd"),
+        preferred_time: formData.time,
+        special_requests: formData.specialRequests || undefined,
+      });
+
+      const { error } = await supabase
+        .from('reservation_submissions')
+        .insert([{
+          book_id: `res_${Date.now()}`,
+          name: validatedData.name,
+          email: validatedData.email,
+          phone: validatedData.phone,
+          party_size: validatedData.party_size,
+          preferred_date: validatedData.preferred_date,
+          preferred_time: validatedData.preferred_time,
+          special_requests: validatedData.special_requests,
+        }]);
+
+      if (error) throw error;
+
+      toast({
+        title: "Reservation Submitted",
+        description: "We'll confirm your reservation shortly via email.",
+      });
+
+      setFormData({
+        name: "",
+        email: "",
+        phone: "",
+        partySize: "",
+        time: "",
+        specialRequests: ""
+      });
+      setDate(undefined);
+    } catch (error: any) {
+      if (error.errors) {
+        const fieldErrors: Record<string, string> = {};
+        error.errors.forEach((err: any) => {
+          fieldErrors[err.path[0]] = err.message;
+        });
+        setErrors(fieldErrors);
+        toast({
+          title: "Validation Error",
+          description: "Please check the form and try again",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Submission Failed",
+          description: error.message || "An error occurred. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -36,6 +105,13 @@ const ReservationForm = () => {
       ...prev,
       [e.target.name]: e.target.value
     }));
+    if (errors[e.target.name]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[e.target.name];
+        return newErrors;
+      });
+    }
   };
 
   const timeSlots = [
@@ -205,17 +281,40 @@ const ReservationForm = () => {
             />
           </div>
 
+          {/* Error Messages */}
+          {Object.keys(errors).length > 0 && (
+            <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+              <p className="text-sm text-destructive font-medium mb-2">Please fix the following errors:</p>
+              <ul className="list-disc list-inside text-sm text-destructive space-y-1">
+                {Object.entries(errors).map(([field, message]) => (
+                  <li key={field}>{message}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           <div className="pt-4 flex flex-col sm:flex-row gap-4">
             <Button 
               type="submit" 
+              disabled={isSubmitting}
               className="flex-1 h-12 text-base font-semibold"
             >
-              <CalendarIcon className="w-5 h-5 mr-2" />
-              Submit Reservation
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                <>
+                  <CalendarIcon className="w-5 h-5 mr-2" />
+                  Submit Reservation
+                </>
+              )}
             </Button>
             <Button 
               type="button" 
               variant="outline" 
+              disabled={isSubmitting}
               className="flex-1 h-12 text-base"
               onClick={() => {
                 setFormData({
@@ -227,6 +326,7 @@ const ReservationForm = () => {
                   specialRequests: ""
                 });
                 setDate(undefined);
+                setErrors({});
               }}
             >
               Clear Form

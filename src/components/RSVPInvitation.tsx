@@ -5,8 +5,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useState } from "react";
-import { CheckCircle, XCircle, HelpCircle, Calendar, MapPin, Clock, User, Mail, Users } from "lucide-react";
+import { CheckCircle, XCircle, HelpCircle, Calendar, MapPin, Clock, User, Mail, Users, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { rsvpSchema } from "@/lib/validation/bookingsValidation";
 
 const RSVPInvitation = () => {
   const { toast } = useToast();
@@ -15,30 +17,73 @@ const RSVPInvitation = () => {
   const [guestEmail, setGuestEmail] = useState("");
   const [guestCount, setGuestCount] = useState("1");
   const [specialRequests, setSpecialRequests] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrors({});
+    setIsSubmitting(true);
     
-    if (!response || !guestName || !guestEmail) {
-      toast({
-        title: "Missing Information",
-        description: "Please fill in all required fields",
-        variant: "destructive",
+    try {
+      // Validate form data
+      const validatedData = rsvpSchema.parse({
+        guest_name: guestName,
+        guest_email: guestEmail,
+        response_type: response,
+        guest_count: response === "attending" ? parseInt(guestCount) : undefined,
+        special_requests: specialRequests || undefined,
       });
-      return;
+
+      // Save to database
+      const { error } = await supabase
+        .from('rsvp_submissions')
+        .insert([{
+          book_id: `rsvp_${Date.now()}`,
+          guest_name: validatedData.guest_name,
+          guest_email: validatedData.guest_email,
+          response_type: validatedData.response_type,
+          guest_count: validatedData.guest_count,
+          special_requests: validatedData.special_requests,
+        }]);
+
+      if (error) throw error;
+
+      toast({
+        title: "RSVP Submitted",
+        description: "Thank you for your response!",
+      });
+
+      // Reset form
+      setResponse("");
+      setGuestName("");
+      setGuestEmail("");
+      setGuestCount("1");
+      setSpecialRequests("");
+    } catch (error: any) {
+      if (error.errors) {
+        // Zod validation errors
+        const fieldErrors: Record<string, string> = {};
+        error.errors.forEach((err: any) => {
+          fieldErrors[err.path[0]] = err.message;
+        });
+        setErrors(fieldErrors);
+        toast({
+          title: "Validation Error",
+          description: "Please check the form and try again",
+          variant: "destructive",
+        });
+      } else {
+        // Database errors
+        toast({
+          title: "Submission Failed",
+          description: error.message || "An error occurred. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setIsSubmitting(false);
     }
-
-    toast({
-      title: "RSVP Submitted",
-      description: "Thank you for your response!",
-    });
-
-    // Reset form
-    setResponse("");
-    setGuestName("");
-    setGuestEmail("");
-    setGuestCount("1");
-    setSpecialRequests("");
   };
 
   const responseOptions = [
@@ -212,13 +257,33 @@ const RSVPInvitation = () => {
             />
           </div>
 
+          {/* Error Messages */}
+          {Object.keys(errors).length > 0 && (
+            <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+              <p className="text-sm text-destructive font-medium mb-2">Please fix the following errors:</p>
+              <ul className="list-disc list-inside text-sm text-destructive space-y-1">
+                {Object.entries(errors).map(([field, message]) => (
+                  <li key={field}>{message}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {/* Submit Button */}
           <Button
             type="submit"
             size="lg"
+            disabled={isSubmitting}
             className="w-full md:w-auto md:px-12 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg"
           >
-            Submit RSVP
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Submitting...
+              </>
+            ) : (
+              "Submit RSVP"
+            )}
           </Button>
         </form>
 

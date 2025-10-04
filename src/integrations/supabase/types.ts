@@ -68,6 +68,42 @@ export type Database = {
         }
         Relationships: []
       }
+      barcode_submissions: {
+        Row: {
+          book_id: string
+          created_at: string
+          email: string
+          event_name: string
+          id: string
+          notes: string | null
+          phone: string | null
+          ticket_number: string
+          updated_at: string
+        }
+        Insert: {
+          book_id: string
+          created_at?: string
+          email: string
+          event_name: string
+          id?: string
+          notes?: string | null
+          phone?: string | null
+          ticket_number: string
+          updated_at?: string
+        }
+        Update: {
+          book_id?: string
+          created_at?: string
+          email?: string
+          event_name?: string
+          id?: string
+          notes?: string | null
+          phone?: string | null
+          ticket_number?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       "Bookings Directory": {
         Row: {
           barcode: boolean | null
@@ -239,6 +275,42 @@ export type Database = {
           created_at?: string
           creator?: string[] | null
           subject?: string | null
+        }
+        Relationships: []
+      }
+      confirmation_submissions: {
+        Row: {
+          book_id: string
+          confirmation_number: string
+          created_at: string
+          email: string
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          book_id: string
+          confirmation_number: string
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          book_id?: string
+          confirmation_number?: string
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -1303,6 +1375,87 @@ export type Database = {
         }
         Relationships: []
       }
+      registry_submissions: {
+        Row: {
+          book_id: string
+          created_at: string
+          email: string
+          id: string
+          message: string | null
+          name: string
+          phone: string | null
+          selected_items: Json
+          total_amount: number
+          updated_at: string
+        }
+        Insert: {
+          book_id: string
+          created_at?: string
+          email: string
+          id?: string
+          message?: string | null
+          name: string
+          phone?: string | null
+          selected_items: Json
+          total_amount: number
+          updated_at?: string
+        }
+        Update: {
+          book_id?: string
+          created_at?: string
+          email?: string
+          id?: string
+          message?: string | null
+          name?: string
+          phone?: string | null
+          selected_items?: Json
+          total_amount?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      reservation_submissions: {
+        Row: {
+          book_id: string
+          created_at: string
+          email: string
+          id: string
+          name: string
+          party_size: number
+          phone: string
+          preferred_date: string
+          preferred_time: string
+          special_requests: string | null
+          updated_at: string
+        }
+        Insert: {
+          book_id: string
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+          party_size: number
+          phone: string
+          preferred_date: string
+          preferred_time: string
+          special_requests?: string | null
+          updated_at?: string
+        }
+        Update: {
+          book_id?: string
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          party_size?: number
+          phone?: string
+          preferred_date?: string
+          preferred_time?: string
+          special_requests?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       resource_categories: {
         Row: {
           created_at: string
@@ -1399,6 +1552,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      rsvp_submissions: {
+        Row: {
+          book_id: string
+          created_at: string
+          guest_count: number | null
+          guest_email: string
+          guest_name: string
+          id: string
+          response_type: string
+          special_requests: string | null
+          updated_at: string
+        }
+        Insert: {
+          book_id: string
+          created_at?: string
+          guest_count?: number | null
+          guest_email: string
+          guest_name: string
+          id?: string
+          response_type: string
+          special_requests?: string | null
+          updated_at?: string
+        }
+        Update: {
+          book_id?: string
+          created_at?: string
+          guest_count?: number | null
+          guest_email?: string
+          guest_name?: string
+          id?: string
+          response_type?: string
+          special_requests?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       serv_vendor_rental_assignments: {
         Row: {

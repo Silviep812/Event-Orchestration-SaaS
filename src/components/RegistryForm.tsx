@@ -4,9 +4,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Gift, ShoppingCart, Heart, Package } from "lucide-react";
+import { Gift, ShoppingCart, Heart, Package, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { registrySchema } from "@/lib/validation/bookingsValidation";
 
 interface RegistryItem {
   id: string;
@@ -26,6 +28,8 @@ const RegistryForm = () => {
     phone: "",
     message: ""
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const registryItems: RegistryItem[] = [
     {
@@ -78,20 +82,75 @@ const RegistryForm = () => {
     }
   ];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (selectedItems.length === 0) {
-      toast({
-        title: "No Items Selected",
-        description: "Please select at least one registry item.",
-        variant: "destructive"
+    setErrors({});
+    setIsSubmitting(true);
+
+    try {
+      if (selectedItems.length === 0) {
+        throw new Error("Please select at least one registry item");
+      }
+
+      const selectedItemsData = registryItems.filter(item => selectedItems.includes(item.id));
+
+      const validatedData = registrySchema.parse({
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone || undefined,
+        selected_items: selectedItems,
+        total_amount: getTotalAmount(),
+        message: formData.message || undefined,
       });
-      return;
+
+      const { error } = await supabase
+        .from('registry_submissions')
+        .insert([{
+          book_id: `reg_${Date.now()}`,
+          name: validatedData.name,
+          email: validatedData.email,
+          phone: validatedData.phone,
+          selected_items: JSON.parse(JSON.stringify(selectedItemsData)),
+          total_amount: validatedData.total_amount,
+          message: validatedData.message,
+        }]);
+
+      if (error) throw error;
+
+      toast({
+        title: "Registry Contribution Received",
+        description: `Thank you for contributing to ${selectedItems.length} item(s)!`,
+      });
+
+      setSelectedItems([]);
+      setFormData({
+        name: "",
+        email: "",
+        phone: "",
+        message: ""
+      });
+    } catch (error: any) {
+      if (error.errors) {
+        const fieldErrors: Record<string, string> = {};
+        error.errors.forEach((err: any) => {
+          fieldErrors[err.path[0]] = err.message;
+        });
+        setErrors(fieldErrors);
+        toast({
+          title: "Validation Error",
+          description: "Please check the form and try again",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Submission Failed",
+          description: error.message || "An error occurred. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setIsSubmitting(false);
     }
-    toast({
-      title: "Registry Contribution Received",
-      description: `Thank you for contributing to ${selectedItems.length} item(s)!`,
-    });
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -99,6 +158,13 @@ const RegistryForm = () => {
       ...prev,
       [e.target.name]: e.target.value
     }));
+    if (errors[e.target.name]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[e.target.name];
+        return newErrors;
+      });
+    }
   };
 
   const toggleItem = (itemId: string) => {
@@ -264,18 +330,40 @@ const RegistryForm = () => {
             />
           </div>
 
+          {/* Error Messages */}
+          {Object.keys(errors).length > 0 && (
+            <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+              <p className="text-sm text-destructive font-medium mb-2">Please fix the following errors:</p>
+              <ul className="list-disc list-inside text-sm text-destructive space-y-1">
+                {Object.entries(errors).map(([field, message]) => (
+                  <li key={field}>{message}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           <div className="pt-4 flex flex-col sm:flex-row gap-4">
             <Button 
               type="submit" 
+              disabled={isSubmitting || selectedItems.length === 0}
               className="flex-1 h-12 text-base font-semibold"
-              disabled={selectedItems.length === 0}
             >
-              <Gift className="w-5 h-5 mr-2" />
-              Confirm Contribution
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                <>
+                  <Gift className="w-5 h-5 mr-2" />
+                  Confirm Contribution
+                </>
+              )}
             </Button>
             <Button 
               type="button" 
               variant="outline" 
+              disabled={isSubmitting}
               className="flex-1 h-12 text-base"
               onClick={() => {
                 setSelectedItems([]);
@@ -285,6 +373,7 @@ const RegistryForm = () => {
                   phone: "",
                   message: ""
                 });
+                setErrors({});
               }}
             >
               Clear Selection

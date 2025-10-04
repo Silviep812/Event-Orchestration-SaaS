@@ -3,9 +3,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { QrCode } from "lucide-react";
+import { QrCode, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { barcodeSchema } from "@/lib/validation/bookingsValidation";
 
 const BarCodeForm = () => {
   const { toast } = useToast();
@@ -16,13 +18,74 @@ const BarCodeForm = () => {
     phone: "",
     notes: ""
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: "Barcode Generated",
-      description: "Your event barcode has been generated successfully.",
-    });
+    setErrors({});
+    setIsSubmitting(true);
+
+    try {
+      if (!formData.ticketNumber) {
+        throw new Error("Please generate a barcode number first");
+      }
+
+      const validatedData = barcodeSchema.parse({
+        event_name: formData.eventName,
+        ticket_number: formData.ticketNumber,
+        email: formData.email,
+        phone: formData.phone || undefined,
+        notes: formData.notes || undefined,
+      });
+
+      const { error } = await supabase
+        .from('barcode_submissions')
+        .insert([{
+          book_id: `bar_${Date.now()}`,
+          event_name: validatedData.event_name,
+          ticket_number: validatedData.ticket_number,
+          email: validatedData.email,
+          phone: validatedData.phone,
+          notes: validatedData.notes,
+        }]);
+
+      if (error) throw error;
+
+      toast({
+        title: "Barcode Generated",
+        description: "Your event barcode has been generated successfully.",
+      });
+
+      setFormData({
+        eventName: "",
+        ticketNumber: "",
+        email: "",
+        phone: "",
+        notes: ""
+      });
+    } catch (error: any) {
+      if (error.errors) {
+        const fieldErrors: Record<string, string> = {};
+        error.errors.forEach((err: any) => {
+          fieldErrors[err.path[0]] = err.message;
+        });
+        setErrors(fieldErrors);
+        toast({
+          title: "Validation Error",
+          description: "Please check the form and try again",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Submission Failed",
+          description: error.message || "An error occurred. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -30,6 +93,13 @@ const BarCodeForm = () => {
       ...formData,
       [e.target.name]: e.target.value
     });
+    if (errors[e.target.name]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[e.target.name];
+        return newErrors;
+      });
+    }
   };
 
   const generateBarcode = () => {
@@ -120,21 +190,46 @@ const BarCodeForm = () => {
             />
           </div>
 
+          {/* Error Messages */}
+          {Object.keys(errors).length > 0 && (
+            <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+              <p className="text-sm text-destructive font-medium mb-2">Please fix the following errors:</p>
+              <ul className="list-disc list-inside text-sm text-destructive space-y-1">
+                {Object.entries(errors).map(([field, message]) => (
+                  <li key={field}>{message}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           <div className="flex gap-3 pt-4">
-            <Button type="submit" className="flex-1">
-              <QrCode className="mr-2 h-4 w-4" />
-              Generate Barcode
+            <Button type="submit" disabled={isSubmitting} className="flex-1">
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                <>
+                  <QrCode className="mr-2 h-4 w-4" />
+                  Generate Barcode
+                </>
+              )}
             </Button>
             <Button 
               type="button" 
               variant="outline" 
-              onClick={() => setFormData({
-                eventName: "",
-                ticketNumber: "",
-                email: "",
-                phone: "",
-                notes: ""
-              })}
+              disabled={isSubmitting}
+              onClick={() => {
+                setFormData({
+                  eventName: "",
+                  ticketNumber: "",
+                  email: "",
+                  phone: "",
+                  notes: ""
+                });
+                setErrors({});
+              }}
             >
               Clear Form
             </Button>
