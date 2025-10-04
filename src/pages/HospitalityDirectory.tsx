@@ -194,6 +194,7 @@ const HospitalityDirectory = () => {
                         <div className="flex items-center gap-2 text-sm">
                           <DollarSign size={16} className="text-muted-foreground" />
                           <span className="font-semibold">${profile.cost.toLocaleString()}</span>
+                          <span className="text-muted-foreground">per night</span>
                         </div>
                       )}
 
