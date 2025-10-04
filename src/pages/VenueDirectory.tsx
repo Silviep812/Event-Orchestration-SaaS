@@ -226,7 +226,11 @@ const VenueDirectory = () => {
                 const IconComponent = typeOption?.icon || HelpCircle;
                 
                 return (
-                  <Card key={profile.id || profile.created_at} className="hover:shadow-lg transition-shadow">
+                  <Card key={profile.id || profile.created_at} className="hover:shadow-lg transition-shadow relative"
+                    onClick={(e) => {
+                      console.log('Card clicked:', profile.id);
+                    }}
+                  >
                     <CardHeader className="pb-3">
                       <div className="flex items-center gap-2">
                         <IconComponent className="h-5 w-5 text-primary" />
@@ -255,10 +259,12 @@ const VenueDirectory = () => {
                         <p><strong>Location:</strong> {[profile.city, profile.state, profile.zip].filter(Boolean).join(', ') || 'Location not specified'}</p>
                       </div>
                       
-                      <div className="pt-3 border-t">
+                      <div className="pt-3 border-t mt-3">
                         <Button 
-                          className="w-full" 
-                          onClick={() => {
+                          className="w-full relative z-10 cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            console.log('Button clicked for venue:', profile.id);
                             const locationStr = [profile.city, profile.state, profile.zip].filter(Boolean).join(', ');
                             navigate('/dashboard/bookings', { 
                               state: { 
