@@ -70,6 +70,7 @@ export type Database = {
       }
       "Bookings Directory": {
         Row: {
+          barcode: boolean | null
           book_id: string
           confirmation: boolean | null
           created_at: string
@@ -78,6 +79,7 @@ export type Database = {
           rsvp: boolean | null
         }
         Insert: {
+          barcode?: boolean | null
           book_id: string
           confirmation?: boolean | null
           created_at?: string
@@ -86,6 +88,7 @@ export type Database = {
           rsvp?: boolean | null
         }
         Update: {
+          barcode?: boolean | null
           book_id?: string
           confirmation?: boolean | null
           created_at?: string
