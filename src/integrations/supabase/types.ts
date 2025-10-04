@@ -1027,6 +1027,7 @@ export type Database = {
           business_name: string
           city: string | null
           contact_name: string | null
+          cost: number | null
           created_at: string
           email: string | null
           hospitality_type: number | null
@@ -1041,6 +1042,7 @@ export type Database = {
           business_name: string
           city?: string | null
           contact_name?: string | null
+          cost?: number | null
           created_at?: string
           email?: string | null
           hospitality_type?: number | null
@@ -1055,6 +1057,7 @@ export type Database = {
           business_name?: string
           city?: string | null
           contact_name?: string | null
+          cost?: number | null
           created_at?: string
           email?: string | null
           hospitality_type?: number | null
