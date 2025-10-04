@@ -221,6 +221,7 @@ const VenueDirectory = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredProfiles.map((profile) => {
+                console.log('Rendering venue profile:', profile.id, profile.business_name, 'has venue_type_id:', profile.venue_type_id);
                 const venueType = getVenueTypeById(profile.venue_type_id);
                 const typeOption = venueTypeOptions.find(opt => opt.value === profile.venue_type_id);
                 const IconComponent = typeOption?.icon || HelpCircle;
