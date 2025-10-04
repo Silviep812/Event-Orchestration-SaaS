@@ -181,6 +181,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
         }
 
         const transformedThemes: ThemeDetails[] = data
+          .filter(theme => theme.premium !== true)
           .map((theme) => {
             const category = getCategoryFromName(theme.name);
             const styles = getThemeStyles(category);
