@@ -245,9 +245,11 @@ const VenueDirectory = () => {
                         </p>
                       </div>
                       
-                      <div className="text-sm">
-                        {profile.price && (
-                          <p><strong>Price:</strong> ${profile.price}</p>
+                      <div className="text-sm space-y-1">
+                        {profile.cost && (
+                          <p className="text-primary font-semibold text-base">
+                            <strong>Cost:</strong> ${Number(profile.cost).toLocaleString()}
+                          </p>
                         )}
                         {profile.capacity && (
                           <p><strong>Capacity:</strong> {profile.capacity} guests</p>

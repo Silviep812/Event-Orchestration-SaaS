@@ -3076,6 +3076,7 @@ export type Database = {
           capacity: number | null
           city: string | null
           contact_name: string | null
+          cost: number | null
           created_at: string
           email: string | null
           id: string
@@ -3091,6 +3092,7 @@ export type Database = {
           capacity?: number | null
           city?: string | null
           contact_name?: string | null
+          cost?: number | null
           created_at?: string
           email?: string | null
           id?: string
@@ -3106,6 +3108,7 @@ export type Database = {
           capacity?: number | null
           city?: string | null
           contact_name?: string | null
+          cost?: number | null
           created_at?: string
           email?: string | null
           id?: string
