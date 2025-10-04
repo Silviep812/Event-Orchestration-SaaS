@@ -20,8 +20,7 @@ import {
   Building2,
   Coffee,
   ShoppingCart,
-  Truck,
-  Car
+  Truck
 } from "lucide-react";
 
 import {
@@ -172,13 +171,6 @@ const menuGroups = [
         title: "Service Vendor",
         url: "/dashboard/service-vendor",
         icon: Truck,
-        color: "text-orange-600",
-        hoverColor: "hover:bg-orange-50"
-      },
-      {
-        title: "Transportation",
-        url: "/dashboard/transportation",
-        icon: Car,
         color: "text-orange-600",
         hoverColor: "hover:bg-orange-50"
       },
