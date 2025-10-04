@@ -1427,6 +1427,7 @@ export type Database = {
           preferred_time: string
           special_requests: string | null
           updated_at: string
+          venue_id: string | null
         }
         Insert: {
           book_id: string
@@ -1440,6 +1441,7 @@ export type Database = {
           preferred_time: string
           special_requests?: string | null
           updated_at?: string
+          venue_id?: string | null
         }
         Update: {
           book_id?: string
@@ -1453,8 +1455,17 @@ export type Database = {
           preferred_time?: string
           special_requests?: string | null
           updated_at?: string
+          venue_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "reservation_submissions_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       resource_categories: {
         Row: {

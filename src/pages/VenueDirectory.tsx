@@ -3,8 +3,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Building, Home, Utensils, MapPin, Trees, Dumbbell, Warehouse, Users, Building2, Hotel, ShoppingBag, HelpCircle } from "lucide-react";
+import { Building, Home, Utensils, MapPin, Trees, Dumbbell, Warehouse, Users, Building2, Hotel, ShoppingBag, HelpCircle, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -16,6 +17,7 @@ const VenueDirectory = () => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   // Fetch venue profiles and types from Supabase
   useEffect(() => {
@@ -251,6 +253,27 @@ const VenueDirectory = () => {
                           <p><strong>Capacity:</strong> {profile.capacity} guests</p>
                         )}
                         <p><strong>Location:</strong> {[profile.city, profile.state, profile.zip].filter(Boolean).join(', ') || 'Location not specified'}</p>
+                      </div>
+                      
+                      <div className="pt-3 border-t">
+                        <Button 
+                          className="w-full" 
+                          onClick={() => {
+                            const locationStr = [profile.city, profile.state, profile.zip].filter(Boolean).join(', ');
+                            navigate('/dashboard/bookings', { 
+                              state: { 
+                                venueId: profile.id,
+                                venueName: profile.business_name || 'Venue',
+                                venueLocation: locationStr,
+                                venueCapacity: profile.capacity,
+                                autoSelectReservation: true
+                              }
+                            });
+                          }}
+                        >
+                          <Calendar className="w-4 h-4 mr-2" />
+                          Make Reservation
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>

@@ -13,7 +13,14 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { reservationSchema } from "@/lib/validation/bookingsValidation";
 
-const ReservationForm = () => {
+interface ReservationFormProps {
+  venueId?: string;
+  venueName?: string;
+  venueLocation?: string;
+  venueCapacity?: number;
+}
+
+const ReservationForm = ({ venueId, venueName, venueLocation, venueCapacity }: ReservationFormProps = {}) => {
   const { toast } = useToast();
   const [date, setDate] = useState<Date>();
   const [formData, setFormData] = useState({
@@ -58,6 +65,7 @@ const ReservationForm = () => {
           preferred_date: validatedData.preferred_date,
           preferred_time: validatedData.preferred_time,
           special_requests: validatedData.special_requests,
+          venue_id: venueId || null,
         }]);
 
       if (error) throw error;
@@ -135,17 +143,32 @@ const ReservationForm = () => {
       </CardHeader>
 
       <CardContent className="p-6 md:p-8">
-        <div className="mb-8 p-6 bg-muted/50 rounded-lg border border-border">
-          <h3 className="font-semibold text-lg flex items-center gap-2 mb-4">
-            <MapPin className="w-5 h-5 text-primary" />
-            Venue Information
-          </h3>
-          <div className="space-y-2 text-sm text-muted-foreground">
-            <p><strong className="text-foreground">Location:</strong> Grand Event Center, 123 Main Street</p>
-            <p><strong className="text-foreground">Available Times:</strong> 9:00 AM - 8:00 PM</p>
-            <p><strong className="text-foreground">Capacity:</strong> Up to 200 guests</p>
+        {(venueName || venueLocation) ? (
+          <div className="mb-8 p-6 bg-muted/50 rounded-lg border border-border">
+            <h3 className="font-semibold text-lg flex items-center gap-2 mb-4">
+              <MapPin className="w-5 h-5 text-primary" />
+              Selected Venue
+            </h3>
+            <div className="space-y-2 text-sm text-muted-foreground">
+              {venueName && <p><strong className="text-foreground">Venue:</strong> {venueName}</p>}
+              {venueLocation && <p><strong className="text-foreground">Location:</strong> {venueLocation}</p>}
+              <p><strong className="text-foreground">Available Times:</strong> 9:00 AM - 8:00 PM</p>
+              {venueCapacity && <p><strong className="text-foreground">Capacity:</strong> Up to {venueCapacity} guests</p>}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="mb-8 p-6 bg-muted/50 rounded-lg border border-border">
+            <h3 className="font-semibold text-lg flex items-center gap-2 mb-4">
+              <MapPin className="w-5 h-5 text-primary" />
+              Venue Information
+            </h3>
+            <div className="space-y-2 text-sm text-muted-foreground">
+              <p><strong className="text-foreground">Location:</strong> Grand Event Center, 123 Main Street</p>
+              <p><strong className="text-foreground">Available Times:</strong> 9:00 AM - 8:00 PM</p>
+              <p><strong className="text-foreground">Capacity:</strong> Up to 200 guests</p>
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid md:grid-cols-2 gap-6">

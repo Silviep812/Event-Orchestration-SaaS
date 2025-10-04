@@ -3,6 +3,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Calendar, CheckCircle, Clock, QrCode } from "lucide-react";
 import RSVPInvitation from "@/components/RSVPInvitation";
@@ -12,6 +13,7 @@ import RegistryForm from "@/components/RegistryForm";
 import BarCodeForm from "@/components/BarCodeForm";
 
 const BookingsDirectory = () => {
+  const location = useLocation();
   const [bookings, setBookings] = useState<any[]>([]);
   const [selectedBookingTypes, setSelectedBookingTypes] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -23,9 +25,23 @@ const BookingsDirectory = () => {
     barcode: 0,
   });
 
+  // Extract venue data from navigation state
+  const venueData = location.state as {
+    venueId?: string;
+    venueName?: string;
+    venueLocation?: string;
+    venueCapacity?: number;
+    autoSelectReservation?: boolean;
+  } | null;
+
   useEffect(() => {
     fetchBookings();
     fetchSubmissionCounts();
+    
+    // Auto-select reservation if coming from venue
+    if (venueData?.autoSelectReservation && !selectedBookingTypes.includes('reservation')) {
+      setSelectedBookingTypes(['reservation']);
+    }
   }, []);
 
   const fetchSubmissionCounts = async () => {
@@ -144,7 +160,12 @@ const BookingsDirectory = () => {
 
       {selectedBookingTypes.includes('reservation') && (
         <div className="animate-fade-in">
-          <ReservationForm />
+          <ReservationForm 
+            venueId={venueData?.venueId}
+            venueName={venueData?.venueName}
+            venueLocation={venueData?.venueLocation}
+            venueCapacity={venueData?.venueCapacity}
+          />
         </div>
       )}
 
