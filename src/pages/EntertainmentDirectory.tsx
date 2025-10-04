@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Music, Mic, Users, MessageCircle, Presentation, Theater, HelpCircle } from "lucide-react";
@@ -9,6 +10,7 @@ const EntertainmentDirectory = () => {
   const [entertainmentTypes, setEntertainmentTypes] = useState<any[]>([]);
   const [entertainmentProfiles, setEntertainmentProfiles] = useState<any[]>([]);
   const [selectedEntertainmentTypes, setSelectedEntertainmentTypes] = useState<string[]>([]);
+  const [locationFilter, setLocationFilter] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,12 +51,18 @@ const EntertainmentDirectory = () => {
     fetchData();
   }, []);
 
-  // Filter profiles based on selected entertainment types
-  const filteredProfiles = selectedEntertainmentTypes.length > 0 
-    ? entertainmentProfiles.filter(profile => 
-        selectedEntertainmentTypes.includes(profile.ent_type_id?.toString())
-      )
-    : entertainmentProfiles;
+  // Filter profiles based on selected entertainment types and location
+  const filteredProfiles = entertainmentProfiles.filter(profile => {
+    const matchesType = selectedEntertainmentTypes.length === 0 || 
+      selectedEntertainmentTypes.includes(profile.ent_type_id?.toString());
+    
+    const matchesLocation = !locationFilter || 
+      profile.city?.toLowerCase().includes(locationFilter.toLowerCase()) ||
+      profile.state?.toLowerCase().includes(locationFilter.toLowerCase()) ||
+      profile.zip?.toString().includes(locationFilter);
+    
+    return matchesType && matchesLocation;
+  });
 
   // Get icon for entertainment type
   const getEntertainmentIcon = (typeName: string) => {
@@ -105,6 +113,16 @@ const EntertainmentDirectory = () => {
           ) : (
             <>
               <div className="space-y-3">
+                <label className="text-sm font-medium">Filter by Location</label>
+                <Input
+                  placeholder="Enter city, state, or zip code"
+                  value={locationFilter}
+                  onChange={(e) => setLocationFilter(e.target.value)}
+                  className="max-w-md"
+                />
+              </div>
+              
+              <div className="space-y-3">
                 <label className="text-sm font-medium">Entertainment Types (select all that apply)</label>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                   {entertainmentTypes.map((type) => {
@@ -153,11 +171,14 @@ const EntertainmentDirectory = () => {
           )}
 
           <Button 
-            onClick={() => setSelectedEntertainmentTypes([])} 
+            onClick={() => {
+              setSelectedEntertainmentTypes([]);
+              setLocationFilter("");
+            }} 
             variant="outline"
-            disabled={selectedEntertainmentTypes.length === 0}
+            disabled={selectedEntertainmentTypes.length === 0 && !locationFilter}
           >
-            Clear All Selections
+            Clear All Filters
           </Button>
         </CardContent>
       </Card>

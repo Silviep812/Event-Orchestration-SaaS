@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ChefHat, Camera, Utensils, Cake, Truck, Flower, Package, Car, PersonStanding } from "lucide-react";
@@ -9,6 +10,7 @@ const ServiceVendorDirectory = () => {
   const [vendorTypes, setVendorTypes] = useState<any[]>([]);
   const [vendorProfiles, setVendorProfiles] = useState<any[]>([]);
   const [selectedVendorTypes, setSelectedVendorTypes] = useState<string[]>([]);
+  const [locationFilter, setLocationFilter] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,12 +51,18 @@ const ServiceVendorDirectory = () => {
     fetchData();
   }, []);
 
-  // Filter profiles based on selected vendor types
-  const filteredProfiles = selectedVendorTypes.length > 0 
-    ? vendorProfiles.filter(profile => 
-        selectedVendorTypes.includes(profile.vendor_sup_type_id?.toString())
-      )
-    : vendorProfiles;
+  // Filter profiles based on selected vendor types and location
+  const filteredProfiles = vendorProfiles.filter(profile => {
+    const matchesType = selectedVendorTypes.length === 0 || 
+      selectedVendorTypes.includes(profile.vendor_sup_type_id?.toString());
+    
+    const matchesLocation = !locationFilter || 
+      profile.city?.toLowerCase().includes(locationFilter.toLowerCase()) ||
+      profile.state?.toLowerCase().includes(locationFilter.toLowerCase()) ||
+      profile.zip?.toString().includes(locationFilter);
+    
+    return matchesType && matchesLocation;
+  });
 
   // Get icon for vendor type
   const getVendorIcon = (typeName: string) => {
@@ -110,6 +118,16 @@ const ServiceVendorDirectory = () => {
           ) : (
             <>
               <div className="space-y-3">
+                <label className="text-sm font-medium">Filter by Location</label>
+                <Input
+                  placeholder="Enter city, state, or zip code"
+                  value={locationFilter}
+                  onChange={(e) => setLocationFilter(e.target.value)}
+                  className="max-w-md"
+                />
+              </div>
+              
+              <div className="space-y-3">
                 <label className="text-sm font-medium">Vendor Types (select all that apply)</label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {vendorTypes.map((type) => {
@@ -158,11 +176,14 @@ const ServiceVendorDirectory = () => {
           )}
 
           <Button 
-            onClick={() => setSelectedVendorTypes([])} 
+            onClick={() => {
+              setSelectedVendorTypes([]);
+              setLocationFilter("");
+            }} 
             variant="outline"
-            disabled={selectedVendorTypes.length === 0}
+            disabled={selectedVendorTypes.length === 0 && !locationFilter}
           >
-            Clear All Selections
+            Clear All Filters
           </Button>
         </CardContent>
       </Card>

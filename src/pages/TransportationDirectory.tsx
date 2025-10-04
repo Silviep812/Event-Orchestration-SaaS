@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Bus, Car, Truck, Crown, Package } from "lucide-react";
@@ -9,6 +10,7 @@ const TransportationDirectory = () => {
   const [transportationTypes, setTransportationTypes] = useState<any[]>([]);
   const [transportationProfiles, setTransportationProfiles] = useState<any[]>([]);
   const [selectedTransportationTypes, setSelectedTransportationTypes] = useState<string[]>([]);
+  const [locationFilter, setLocationFilter] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,12 +51,18 @@ const TransportationDirectory = () => {
     fetchData();
   }, []);
 
-  // Filter profiles based on selected transportation types
-  const filteredProfiles = selectedTransportationTypes.length > 0 
-    ? transportationProfiles.filter(profile => 
-        selectedTransportationTypes.includes(profile.transp_type_id?.toString())
-      )
-    : transportationProfiles;
+  // Filter profiles based on selected transportation types and location
+  const filteredProfiles = transportationProfiles.filter(profile => {
+    const matchesType = selectedTransportationTypes.length === 0 || 
+      selectedTransportationTypes.includes(profile.transp_type_id?.toString());
+    
+    const matchesLocation = !locationFilter || 
+      profile.city?.toLowerCase().includes(locationFilter.toLowerCase()) ||
+      profile.state?.toLowerCase().includes(locationFilter.toLowerCase()) ||
+      profile.zip?.toString().includes(locationFilter);
+    
+    return matchesType && matchesLocation;
+  });
 
   // Get icon for transportation type
   const getTransportationIcon = (typeName: string) => {
@@ -98,6 +106,16 @@ const TransportationDirectory = () => {
             <p className="text-center py-4 text-destructive">Error loading data: {error}</p>
           ) : (
             <>
+              <div className="space-y-3">
+                <label className="text-sm font-medium">Filter by Location</label>
+                <Input
+                  placeholder="Enter city, state, or zip code"
+                  value={locationFilter}
+                  onChange={(e) => setLocationFilter(e.target.value)}
+                  className="max-w-md"
+                />
+              </div>
+              
               <div className="space-y-3">
                 <label className="text-sm font-medium">Transportation Types (select all that apply)</label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -147,11 +165,14 @@ const TransportationDirectory = () => {
           )}
 
           <Button 
-            onClick={() => setSelectedTransportationTypes([])} 
+            onClick={() => {
+              setSelectedTransportationTypes([]);
+              setLocationFilter("");
+            }} 
             variant="outline"
-            disabled={selectedTransportationTypes.length === 0}
+            disabled={selectedTransportationTypes.length === 0 && !locationFilter}
           >
-            Clear All Selections
+            Clear All Filters
           </Button>
         </CardContent>
       </Card>

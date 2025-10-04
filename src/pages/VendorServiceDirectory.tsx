@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Truck, Camera, Lightbulb, Music, Gamepad2, Flower, Home, Table } from "lucide-react";
@@ -9,6 +10,7 @@ const VendorServiceDirectory = () => {
   const [serviceTypes, setServiceTypes] = useState<any[]>([]);
   const [serviceProfiles, setServiceProfiles] = useState<any[]>([]);
   const [selectedServiceTypes, setSelectedServiceTypes] = useState<string[]>([]);
+  const [locationFilter, setLocationFilter] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,14 +53,20 @@ const VendorServiceDirectory = () => {
     fetchData();
   }, []);
 
-  // Filter profiles based on selected service types
-  const filteredProfiles = selectedServiceTypes.length > 0 
-    ? serviceProfiles.filter(profile => 
-        profile.serv_vendor_rental_assignments?.some((assignment: any) => 
-          selectedServiceTypes.includes(assignment.vendor_rental_types?.id?.toString())
-        )
-      )
-    : serviceProfiles;
+  // Filter profiles based on selected service types and location
+  const filteredProfiles = serviceProfiles.filter(profile => {
+    const matchesType = selectedServiceTypes.length === 0 || 
+      profile.serv_vendor_rental_assignments?.some((assignment: any) => 
+        selectedServiceTypes.includes(assignment.vendor_rental_types?.id?.toString())
+      );
+    
+    const matchesLocation = !locationFilter || 
+      profile.city?.toLowerCase().includes(locationFilter.toLowerCase()) ||
+      profile.state?.toLowerCase().includes(locationFilter.toLowerCase()) ||
+      profile.zip?.toString().includes(locationFilter);
+    
+    return matchesType && matchesLocation;
+  });
 
   // Get icon for service type
   const getServiceIcon = (typeName: string) => {
@@ -110,6 +118,16 @@ const VendorServiceDirectory = () => {
           ) : (
             <>
               <div className="space-y-3">
+                <label className="text-sm font-medium">Filter by Location</label>
+                <Input
+                  placeholder="Enter city, state, or zip code"
+                  value={locationFilter}
+                  onChange={(e) => setLocationFilter(e.target.value)}
+                  className="max-w-md"
+                />
+              </div>
+              
+              <div className="space-y-3">
                 <label className="text-sm font-medium">Service Types (select all that apply)</label>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                   {serviceTypes.map((type) => {
@@ -158,11 +176,14 @@ const VendorServiceDirectory = () => {
           )}
 
           <Button 
-            onClick={() => setSelectedServiceTypes([])} 
+            onClick={() => {
+              setSelectedServiceTypes([]);
+              setLocationFilter("");
+            }} 
             variant="outline"
-            disabled={selectedServiceTypes.length === 0}
+            disabled={selectedServiceTypes.length === 0 && !locationFilter}
           >
-            Clear All Selections
+            Clear All Filters
           </Button>
         </CardContent>
       </Card>

@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Building, Home, Utensils, MapPin, Trees, Dumbbell, Warehouse, Users, Building2, Hotel, ShoppingBag, HelpCircle } from "lucide-react";
@@ -11,6 +12,7 @@ const VenueDirectory = () => {
   const [venueProfiles, setVenueProfiles] = useState<any[]>([]);
   const [venueTypes, setVenueTypes] = useState<any[]>([]);
   const [selectedVenueTypes, setSelectedVenueTypes] = useState<string[]>([]);
+  const [locationFilter, setLocationFilter] = useState("");
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -70,12 +72,17 @@ const VenueDirectory = () => {
     return venueTypes.find(type => type.id === typeId);
   };
 
-  // Filter profiles based on selected venue types and user_id
+  // Filter profiles based on selected venue types, location, and user_id
   const filteredProfiles = venueProfiles.filter(profile => {
-    return (
-      (!profile.user_id || (user && profile.user_id === user.id)) &&
-      (selectedVenueTypes.length === 0 || selectedVenueTypes.includes(profile.venue_type_id))
-    );
+    const matchesUser = !profile.user_id || (user && profile.user_id === user.id);
+    const matchesType = selectedVenueTypes.length === 0 || selectedVenueTypes.includes(profile.venue_type_id);
+    
+    const matchesLocation = !locationFilter || 
+      profile.city?.toLowerCase().includes(locationFilter.toLowerCase()) ||
+      profile.state?.toLowerCase().includes(locationFilter.toLowerCase()) ||
+      profile.zip?.toString().includes(locationFilter);
+    
+    return matchesUser && matchesType && matchesLocation;
   });
 
   // Create venue type options from fetched data
@@ -132,6 +139,16 @@ const VenueDirectory = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-3">
+            <label className="text-sm font-medium">Filter by Location</label>
+            <Input
+              placeholder="Enter city, state, or zip code"
+              value={locationFilter}
+              onChange={(e) => setLocationFilter(e.target.value)}
+              className="max-w-md"
+            />
+          </div>
+          
+          <div className="space-y-3">
             <label className="text-sm font-medium">Venue Types (select all that apply)</label>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {venueTypeOptions.map((option) => {
@@ -174,11 +191,14 @@ const VenueDirectory = () => {
           )}
 
           <Button 
-            onClick={() => setSelectedVenueTypes([])} 
+            onClick={() => {
+              setSelectedVenueTypes([]);
+              setLocationFilter("");
+            }} 
             variant="outline"
-            disabled={selectedVenueTypes.length === 0}
+            disabled={selectedVenueTypes.length === 0 && !locationFilter}
           >
-            Clear All Selections
+            Clear All Filters
           </Button>
         </CardContent>
       </Card>
