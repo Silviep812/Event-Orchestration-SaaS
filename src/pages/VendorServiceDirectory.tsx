@@ -260,19 +260,6 @@ const VendorServiceDirectory = () => {
                         <p className="text-sm text-muted-foreground">{profile.description}</p>
                       )}
                       
-                      {profile.items_available && profile.items_available.length > 0 && (
-                        <div>
-                          <p className="text-sm font-medium mb-1">Items Available:</p>
-                          <div className="flex flex-wrap gap-1">
-                            {profile.items_available.map((item: string, index: number) => (
-                              <span key={index} className="text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded">
-                                {item}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      
                       <Button className="w-full mt-4">
                         Place Order
                       </Button>
