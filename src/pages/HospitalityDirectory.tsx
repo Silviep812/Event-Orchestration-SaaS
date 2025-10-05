@@ -63,7 +63,7 @@ const HospitalityDirectory = () => {
 
   const hospitalityTypeOptions = hospitalityTypes.map(type => ({
     value: type.id,
-    label: type.name,
+    label: type.name.charAt(0).toUpperCase() + type.name.slice(1),
     icon: getIconForType(type.name)
   }));
 
@@ -95,7 +95,7 @@ const HospitalityDirectory = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-3">
-            <label className="text-sm font-medium">Hospitality Types (select all that apply)</label>
+            <label className="text-sm font-medium">Hospitality Types</label>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {hospitalityTypeOptions.map((option) => {
                 const IconComponent = option.icon;
