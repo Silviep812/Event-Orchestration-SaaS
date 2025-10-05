@@ -222,20 +222,32 @@ const VendorServiceDirectory = () => {
                       </p>
                     </CardHeader>
                     <CardContent className="space-y-3">
-                      <div>
-                        <p className="font-semibold">{profile.contact_name}</p>
-                        <p className="text-sm text-muted-foreground">{profile.email}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {profile.phone_number ? profile.phone_number : 'No phone provided'}
-                        </p>
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">Contact Person</p>
+                        <p className="font-semibold">{profile.contact_name || 'N/A'}</p>
                       </div>
                       
-                      <div className="space-y-2 text-sm">
-                        {profile.price && (
-                          <p><strong>Price:</strong> ${profile.price}</p>
-                        )}
-                        <p><strong>Location:</strong> {[profile.city, profile.state, profile.zip].filter(Boolean).join(', ') || 'Location not specified'}</p>
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">Email</p>
+                        <p className="text-sm">{profile.email || 'N/A'}</p>
                       </div>
+                      
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">Phone</p>
+                        <p className="text-sm">{profile.phone_number || 'N/A'}</p>
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">Address</p>
+                        <p className="text-sm">{[profile.city, profile.state, profile.zip].filter(Boolean).join(', ') || 'Location not specified'}</p>
+                      </div>
+                      
+                      {profile.price && (
+                        <div className="space-y-1">
+                          <p className="text-sm text-muted-foreground">Starting Cost</p>
+                          <p className="text-lg font-bold text-primary">${profile.price}</p>
+                        </div>
+                      )}
                       
                       {profile.description && (
                         <p className="text-sm text-muted-foreground">{profile.description}</p>
