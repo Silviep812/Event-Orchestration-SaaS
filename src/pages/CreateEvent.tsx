@@ -36,9 +36,9 @@ export default function CreateEvent() {
   const [eventThemes, setEventThemes] = useState<{ id: number; name: string; premium: boolean }[]>([]);
   const [eventTypes, setEventTypes] = useState<{ id: number; name: string; theme_id: number; parent_id: number | null }[]>([]);
   const [subEventTypes, setSubEventTypes] = useState<{ id: number; name: string; theme_id: number; parent_id: number | null }[]>([]);
-  const [venueProfiles, setVenueProfiles] = useState<{ id: string; ven_biz_name: string; venue_type: string }[]>([]);
-  const [venueTypes, setVenueTypes] = useState<string[]>([]);
-  const [selectedVenueType, setSelectedVenueType] = useState<string>("");
+  const [venueProfiles, setVenueProfiles] = useState<{ id: string; business_name: string; venue_type: string; venue_type_id: number }[]>([]);
+  const [venueTypes, setVenueTypes] = useState<{ id: number; name: string }[]>([]);
+  const [selectedVenueType, setSelectedVenueType] = useState<number | null>(null);
   const selectedThemeId = watch("theme_id");
   const selectedEventType = watch("type");
   const selectedSubType = watch("subType");
@@ -66,31 +66,42 @@ export default function CreateEvent() {
   }, []);
 
   useEffect(() => {
-    const fetchVenueProfiles = async () => {
-      const { data, error } = await supabase
-        .from('Venue Profile')
-        .select('venue_type_id, ven_biz_name')
-        .order('ven_biz_name');
+    const fetchVenueData = async () => {
+      // Fetch venue types
+      const { data: typesData, error: typesError } = await supabase
+        .from('venue_types')
+        .select('id, name')
+        .order('name');
 
-      if (error) {
-        console.error('Error fetching venue profiles:', error);
+      if (typesError) {
+        console.error('Error fetching venue types:', typesError);
+        return;
+      }
+      
+      setVenueTypes(typesData || []);
+
+      // Fetch venues with their types
+      const { data: venuesData, error: venuesError } = await supabase
+        .from('venues')
+        .select('id, business_name, venue_type_id, venue_types(name)')
+        .order('business_name');
+
+      if (venuesError) {
+        console.error('Error fetching venues:', venuesError);
         setVenueProfiles([]);
         return;
       }
       
-      const profiles = data?.map(v => ({ 
-        id: v.venue_type_id, 
-        ven_biz_name: v.ven_biz_name,
-        venue_type: v.venue_type_id || 'Other'
+      const profiles = venuesData?.map(v => ({ 
+        id: v.id, 
+        business_name: v.business_name,
+        venue_type_id: v.venue_type_id,
+        venue_type: v.venue_types?.name || 'Other'
       })) || [];
       
       setVenueProfiles(profiles);
-      
-      // Extract unique venue types
-      const types = Array.from(new Set(profiles.map(p => p.venue_type))).sort();
-      setVenueTypes(types);
     };
-    fetchVenueProfiles();
+    fetchVenueData();
   }, []);
 
 useEffect(() => {
@@ -472,17 +483,20 @@ useEffect(() => {
             <CardContent className="space-y-4">
               <div>
                 <Label htmlFor="venueType">Venue Type *</Label>
-                <Select value={selectedVenueType} onValueChange={(value) => {
-                  setSelectedVenueType(value);
-                  setValue("venue", ""); // Reset venue selection when type changes
-                }}>
+                <Select 
+                  value={selectedVenueType?.toString() || ""} 
+                  onValueChange={(value) => {
+                    setSelectedVenueType(Number(value));
+                    setValue("venue", ""); // Reset venue selection when type changes
+                  }}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select venue type" />
                   </SelectTrigger>
                   <SelectContent>
                     {venueTypes.map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {type}
+                      <SelectItem key={type.id} value={type.id.toString()}>
+                        {type.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -506,10 +520,10 @@ useEffect(() => {
                       </SelectTrigger>
                       <SelectContent>
                         {venueProfiles
-                          .filter(venue => venue.venue_type === selectedVenueType)
+                          .filter(venue => venue.venue_type_id === selectedVenueType)
                           .map((venue) => (
-                            <SelectItem key={venue.id} value={venue.ven_biz_name}>
-                              {venue.ven_biz_name}
+                            <SelectItem key={venue.id} value={venue.business_name}>
+                              {venue.business_name}
                             </SelectItem>
                           ))}
                       </SelectContent>
