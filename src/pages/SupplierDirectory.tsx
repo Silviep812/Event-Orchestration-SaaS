@@ -17,6 +17,7 @@ interface Supplier {
   city?: string;
   state?: string;
   zip?: string;
+  price?: number;
   supplier_types?: { name: string };
   supplier_categories?: { name: string };
 }
@@ -207,7 +208,15 @@ export default function SupplierDirectory() {
                             </span>
                           </div>
                         )}
+                        {supplier.price && (
+                          <p className="text-sm font-semibold text-primary mt-2">
+                            Starting at ${supplier.price.toLocaleString()}
+                          </p>
+                        )}
                       </div>
+                      <Button className="w-full mt-3" size="sm">
+                        Place Order
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>

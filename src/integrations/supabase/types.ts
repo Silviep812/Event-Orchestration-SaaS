@@ -2098,6 +2098,7 @@ export type Database = {
           email: string | null
           id: string
           phone_number: string | null
+          price: number | null
           state: string | null
           type_id: number | null
           updated_at: string
@@ -2112,6 +2113,7 @@ export type Database = {
           email?: string | null
           id?: string
           phone_number?: string | null
+          price?: number | null
           state?: string | null
           type_id?: number | null
           updated_at?: string
@@ -2126,6 +2128,7 @@ export type Database = {
           email?: string | null
           id?: string
           phone_number?: string | null
+          price?: number | null
           state?: string | null
           type_id?: number | null
           updated_at?: string
