@@ -300,6 +300,8 @@ const HospitalityDirectory = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredProfiles.map((profile) => {
                 const typeOption = hospitalityTypeOptions.find(opt => opt.value === profile.hospitality_type?.toString());
+                const typeName = typeOption?.label || hospitalityTypes.find(t => t.id === profile.hospitality_type)?.name || 'Other';
+                const displayTypeName = typeName.charAt(0).toUpperCase() + typeName.slice(1);
                 const IconComponent = typeOption?.icon || Hotel;
                 
                 return (
@@ -310,7 +312,7 @@ const HospitalityDirectory = () => {
                           <IconComponent size={20} />
                           {profile.business_name}
                         </CardTitle>
-                        <Badge className={getBadgeColorForType(typeOption?.label || '')}>{typeOption?.label}</Badge>
+                        <Badge className={getBadgeColorForType(displayTypeName)}>{displayTypeName}</Badge>
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-3">
