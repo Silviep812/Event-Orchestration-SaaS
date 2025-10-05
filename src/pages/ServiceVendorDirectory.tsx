@@ -250,6 +250,10 @@ const ServiceVendorDirectory = () => {
                           </div>
                         </div>
                       )}
+                      
+                      <Button className="w-full mt-4">
+                        Place Order
+                      </Button>
                     </CardContent>
                   </Card>
                 );
