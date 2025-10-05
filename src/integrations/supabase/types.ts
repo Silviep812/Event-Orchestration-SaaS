@@ -515,10 +515,12 @@ export type Database = {
           city: string | null
           contact_name: string | null
           created_at: string
+          description: string | null
           email: string | null
           ent_type_id: number | null
           id: string
           phone_number: string | null
+          price: number | null
           state: string | null
           updated_at: string
           zip: string | null
@@ -528,10 +530,12 @@ export type Database = {
           city?: string | null
           contact_name?: string | null
           created_at?: string
+          description?: string | null
           email?: string | null
           ent_type_id?: number | null
           id?: string
           phone_number?: string | null
+          price?: number | null
           state?: string | null
           updated_at?: string
           zip?: string | null
@@ -541,10 +545,12 @@ export type Database = {
           city?: string | null
           contact_name?: string | null
           created_at?: string
+          description?: string | null
           email?: string | null
           ent_type_id?: number | null
           id?: string
           phone_number?: string | null
+          price?: number | null
           state?: string | null
           updated_at?: string
           zip?: string | null
