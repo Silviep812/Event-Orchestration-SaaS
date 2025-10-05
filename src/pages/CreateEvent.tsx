@@ -582,14 +582,21 @@ useEffect(() => {
         {/* Action Buttons */}
         <div className="flex justify-end gap-4 pt-6">
           <Button type="button" variant="outline" onClick={() => {
-            reset();
+            // Reset all form fields
+            reset({
+              title: "",
+              theme_id: undefined,
+              type: "",
+              subType: "",
+              venue: "",
+              budget: "",
+              expectedAttendees: "",
+              description: ""
+            });
             setDateRange(undefined);
             setBudgetInput('');
             setSubEventTypes([]);
             setSelectedVenueType(null);
-            setValue("theme_id", undefined as any);
-            setValue("type", "");
-            setValue("subType", "");
             // Clear URL parameters to prevent form repopulation
             navigate('/dashboard/create-event', { replace: true });
           }}>
