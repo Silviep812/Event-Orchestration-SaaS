@@ -33,7 +33,7 @@ const VendorServiceDirectory = () => {
           .from('serv_vendor_rentals')
           .select(`
             *,
-            serv_vendor_rental_assignments!inner(
+            serv_vendor_rental_assignments(
               vendor_rental_types(*)
             )
           `);
@@ -56,9 +56,10 @@ const VendorServiceDirectory = () => {
   // Filter profiles based on selected service types and location
   const filteredProfiles = serviceProfiles.filter(profile => {
     const matchesType = selectedServiceTypes.length === 0 || 
-      profile.serv_vendor_rental_assignments?.some((assignment: any) => 
-        selectedServiceTypes.includes(assignment.vendor_rental_types?.id?.toString())
-      );
+      (profile.serv_vendor_rental_assignments && profile.serv_vendor_rental_assignments.length > 0 &&
+        profile.serv_vendor_rental_assignments.some((assignment: any) => 
+          selectedServiceTypes.includes(assignment.vendor_rental_types?.id?.toString())
+        ));
     
     const matchesLocation = !locationFilter || 
       profile.city?.toLowerCase().includes(locationFilter.toLowerCase()) ||
