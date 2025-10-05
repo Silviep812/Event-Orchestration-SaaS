@@ -218,9 +218,15 @@ const VendorServiceDirectory = () => {
                         <IconComponent className="h-5 w-5 text-primary" />
                         <CardTitle className="text-lg">{profile.business_name || 'Service Provider'}</CardTitle>
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        {profileTypes.join(', ') || 'Service'}
-                      </p>
+                      {profileTypes.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {profileTypes.map((type: string, index: number) => (
+                            <span key={index} className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
+                              {type}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </CardHeader>
                     <CardContent className="space-y-3">
                       <div className="space-y-1">
