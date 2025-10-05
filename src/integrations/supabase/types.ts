@@ -2650,9 +2650,13 @@ export type Database = {
           city: string | null
           contact_name: string | null
           created_at: string
+          description: string | null
           email: string | null
           id: string
           phone_number: string | null
+          price: number | null
+          seating_capacity: number | null
+          special_accommodations: string[] | null
           state: string | null
           transp_type_id: number | null
           updated_at: string
@@ -2664,9 +2668,13 @@ export type Database = {
           city?: string | null
           contact_name?: string | null
           created_at?: string
+          description?: string | null
           email?: string | null
           id?: string
           phone_number?: string | null
+          price?: number | null
+          seating_capacity?: number | null
+          special_accommodations?: string[] | null
           state?: string | null
           transp_type_id?: number | null
           updated_at?: string
@@ -2678,9 +2686,13 @@ export type Database = {
           city?: string | null
           contact_name?: string | null
           created_at?: string
+          description?: string | null
           email?: string | null
           id?: string
           phone_number?: string | null
+          price?: number | null
+          seating_capacity?: number | null
+          special_accommodations?: string[] | null
           state?: string | null
           transp_type_id?: number | null
           updated_at?: string
