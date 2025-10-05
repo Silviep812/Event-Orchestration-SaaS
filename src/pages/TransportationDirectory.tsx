@@ -242,6 +242,10 @@ const TransportationDirectory = () => {
                           </div>
                         </div>
                       )}
+                      
+                      <Button className="w-full mt-4">
+                        Make Reservation
+                      </Button>
                     </CardContent>
                   </Card>
                 );
