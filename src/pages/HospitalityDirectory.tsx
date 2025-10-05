@@ -41,7 +41,7 @@ const HospitalityDirectory = () => {
 
       // Fetch profiles from the correct table
       const { data, error } = await supabase
-        .from('Hospitality Profile')
+        .from('hospitality_profiles')
         .select('*');
       
       if (error) {
@@ -52,7 +52,7 @@ const HospitalityDirectory = () => {
         // Remove duplicates based on business name
         const uniqueProfiles = data?.filter((profile, index, self) =>
           index === self.findIndex((p) => (
-            p.hosp_biz_name === profile.hosp_biz_name &&
+            p.business_name === profile.business_name &&
             p.hospitality_type === profile.hospitality_type
           ))
         ) || [];
@@ -138,15 +138,15 @@ const HospitalityDirectory = () => {
       }
 
       const { data, error } = await supabase
-        .from('Hospitality Profile')
+        .from('hospitality_profiles')
         .insert([
           {
-            hosp_biz_name: otherFormData.business_name,
-            hosp_location: [otherFormData.address],
-            hosp_contact_name: otherFormData.business_name,
-            hosp_contact_nbr: parseFloat(otherFormData.phone),
-            hospitality_type: otherType.id,
-            hosp_type_id: 'hospitality'
+            business_name: otherFormData.business_name,
+            city: otherFormData.address,
+            contact_name: otherFormData.business_name,
+            phone_number: otherFormData.phone,
+            email: otherFormData.email,
+            hospitality_type: otherType.id
           }
         ]);
 
@@ -303,64 +303,83 @@ const HospitalityDirectory = () => {
                 const IconComponent = typeOption?.icon || Hotel;
                 
                 return (
-                  <Card key={profile.created_at} className="hover:shadow-md transition-shadow">
+                  <Card key={profile.id} className="hover:shadow-md transition-shadow">
                     <CardHeader className="pb-3">
                       <div className="flex items-center justify-between">
                         <CardTitle className="text-lg flex items-center gap-2">
                           <IconComponent size={20} />
-                          {profile.hosp_biz_name}
+                          {profile.business_name}
                         </CardTitle>
                         <Badge className={getBadgeColorForType(typeOption?.label || '')}>{typeOption?.label}</Badge>
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-3">
-                      <div className="flex items-center gap-2 text-sm">
-                        <Phone size={16} className="text-muted-foreground" />
-                        <span>{profile.hosp_contact_name}</span>
-                        {profile.hosp_contact_name && profile.hosp_contact_nbr && (
-                          <span className="text-muted-foreground">•</span>
-                        )}
-                        <span>{profile.hosp_contact_nbr}</span>
-                      </div>
+                      {profile.contact_name && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <Phone size={16} className="text-muted-foreground" />
+                          <span>{profile.contact_name}</span>
+                          {profile.phone_number && (
+                            <>
+                              <span className="text-muted-foreground">•</span>
+                              <span>{profile.phone_number}</span>
+                            </>
+                          )}
+                        </div>
+                      )}
                       
-                      {profile.hosp_location && profile.hosp_location.length > 0 && (
+                      {(profile.city || profile.state || profile.zip) && (
                         <div className="flex items-center gap-2 text-sm">
                           <MapPin size={16} className="text-muted-foreground" />
-                          <span>{profile.hosp_location.join(', ')}</span>
+                          <span>{[profile.city, profile.state, profile.zip].filter(Boolean).join(', ')}</span>
                         </div>
                       )}
 
-                      {profile.hosp_price && (
+                      {profile.email && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <Mail size={16} className="text-muted-foreground" />
+                          <span className="text-sm">{profile.email}</span>
+                        </div>
+                      )}
+
+                      {profile.cost && (
                         <div className="flex items-center gap-2 text-sm">
                           <DollarSign size={16} className="text-muted-foreground" />
-                          <span className="font-semibold">${profile.hosp_price.toLocaleString()}</span>
+                          <span className="font-semibold">${profile.cost.toLocaleString()}</span>
                         </div>
                       )}
 
-                      {profile.hosp_website && (
+                      {profile.capacity && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <Users size={16} className="text-muted-foreground" />
+                          <span>Capacity: {profile.capacity} guests</span>
+                        </div>
+                      )}
+
+                      {profile.website && (
                         <div className="flex items-center gap-2 text-sm">
                           <Globe size={16} className="text-muted-foreground" />
                           <a 
-                            href={profile.hosp_website.startsWith('http') ? profile.hosp_website : `https://${profile.hosp_website}`}
+                            href={profile.website.startsWith('http') ? profile.website : `https://${profile.website}`}
                             target="_blank" 
                             rel="noopener noreferrer"
                             className="text-primary hover:underline"
                           >
-                            {profile.hosp_website}
+                            {profile.website}
                           </a>
                         </div>
                       )}
-                      
-                      {profile.hosp_amendities && profile.hosp_amendities.length > 0 && (
-                        <div className="space-y-2">
-                          <h4 className="text-sm font-medium">Amenities:</h4>
-                          <div className="flex flex-wrap gap-1">
-                            {profile.hosp_amendities.map((amenity, index) => (
-                              <Badge key={index} variant="outline" className="text-xs">
-                                {amenity}
-                              </Badge>
-                            ))}
-                          </div>
+
+                      {profile.make_reservations && (
+                        <div className="pt-2">
+                          <Button 
+                            variant="default" 
+                            size="sm" 
+                            className="w-full"
+                            onClick={() => window.open(profile.make_reservations, '_blank')}
+                          >
+                            <ExternalLink size={14} className="mr-2" />
+                            Make Reservation
+                          </Button>
                         </div>
                       )}
                     </CardContent>
