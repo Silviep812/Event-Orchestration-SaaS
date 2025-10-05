@@ -51,7 +51,16 @@ const HospitalityDirectory = () => {
         console.error('Error fetching hospitality profiles:', error);
       } else {
         console.log('data from hospitality profiles:', data);
-        setHospitalityProfiles(data || []);
+        
+        // Remove duplicates based on business_name
+        const uniqueProfiles = data?.filter((profile, index, self) =>
+          index === self.findIndex((p) => (
+            p.business_name === profile.business_name &&
+            p.hospitality_type?.id === profile.hospitality_type?.id
+          ))
+        ) || [];
+        
+        setHospitalityProfiles(uniqueProfiles);
       }
     } catch (error) {
       console.error('Error:', error);
