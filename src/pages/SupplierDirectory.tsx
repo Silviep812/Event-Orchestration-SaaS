@@ -163,7 +163,17 @@ export default function SupplierDirectory() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Supplier Profiles</CardTitle>
+          <CardTitle>
+            {selectedCategories.length > 0 ? (
+              <>
+                {selectedCategories.map(catValue => 
+                  supplierCategoryOptions.find(opt => opt.value === catValue)?.label
+                ).filter(Boolean).join(', ')} ({filteredSuppliers.length})
+              </>
+            ) : (
+              <>Supplier Profiles ({filteredSuppliers.length})</>
+            )}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
