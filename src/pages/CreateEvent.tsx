@@ -104,19 +104,23 @@ export default function CreateEvent() {
     fetchVenueData();
   }, []);
 
-useEffect(() => {
-  // Only set theme_id from URL param after themes are loaded
-  if (!themesLoaded) return;
-  const themeParam = searchParams.get('theme');
-  const subTypeParam = searchParams.get('subType');
-  
-  if (themeParam) {
-    const themeId = parseInt(themeParam, 10);
-    if (!isNaN(themeId)) {
-      setValue('theme_id', themeId);
+  const [isFormCleared, setIsFormCleared] = useState(false);
+
+  useEffect(() => {
+    // Only set theme_id from URL param after themes are loaded and if form wasn't just cleared
+    if (!themesLoaded || isFormCleared) {
+      if (isFormCleared) setIsFormCleared(false);
+      return;
     }
-  }
-}, [themesLoaded, searchParams, setValue]);
+    const themeParam = searchParams.get('theme');
+    
+    if (themeParam) {
+      const themeId = parseInt(themeParam, 10);
+      if (!isNaN(themeId)) {
+        setValue('theme_id', themeId);
+      }
+    }
+  }, [themesLoaded, searchParams, setValue, isFormCleared]);
 
   useEffect(() => {
     const fetchEventTypes = async () => {
@@ -234,12 +238,42 @@ useEffect(() => {
       return;
     }
 
+    // Validate date range
+    if (dateRange.to && dateRange.from > dateRange.to) {
+      toast({
+        title: "Invalid Date Range",
+        description: "End date must be after start date.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Trial version date restriction
     const trialEnd = new Date('2025-12-31T23:59:59');
     if (dateRange.from > trialEnd) {
       toast({
         title: "Trial Limitation",
         description: "The trial version doesn't allow creating events after December 31st, 2025.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate budget if provided
+    if (data.budget && parseFloat(data.budget) < 0) {
+      toast({
+        title: "Invalid Budget",
+        description: "Budget must be a positive number.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate attendees if provided
+    if (data.expectedAttendees && parseInt(data.expectedAttendees) < 0) {
+      toast({
+        title: "Invalid Attendee Count",
+        description: "Expected attendees must be a positive number.",
         variant: "destructive",
       });
       return;
@@ -299,9 +333,23 @@ useEffect(() => {
         description: `Your event "${data.title}" has been created and saved.`,
       });
 
-      // Reset form
-      reset();
+      // Reset form completely
+      setIsFormCleared(true);
+      reset({
+        title: "",
+        theme_id: undefined,
+        type: "",
+        subType: "",
+        venue: "",
+        budget: "",
+        expectedAttendees: "",
+        description: ""
+      });
       setDateRange(undefined);
+      setBudgetInput('');
+      setSubEventTypes([]);
+      setEventTypes([]);
+      setSelectedVenueType(null);
 
       // Redirect to manage event page
       navigate('/dashboard/manage-event');
@@ -582,6 +630,9 @@ useEffect(() => {
         {/* Action Buttons */}
         <div className="flex justify-end gap-4 pt-6">
           <Button type="button" variant="outline" onClick={() => {
+            // Set flag to prevent URL params from repopulating the form
+            setIsFormCleared(true);
+            
             // Reset all form fields
             reset({
               title: "",
@@ -596,9 +647,11 @@ useEffect(() => {
             setDateRange(undefined);
             setBudgetInput('');
             setSubEventTypes([]);
+            setEventTypes([]);
             setSelectedVenueType(null);
+            
             // Clear URL parameters to prevent form repopulation
-            navigate({ pathname: '/dashboard/create-event', search: '' }, { replace: true });
+            navigate('/dashboard/create-event', { replace: true });
           }}>
             Clear Form
           </Button>
