@@ -18,6 +18,7 @@ interface Supplier {
   state?: string;
   zip?: string;
   price?: number;
+  description?: string;
   supplier_types?: { name: string };
   supplier_categories?: { name: string };
 }
@@ -172,17 +173,22 @@ export default function SupplierDirectory() {
               {filteredSuppliers.map((supplier) => (
                 <Card key={supplier.id} className="hover:shadow-md transition-all">
                   <CardContent className="p-4">
-                    <div className="space-y-3">
-                      <div className="space-y-1">
-                        <h4 className="font-semibold text-sm">{supplier.business_name}</h4>
-                        {supplier.supplier_categories?.name && (
-                          <p className="text-sm text-primary font-medium">
-                            {supplier.supplier_categories.name}
-                          </p>
-                        )}
-                      </div>
-                      
-                      <div className="space-y-2 text-sm text-muted-foreground">
+                      <div className="space-y-3">
+                        <div className="space-y-1">
+                          <h4 className="font-semibold text-sm">{supplier.business_name}</h4>
+                          {supplier.supplier_categories?.name && (
+                            <p className="text-sm text-primary font-medium">
+                              {supplier.supplier_categories.name}
+                            </p>
+                          )}
+                          {supplier.description && (
+                            <p className="text-xs text-muted-foreground italic">
+                              {supplier.description}
+                            </p>
+                          )}
+                        </div>
+                        
+                        <div className="space-y-2 text-sm text-muted-foreground">
                         {supplier.contact_name && (
                           <p className="text-xs"><strong>Contact:</strong> {supplier.contact_name}</p>
                         )}

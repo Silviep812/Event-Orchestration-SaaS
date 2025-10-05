@@ -2095,6 +2095,7 @@ export type Database = {
           city: string | null
           contact_name: string | null
           created_at: string
+          description: string | null
           email: string | null
           id: string
           phone_number: string | null
@@ -2110,6 +2111,7 @@ export type Database = {
           city?: string | null
           contact_name?: string | null
           created_at?: string
+          description?: string | null
           email?: string | null
           id?: string
           phone_number?: string | null
@@ -2125,6 +2127,7 @@ export type Database = {
           city?: string | null
           contact_name?: string | null
           created_at?: string
+          description?: string | null
           email?: string | null
           id?: string
           phone_number?: string | null
