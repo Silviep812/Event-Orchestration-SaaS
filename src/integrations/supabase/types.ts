@@ -1942,6 +1942,7 @@ export type Database = {
         Row: {
           created_at: string
           Distributor: string | null
+          Food_Wholesaler: string | null
           id: number
           Merchandizer: string | null
           Online_Market: string | null
@@ -1951,6 +1952,7 @@ export type Database = {
         Insert: {
           created_at?: string
           Distributor?: string | null
+          Food_Wholesaler?: string | null
           id?: number
           Merchandizer?: string | null
           Online_Market?: string | null
@@ -1960,6 +1962,7 @@ export type Database = {
         Update: {
           created_at?: string
           Distributor?: string | null
+          Food_Wholesaler?: string | null
           id?: number
           Merchandizer?: string | null
           Online_Market?: string | null
