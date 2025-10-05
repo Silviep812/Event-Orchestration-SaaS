@@ -7,12 +7,21 @@ import { Label } from "@/components/ui/label";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Hotel, Home, MapPin, Coffee, Phone, Mail, Globe, DollarSign, Users, ExternalLink } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const HospitalityDirectory = () => {
   const [hospitalityProfiles, setHospitalityProfiles] = useState<any[]>([]);
   const [selectedHospitalityTypes, setSelectedHospitalityTypes] = useState<string[]>([]);
   const [locationFilter, setLocationFilter] = useState("");
   const [loading, setLoading] = useState(true);
+  const [showOtherForm, setShowOtherForm] = useState(false);
+  const [otherFormData, setOtherFormData] = useState({
+    business_name: "",
+    address: "",
+    email: "",
+    phone: ""
+  });
+  const { toast } = useToast();
 
   useEffect(() => {
     fetchHospitalityProfiles();
@@ -77,6 +86,70 @@ const HospitalityDirectory = () => {
   const clearAllSelections = () => {
     setSelectedHospitalityTypes([]);
     setLocationFilter("");
+    setShowOtherForm(false);
+  };
+
+  const handleOtherTypeChange = (checked: boolean, typeId: string) => {
+    if (checked) {
+      setSelectedHospitalityTypes([...selectedHospitalityTypes, typeId]);
+      // Find if this is the "Other" type
+      const otherType = hospitalityTypes.find(type => type.name.toLowerCase() === "other");
+      if (otherType && typeId === otherType.id) {
+        setShowOtherForm(true);
+      }
+    } else {
+      setSelectedHospitalityTypes(selectedHospitalityTypes.filter(type => type !== typeId));
+      const otherType = hospitalityTypes.find(type => type.name.toLowerCase() === "other");
+      if (otherType && typeId === otherType.id) {
+        setShowOtherForm(false);
+        setOtherFormData({ business_name: "", address: "", email: "", phone: "" });
+      }
+    }
+  };
+
+  const handleOtherFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      const otherType = hospitalityTypes.find(type => type.name.toLowerCase() === "other");
+      if (!otherType) {
+        toast({
+          title: "Error",
+          description: "Other hospitality type not found",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('hospitality_profiles')
+        .insert([
+          {
+            business_name: otherFormData.business_name,
+            address: otherFormData.address,
+            email: otherFormData.email,
+            phone_number: otherFormData.phone,
+            hospitality_type: otherType.id
+          }
+        ]);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Hospitality provider added successfully"
+      });
+
+      setOtherFormData({ business_name: "", address: "", email: "", phone: "" });
+      fetchHospitalityProfiles();
+    } catch (error) {
+      console.error('Error adding hospitality provider:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add hospitality provider",
+        variant: "destructive"
+      });
+    }
   };
 
 
@@ -105,13 +178,7 @@ const HospitalityDirectory = () => {
                     <Checkbox
                       id={option.value}
                       checked={isChecked}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setSelectedHospitalityTypes([...selectedHospitalityTypes, option.value]);
-                        } else {
-                          setSelectedHospitalityTypes(selectedHospitalityTypes.filter(type => type !== option.value));
-                        }
-                      }}
+                      onCheckedChange={(checked) => handleOtherTypeChange(!!checked, option.value)}
                     />
                     <label htmlFor={option.value} className="flex items-center gap-2 cursor-pointer text-sm font-medium">
                       <IconComponent size={16} />
@@ -122,6 +189,60 @@ const HospitalityDirectory = () => {
               })}
             </div>
           </div>
+          
+          {/* Other Type Form */}
+          {showOtherForm && (
+            <form onSubmit={handleOtherFormSubmit} className="space-y-4 p-4 border rounded-lg bg-muted/50">
+              <h3 className="text-sm font-semibold">Add Custom Hospitality Provider</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="business_name">Business Name *</Label>
+                  <Input
+                    id="business_name"
+                    required
+                    value={otherFormData.business_name}
+                    onChange={(e) => setOtherFormData({...otherFormData, business_name: e.target.value})}
+                    placeholder="Enter business name"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="address">Address *</Label>
+                  <Input
+                    id="address"
+                    required
+                    value={otherFormData.address}
+                    onChange={(e) => setOtherFormData({...otherFormData, address: e.target.value})}
+                    placeholder="Enter address"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email *</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    required
+                    value={otherFormData.email}
+                    onChange={(e) => setOtherFormData({...otherFormData, email: e.target.value})}
+                    placeholder="Enter email"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone Number *</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    required
+                    value={otherFormData.phone}
+                    onChange={(e) => setOtherFormData({...otherFormData, phone: e.target.value})}
+                    placeholder="Enter phone number"
+                  />
+                </div>
+              </div>
+              <Button type="submit" className="w-full md:w-auto">
+                Add Provider
+              </Button>
+            </form>
+          )}
           
           {/* Location Filter */}
           <div className="space-y-2">
