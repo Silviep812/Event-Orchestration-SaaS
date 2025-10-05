@@ -587,6 +587,9 @@ useEffect(() => {
             setBudgetInput('');
             setSubEventTypes([]);
             setSelectedVenueType(null);
+            setValue("theme_id", undefined as any);
+            setValue("type", "");
+            setValue("subType", "");
             // Clear URL parameters to prevent form repopulation
             navigate('/dashboard/create-event', { replace: true });
           }}>
