@@ -80,6 +80,7 @@ const ServiceVendorDirectory = () => {
       'beverage': Utensils,
       'brewery': Utensils,
       'winery': Utensils,
+      'mixologist': Utensils,
       'photo': Camera,
       'rentals': Truck,
       'delivery': Package,

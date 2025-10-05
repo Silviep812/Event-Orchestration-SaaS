@@ -1887,6 +1887,7 @@ export type Database = {
           caterer: string | null
           chef: string | null
           created_at: string
+          mixologist: string | null
           service_vendor_id: string
           videographer: string | null
         }
@@ -1895,6 +1896,7 @@ export type Database = {
           caterer?: string | null
           chef?: string | null
           created_at?: string
+          mixologist?: string | null
           service_vendor_id: string
           videographer?: string | null
         }
@@ -1903,6 +1905,7 @@ export type Database = {
           caterer?: string | null
           chef?: string | null
           created_at?: string
+          mixologist?: string | null
           service_vendor_id?: string
           videographer?: string | null
         }
