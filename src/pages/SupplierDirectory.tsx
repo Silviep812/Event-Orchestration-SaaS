@@ -173,15 +173,13 @@ export default function SupplierDirectory() {
                 <Card key={supplier.id} className="hover:shadow-md transition-all">
                   <CardContent className="p-4">
                     <div className="space-y-3">
-                      <div className="flex items-start justify-between">
+                      <div className="space-y-1">
                         <h4 className="font-semibold text-sm">{supplier.business_name}</h4>
-                        <div className="flex flex-col gap-1">
-                          {supplier.supplier_categories?.name && (
-                            <Badge variant="outline" className="text-xs">
-                              {supplier.supplier_categories.name}
-                            </Badge>
-                          )}
-                        </div>
+                        {supplier.supplier_categories?.name && (
+                          <p className="text-sm text-primary font-medium">
+                            {supplier.supplier_categories.name}
+                          </p>
+                        )}
                       </div>
                       
                       <div className="space-y-2 text-sm text-muted-foreground">
