@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Music, Mic, Users, MessageCircle, Presentation, Theater, HelpCircle } from "lucide-react";
+import { toast } from "sonner";
 
 const EntertainmentDirectory = () => {
   const [entertainmentTypes, setEntertainmentTypes] = useState<any[]>([]);
@@ -13,6 +14,7 @@ const EntertainmentDirectory = () => {
   const [locationFilter, setLocationFilter] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmedEntertainment, setConfirmedEntertainment] = useState<string[]>([]);
 
   // Fetch entertainment types and profiles from Supabase
   useEffect(() => {
@@ -90,6 +92,16 @@ const EntertainmentDirectory = () => {
       }
     }
     return HelpCircle;
+  };
+
+  const handleConfirmEntertainment = (profileId: string, businessName: string) => {
+    if (confirmedEntertainment.includes(profileId)) {
+      setConfirmedEntertainment(confirmedEntertainment.filter(id => id !== profileId));
+      toast.success(`Removed ${businessName} from confirmed selections`);
+    } else {
+      setConfirmedEntertainment([...confirmedEntertainment, profileId]);
+      toast.success(`Confirmed ${businessName} for your event`);
+    }
   };
 
   return (
@@ -232,6 +244,14 @@ const EntertainmentDirectory = () => {
                       {profile.description && (
                         <p className="text-sm text-muted-foreground">{profile.description}</p>
                       )}
+                      
+                      <Button 
+                        onClick={() => handleConfirmEntertainment(profile.id, profile.business_name)}
+                        variant={confirmedEntertainment.includes(profile.id) ? "default" : "outline"}
+                        className="w-full mt-2"
+                      >
+                        {confirmedEntertainment.includes(profile.id) ? "Confirmed" : "Confirm Selection"}
+                      </Button>
                     </CardContent>
                   </Card>
                 );
