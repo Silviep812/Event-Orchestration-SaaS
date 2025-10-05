@@ -37,6 +37,8 @@ export default function CreateEvent() {
   const [eventTypes, setEventTypes] = useState<{ id: number; name: string; theme_id: number; parent_id: number | null }[]>([]);
   const [subEventTypes, setSubEventTypes] = useState<{ id: number; name: string; theme_id: number; parent_id: number | null }[]>([]);
   const [venueProfiles, setVenueProfiles] = useState<{ id: string; ven_biz_name: string; venue_type: string }[]>([]);
+  const [venueTypes, setVenueTypes] = useState<string[]>([]);
+  const [selectedVenueType, setSelectedVenueType] = useState<string>("");
   const selectedThemeId = watch("theme_id");
   const selectedEventType = watch("type");
   const selectedSubType = watch("subType");
@@ -75,11 +77,18 @@ export default function CreateEvent() {
         setVenueProfiles([]);
         return;
       }
-      setVenueProfiles(data?.map(v => ({ 
+      
+      const profiles = data?.map(v => ({ 
         id: v.venue_type_id, 
         ven_biz_name: v.ven_biz_name,
         venue_type: v.venue_type_id || 'Other'
-      })) || []);
+      })) || [];
+      
+      setVenueProfiles(profiles);
+      
+      // Extract unique venue types
+      const types = Array.from(new Set(profiles.map(p => p.venue_type))).sort();
+      setVenueTypes(types);
     };
     fetchVenueProfiles();
   }, []);
@@ -462,22 +471,47 @@ useEffect(() => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="venue">Venue *</Label>
+                <Label htmlFor="venueType">Venue Type *</Label>
+                <Select value={selectedVenueType} onValueChange={(value) => {
+                  setSelectedVenueType(value);
+                  setValue("venue", ""); // Reset venue selection when type changes
+                }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select venue type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {venueTypes.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {type}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="venue">Venue Profile *</Label>
                 <Controller
                   name="venue"
                   control={control}
                   rules={{ required: "Venue is required" }}
                   render={({ field }) => (
-                    <Select value={field.value} onValueChange={field.onChange}>
+                    <Select 
+                      value={field.value} 
+                      onValueChange={field.onChange}
+                      disabled={!selectedVenueType}
+                    >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select venue profile" />
+                        <SelectValue placeholder={selectedVenueType ? "Select venue profile" : "Select venue type first"} />
                       </SelectTrigger>
                       <SelectContent>
-                        {venueProfiles.map((venue) => (
-                          <SelectItem key={venue.id} value={venue.ven_biz_name}>
-                            {venue.venue_type} / {venue.ven_biz_name}
-                          </SelectItem>
-                        ))}
+                        {venueProfiles
+                          .filter(venue => venue.venue_type === selectedVenueType)
+                          .map((venue) => (
+                            <SelectItem key={venue.id} value={venue.ven_biz_name}>
+                              {venue.ven_biz_name}
+                            </SelectItem>
+                          ))}
                       </SelectContent>
                     </Select>
                   )}
