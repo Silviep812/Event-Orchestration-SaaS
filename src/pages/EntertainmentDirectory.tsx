@@ -219,9 +219,9 @@ const EntertainmentDirectory = () => {
                     <CardHeader className="pb-3">
                       <div className="flex items-center gap-2">
                         <IconComponent className="h-5 w-5 text-primary" />
-                        <CardTitle className="text-lg text-primary">{profile.business_name || 'Entertainment Provider'}</CardTitle>
+                        <CardTitle className="text-lg">{profile.business_name || 'Entertainment Provider'}</CardTitle>
                       </div>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-primary font-medium">
                         {entertainmentType}
                       </p>
                     </CardHeader>
