@@ -36,6 +36,7 @@ export default function CreateEvent() {
   const [eventThemes, setEventThemes] = useState<{ id: number; name: string; premium: boolean }[]>([]);
   const [eventTypes, setEventTypes] = useState<{ id: number; name: string; theme_id: number; parent_id: number | null }[]>([]);
   const [subEventTypes, setSubEventTypes] = useState<{ id: number; name: string; theme_id: number; parent_id: number | null }[]>([]);
+  const [venueProfiles, setVenueProfiles] = useState<{ id: string; ven_biz_name: string }[]>([]);
   const selectedThemeId = watch("theme_id");
   const selectedEventType = watch("type");
   const selectedSubType = watch("subType");
@@ -60,6 +61,23 @@ export default function CreateEvent() {
       setThemesLoaded(true);
     };
     fetchThemes();
+  }, []);
+
+  useEffect(() => {
+    const fetchVenueProfiles = async () => {
+      const { data, error } = await supabase
+        .from('Venue Profile')
+        .select('venue_type_id, ven_biz_name')
+        .order('ven_biz_name');
+
+      if (error) {
+        console.error('Error fetching venue profiles:', error);
+        setVenueProfiles([]);
+        return;
+      }
+      setVenueProfiles(data?.map(v => ({ id: v.venue_type_id, ven_biz_name: v.ven_biz_name })) || []);
+    };
+    fetchVenueProfiles();
   }, []);
 
 useEffect(() => {
@@ -441,10 +459,24 @@ useEffect(() => {
             <CardContent className="space-y-4">
               <div>
                 <Label htmlFor="venue">Venue *</Label>
-                <Input
-                  id="venue"
-                  {...register("venue", { required: "Venue is required" })}
-                  placeholder="Enter venue name or address"
+                <Controller
+                  name="venue"
+                  control={control}
+                  rules={{ required: "Venue is required" }}
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select venue profile" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {venueProfiles.map((venue) => (
+                          <SelectItem key={venue.id} value={venue.ven_biz_name}>
+                            {venue.ven_biz_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 />
                 {errors.venue && (
                   <p className="text-sm text-destructive mt-1">{errors.venue.message}</p>
