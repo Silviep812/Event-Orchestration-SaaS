@@ -598,7 +598,7 @@ useEffect(() => {
             setSubEventTypes([]);
             setSelectedVenueType(null);
             // Clear URL parameters to prevent form repopulation
-            navigate('/dashboard/create-event', { replace: true });
+            navigate({ pathname: '/dashboard/create-event', search: '' }, { replace: true });
           }}>
             Clear Form
           </Button>
