@@ -292,7 +292,23 @@ const HospitalityDirectory = () => {
       <Card>
         <CardHeader>
           <CardTitle>
-            Hospitality Profiles ({filteredProfiles.length} {selectedHospitalityTypes.length > 0 ? 'filtered' : 'total'} results)
+            {selectedHospitalityTypes.length > 0 ? (
+              <>
+                {selectedHospitalityTypes.map((typeId, index) => {
+                  const matchedType = hospitalityTypes.find(t => t.id.toString() === typeId);
+                  const typeName = matchedType?.name || 'Unknown';
+                  const displayName = typeName.charAt(0).toUpperCase() + typeName.slice(1);
+                  return (
+                    <span key={typeId}>
+                      {index > 0 && ', '}
+                      {displayName}
+                    </span>
+                  );
+                })} Profiles ({filteredProfiles.length} filtered results)
+              </>
+            ) : (
+              <>Hospitality Profiles ({filteredProfiles.length} total results)</>
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent>
