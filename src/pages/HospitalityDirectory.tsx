@@ -70,6 +70,16 @@ const HospitalityDirectory = () => {
     }
   };
 
+  const getBadgeColorForType = (type: string) => {
+    switch (type.toLowerCase()) {
+      case 'hotel': return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
+      case 'resort': return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200";
+      case 'airbnb': return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
+      case 'other': return "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200";
+      default: return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
+    }
+  };
+
   const hospitalityTypeOptions = hospitalityTypes.map(type => ({
     value: type.id,
     label: type.name.charAt(0).toUpperCase() + type.name.slice(1),
@@ -293,7 +303,7 @@ const HospitalityDirectory = () => {
                           <IconComponent size={20} />
                           {profile.business_name}
                         </CardTitle>
-                        <Badge variant="secondary">{typeOption?.label}</Badge>
+                        <Badge className={getBadgeColorForType(typeOption?.label || '')}>{typeOption?.label}</Badge>
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-3">
