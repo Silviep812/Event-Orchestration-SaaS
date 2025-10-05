@@ -313,12 +313,7 @@ const HospitalityDirectory = () => {
                           <IconComponent size={20} />
                           {profile.business_name}
                         </CardTitle>
-                        <Badge className={getBadgeColorForType(displayTypeName)}>
-                          {(() => {
-                            console.log('Badge displaying:', displayTypeName, 'for profile:', profile.business_name);
-                            return displayTypeName;
-                          })()}
-                        </Badge>
+                        <Badge className={getBadgeColorForType(displayTypeName)}>{displayTypeName}</Badge>
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-3">
