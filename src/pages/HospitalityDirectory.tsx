@@ -39,24 +39,21 @@ const HospitalityDirectory = () => {
       if (typesError) throw typesError;
       setHospitalityTypes(typesData || []);
 
-      // Fetch profiles with joined hospitality type info
+      // Fetch profiles from the correct table
       const { data, error } = await supabase
-        .from('hospitality_profiles')
-        .select(`
-          *,
-          hospitality_type:hospitality_types(*)
-        `);
+        .from('Hospitality Profile')
+        .select('*');
       
       if (error) {
         console.error('Error fetching hospitality profiles:', error);
       } else {
-        console.log('data from hospitality profiles:', data);
+        console.log('data from Hospitality Profile:', data);
         
-        // Remove duplicates based on business_name
+        // Remove duplicates based on business name
         const uniqueProfiles = data?.filter((profile, index, self) =>
           index === self.findIndex((p) => (
-            p.business_name === profile.business_name &&
-            p.hospitality_type?.id === profile.hospitality_type?.id
+            p.hosp_biz_name === profile.hosp_biz_name &&
+            p.hospitality_type === profile.hospitality_type
           ))
         ) || [];
         
@@ -90,7 +87,7 @@ const HospitalityDirectory = () => {
   };
 
   const hospitalityTypeOptions = hospitalityTypes.map(type => ({
-    value: type.id,
+    value: type.id.toString(),
     label: type.name.charAt(0).toUpperCase() + type.name.slice(1),
     icon: getIconForType(type.name)
   }));
@@ -98,7 +95,7 @@ const HospitalityDirectory = () => {
   // Filter profiles based on selected types
   const filteredProfiles = selectedHospitalityTypes.length > 0 
     ? hospitalityProfiles.filter(profile => 
-        selectedHospitalityTypes.includes(profile.hospitality_type?.id)
+        selectedHospitalityTypes.includes(profile.hospitality_type?.toString())
       )
     : hospitalityProfiles;
 
@@ -113,13 +110,13 @@ const HospitalityDirectory = () => {
       setSelectedHospitalityTypes([...selectedHospitalityTypes, typeId]);
       // Find if this is the "Other" type
       const otherType = hospitalityTypes.find(type => type.name.toLowerCase() === "other");
-      if (otherType && typeId === otherType.id) {
+      if (otherType && typeId === otherType.id.toString()) {
         setShowOtherForm(true);
       }
     } else {
       setSelectedHospitalityTypes(selectedHospitalityTypes.filter(type => type !== typeId));
       const otherType = hospitalityTypes.find(type => type.name.toLowerCase() === "other");
-      if (otherType && typeId === otherType.id) {
+      if (otherType && typeId === otherType.id.toString()) {
         setShowOtherForm(false);
         setOtherFormData({ business_name: "", address: "", email: "", phone: "" });
       }
@@ -141,14 +138,15 @@ const HospitalityDirectory = () => {
       }
 
       const { data, error } = await supabase
-        .from('hospitality_profiles')
+        .from('Hospitality Profile')
         .insert([
           {
-            business_name: otherFormData.business_name,
-            address: otherFormData.address,
-            email: otherFormData.email,
-            phone_number: otherFormData.phone,
-            hospitality_type: otherType.id
+            hosp_biz_name: otherFormData.business_name,
+            hosp_location: [otherFormData.address],
+            hosp_contact_name: otherFormData.business_name,
+            hosp_contact_nbr: parseFloat(otherFormData.phone),
+            hospitality_type: otherType.id,
+            hosp_type_id: 'hospitality'
           }
         ]);
 
@@ -301,16 +299,16 @@ const HospitalityDirectory = () => {
           {filteredProfiles.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredProfiles.map((profile) => {
-                const typeOption = hospitalityTypeOptions.find(opt => opt.value === profile.hospitality_type?.id);
+                const typeOption = hospitalityTypeOptions.find(opt => opt.value === profile.hospitality_type?.toString());
                 const IconComponent = typeOption?.icon || Hotel;
                 
                 return (
-                  <Card key={profile.id} className="hover:shadow-md transition-shadow">
+                  <Card key={profile.created_at} className="hover:shadow-md transition-shadow">
                     <CardHeader className="pb-3">
                       <div className="flex items-center justify-between">
                         <CardTitle className="text-lg flex items-center gap-2">
                           <IconComponent size={20} />
-                          {profile.business_name}
+                          {profile.hosp_biz_name}
                         </CardTitle>
                         <Badge className={getBadgeColorForType(typeOption?.label || '')}>{typeOption?.label}</Badge>
                       </div>
@@ -318,57 +316,38 @@ const HospitalityDirectory = () => {
                     <CardContent className="space-y-3">
                       <div className="flex items-center gap-2 text-sm">
                         <Phone size={16} className="text-muted-foreground" />
-                        <span>{profile.contact_name}</span>
-                        {profile.contact_name && profile.phone_number && (
+                        <span>{profile.hosp_contact_name}</span>
+                        {profile.hosp_contact_name && profile.hosp_contact_nbr && (
                           <span className="text-muted-foreground">•</span>
                         )}
-                        <span>{profile.phone_number}</span>
+                        <span>{profile.hosp_contact_nbr}</span>
                       </div>
                       
-                      <div className="flex items-center gap-2 text-sm">
-                        <MapPin size={16} className="text-muted-foreground" />
-                        <span>{[profile.city, profile.state, profile.zip].filter(Boolean).join(', ')}</span>
-                      </div>
+                      {profile.hosp_location && profile.hosp_location.length > 0 && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <MapPin size={16} className="text-muted-foreground" />
+                          <span>{profile.hosp_location.join(', ')}</span>
+                        </div>
+                      )}
 
-                      {profile.cost && (
+                      {profile.hosp_price && (
                         <div className="flex items-center gap-2 text-sm">
                           <DollarSign size={16} className="text-muted-foreground" />
-                          <span className="font-semibold">${profile.cost.toLocaleString()}</span>
+                          <span className="font-semibold">${profile.hosp_price.toLocaleString()}</span>
                         </div>
                       )}
 
-                      {profile.capacity && (
-                        <div className="flex items-center gap-2 text-sm">
-                          <Users size={16} className="text-muted-foreground" />
-                          <span>Capacity: {profile.capacity} guests</span>
-                        </div>
-                      )}
-
-                      {profile.website && (
+                      {profile.hosp_website && (
                         <div className="flex items-center gap-2 text-sm">
                           <Globe size={16} className="text-muted-foreground" />
                           <a 
-                            href={`https://${profile.website}`} 
+                            href={profile.hosp_website.startsWith('http') ? profile.hosp_website : `https://${profile.hosp_website}`}
                             target="_blank" 
                             rel="noopener noreferrer"
                             className="text-primary hover:underline"
                           >
-                            {profile.website}
+                            {profile.hosp_website}
                           </a>
-                        </div>
-                      )}
-
-                      {profile.make_reservations && (
-                        <div className="pt-2">
-                          <Button 
-                            variant="default" 
-                            size="sm" 
-                            className="w-full"
-                            onClick={() => window.open(profile.make_reservations, '_blank')}
-                          >
-                            <ExternalLink size={14} className="mr-2" />
-                            Make Reservation
-                          </Button>
                         </div>
                       )}
                       
