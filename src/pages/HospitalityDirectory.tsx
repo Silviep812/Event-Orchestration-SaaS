@@ -69,10 +69,10 @@ const HospitalityDirectory = () => {
   const getIconForType = (type: string) => {
     switch (type.toLowerCase()) {
       case 'hotel': return Hotel;
-      case 'motel': return Home;
       case 'airbnb': return Home;
       case 'resort': return MapPin;
-      default: return Coffee;
+      case 'other': return Coffee;
+      default: return Hotel;
     }
   };
 
