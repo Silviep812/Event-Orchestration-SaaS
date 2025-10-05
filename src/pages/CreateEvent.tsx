@@ -360,7 +360,7 @@ useEffect(() => {
                   control={control}
                   rules={{ required: "Event theme is required" }}
                   render={({ field }) => (
-                    <Select value={field.value?.toString()} onValueChange={(value) => field.onChange(Number(value))}>
+                    <Select value={field.value?.toString() || ""} onValueChange={(value) => field.onChange(Number(value))}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select event theme" />
                       </SelectTrigger>
