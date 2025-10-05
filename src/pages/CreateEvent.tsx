@@ -586,6 +586,7 @@ useEffect(() => {
             setDateRange(undefined);
             setBudgetInput('');
             setSubEventTypes([]);
+            setSelectedVenueType(null);
             // Clear URL parameters to prevent form repopulation
             navigate('/dashboard/create-event', { replace: true });
           }}>
