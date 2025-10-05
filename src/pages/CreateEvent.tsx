@@ -36,7 +36,7 @@ export default function CreateEvent() {
   const [eventThemes, setEventThemes] = useState<{ id: number; name: string; premium: boolean }[]>([]);
   const [eventTypes, setEventTypes] = useState<{ id: number; name: string; theme_id: number; parent_id: number | null }[]>([]);
   const [subEventTypes, setSubEventTypes] = useState<{ id: number; name: string; theme_id: number; parent_id: number | null }[]>([]);
-  const [venueProfiles, setVenueProfiles] = useState<{ id: string; ven_biz_name: string }[]>([]);
+  const [venueProfiles, setVenueProfiles] = useState<{ id: string; ven_biz_name: string; venue_type: string }[]>([]);
   const selectedThemeId = watch("theme_id");
   const selectedEventType = watch("type");
   const selectedSubType = watch("subType");
@@ -75,7 +75,11 @@ export default function CreateEvent() {
         setVenueProfiles([]);
         return;
       }
-      setVenueProfiles(data?.map(v => ({ id: v.venue_type_id, ven_biz_name: v.ven_biz_name })) || []);
+      setVenueProfiles(data?.map(v => ({ 
+        id: v.venue_type_id, 
+        ven_biz_name: v.ven_biz_name,
+        venue_type: v.venue_type_id || 'Other'
+      })) || []);
     };
     fetchVenueProfiles();
   }, []);
@@ -471,7 +475,7 @@ useEffect(() => {
                       <SelectContent>
                         {venueProfiles.map((venue) => (
                           <SelectItem key={venue.id} value={venue.ven_biz_name}>
-                            {venue.ven_biz_name}
+                            {venue.venue_type} / {venue.ven_biz_name}
                           </SelectItem>
                         ))}
                       </SelectContent>
