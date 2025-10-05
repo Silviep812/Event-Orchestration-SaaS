@@ -292,23 +292,24 @@ const HospitalityDirectory = () => {
       <Card>
         <CardHeader>
           <CardTitle>
-            {selectedHospitalityTypes.length > 0 ? (
-              <>
-                {selectedHospitalityTypes.map((typeId, index) => {
+            {(() => {
+              console.log('Selected types:', selectedHospitalityTypes);
+              console.log('Hospitality types:', hospitalityTypes);
+              
+              if (selectedHospitalityTypes.length > 0) {
+                const typeNames = selectedHospitalityTypes.map((typeId, index) => {
                   const matchedType = hospitalityTypes.find(t => t.id.toString() === typeId);
+                  console.log('Looking for typeId:', typeId, 'Found:', matchedType);
                   const typeName = matchedType?.name || 'Unknown';
                   const displayName = typeName.charAt(0).toUpperCase() + typeName.slice(1);
-                  return (
-                    <span key={typeId}>
-                      {index > 0 && ', '}
-                      {displayName}
-                    </span>
-                  );
-                })} Profiles ({filteredProfiles.length} filtered results)
-              </>
-            ) : (
-              <>Hospitality Profiles ({filteredProfiles.length} total results)</>
-            )}
+                  return displayName;
+                }).join(', ');
+                
+                return `${typeNames} Profiles (${filteredProfiles.length} filtered results)`;
+              }
+              
+              return `Hospitality Profiles (${filteredProfiles.length} total results)`;
+            })()}
           </CardTitle>
         </CardHeader>
         <CardContent>
