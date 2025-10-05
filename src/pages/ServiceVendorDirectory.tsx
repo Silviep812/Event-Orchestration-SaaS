@@ -38,8 +38,6 @@ const ServiceVendorDirectory = () => {
 
         if (profilesError) throw profilesError;
 
-        console.log('Fetched vendor types:', typesData);
-        console.log('Fetched vendor profiles:', profilesData);
         setVendorTypes(typesData || []);
         setVendorProfiles(profilesData || []);
       } catch (err: any) {
@@ -62,8 +60,6 @@ const ServiceVendorDirectory = () => {
       profile.city?.toLowerCase().includes(locationFilter.toLowerCase()) ||
       profile.state?.toLowerCase().includes(locationFilter.toLowerCase()) ||
       profile.zip?.toString().includes(locationFilter);
-    
-    console.log('Profile:', profile.business_name, 'Type ID:', profile.vendor_sup_type_id, 'Selected:', selectedVendorTypes, 'Matches:', matchesType);
     
     return matchesType && matchesLocation;
   });
