@@ -56,6 +56,7 @@ export default function SupplierDirectory() {
   const supplierCategoryOptions = [
     { value: "distributor", label: "Distributor", icon: Truck },
     { value: "wholesaler", label: "Wholesaler", icon: Package },
+    { value: "food_wholesaler", label: "Food Wholesaler", icon: Package },
     { value: "online", label: "Online Market", icon: ShoppingCart },
     { value: "merchandizer", label: "Merchandizer", icon: Store },
     { value: "other", label: "Other", icon: Building },
