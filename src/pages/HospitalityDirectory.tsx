@@ -299,19 +299,11 @@ const HospitalityDirectory = () => {
           {filteredProfiles.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredProfiles.map((profile) => {
-                console.log('Profile hospitality_type:', profile.hospitality_type);
-                console.log('Available types:', hospitalityTypes);
-                console.log('Type options:', hospitalityTypeOptions);
-                
                 const typeOption = hospitalityTypeOptions.find(opt => opt.value === profile.hospitality_type?.toString());
                 const matchedType = hospitalityTypes.find(t => t.id === profile.hospitality_type);
                 const typeName = typeOption?.label || matchedType?.name || 'Other';
                 const displayTypeName = typeName.charAt(0).toUpperCase() + typeName.slice(1);
                 const IconComponent = typeOption?.icon || Hotel;
-                
-                console.log('Type option found:', typeOption);
-                console.log('Matched type:', matchedType);
-                console.log('Display type name:', displayTypeName);
                 
                 return (
                   <Card key={profile.id} className="hover:shadow-md transition-shadow">
