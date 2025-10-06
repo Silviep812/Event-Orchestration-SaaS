@@ -754,19 +754,13 @@ export default function Collaborate() {
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium">Select Participant</label>
-                <Select value={inviteEmail} onValueChange={setInviteEmail}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose from event participants" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {eventParticipants.map((participant) => (
-                      <SelectItem key={participant.email} value={participant.email}>
-                        {participant.name} ({participant.email})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <label className="text-sm font-medium">Email Address</label>
+                <Input
+                  type="email"
+                  placeholder="Enter email address"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                />
               </div>
               
               <div>
