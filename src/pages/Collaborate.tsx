@@ -79,6 +79,7 @@ export default function Collaborate() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("");
   const [inviteAttributes, setInviteAttributes] = useState<{ coordinator: boolean; viewer: boolean }>({ coordinator: false, viewer: false });
+  const [selectedCollaboratorTypes, setSelectedCollaboratorTypes] = useState<string[]>([]);
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
   const [isMemberDialogOpen, setIsMemberDialogOpen] = useState(false);
   const [isCreateTeamDialogOpen, setIsCreateTeamDialogOpen] = useState(false);
@@ -376,6 +377,7 @@ export default function Collaborate() {
       setInviteEmail("");
       setInviteRole("");
       setInviteAttributes({ coordinator: false, viewer: false });
+      setSelectedCollaboratorTypes([]);
       setIsInviteDialogOpen(false);
       
       // Refresh team members list with updated roles
@@ -588,6 +590,46 @@ export default function Collaborate() {
                       Viewer
                     </label>
                   </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Collaborator Types (select all that apply)</label>
+                  <div className="mt-2 max-h-48 overflow-y-auto space-y-2 border rounded-md p-3">
+                    {[
+                      'Bookings',
+                      'Venue',
+                      'Vendor Service Rental/Buy',
+                      'Hospitality',
+                      'Service Vendor',
+                      'Transportation',
+                      'Entertainment',
+                      'Suppliers'
+                    ].map((type) => (
+                      <label key={type} className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={selectedCollaboratorTypes.includes(type)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedCollaboratorTypes([...selectedCollaboratorTypes, type]);
+                            } else {
+                              setSelectedCollaboratorTypes(selectedCollaboratorTypes.filter(t => t !== type));
+                            }
+                          }}
+                          className="w-4 h-4"
+                        />
+                        <span className="text-sm">{type}</span>
+                      </label>
+                    ))}
+                  </div>
+                  {selectedCollaboratorTypes.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {selectedCollaboratorTypes.map(type => (
+                        <Badge key={type} variant="secondary" className="text-xs">
+                          {type}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <Button onClick={handleInviteMember} className="w-full">
                   Send Invitation

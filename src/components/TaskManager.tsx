@@ -109,6 +109,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
     selected_event_id: "",
     dependencies: [] as string[]
   });
+  const [selectedCollaboratorTypes, setSelectedCollaboratorTypes] = useState<string[]>([]);
   const { toast } = useToast();
   const { user } = useAuth();
   const { events, applyEventFilter } = useEventFilter();
@@ -565,6 +566,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         selected_event_id: "",
         dependencies: []
       });
+      setSelectedCollaboratorTypes([]);
       setIsCreateDialogOpen(false);
       fetchTasks();
     } catch (error) {
@@ -959,6 +961,50 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     </div>
                   </div>
                 )}
+                
+                {/* Collaborator Types selection */}
+                <div className="space-y-2">
+                  <Label>Collaborator Types</Label>
+                  <p className="text-sm text-muted-foreground">Select all that apply:</p>
+                  <div className="max-h-48 overflow-y-auto space-y-2 border rounded-md p-2">
+                    {[
+                      'Bookings',
+                      'Venue',
+                      'Vendor Service Rental/Buy',
+                      'Hospitality',
+                      'Service Vendor',
+                      'Transportation',
+                      'Entertainment',
+                      'Suppliers'
+                    ].map((type) => (
+                      <div key={type} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`collab-${type}`}
+                          checked={selectedCollaboratorTypes.includes(type)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedCollaboratorTypes([...selectedCollaboratorTypes, type]);
+                            } else {
+                              setSelectedCollaboratorTypes(selectedCollaboratorTypes.filter(t => t !== type));
+                            }
+                          }}
+                        />
+                        <label htmlFor={`collab-${type}`} className="text-sm font-medium leading-none cursor-pointer">
+                          {type}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                  {selectedCollaboratorTypes.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {selectedCollaboratorTypes.map(type => (
+                        <Badge key={type} variant="secondary" className="text-xs">
+                          {type}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
             
