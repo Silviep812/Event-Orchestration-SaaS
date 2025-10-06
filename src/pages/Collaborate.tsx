@@ -626,7 +626,7 @@ export default function Collaborate() {
           </p>
         </div>
         
-        {userTeam ? (
+        {userTeam && (
           <Dialog 
             open={isInviteDialogOpen} 
             onOpenChange={(open) => {
@@ -752,14 +752,6 @@ export default function Collaborate() {
               </div>
             </DialogContent>
           </Dialog>
-        ) : (
-          <Button 
-            onClick={() => setIsCreateTeamDialogOpen(true)}
-            className="bg-gradient-to-r from-primary to-secondary"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Create Team
-          </Button>
         )}
 
         {/* Create Team Dialog */}
