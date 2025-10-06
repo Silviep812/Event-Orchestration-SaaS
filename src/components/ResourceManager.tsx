@@ -78,6 +78,7 @@ interface Resource {
 
 interface ResourceManagerProps {
   eventId?: string;
+  eventLocation?: string;
 }
 
 interface Event {
@@ -86,7 +87,7 @@ interface Event {
   event_start_date: string | null;
 }
 
-const ResourceManager = ({ eventId }: ResourceManagerProps) => {
+const ResourceManager = ({ eventId, eventLocation }: ResourceManagerProps) => {
   const [resources, setResources] = useState<Resource[]>([]);
   const [filteredResources, setFilteredResources] = useState<Resource[]>([]);
   const [categories, setCategories] = useState<ResourceCategory[]>([]);
@@ -104,11 +105,19 @@ const ResourceManager = ({ eventId }: ResourceManagerProps) => {
     name: '',
     category_id: '',
     status_id: '',
-    location: '',
+    location: eventLocation || '',
     allocated: 0,
     total: 0,
     event_id: eventId || '',
   });
+
+  // Update newResource location when eventLocation changes
+  useEffect(() => {
+    setNewResource(prev => ({
+      ...prev,
+      location: eventLocation || prev.location,
+    }));
+  }, [eventLocation]);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editResource, setEditResource] = useState<Resource | null>(null);
   const { toast } = useToast();

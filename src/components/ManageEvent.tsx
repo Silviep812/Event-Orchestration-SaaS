@@ -857,7 +857,7 @@ const ManageEvent = () => {
                     <CardTitle>Resource Management</CardTitle>
                   </CardHeader>
                   <CardContent className="p-6">
-                    <ResourceManager eventId={selectedEvent.id} />
+                    <ResourceManager eventId={selectedEvent.id} eventLocation={selectedEvent.location} />
                   </CardContent>
                 </Card>
               </TabsContent>
