@@ -415,6 +415,55 @@ const ManageEvent = () => {
     // Update in events list
     setEvents(prev => prev.map(e => e.id === updatedEvent.id ? updatedEvent : e));
 
+    // Immediate sync for location or venue changes
+    if ((field === 'location' || field === 'venue') && selectedEvent.id) {
+      console.log(`Field ${field} changed, syncing to resources immediately`);
+      
+      // Update all resources with new location
+      if (field === 'location' && value) {
+        const { error } = await supabase
+          .from('resources')
+          .update({ location: value })
+          .eq('event_id', selectedEvent.id);
+        
+        if (error) {
+          console.error('Error updating resources location:', error);
+        } else {
+          console.log('Resources location updated successfully');
+          setResourceRefreshKey(prev => prev + 1);
+        }
+      }
+      
+      // Update venue resource if venue changed
+      if (field === 'venue' && value) {
+        const { data: categories } = await supabase
+          .from('resource_categories')
+          .select('id, name');
+        
+        const venueCategory = categories?.find(c => c.name.toLowerCase().includes('venue'));
+        
+        if (venueCategory) {
+          const { data: existingVenue } = await supabase
+            .from('resources')
+            .select('id')
+            .eq('event_id', selectedEvent.id)
+            .eq('category_id', venueCategory.id)
+            .maybeSingle();
+          
+          if (existingVenue) {
+            await supabase
+              .from('resources')
+              .update({ 
+                name: value,
+                location: updatedEvent.location || ''
+              })
+              .eq('id', existingVenue.id);
+          }
+          setResourceRefreshKey(prev => prev + 1);
+        }
+      }
+    }
+
     // Log field change for audit trail
     if (selectedEvent.id) {
       if (autoSave) {
