@@ -338,12 +338,12 @@ export default function Collaborate() {
           const teamId = assignment.team_id;
           const teamName = assignment.teams?.name || 'Unnamed Team';
           const isAdmin = !!assignment.team_admin;
-          // Get all members for this team (excluding current user)
+          
+          // Get all members for this team (including current user)
           const { data: memberAssignments } = await supabase
             .from('team_assignments')
             .select('user_id, team_admin')
-            .eq('team_id', teamId)
-            .neq('user_id', user.id);
+            .eq('team_id', teamId);
 
           const userIds = (memberAssignments || []).map((ma: any) => ma.user_id);
 
@@ -356,11 +356,10 @@ export default function Collaborate() {
 
             if (profilesData) {
               usersMap = profilesData.reduce((acc: any, u: any) => {
-                // Use only display_name, username field contains domain not actual name
                 acc[u.user_id] = { 
                   id: u.user_id, 
                   name: u.display_name || 'Unknown User',
-                  email: '' // Email not available in profiles table
+                  email: '' 
                 };
                 return acc;
               }, {});
@@ -374,10 +373,31 @@ export default function Collaborate() {
               name: userInfo?.name || "Unknown User",
               email: userInfo?.email || '',
               role: ma.team_admin ? 'Admin' : 'Member',
-              status: 'offline',
+              status: ma.user_id === user.id ? 'online' : 'offline',
               joinedAt: new Date().toISOString()
             };
           });
+
+          // Fetch collaborator configurations for this team
+          const { data: configs } = await supabase
+            .from('collaborator_configurations')
+            .select('*')
+            .eq('team_id', teamId)
+            .is('assigned_user_id', null);
+
+          if (configs && configs.length > 0) {
+            const configMembers: TeamMember[] = configs.map(config => ({
+              id: config.id,
+              name: `${config.role} (Needed)`,
+              role: config.role,
+              status: 'configured' as const,
+              joinedAt: config.created_at,
+              collaboratorTypes: config.collaborator_types,
+              isConfiguration: true
+            }));
+            members.push(...configMembers);
+          }
+
           return { id: teamId, name: teamName, members, isAdmin };
         }));
         setUserTeams(teamsWithMembers);
