@@ -92,6 +92,7 @@ export default function Collaborate() {
   const [eventParticipants, setEventParticipants] = useState<{ email: string; name: string }[]>([]);
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [activeTeamId, setActiveTeamId] = useState<string | null>(null);
 
   // Fetch event participants for invitation dropdown
   useEffect(() => {
@@ -461,13 +462,22 @@ export default function Collaborate() {
 
     // If no email provided, save as a collaborator configuration
     if (!inviteEmail || !inviteEmail.trim()) {
+      if (!activeTeamId) {
+        toast({
+          title: "Error",
+          description: "No team selected. Please try again.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
       try {
-        console.log('Creating config for team:', userTeam?.id, 'role:', inviteRole);
+        console.log('Creating config for team:', activeTeamId, 'role:', inviteRole);
         
         const { data, error } = await supabase
           .from('collaborator_configurations')
           .insert({
-            team_id: userTeam?.id,
+            team_id: activeTeamId,
             role: inviteRole,
             collaborator_types: selectedCollaboratorTypes,
             is_coordinator: inviteAttributes.coordinator,
@@ -966,43 +976,62 @@ export default function Collaborate() {
                       </div>
                     </div>
                   </div>
-                  {team.members.length === 0 ? (
+                   {team.members.length === 0 ? (
                     <NoTeamMembersCard
                       userTeam={userTeam}
                       userTeams={userTeams}
                       onCreateTeam={() => setIsCreateTeamDialogOpen(true)}
-                      onInviteMember={() => setIsInviteDialogOpen(true)}
+                      onInviteMember={() => {
+                        setActiveTeamId(team.id);
+                        setIsInviteDialogOpen(true);
+                      }}
                     />
                   ) : (
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 py-4">
-                      {team.members.map(member => (
-                        <div key={member.id} className="relative">
-                          <div 
-                            className={`transition-all ${selectedMembers.includes(member.id) ? 'ring-2 ring-primary' : ''}`}
+                    <>
+                      {team.isAdmin && (
+                        <div className="py-4">
+                          <Button 
+                            onClick={() => {
+                              setActiveTeamId(team.id);
+                              setIsInviteDialogOpen(true);
+                            }}
+                            className="bg-gradient-to-r from-primary to-secondary"
                           >
-                            <TeamMemberCard
-                              member={member}
-                              onClick={handleMemberClick}
-                            />
-                          </div>
-                          <div className="absolute top-2 right-2">
-                            <input
-                              type="checkbox"
-                              checked={selectedMembers.includes(member.id)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setSelectedMembers([...selectedMembers, member.id]);
-                                } else {
-                                  setSelectedMembers(selectedMembers.filter(id => id !== member.id));
-                                }
-                              }}
-                              className="w-5 h-5 rounded cursor-pointer"
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                          </div>
+                            <UserPlus className="w-4 h-4 mr-2" />
+                            Invite Member
+                          </Button>
                         </div>
-                      ))}
-                    </div>
+                      )}
+                      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 py-4">
+                        {team.members.map(member => (
+                          <div key={member.id} className="relative">
+                            <div 
+                              className={`transition-all ${selectedMembers.includes(member.id) ? 'ring-2 ring-primary' : ''}`}
+                            >
+                              <TeamMemberCard
+                                member={member}
+                                onClick={handleMemberClick}
+                              />
+                            </div>
+                            <div className="absolute top-2 right-2">
+                              <input
+                                type="checkbox"
+                                checked={selectedMembers.includes(member.id)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedMembers([...selectedMembers, member.id]);
+                                  } else {
+                                    setSelectedMembers(selectedMembers.filter(id => id !== member.id));
+                                  }
+                                }}
+                                className="w-5 h-5 rounded cursor-pointer"
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </>
                   )}
                 </div>
               ))}
