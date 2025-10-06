@@ -8,6 +8,7 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Calendar } from "@/components/ui/calendar";
+import { useAuth } from "@/hooks/useAuth";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -22,6 +23,7 @@ interface ReservationFormProps {
 
 const ReservationForm = ({ venueId, venueName, venueLocation, venueCapacity }: ReservationFormProps = {}) => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [date, setDate] = useState<Date>();
   const [formData, setFormData] = useState({
     name: "",
@@ -54,10 +56,11 @@ const ReservationForm = ({ venueId, venueName, venueLocation, venueCapacity }: R
         special_requests: formData.specialRequests || undefined,
       });
 
-      const { error } = await supabase
+      const bookId = `res_${Date.now()}`;
+      const { error: reservationError } = await supabase
         .from('reservation_submissions')
         .insert([{
-          book_id: `res_${Date.now()}`,
+          book_id: bookId,
           name: validatedData.name,
           email: validatedData.email,
           phone: validatedData.phone,
@@ -68,7 +71,22 @@ const ReservationForm = ({ venueId, venueName, venueLocation, venueCapacity }: R
           venue_id: venueId || null,
         }]);
 
-      if (error) throw error;
+      if (reservationError) throw reservationError;
+
+      // Update Bookings Directory if user is authenticated
+      if (user) {
+        const { error: directoryError } = await supabase
+          .from('Bookings Directory')
+          .upsert({
+            book_id: `booking_${user.id}`,
+            user_id: user.id,
+            reservation: true,
+          }, {
+            onConflict: 'book_id',
+          });
+
+        if (directoryError) console.error('Directory update error:', directoryError);
+      }
 
       toast({
         title: "Reservation Submitted",

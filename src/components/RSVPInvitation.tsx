@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { rsvpSchema } from "@/lib/validation/bookingsValidation";
 import { PrivateResidenceForm } from "@/components/PrivateResidenceForm";
+import { useAuth } from "@/hooks/useAuth";
 
 interface RSVPInvitationProps {
   isPrivateResidence?: boolean;
@@ -19,6 +20,7 @@ interface RSVPInvitationProps {
 
 const RSVPInvitation = ({ isPrivateResidence, venueName, venueLocation }: RSVPInvitationProps) => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [response, setResponse] = useState<string>("");
   const [guestName, setGuestName] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
@@ -44,10 +46,11 @@ const RSVPInvitation = ({ isPrivateResidence, venueName, venueLocation }: RSVPIn
       });
 
       // Save to database
-      const { error } = await supabase
+      const bookId = `rsvp_${Date.now()}`;
+      const { error: rsvpError } = await supabase
         .from('rsvp_submissions')
         .insert([{
-          book_id: `rsvp_${Date.now()}`,
+          book_id: bookId,
           guest_name: validatedData.guest_name,
           guest_email: validatedData.guest_email,
           response_type: validatedData.response_type,
@@ -55,7 +58,22 @@ const RSVPInvitation = ({ isPrivateResidence, venueName, venueLocation }: RSVPIn
           special_requests: validatedData.special_requests,
         }]);
 
-      if (error) throw error;
+      if (rsvpError) throw rsvpError;
+
+      // Update Bookings Directory if user is authenticated
+      if (user) {
+        const { error: directoryError } = await supabase
+          .from('Bookings Directory')
+          .upsert({
+            book_id: `booking_${user.id}`,
+            user_id: user.id,
+            rsvp: true,
+          }, {
+            onConflict: 'book_id',
+          });
+
+        if (directoryError) console.error('Directory update error:', directoryError);
+      }
 
       toast({
         title: "RSVP Submitted",

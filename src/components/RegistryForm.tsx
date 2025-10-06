@@ -9,6 +9,7 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { registrySchema } from "@/lib/validation/bookingsValidation";
+import { useAuth } from "@/hooks/useAuth";
 
 interface RegistryItem {
   id: string;
@@ -21,6 +22,7 @@ interface RegistryItem {
 
 const RegistryForm = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     name: "",
@@ -103,10 +105,11 @@ const RegistryForm = () => {
         message: formData.message || undefined,
       });
 
-      const { error } = await supabase
+      const bookId = `reg_${Date.now()}`;
+      const { error: registryError } = await supabase
         .from('registry_submissions')
         .insert([{
-          book_id: `reg_${Date.now()}`,
+          book_id: bookId,
           name: validatedData.name,
           email: validatedData.email,
           phone: validatedData.phone,
@@ -115,7 +118,22 @@ const RegistryForm = () => {
           message: validatedData.message,
         }]);
 
-      if (error) throw error;
+      if (registryError) throw registryError;
+
+      // Update Bookings Directory if user is authenticated
+      if (user) {
+        const { error: directoryError } = await supabase
+          .from('Bookings Directory')
+          .upsert({
+            book_id: `booking_${user.id}`,
+            user_id: user.id,
+            registry: selectedItems,
+          }, {
+            onConflict: 'book_id',
+          });
+
+        if (directoryError) console.error('Directory update error:', directoryError);
+      }
 
       toast({
         title: "Registry Contribution Received",

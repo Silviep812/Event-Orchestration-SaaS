@@ -8,9 +8,11 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { confirmationSchema } from "@/lib/validation/bookingsValidation";
+import { useAuth } from "@/hooks/useAuth";
 
 const ConfirmationForm = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
     confirmationNumber: "",
     name: "",
@@ -35,10 +37,11 @@ const ConfirmationForm = () => {
         notes: formData.notes || undefined,
       });
 
-      const { error } = await supabase
+      const bookId = `conf_${Date.now()}`;
+      const { error: confirmError } = await supabase
         .from('confirmation_submissions')
         .insert([{
-          book_id: `conf_${Date.now()}`,
+          book_id: bookId,
           confirmation_number: validatedData.confirmation_number,
           name: validatedData.name,
           email: validatedData.email,
@@ -46,7 +49,22 @@ const ConfirmationForm = () => {
           notes: validatedData.notes,
         }]);
 
-      if (error) throw error;
+      if (confirmError) throw confirmError;
+
+      // Update Bookings Directory if user is authenticated
+      if (user) {
+        const { error: directoryError } = await supabase
+          .from('Bookings Directory')
+          .upsert({
+            book_id: `booking_${user.id}`,
+            user_id: user.id,
+            confirmation: true,
+          }, {
+            onConflict: 'book_id',
+          });
+
+        if (directoryError) console.error('Directory update error:', directoryError);
+      }
 
       toast({
         title: "Confirmation Received",

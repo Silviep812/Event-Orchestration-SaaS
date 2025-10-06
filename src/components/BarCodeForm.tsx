@@ -8,9 +8,11 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { barcodeSchema } from "@/lib/validation/bookingsValidation";
+import { useAuth } from "@/hooks/useAuth";
 
 const BarCodeForm = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
     eventName: "",
     ticketNumber: "",
@@ -39,10 +41,11 @@ const BarCodeForm = () => {
         notes: formData.notes || undefined,
       });
 
-      const { error } = await supabase
+      const bookId = `bar_${Date.now()}`;
+      const { error: barcodeError } = await supabase
         .from('barcode_submissions')
         .insert([{
-          book_id: `bar_${Date.now()}`,
+          book_id: bookId,
           event_name: validatedData.event_name,
           ticket_number: validatedData.ticket_number,
           email: validatedData.email,
@@ -50,7 +53,22 @@ const BarCodeForm = () => {
           notes: validatedData.notes,
         }]);
 
-      if (error) throw error;
+      if (barcodeError) throw barcodeError;
+
+      // Update Bookings Directory if user is authenticated
+      if (user) {
+        const { error: directoryError } = await supabase
+          .from('Bookings Directory')
+          .upsert({
+            book_id: `booking_${user.id}`,
+            user_id: user.id,
+            barcode: true,
+          }, {
+            onConflict: 'book_id',
+          });
+
+        if (directoryError) console.error('Directory update error:', directoryError);
+      }
 
       toast({
         title: "Barcode Generated",
