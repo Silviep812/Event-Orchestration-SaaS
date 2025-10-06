@@ -84,6 +84,7 @@ export default function Collaborate() {
   const [isMemberDialogOpen, setIsMemberDialogOpen] = useState(false);
   const [isCreateTeamDialogOpen, setIsCreateTeamDialogOpen] = useState(false);
   const [teamName, setTeamName] = useState("");
+  const [teamCollaboratorTypes, setTeamCollaboratorTypes] = useState<string[]>([]);
   const [userTeam, setUserTeam] = useState<{ id: string; name: string } | null>(null);
   const [userTeams, setUserTeams] = useState<{ id: string; name: string; members: TeamMember[]; isAdmin: boolean }[]>([]);
   const [eventParticipants, setEventParticipants] = useState<{ email: string; name: string }[]>([]);
@@ -537,6 +538,15 @@ export default function Collaborate() {
       return;
     }
 
+    if (teamCollaboratorTypes.length === 0) {
+      toast({
+        title: "Error",
+        description: "Please select at least one collaborator type.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     if (!user) {
       toast({
         title: "Error",
@@ -587,10 +597,11 @@ export default function Collaborate() {
 
       toast({
         title: "Success",
-        description: `Team "${teamName}" has been created successfully!`,
+        description: `Team "${teamName}" has been created successfully with ${teamCollaboratorTypes.join(', ')} collaborators!`,
       });
 
       setTeamName("");
+      setTeamCollaboratorTypes([]);
       setIsCreateTeamDialogOpen(false);
       
       // Update userTeam state
@@ -754,8 +765,17 @@ export default function Collaborate() {
         )}
 
         {/* Create Team Dialog */}
-        <Dialog open={isCreateTeamDialogOpen} onOpenChange={setIsCreateTeamDialogOpen}>
-          <DialogContent>
+        <Dialog 
+          open={isCreateTeamDialogOpen} 
+          onOpenChange={(open) => {
+            setIsCreateTeamDialogOpen(open);
+            if (!open) {
+              setTeamName("");
+              setTeamCollaboratorTypes([]);
+            }
+          }}
+        >
+          <DialogContent className="max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Create New Team</DialogTitle>
             </DialogHeader>
@@ -766,12 +786,38 @@ export default function Collaborate() {
                   placeholder="Enter team name"
                   value={teamName}
                   onChange={(e) => setTeamName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      handleCreateTeam();
-                    }
-                  }}
                 />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Collaborator Types (select all that apply)</label>
+                <div className="mt-2 max-h-48 overflow-y-auto space-y-2 border rounded-md p-3 bg-background">
+                  {[
+                    'Bookings',
+                    'Venue',
+                    'Vendor Service Rental/Buy',
+                    'Hospitality',
+                    'Service Vendor',
+                    'Transportation',
+                    'Entertainment',
+                    'Suppliers'
+                  ].map((type) => (
+                    <label key={type} className="flex items-center gap-2 cursor-pointer hover:bg-accent/50 p-2 rounded">
+                      <input
+                        type="checkbox"
+                        checked={teamCollaboratorTypes.includes(type)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setTeamCollaboratorTypes([...teamCollaboratorTypes, type]);
+                          } else {
+                            setTeamCollaboratorTypes(teamCollaboratorTypes.filter(t => t !== type));
+                          }
+                        }}
+                        className="w-4 h-4"
+                      />
+                      <span className="text-sm">{type}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
               <Button onClick={handleCreateTeam} className="w-full">
                 Create Team
