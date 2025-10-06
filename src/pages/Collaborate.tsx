@@ -393,15 +393,6 @@ export default function Collaborate() {
       return;
     }
 
-    if (!inviteEmail || !inviteEmail.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter an email address.",
-        variant: "destructive"
-      });
-      return;
-    }
-
     try {
       const { data, error } = await supabase.functions.invoke('send-team-invitation', {
         body: {
