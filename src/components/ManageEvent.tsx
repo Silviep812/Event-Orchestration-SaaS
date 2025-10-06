@@ -217,6 +217,7 @@ const ManageEvent = () => {
           end_date: eventData.end_date,
           start_time: eventData.start_time,
           end_time: eventData.end_time,
+          location: eventData.location,
           venue: eventData.venue,
           theme_id: eventData.theme_id,
           type_id: eventData.type_id,
@@ -780,12 +781,22 @@ const ManageEvent = () => {
                       </div>
 
                       <div>
-                        <Label htmlFor="location">Venue</Label>
+                        <Label htmlFor="venue">Venue</Label>
                         <Input
-                          id="location"
+                          id="venue"
                           value={selectedEvent.venue || ''}
                           onChange={(e) => handleFieldChange('venue', e.target.value)}
                           placeholder="Enter venue name"
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="location">Location</Label>
+                        <Input
+                          id="location"
+                          value={selectedEvent.location || ''}
+                          onChange={(e) => handleFieldChange('location', e.target.value)}
+                          placeholder="Enter event location"
                         />
                       </div>
                       
