@@ -34,7 +34,7 @@ export function NoTeamMembersCard({ userTeam, userTeams, onCreateTeam, onInviteM
           {!showCreateOnly && userTeam && (
             <Button 
               onClick={onInviteMember}
-              variant="outline"
+              className="bg-gradient-to-r from-primary to-secondary shadow-lg hover:shadow-xl transition-shadow"
             >
               <UserPlus className="w-4 h-4 mr-2" />
               Invite Member
