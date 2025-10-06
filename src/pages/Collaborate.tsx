@@ -734,6 +734,85 @@ export default function Collaborate() {
             )}
           </DialogContent>
         </Dialog>
+
+        {/* Invite Member Dialog */}
+        <Dialog 
+          open={isInviteDialogOpen} 
+          onOpenChange={(open) => {
+            setIsInviteDialogOpen(open);
+            if (!open) {
+              setInviteEmail("");
+              setInviteRole("");
+              setInviteAttributes({ coordinator: false, viewer: false });
+              setSelectedCollaboratorTypes([]);
+            }
+          }}
+        >
+          <DialogContent className="max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Invite Team Member</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium">Select Participant</label>
+                <Select value={inviteEmail} onValueChange={setInviteEmail}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose from event participants" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {eventParticipants.map((participant) => (
+                      <SelectItem key={participant.email} value={participant.email}>
+                        {participant.name} ({participant.email})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium">Role</label>
+                <Select value={inviteRole} onValueChange={setInviteRole}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="organizer">Organizer</SelectItem>
+                    <SelectItem value="coordinator">Coordinator</SelectItem>
+                    <SelectItem value="vendor">Vendor</SelectItem>
+                    <SelectItem value="viewer">Viewer</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium">Collaborator Types (select all that apply)</label>
+                <div className="mt-2 max-h-48 overflow-y-auto space-y-2 border rounded-md p-3 bg-background">
+                  {['Bookings', 'Venue', 'Vendor Service Rental/Buy', 'Hospitality', 'Service Vendor', 'Transportation', 'Entertainment', 'Suppliers'].map((type) => (
+                    <label key={type} className="flex items-center gap-2 cursor-pointer hover:bg-accent/50 p-2 rounded">
+                      <input
+                        type="checkbox"
+                        checked={selectedCollaboratorTypes.includes(type)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedCollaboratorTypes([...selectedCollaboratorTypes, type]);
+                          } else {
+                            setSelectedCollaboratorTypes(selectedCollaboratorTypes.filter(t => t !== type));
+                          }
+                        }}
+                        className="w-4 h-4"
+                      />
+                      <span className="text-sm">{type}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              
+              <Button onClick={handleInviteMember} className="w-full">
+                Send Invitation
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
