@@ -86,6 +86,46 @@ export default function Collaborate() {
   const [teamName, setTeamName] = useState("");
   const [userTeam, setUserTeam] = useState<{ id: string; name: string } | null>(null);
   const [userTeams, setUserTeams] = useState<{ id: string; name: string; members: TeamMember[]; isAdmin: boolean }[]>([]);
+  const [eventParticipants, setEventParticipants] = useState<{ email: string; name: string }[]>([]);
+
+  // Fetch event participants
+  useEffect(() => {
+    const fetchEventParticipants = async () => {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('Create Event')
+          .select('event_collaborators, contact_name, email')
+          .eq('userid', user.id);
+        
+        if (!error && data) {
+          const participants: { email: string; name: string }[] = [];
+          data.forEach((event) => {
+            if (event.email && event.contact_name) {
+              participants.push({ email: event.email, name: event.contact_name });
+            }
+            if (event.event_collaborators && Array.isArray(event.event_collaborators)) {
+              event.event_collaborators.forEach((collab: string) => {
+                if (collab.includes('@')) {
+                  participants.push({ email: collab, name: collab.split('@')[0] });
+                }
+              });
+            }
+          });
+          // Remove duplicates
+          const uniqueParticipants = Array.from(
+            new Map(participants.map(p => [p.email, p])).values()
+          );
+          setEventParticipants(uniqueParticipants);
+        }
+      } catch (error) {
+        console.error('Error fetching event participants:', error);
+      }
+    };
+    
+    fetchEventParticipants();
+  }, [user]);
 
   // Fetch user's team if they're an admin
   useEffect(() => {
@@ -595,12 +635,27 @@ export default function Collaborate() {
               </DialogHeader>
               <div className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium">Email Address</label>
-                  <Input
-                    placeholder="colleague@example.com"
-                    value={inviteEmail}
-                    onChange={(e) => setInviteEmail(e.target.value)}
-                  />
+                  <label className="text-sm font-medium">Select Participant</label>
+                  {eventParticipants.length > 0 ? (
+                    <Select value={inviteEmail} onValueChange={setInviteEmail}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a participant" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {eventParticipants.map((participant) => (
+                          <SelectItem key={participant.email} value={participant.email}>
+                            {participant.name} ({participant.email})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Input
+                      placeholder="colleague@example.com"
+                      value={inviteEmail}
+                      onChange={(e) => setInviteEmail(e.target.value)}
+                    />
+                  )}
                 </div>
                 <div>
                   <label className="text-sm font-medium">Role</label>
