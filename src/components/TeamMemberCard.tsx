@@ -42,9 +42,6 @@ export function TeamMemberCard({ member, onClick }: TeamMemberCardProps) {
       <CardContent>
         <div className="space-y-2">
           <Badge variant="secondary">{member.role.replace('_', ' ')}</Badge>
-          <p className="text-sm text-muted-foreground">
-            Joined {member.joinedAt ? new Date(member.joinedAt).toLocaleDateString() : ''}
-          </p>
           <div className="flex items-center gap-2 text-sm">
             <div className={`w-2 h-2 rounded-full ${getStatusColor(member.status)}`} />
             <span className="capitalize">{member.status}</span>

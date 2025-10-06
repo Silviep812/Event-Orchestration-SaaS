@@ -176,7 +176,7 @@ export default function Collaborate() {
           return;
         }
 
-        // Get user details from User table
+        // Get user details from profiles table
         const userIds = assignments.map(a => a.user_id);
         const { data: usersData, error: usersError } = await supabase
           .from('profiles')
@@ -326,16 +326,16 @@ export default function Collaborate() {
           if (userIds.length > 0) {
             const { data: profilesData } = await supabase
               .from('profiles')
-              .select('user_id, display_name, username')
+              .select('user_id, display_name')
               .in('user_id', userIds);
 
             if (profilesData) {
               usersMap = profilesData.reduce((acc: any, u: any) => {
-                // Use display_name for user's name, username typically contains email domain
+                // Use only display_name, username field contains domain not actual name
                 acc[u.user_id] = { 
                   id: u.user_id, 
-                  name: u.display_name || u.username || 'Unknown User',
-                  email: u.username || ''
+                  name: u.display_name || 'Unknown User',
+                  email: '' // Email not available in profiles table
                 };
                 return acc;
               }, {});
