@@ -3,16 +3,31 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CheckCircle, Calendar, Clock, MapPin, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { confirmationSchema } from "@/lib/validation/bookingsValidation";
 import { useAuth } from "@/hooks/useAuth";
+import { format } from "date-fns";
+
+interface Event {
+  userid: string;
+  event_start_date: string;
+  event_start_time: string;
+  event_end_time: string;
+  event_location: string[];
+  event_theme: string[];
+  event_description: string;
+}
 
 const ConfirmationForm = () => {
   const { toast } = useToast();
   const { user } = useAuth();
+  const [events, setEvents] = useState<Event[]>([]);
+  const [selectedEventId, setSelectedEventId] = useState<string>("");
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -22,6 +37,38 @@ const ConfirmationForm = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [generatedConfirmation, setGeneratedConfirmation] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (user) {
+      fetchEvents();
+    }
+  }, [user]);
+
+  const fetchEvents = async () => {
+    if (!user) return;
+    
+    const { data, error } = await supabase
+      .from('Create Event')
+      .select('*')
+      .eq('userid', user.id);
+    
+    if (error) {
+      console.error('Error fetching events:', error);
+      return;
+    }
+    
+    setEvents(data || []);
+    if (data && data.length > 0) {
+      setSelectedEventId(data[0].userid);
+      setSelectedEvent(data[0]);
+    }
+  };
+
+  const handleEventChange = (eventId: string) => {
+    setSelectedEventId(eventId);
+    const event = events.find(e => e.userid === eventId);
+    setSelectedEvent(event || null);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,6 +92,7 @@ const ConfirmationForm = () => {
         .from('confirmation_submissions')
         .insert([{
           book_id: bookId,
+          event_id: selectedEventId,
           confirmation_number: validatedData.confirmation_number,
           name: validatedData.name,
           email: validatedData.email,
@@ -136,38 +184,72 @@ const ConfirmationForm = () => {
       </CardHeader>
 
       <CardContent className="p-6 md:p-8">
-        <div className="mb-8 p-6 bg-muted/50 rounded-lg border border-border space-y-4">
-          <h3 className="font-semibold text-lg flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-primary" />
-            Event Details
-          </h3>
-          
-          <div className="grid md:grid-cols-2 gap-4 text-sm">
-            <div className="flex items-start gap-2">
-              <Calendar className="w-4 h-4 mt-0.5 text-muted-foreground" />
-              <div>
-                <p className="font-medium">Date</p>
-                <p className="text-muted-foreground">Saturday, March 15, 2025</p>
-              </div>
-            </div>
+        {events.length > 0 && (
+          <div className="mb-6">
+            <Label htmlFor="event-select">Select Event *</Label>
+            <Select value={selectedEventId} onValueChange={handleEventChange}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Choose an event" />
+              </SelectTrigger>
+              <SelectContent>
+                {events.map((event) => (
+                  <SelectItem key={event.userid} value={event.userid}>
+                    {event.event_theme?.[0] || 'Event'} - {event.event_start_date ? format(new Date(event.event_start_date), 'MMM dd, yyyy') : 'No date'}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        {selectedEvent && (
+          <div className="mb-8 p-6 bg-muted/50 rounded-lg border border-border space-y-4">
+            <h3 className="font-semibold text-lg flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-primary" />
+              Event Details
+            </h3>
             
-            <div className="flex items-start gap-2">
-              <Clock className="w-4 h-4 mt-0.5 text-muted-foreground" />
-              <div>
-                <p className="font-medium">Time</p>
-                <p className="text-muted-foreground">6:00 PM - 11:00 PM</p>
+            <div className="grid md:grid-cols-2 gap-4 text-sm">
+              <div className="flex items-start gap-2">
+                <Calendar className="w-4 h-4 mt-0.5 text-muted-foreground" />
+                <div>
+                  <p className="font-medium">Date</p>
+                  <p className="text-muted-foreground">
+                    {selectedEvent.event_start_date ? format(new Date(selectedEvent.event_start_date), 'EEEE, MMMM dd, yyyy') : 'No date set'}
+                  </p>
+                </div>
               </div>
-            </div>
-            
-            <div className="flex items-start gap-2 md:col-span-2">
-              <MapPin className="w-4 h-4 mt-0.5 text-muted-foreground" />
-              <div>
-                <p className="font-medium">Location</p>
-                <p className="text-muted-foreground">Grand Event Center, 123 Main Street</p>
+              
+              <div className="flex items-start gap-2">
+                <Clock className="w-4 h-4 mt-0.5 text-muted-foreground" />
+                <div>
+                  <p className="font-medium">Time</p>
+                  <p className="text-muted-foreground">
+                    {selectedEvent.event_start_time && selectedEvent.event_end_time 
+                      ? `${format(new Date(selectedEvent.event_start_time), 'h:mm a')} - ${format(new Date(selectedEvent.event_end_time), 'h:mm a')}`
+                      : 'Time TBD'}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex items-start gap-2 md:col-span-2">
+                <MapPin className="w-4 h-4 mt-0.5 text-muted-foreground" />
+                <div>
+                  <p className="font-medium">Location</p>
+                  <p className="text-muted-foreground">
+                    {selectedEvent.event_location?.[0] || 'Location TBD'}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
+
+        {events.length === 0 && (
+          <div className="mb-8 p-6 bg-muted/50 rounded-lg border border-border text-center">
+            <p className="text-muted-foreground">No events found. Please create an event first.</p>
+          </div>
+        )}
 
         {generatedConfirmation && (
           <div className="mb-6 p-4 bg-primary/10 border border-primary/20 rounded-lg">
@@ -247,7 +329,7 @@ const ConfirmationForm = () => {
           <div className="pt-4 flex flex-col sm:flex-row gap-4">
             <Button 
               type="submit" 
-              disabled={isSubmitting}
+              disabled={isSubmitting || !selectedEventId}
               className="flex-1 h-12 text-base font-semibold"
             >
               {isSubmitting ? (

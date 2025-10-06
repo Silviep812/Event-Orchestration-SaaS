@@ -4,13 +4,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { useState } from "react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useState, useEffect } from "react";
 import { CheckCircle, XCircle, HelpCircle, Calendar, MapPin, Clock, User, Mail, Users, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { rsvpSchema } from "@/lib/validation/bookingsValidation";
 import { PrivateResidenceForm } from "@/components/PrivateResidenceForm";
 import { useAuth } from "@/hooks/useAuth";
+import { format } from "date-fns";
 
 interface RSVPInvitationProps {
   isPrivateResidence?: boolean;
@@ -18,9 +20,22 @@ interface RSVPInvitationProps {
   venueLocation?: string;
 }
 
+interface Event {
+  userid: string;
+  event_start_date: string;
+  event_start_time: string;
+  event_end_time: string;
+  event_location: string[];
+  event_theme: string[];
+  event_description: string;
+}
+
 const RSVPInvitation = ({ isPrivateResidence, venueName, venueLocation }: RSVPInvitationProps) => {
   const { toast } = useToast();
   const { user } = useAuth();
+  const [events, setEvents] = useState<Event[]>([]);
+  const [selectedEventId, setSelectedEventId] = useState<string>("");
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [response, setResponse] = useState<string>("");
   const [guestName, setGuestName] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
@@ -29,6 +44,38 @@ const RSVPInvitation = ({ isPrivateResidence, venueName, venueLocation }: RSVPIn
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showPrivateResidenceForm, setShowPrivateResidenceForm] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      fetchEvents();
+    }
+  }, [user]);
+
+  const fetchEvents = async () => {
+    if (!user) return;
+    
+    const { data, error } = await supabase
+      .from('Create Event')
+      .select('*')
+      .eq('userid', user.id);
+    
+    if (error) {
+      console.error('Error fetching events:', error);
+      return;
+    }
+    
+    setEvents(data || []);
+    if (data && data.length > 0) {
+      setSelectedEventId(data[0].userid);
+      setSelectedEvent(data[0]);
+    }
+  };
+
+  const handleEventChange = (eventId: string) => {
+    setSelectedEventId(eventId);
+    const event = events.find(e => e.userid === eventId);
+    setSelectedEvent(event || null);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,6 +98,7 @@ const RSVPInvitation = ({ isPrivateResidence, venueName, venueLocation }: RSVPIn
         .from('rsvp_submissions')
         .insert([{
           book_id: bookId,
+          event_id: selectedEventId,
           guest_name: validatedData.guest_name,
           guest_email: validatedData.guest_email,
           response_type: validatedData.response_type,
@@ -161,42 +209,68 @@ const RSVPInvitation = ({ isPrivateResidence, venueName, venueLocation }: RSVPIn
       </CardHeader>
 
       <CardContent className="space-y-8">
+        {events.length > 0 && (
+          <div>
+            <Label htmlFor="event-select" className="text-base font-semibold mb-2 block">Select Event *</Label>
+            <Select value={selectedEventId} onValueChange={handleEventChange}>
+              <SelectTrigger className="w-full border-2">
+                <SelectValue placeholder="Choose an event" />
+              </SelectTrigger>
+              <SelectContent>
+                {events.map((event) => (
+                  <SelectItem key={event.userid} value={event.userid}>
+                    {event.event_theme?.[0] || 'Event'} - {event.event_start_date ? format(new Date(event.event_start_date), 'MMM dd, yyyy') : 'No date'}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
         {/* Event Details */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-6 bg-card rounded-lg border">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <Calendar className="w-5 h-5 text-primary" />
+        {selectedEvent ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-6 bg-card rounded-lg border">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Calendar className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Date</p>
+                <p className="font-semibold">
+                  {selectedEvent.event_start_date ? format(new Date(selectedEvent.event_start_date), 'MMM dd, yyyy') : 'TBD'}
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Date</p>
-              <p className="font-semibold">March 15, 2025</p>
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Clock className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Time</p>
+                <p className="font-semibold">
+                  {selectedEvent.event_start_time ? format(new Date(selectedEvent.event_start_time), 'h:mm a') : 'TBD'}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <MapPin className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">
+                  {isPrivateResidence ? 'Location' : 'Venue'}
+                </p>
+                <p className="font-semibold">
+                  {selectedEvent.event_location?.[0] || 'Location TBD'}
+                </p>
+              </div>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <Clock className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Time</p>
-              <p className="font-semibold">6:00 PM</p>
-            </div>
+        ) : events.length === 0 && (
+          <div className="p-6 bg-muted/50 rounded-lg border border-border text-center">
+            <p className="text-muted-foreground">No events found. Please create an event first.</p>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <MapPin className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">
-                {isPrivateResidence ? 'Location' : 'Venue'}
-              </p>
-              <p className="font-semibold">
-                {isPrivateResidence 
-                  ? (venueLocation || 'Private Residence') 
-                  : (venueName || 'Grand Ballroom')}
-              </p>
-            </div>
-          </div>
-        </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Response Selection */}
@@ -312,7 +386,7 @@ const RSVPInvitation = ({ isPrivateResidence, venueName, venueLocation }: RSVPIn
           <Button
             type="submit"
             size="lg"
-            disabled={isSubmitting}
+            disabled={isSubmitting || !selectedEventId}
             className="w-full md:w-auto md:px-12 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg"
           >
             {isSubmitting ? (
@@ -327,7 +401,7 @@ const RSVPInvitation = ({ isPrivateResidence, venueName, venueLocation }: RSVPIn
         </form>
 
         <p className="text-xs text-muted-foreground text-center pt-4">
-          * Required fields. Please respond by March 1, 2025
+          * Required fields
         </p>
 
         {/* Private Residence Form - Only shown to RSVP recipients who are attending at a Private Residence */}

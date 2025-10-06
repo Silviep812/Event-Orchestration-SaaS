@@ -287,6 +287,7 @@ export type Database = {
           confirmation_number: string
           created_at: string
           email: string
+          event_id: string | null
           id: string
           name: string
           notes: string | null
@@ -298,6 +299,7 @@ export type Database = {
           confirmation_number: string
           created_at?: string
           email: string
+          event_id?: string | null
           id?: string
           name: string
           notes?: string | null
@@ -309,13 +311,29 @@ export type Database = {
           confirmation_number?: string
           created_at?: string
           email?: string
+          event_id?: string | null
           id?: string
           name?: string
           notes?: string | null
           phone?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "confirmation_submissions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "Create Event"
+            referencedColumns: ["userid"]
+          },
+          {
+            foreignKeyName: "confirmation_submissions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "create_event_safe"
+            referencedColumns: ["userid"]
+          },
+        ]
       }
       "Create Event": {
         Row: {
@@ -1470,6 +1488,7 @@ export type Database = {
           book_id: string
           created_at: string
           email: string
+          event_id: string | null
           id: string
           name: string
           party_size: number
@@ -1484,6 +1503,7 @@ export type Database = {
           book_id: string
           created_at?: string
           email: string
+          event_id?: string | null
           id?: string
           name: string
           party_size: number
@@ -1498,6 +1518,7 @@ export type Database = {
           book_id?: string
           created_at?: string
           email?: string
+          event_id?: string | null
           id?: string
           name?: string
           party_size?: number
@@ -1509,6 +1530,20 @@ export type Database = {
           venue_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "reservation_submissions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "Create Event"
+            referencedColumns: ["userid"]
+          },
+          {
+            foreignKeyName: "reservation_submissions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "create_event_safe"
+            referencedColumns: ["userid"]
+          },
           {
             foreignKeyName: "reservation_submissions_venue_id_fkey"
             columns: ["venue_id"]
@@ -1619,6 +1654,7 @@ export type Database = {
         Row: {
           book_id: string
           created_at: string
+          event_id: string | null
           guest_count: number | null
           guest_email: string
           guest_name: string
@@ -1630,6 +1666,7 @@ export type Database = {
         Insert: {
           book_id: string
           created_at?: string
+          event_id?: string | null
           guest_count?: number | null
           guest_email: string
           guest_name: string
@@ -1641,6 +1678,7 @@ export type Database = {
         Update: {
           book_id?: string
           created_at?: string
+          event_id?: string | null
           guest_count?: number | null
           guest_email?: string
           guest_name?: string
@@ -1649,7 +1687,22 @@ export type Database = {
           special_requests?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "rsvp_submissions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "Create Event"
+            referencedColumns: ["userid"]
+          },
+          {
+            foreignKeyName: "rsvp_submissions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "create_event_safe"
+            referencedColumns: ["userid"]
+          },
+        ]
       }
       serv_vendor_rental_assignments: {
         Row: {

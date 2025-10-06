@@ -3,8 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar as CalendarIcon, Clock, Users, MapPin, Phone, Mail, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Calendar } from "@/components/ui/calendar";
@@ -21,9 +22,22 @@ interface ReservationFormProps {
   venueCapacity?: number;
 }
 
+interface Event {
+  userid: string;
+  event_start_date: string;
+  event_start_time: string;
+  event_end_time: string;
+  event_location: string[];
+  event_theme: string[];
+  event_description: string;
+}
+
 const ReservationForm = ({ venueId, venueName, venueLocation, venueCapacity }: ReservationFormProps = {}) => {
   const { toast } = useToast();
   const { user } = useAuth();
+  const [events, setEvents] = useState<Event[]>([]);
+  const [selectedEventId, setSelectedEventId] = useState<string>("");
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [date, setDate] = useState<Date>();
   const [formData, setFormData] = useState({
     name: "",
@@ -35,6 +49,38 @@ const ReservationForm = ({ venueId, venueName, venueLocation, venueCapacity }: R
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (user) {
+      fetchEvents();
+    }
+  }, [user]);
+
+  const fetchEvents = async () => {
+    if (!user) return;
+    
+    const { data, error } = await supabase
+      .from('Create Event')
+      .select('*')
+      .eq('userid', user.id);
+    
+    if (error) {
+      console.error('Error fetching events:', error);
+      return;
+    }
+    
+    setEvents(data || []);
+    if (data && data.length > 0) {
+      setSelectedEventId(data[0].userid);
+      setSelectedEvent(data[0]);
+    }
+  };
+
+  const handleEventChange = (eventId: string) => {
+    setSelectedEventId(eventId);
+    const event = events.find(e => e.userid === eventId);
+    setSelectedEvent(event || null);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,6 +107,7 @@ const ReservationForm = ({ venueId, venueName, venueLocation, venueCapacity }: R
         .from('reservation_submissions')
         .insert([{
           book_id: bookId,
+          event_id: selectedEventId,
           name: validatedData.name,
           email: validatedData.email,
           phone: validatedData.phone,
@@ -161,32 +208,70 @@ const ReservationForm = ({ venueId, venueName, venueLocation, venueCapacity }: R
       </CardHeader>
 
       <CardContent className="p-6 md:p-8">
-        {(venueName || venueLocation) ? (
-          <div className="mb-8 p-6 bg-muted/50 rounded-lg border border-border">
-            <h3 className="font-semibold text-lg flex items-center gap-2 mb-4">
-              <MapPin className="w-5 h-5 text-primary" />
-              Selected Venue
-            </h3>
-            <div className="space-y-2 text-sm text-muted-foreground">
-              {venueName && <p><strong className="text-foreground">Venue:</strong> {venueName}</p>}
-              {venueLocation && <p><strong className="text-foreground">Location:</strong> {venueLocation}</p>}
-              <p><strong className="text-foreground">Available Times:</strong> 9:00 AM - 8:00 PM</p>
-              {venueCapacity && <p><strong className="text-foreground">Capacity:</strong> Up to {venueCapacity} guests</p>}
-            </div>
-          </div>
-        ) : (
-          <div className="mb-8 p-6 bg-muted/50 rounded-lg border border-border">
-            <h3 className="font-semibold text-lg flex items-center gap-2 mb-4">
-              <MapPin className="w-5 h-5 text-primary" />
-              Venue Information
-            </h3>
-            <div className="space-y-2 text-sm text-muted-foreground">
-              <p><strong className="text-foreground">Location:</strong> Grand Event Center, 123 Main Street</p>
-              <p><strong className="text-foreground">Available Times:</strong> 9:00 AM - 8:00 PM</p>
-              <p><strong className="text-foreground">Capacity:</strong> Up to 200 guests</p>
-            </div>
+        {events.length > 0 && (
+          <div className="mb-6">
+            <Label htmlFor="event-select">Select Event *</Label>
+            <Select value={selectedEventId} onValueChange={handleEventChange}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Choose an event" />
+              </SelectTrigger>
+              <SelectContent>
+                {events.map((event) => (
+                  <SelectItem key={event.userid} value={event.userid}>
+                    {event.event_theme?.[0] || 'Event'} - {event.event_start_date ? format(new Date(event.event_start_date), 'MMM dd, yyyy') : 'No date'}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         )}
+
+        {selectedEvent ? (
+          <div className="mb-8 p-6 bg-muted/50 rounded-lg border border-border space-y-4">
+            <h3 className="font-semibold text-lg flex items-center gap-2">
+              <CalendarIcon className="w-5 h-5 text-primary" />
+              Event Details
+            </h3>
+            
+            <div className="grid md:grid-cols-2 gap-4 text-sm">
+              <div className="flex items-start gap-2">
+                <CalendarIcon className="w-4 h-4 mt-0.5 text-muted-foreground" />
+                <div>
+                  <p className="font-medium">Date</p>
+                  <p className="text-muted-foreground">
+                    {selectedEvent.event_start_date ? format(new Date(selectedEvent.event_start_date), 'EEEE, MMMM dd, yyyy') : 'No date set'}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex items-start gap-2">
+                <Clock className="w-4 h-4 mt-0.5 text-muted-foreground" />
+                <div>
+                  <p className="font-medium">Time</p>
+                  <p className="text-muted-foreground">
+                    {selectedEvent.event_start_time && selectedEvent.event_end_time 
+                      ? `${format(new Date(selectedEvent.event_start_time), 'h:mm a')} - ${format(new Date(selectedEvent.event_end_time), 'h:mm a')}`
+                      : 'Time TBD'}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex items-start gap-2 md:col-span-2">
+                <MapPin className="w-4 h-4 mt-0.5 text-muted-foreground" />
+                <div>
+                  <p className="font-medium">Location</p>
+                  <p className="text-muted-foreground">
+                    {selectedEvent.event_location?.[0] || venueName || venueLocation || 'Location TBD'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : events.length === 0 ? (
+          <div className="mb-8 p-6 bg-muted/50 rounded-lg border border-border text-center">
+            <p className="text-muted-foreground">No events found. Please create an event first.</p>
+          </div>
+        ) : null}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid md:grid-cols-2 gap-6">
@@ -337,7 +422,7 @@ const ReservationForm = ({ venueId, venueName, venueLocation, venueCapacity }: R
           <div className="pt-4 flex flex-col sm:flex-row gap-4">
             <Button 
               type="submit" 
-              disabled={isSubmitting}
+              disabled={isSubmitting || !selectedEventId}
               className="flex-1 h-12 text-base font-semibold"
             >
               {isSubmitting ? (
