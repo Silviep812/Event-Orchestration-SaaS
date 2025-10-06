@@ -36,7 +36,6 @@ export function TeamMemberCard({ member, onClick }: TeamMemberCardProps) {
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold truncate">{member.name}</h3>
-            {member.email && <p className="text-sm text-muted-foreground truncate">{member.email}</p>}
           </div>
         </div>
       </CardHeader>
