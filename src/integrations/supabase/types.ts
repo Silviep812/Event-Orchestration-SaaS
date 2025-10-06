@@ -880,6 +880,7 @@ export type Database = {
           end_time: string | null
           expected_attendees: number | null
           id: string
+          location: string | null
           start_date: string
           start_time: string | null
           status: Database["public"]["Enums"]["event_status_enum"] | null
@@ -898,6 +899,7 @@ export type Database = {
           end_time?: string | null
           expected_attendees?: number | null
           id?: string
+          location?: string | null
           start_date: string
           start_time?: string | null
           status?: Database["public"]["Enums"]["event_status_enum"] | null
@@ -916,6 +918,7 @@ export type Database = {
           end_time?: string | null
           expected_attendees?: number | null
           id?: string
+          location?: string | null
           start_date?: string
           start_time?: string | null
           status?: Database["public"]["Enums"]["event_status_enum"] | null
