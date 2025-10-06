@@ -570,7 +570,19 @@ export default function Collaborate() {
         </div>
         
         {userTeam ? (
-          <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
+          <Dialog 
+            open={isInviteDialogOpen} 
+            onOpenChange={(open) => {
+              setIsInviteDialogOpen(open);
+              if (!open) {
+                // Reset form when dialog closes
+                setInviteEmail("");
+                setInviteRole("");
+                setInviteAttributes({ coordinator: false, viewer: false });
+                setSelectedCollaboratorTypes([]);
+              }
+            }}
+          >
             <DialogTrigger asChild>
               <Button className="bg-gradient-to-r from-primary to-secondary">
                 <UserPlus className="w-4 h-4 mr-2" />
