@@ -91,6 +91,7 @@ export default function Collaborate() {
   const [userTeams, setUserTeams] = useState<{ id: string; name: string; members: TeamMember[]; isAdmin: boolean }[]>([]);
   const [eventParticipants, setEventParticipants] = useState<{ email: string; name: string }[]>([]);
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // Fetch event participants for invitation dropdown
   useEffect(() => {
@@ -407,7 +408,7 @@ export default function Collaborate() {
       }
     };
     fetchUserTeams();
-  }, [user]);
+  }, [user, refreshTrigger]);
 
   const handleSendMessage = () => {
     if (!newMessage.trim() || !user) return;
@@ -466,8 +467,8 @@ export default function Collaborate() {
         setInviteAttributes({ coordinator: false, viewer: false });
         setSelectedCollaboratorTypes([]);
         
-        // Reload team members to show the new configuration
-        window.location.reload();
+        // Trigger refresh of team data
+        setRefreshTrigger(prev => prev + 1);
         return;
       } catch (error: any) {
         console.error('Error saving collaborator configuration:', error);
