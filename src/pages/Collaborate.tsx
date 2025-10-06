@@ -35,8 +35,10 @@ export interface TeamMember {
   email?: string;
   role: string;
   avatar?: string;
-  status: 'online' | 'offline' | 'busy' | 'invited';
+  status: 'online' | 'offline' | 'busy' | 'invited' | 'configured';
   joinedAt: string;
+  collaboratorTypes?: string[];
+  isConfiguration?: boolean;
 }
 
 interface Message {
@@ -218,11 +220,34 @@ export default function Collaborate() {
             name: userDetails?.display_name || 'Unknown User',
             role: roleDisplay,
             status: assignment.user_id === user?.id ? 'online' as const : 'offline' as const,
-            joinedAt: new Date().toISOString()
+            joinedAt: new Date().toISOString(),
+            isConfiguration: false
           };
         });
 
-        setTeamMembers(members);
+        // Fetch collaborator configurations (planned roles without assigned users)
+        const { data: configs, error: configsError } = await supabase
+          .from('collaborator_configurations')
+          .select('*')
+          .eq('team_id', userTeam.id)
+          .is('assigned_user_id', null);
+
+        if (!configsError && configs) {
+          // Add configurations as "team members" with status "configured"
+          const configMembers: TeamMember[] = configs.map(config => ({
+            id: config.id,
+            name: `${config.role} (Needed)`,
+            role: config.role,
+            status: 'configured' as const,
+            joinedAt: config.created_at,
+            collaboratorTypes: config.collaborator_types,
+            isConfiguration: true
+          }));
+          
+          setTeamMembers([...members, ...configMembers]);
+        } else {
+          setTeamMembers(members);
+        }
       } catch (error) {
         console.error('Error fetching team members:', error);
       }
@@ -393,18 +418,44 @@ export default function Collaborate() {
       return;
     }
 
-    // If no email provided, just store the collaborator configuration locally
+    // If no email provided, save as a collaborator configuration
     if (!inviteEmail || !inviteEmail.trim()) {
-      toast({
-        title: "Collaborator Configuration Saved",
-        description: `${inviteRole} role with ${selectedCollaboratorTypes.join(', ')} access configured.`,
-      });
-      setIsInviteDialogOpen(false);
-      setInviteEmail("");
-      setInviteRole("");
-      setInviteAttributes({ coordinator: false, viewer: false });
-      setSelectedCollaboratorTypes([]);
-      return;
+      try {
+        const { error } = await supabase
+          .from('collaborator_configurations')
+          .insert({
+            team_id: userTeam?.id,
+            role: inviteRole,
+            collaborator_types: selectedCollaboratorTypes,
+            is_coordinator: inviteAttributes.coordinator,
+            is_viewer: inviteAttributes.viewer,
+          });
+
+        if (error) throw error;
+
+        toast({
+          title: "Success",
+          description: `${inviteRole} role with ${selectedCollaboratorTypes.join(', ')} access configured.`,
+        });
+        
+        setIsInviteDialogOpen(false);
+        setInviteEmail("");
+        setInviteRole("");
+        setInviteAttributes({ coordinator: false, viewer: false });
+        setSelectedCollaboratorTypes([]);
+        
+        // Reload team members to show the new configuration
+        window.location.reload();
+        return;
+      } catch (error: any) {
+        console.error('Error saving collaborator configuration:', error);
+        toast({
+          title: "Error",
+          description: "Failed to save collaborator configuration. Please try again.",
+          variant: "destructive"
+        });
+        return;
+      }
     }
 
     try {
@@ -521,6 +572,7 @@ export default function Collaborate() {
       case 'busy': return 'bg-yellow-500';
       case 'offline': return 'bg-gray-400';
       case 'invited': return 'bg-blue-500';
+      case 'configured': return 'bg-purple-500';
       default: return 'bg-gray-400';
     }
   };

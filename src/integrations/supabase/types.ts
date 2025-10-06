@@ -230,6 +230,53 @@ export type Database = {
         }
         Relationships: []
       }
+      collaborator_configurations: {
+        Row: {
+          assigned_user_id: string | null
+          collaborator_types: string[]
+          created_at: string | null
+          id: string
+          is_coordinator: boolean | null
+          is_viewer: boolean | null
+          notes: string | null
+          role: string
+          team_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_user_id?: string | null
+          collaborator_types: string[]
+          created_at?: string | null
+          id?: string
+          is_coordinator?: boolean | null
+          is_viewer?: boolean | null
+          notes?: string | null
+          role: string
+          team_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_user_id?: string | null
+          collaborator_types?: string[]
+          created_at?: string | null
+          id?: string
+          is_coordinator?: boolean | null
+          is_viewer?: boolean | null
+          notes?: string | null
+          role?: string
+          team_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collaborator_configurations_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       Collaborators: {
         Row: {
           collab_type: string
