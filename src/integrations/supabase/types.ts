@@ -113,6 +113,7 @@ export type Database = {
           registry: string[] | null
           reservation: boolean | null
           rsvp: boolean | null
+          user_id: string | null
         }
         Insert: {
           barcode?: boolean | null
@@ -122,6 +123,7 @@ export type Database = {
           registry?: string[] | null
           reservation?: boolean | null
           rsvp?: boolean | null
+          user_id?: string | null
         }
         Update: {
           barcode?: boolean | null
@@ -131,6 +133,7 @@ export type Database = {
           registry?: string[] | null
           reservation?: boolean | null
           rsvp?: boolean | null
+          user_id?: string | null
         }
         Relationships: []
       }

@@ -3,9 +3,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Calendar, CheckCircle, Clock, QrCode } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 import RSVPInvitation from "@/components/RSVPInvitation";
 import ConfirmationForm from "@/components/ConfirmationForm";
 import ReservationForm from "@/components/ReservationForm";
@@ -14,6 +15,8 @@ import BarCodeForm from "@/components/BarCodeForm";
 
 const BookingsDirectory = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [bookings, setBookings] = useState<any[]>([]);
   const [selectedBookingTypes, setSelectedBookingTypes] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,6 +27,13 @@ const BookingsDirectory = () => {
     registry: 0,
     barcode: 0,
   });
+
+  // Redirect to auth if not logged in
+  useEffect(() => {
+    if (!user) {
+      navigate('/auth');
+    }
+  }, [user, navigate]);
 
   // Extract venue data from navigation state
   const venueData = location.state as {
@@ -73,10 +83,13 @@ const BookingsDirectory = () => {
   };
 
   const fetchBookings = async () => {
+    if (!user) return;
+    
     try {
       const { data, error } = await supabase
         .from('Bookings Directory')
-        .select('*');
+        .select('*')
+        .eq('user_id', user.id);
       
       if (error) {
         console.error('Error fetching bookings:', error);
