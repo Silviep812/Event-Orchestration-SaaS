@@ -331,20 +331,28 @@ export default function Collaborate() {
 
             if (profilesData) {
               usersMap = profilesData.reduce((acc: any, u: any) => {
-                acc[u.user_id] = { id: u.user_id, name: u.display_name, email: '' };
+                // Use display_name for user's name, username typically contains email domain
+                acc[u.user_id] = { 
+                  id: u.user_id, 
+                  name: u.display_name || u.username || 'Unknown User',
+                  email: u.username || ''
+                };
                 return acc;
               }, {});
             }
           }
 
-          const members: TeamMember[] = (memberAssignments || []).map((ma: any) => ({
-            id: ma.user_id,
-            name: usersMap[ma.user_id]?.name || usersMap[ma.user_id]?.name || "Unknown",
-            email: '',
-            role: ma.team_admin ? 'Admin' : 'Member',
-            status: 'offline',
-            joinedAt: ''
-          }));
+          const members: TeamMember[] = (memberAssignments || []).map((ma: any) => {
+            const userInfo = usersMap[ma.user_id];
+            return {
+              id: ma.user_id,
+              name: userInfo?.name || "Unknown User",
+              email: userInfo?.email || '',
+              role: ma.team_admin ? 'Admin' : 'Member',
+              status: 'offline',
+              joinedAt: new Date().toISOString()
+            };
+          });
           return { id: teamId, name: teamName, members, isAdmin };
         }));
         setUserTeams(teamsWithMembers);
@@ -862,9 +870,12 @@ export default function Collaborate() {
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">
-                          {team.isAdmin ? 'Team Admin' : 'Team Member'}
+                          {team.isAdmin ? 'You are Team Admin for' : 'You are a Team Member of'}
                         </p>
                         <h3 className="text-lg font-semibold">{team.name}</h3>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {team.members.length} {team.members.length === 1 ? 'member' : 'members'}
+                        </p>
                       </div>
                     </div>
                   </div>
