@@ -895,6 +895,7 @@ export default function Collaborate() {
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="admin">Admin</SelectItem>
                     <SelectItem value="organizer">Organizer</SelectItem>
                     <SelectItem value="coordinator">Coordinator</SelectItem>
                     <SelectItem value="vendor">Vendor</SelectItem>
