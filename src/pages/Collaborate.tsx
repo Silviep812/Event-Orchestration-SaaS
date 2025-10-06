@@ -179,7 +179,7 @@ export default function Collaborate() {
             id: assignment.user_id,
             name: userDetails?.display_name || 'Unknown User',
             role: roleDisplay,
-            status: 'offline' as const,
+            status: assignment.user_id === user?.id ? 'online' as const : 'offline' as const,
             joinedAt: new Date().toISOString()
           };
         });
@@ -400,9 +400,13 @@ export default function Collaborate() {
         return;
       }
 
+      const isExistingUser = data?.isExistingUser;
+      
       toast({
-        title: "Invitation sent",
-        description: `Invitation sent to ${inviteEmail} as ${inviteRole}.`,
+        title: isExistingUser ? "Team Member Added" : "Invitation Sent",
+        description: isExistingUser 
+          ? `${inviteEmail} has been added to your team as ${inviteRole}.`
+          : `Invitation sent to ${inviteEmail} as ${inviteRole}.`,
       });
 
       setInviteEmail("");

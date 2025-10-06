@@ -50,7 +50,74 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Role:", role);
     console.log("Inviter:", inviterName);
 
-    // Use Supabase Auth to send invitation email
+    // First, check if user already exists by email
+    const { data: existingUsers, error: checkError } = await supabase.auth.admin.listUsers();
+    
+    if (checkError) {
+      console.error("Error checking existing users:", checkError);
+      throw checkError;
+    }
+
+    const existingUser = existingUsers.users.find(u => u.email?.toLowerCase() === email.toLowerCase());
+
+    if (existingUser) {
+      // User already exists, add them directly to the team
+      console.log("User already exists, adding to team directly:", existingUser.id);
+      
+      // Store the role in user_roles table
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .upsert({
+          user_id: existingUser.id,
+          role: role
+        }, {
+          onConflict: 'user_id,role'
+        });
+
+      if (roleError) {
+        console.error("Error storing role in database:", roleError);
+      } else {
+        console.log("Role stored in database for existing user:", existingUser.id);
+      }
+
+      // Create team_assignments record if teamId provided
+      if (teamId) {
+        const { error: teamError } = await supabase
+          .from('team_assignments')
+          .upsert({
+            user_id: existingUser.id,
+            team_id: teamId,
+            team_admin: false,
+            is_coordinator: isCoordinator || false,
+            is_viewer: isViewer || false,
+          }, {
+            onConflict: 'user_id,team_id'
+          });
+
+        if (teamError) {
+          console.error("Error creating team assignment:", teamError);
+        } else {
+          console.log("Team assignment created for existing user:", existingUser.id);
+        }
+      }
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: `User ${email} added to team successfully`,
+          isExistingUser: true,
+        }),
+        {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+            ...corsHeaders,
+          },
+        }
+      );
+    }
+
+    // User doesn't exist, send invitation
     const { data, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(email, {
       data: {
         role: role,
@@ -107,6 +174,7 @@ const handler = async (req: Request): Promise<Response> => {
       JSON.stringify({
         success: true,
         message: `Team invitation sent successfully to ${email}`,
+        isExistingUser: false,
         data,
       }),
       {
