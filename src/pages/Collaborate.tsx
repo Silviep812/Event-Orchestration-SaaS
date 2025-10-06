@@ -393,6 +393,20 @@ export default function Collaborate() {
       return;
     }
 
+    // If no email provided, just store the collaborator configuration locally
+    if (!inviteEmail || !inviteEmail.trim()) {
+      toast({
+        title: "Collaborator Configuration Saved",
+        description: `${inviteRole} role with ${selectedCollaboratorTypes.join(', ')} access configured.`,
+      });
+      setIsInviteDialogOpen(false);
+      setInviteEmail("");
+      setInviteRole("");
+      setInviteAttributes({ coordinator: false, viewer: false });
+      setSelectedCollaboratorTypes([]);
+      return;
+    }
+
     try {
       const { data, error } = await supabase.functions.invoke('send-team-invitation', {
         body: {
@@ -754,10 +768,10 @@ export default function Collaborate() {
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium">Email Address</label>
+                <label className="text-sm font-medium">Email Address (Optional)</label>
                 <Input
                   type="email"
-                  placeholder="Enter email address"
+                  placeholder="Enter email address (optional)"
                   value={inviteEmail}
                   onChange={(e) => setInviteEmail(e.target.value)}
                 />
