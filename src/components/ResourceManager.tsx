@@ -358,6 +358,46 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
     };
   };
 
+  const syncLocationFromEvent = async () => {
+    if (!eventId || !eventLocation) {
+      toast({
+        title: "Cannot Sync",
+        description: "Event location not available",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      console.log('Manual sync: Updating all resources to location:', eventLocation);
+      
+      const { data, error } = await supabase
+        .from('resources')
+        .update({ location: eventLocation })
+        .eq('event_id', eventId)
+        .select();
+
+      if (error) throw error;
+
+      console.log('Manual sync: Updated', data?.length || 0, 'resources');
+      
+      toast({
+        title: "Location Synced",
+        description: `Updated ${data?.length || 0} resource(s) to ${eventLocation}`,
+      });
+
+      // Refresh the data
+      fetchData();
+    } catch (error) {
+      console.error('Error syncing location:', error);
+      toast({
+        title: "Sync Failed",
+        description: "Failed to sync location to resources",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleAddResource = async () => {
     if (!newResource.name.trim() || !newResource.category_id || !newResource.location.trim()) {
       toast({
@@ -655,6 +695,17 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
         </div>
         
         <div className="flex items-center gap-2">
+          {eventLocation && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={syncLocationFromEvent}
+              className="gap-2"
+            >
+              <RotateCcw className="h-4 w-4" />
+              Sync Location from Event
+            </Button>
+          )}
           <Button variant="default" size="sm" onClick={() => setIsAddDialogOpen(true)}>
             + Add Resource
           </Button>
