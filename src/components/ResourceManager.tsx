@@ -200,6 +200,31 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
     fetchData();
   }, [eventId, refreshKey, toast]);
 
+  // Real-time subscription for resource updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('resources-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'resources',
+          filter: eventId ? `event_id=eq.${eventId}` : undefined,
+        },
+        (payload) => {
+          console.log('Resource change detected:', payload);
+          // Refetch data to get the latest state
+          fetchData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [eventId]);
+
   // Filter resources based on search, location, and category
   useEffect(() => {
     let filtered = resources;
