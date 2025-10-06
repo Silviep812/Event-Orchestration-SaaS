@@ -384,10 +384,19 @@ export default function Collaborate() {
   };
 
   const handleInviteMember = async () => {
-    if (!inviteEmail || !inviteRole || selectedCollaboratorTypes.length === 0) {
+    if (!inviteRole || selectedCollaboratorTypes.length === 0) {
       toast({
         title: "Error",
-        description: "Please select a participant, role, and at least one collaborator type.",
+        description: "Please select a role and at least one collaborator type.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!inviteEmail || !inviteEmail.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter an email address.",
         variant: "destructive"
       });
       return;
