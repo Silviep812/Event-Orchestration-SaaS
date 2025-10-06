@@ -79,6 +79,7 @@ interface Resource {
 interface ResourceManagerProps {
   eventId?: string;
   eventLocation?: string;
+  refreshKey?: number;
 }
 
 interface Event {
@@ -87,7 +88,7 @@ interface Event {
   event_start_date: string | null;
 }
 
-const ResourceManager = ({ eventId, eventLocation }: ResourceManagerProps) => {
+const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManagerProps) => {
   const [resources, setResources] = useState<Resource[]>([]);
   const [filteredResources, setFilteredResources] = useState<Resource[]>([]);
   const [categories, setCategories] = useState<ResourceCategory[]>([]);
@@ -197,7 +198,7 @@ const ResourceManager = ({ eventId, eventLocation }: ResourceManagerProps) => {
 
   useEffect(() => {
     fetchData();
-  }, [eventId, toast]);
+  }, [eventId, refreshKey, toast]);
 
   // Filter resources based on search, location, and category
   useEffect(() => {

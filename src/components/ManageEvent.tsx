@@ -92,6 +92,75 @@ const ManageEvent = () => {
   const [saveTimeout, setSaveTimeout] = useState<NodeJS.Timeout | null>(null);
   const [budgetInput, setBudgetInput] = useState<string>('');
 
+  // Resource sync trigger
+  const [resourceRefreshKey, setResourceRefreshKey] = useState(0);
+
+  // Sync details to resources
+  const syncDetailsToResources = async (eventData: ManageEventData) => {
+    if (!eventData.id) return;
+
+    try {
+      // Fetch resource categories
+      const { data: categories } = await supabase
+        .from('resource_categories')
+        .select('id, name');
+      
+      if (!categories) return;
+
+      // Find category IDs
+      const venueCategory = categories.find(c => c.name.toLowerCase().includes('venue'));
+      const statusAvailable = await supabase
+        .from('resource_status')
+        .select('id')
+        .ilike('name', '%available%')
+        .single();
+
+      // Auto-create venue resource if venue is set
+      if (eventData.venue && venueCategory) {
+        const { data: existingVenue } = await supabase
+          .from('resources')
+          .select('id')
+          .eq('event_id', eventData.id)
+          .eq('category_id', venueCategory.id)
+          .single();
+
+        if (!existingVenue) {
+          await supabase.from('resources').insert({
+            name: eventData.venue,
+            category_id: venueCategory.id,
+            status_id: statusAvailable?.data?.id || 1,
+            location: eventData.location || '',
+            allocated: 1,
+            total: 1,
+            event_id: eventData.id,
+          });
+        } else {
+          // Update existing venue resource
+          await supabase
+            .from('resources')
+            .update({
+              name: eventData.venue,
+              location: eventData.location || '',
+            })
+            .eq('id', existingVenue.id);
+        }
+      }
+
+      // Update all resources with the event location
+      if (eventData.location) {
+        await supabase
+          .from('resources')
+          .update({ location: eventData.location })
+          .eq('event_id', eventData.id);
+      }
+
+      // Trigger resource refresh
+      setResourceRefreshKey(prev => prev + 1);
+    } catch (error) {
+      console.error('Error syncing details to resources:', error);
+    }
+  };
+
   const fetchEvents = async () => {
     if (!user) {
       setLoading(false);
@@ -228,6 +297,9 @@ const ManageEvent = () => {
         .eq('id', eventData.id);
 
       if (error) throw error;
+
+      // Sync details to resources after successful save
+      await syncDetailsToResources(eventData);
 
       if (isManual) {
         toast({
@@ -857,7 +929,11 @@ const ManageEvent = () => {
                     <CardTitle>Resource Management</CardTitle>
                   </CardHeader>
                   <CardContent className="p-6">
-                    <ResourceManager eventId={selectedEvent.id} eventLocation={selectedEvent.location} />
+                    <ResourceManager 
+                      eventId={selectedEvent.id} 
+                      eventLocation={selectedEvent.location} 
+                      refreshKey={resourceRefreshKey}
+                    />
                   </CardContent>
                 </Card>
               </TabsContent>
