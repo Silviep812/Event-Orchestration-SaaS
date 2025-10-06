@@ -14,7 +14,6 @@ const ConfirmationForm = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const [formData, setFormData] = useState({
-    confirmationNumber: "",
     name: "",
     email: "",
     phone: "",
@@ -22,6 +21,7 @@ const ConfirmationForm = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [generatedConfirmation, setGeneratedConfirmation] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,8 +29,11 @@ const ConfirmationForm = () => {
     setIsSubmitting(true);
 
     try {
+      // Auto-generate confirmation number
+      const confirmationNumber = `CONF-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+      
       const validatedData = confirmationSchema.parse({
-        confirmation_number: formData.confirmationNumber,
+        confirmation_number: confirmationNumber,
         name: formData.name,
         email: formData.email,
         phone: formData.phone || undefined,
@@ -66,13 +69,14 @@ const ConfirmationForm = () => {
         if (directoryError) console.error('Directory update error:', directoryError);
       }
 
+      setGeneratedConfirmation(confirmationNumber);
+      
       toast({
         title: "Confirmation Received",
-        description: "Your booking has been confirmed successfully.",
+        description: `Your confirmation number is: ${confirmationNumber}`,
       });
 
       setFormData({
-        confirmationNumber: "",
         name: "",
         email: "",
         phone: "",
@@ -165,21 +169,16 @@ const ConfirmationForm = () => {
           </div>
         </div>
 
+        {generatedConfirmation && (
+          <div className="mb-6 p-4 bg-primary/10 border border-primary/20 rounded-lg">
+            <p className="text-sm font-medium text-primary mb-1">Your Confirmation Number:</p>
+            <p className="text-2xl font-bold text-primary tracking-wide">{generatedConfirmation}</p>
+            <p className="text-xs text-muted-foreground mt-2">Please save this number for your records</p>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label htmlFor="confirmationNumber">Confirmation Number *</Label>
-              <Input
-                id="confirmationNumber"
-                name="confirmationNumber"
-                placeholder="Enter confirmation number"
-                value={formData.confirmationNumber}
-                onChange={handleChange}
-                required
-                className="border-border"
-              />
-            </div>
-
             <div className="space-y-2">
               <Label htmlFor="name">Full Name *</Label>
               <Input
@@ -270,13 +269,13 @@ const ConfirmationForm = () => {
               disabled={isSubmitting}
               onClick={() => {
                 setFormData({
-                  confirmationNumber: "",
                   name: "",
                   email: "",
                   phone: "",
                   notes: ""
                 });
                 setErrors({});
+                setGeneratedConfirmation(null);
               }}
             >
               Clear Form
