@@ -377,22 +377,19 @@ export default function Collaborate() {
   };
 
   const handleInviteMember = async () => {
-    if (!inviteRole || selectedCollaboratorTypes.length === 0) {
+    if (!inviteEmail || !inviteRole || selectedCollaboratorTypes.length === 0) {
       toast({
         title: "Error",
-        description: "Please select a role and at least one collaborator type.",
+        description: "Please select a participant, role, and at least one collaborator type.",
         variant: "destructive"
       });
       return;
     }
 
     try {
-      // Use user's email as placeholder since we're inviting based on collaborator types
-      const emailToUse = user?.email || 'team-member@placeholder.com';
-      
       const { data, error } = await supabase.functions.invoke('send-team-invitation', {
         body: {
-          email: emailToUse,
+          email: inviteEmail,
           role: inviteRole,
           inviterName: user?.email?.split('@')[0] || 'Team Admin',
           inviterEmail: user?.email || 'admin@example.com',
@@ -636,9 +633,28 @@ export default function Collaborate() {
               <DialogHeader>
                 <DialogTitle>Invite Team Member to {userTeam?.name}</DialogTitle>
               </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium">Role</label>
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium">Event Participant</label>
+                    {eventParticipants.length > 0 ? (
+                      <Select value={inviteEmail} onValueChange={setInviteEmail}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select participant from event" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {eventParticipants.map((participant) => (
+                            <SelectItem key={participant.email} value={participant.email}>
+                              {participant.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No event participants found</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Role</label>
                   <Select value={inviteRole} onValueChange={setInviteRole}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select a role" />
