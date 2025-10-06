@@ -90,6 +90,7 @@ export default function Collaborate() {
   const [userTeam, setUserTeam] = useState<{ id: string; name: string } | null>(null);
   const [userTeams, setUserTeams] = useState<{ id: string; name: string; members: TeamMember[]; isAdmin: boolean }[]>([]);
   const [eventParticipants, setEventParticipants] = useState<{ email: string; name: string }[]>([]);
+  const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
 
   // Fetch event participants for invitation dropdown
   useEffect(() => {
@@ -926,12 +927,32 @@ export default function Collaborate() {
                     />
                   ) : (
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 py-4">
-                      {!team.isAdmin && team.members.map(member => (
-                        <TeamMemberCard
-                          key={member.id}
-                          member={member}
-                          onClick={handleMemberClick}
-                        />
+                      {team.members.map(member => (
+                        <div key={member.id} className="relative">
+                          <div 
+                            className={`transition-all ${selectedMembers.includes(member.id) ? 'ring-2 ring-primary' : ''}`}
+                          >
+                            <TeamMemberCard
+                              member={member}
+                              onClick={handleMemberClick}
+                            />
+                          </div>
+                          <div className="absolute top-2 right-2">
+                            <input
+                              type="checkbox"
+                              checked={selectedMembers.includes(member.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedMembers([...selectedMembers, member.id]);
+                                } else {
+                                  setSelectedMembers(selectedMembers.filter(id => id !== member.id));
+                                }
+                              }}
+                              className="w-5 h-5 rounded cursor-pointer"
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          </div>
+                        </div>
                       ))}
                     </div>
                   )}
