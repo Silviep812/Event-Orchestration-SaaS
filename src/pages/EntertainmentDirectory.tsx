@@ -197,7 +197,17 @@ const EntertainmentDirectory = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>Entertainment Profiles ({filteredProfiles.length})</CardTitle>
+          <CardTitle>
+            {selectedEntertainmentTypes.length > 0 ? (
+              <>
+                {selectedEntertainmentTypes.map(typeId =>
+                  entertainmentTypes.find(t => t.id?.toString() === typeId)?.name
+                ).filter(Boolean).join(', ')} ({filteredProfiles.length})
+              </>
+            ) : (
+              <>Entertainment Profiles ({filteredProfiles.length})</>
+            )}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (

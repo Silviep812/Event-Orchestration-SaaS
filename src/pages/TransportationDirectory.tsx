@@ -179,7 +179,17 @@ const TransportationDirectory = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>Transportation Profiles ({filteredProfiles.length})</CardTitle>
+          <CardTitle>
+            {selectedTransportationTypes.length > 0 ? (
+              <>
+                {selectedTransportationTypes.map(typeId =>
+                  transportationTypes.find(t => t.id?.toString() === typeId)?.name
+                ).filter(Boolean).join(', ')} ({filteredProfiles.length})
+              </>
+            ) : (
+              <>Transportation Profiles ({filteredProfiles.length})</>
+            )}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
