@@ -328,17 +328,28 @@ export default function Collaborate() {
     const fetchUserTeams = async () => {
       if (!user) return;
       try {
+        console.log('Fetching teams for user:', user.id);
+        
         // Get all team assignments for the user
         const { data: assignments, error: assignmentsError } = await supabase
           .from('team_assignments')
           .select('team_id, team_admin, teams(id, name)')
           .eq('user_id', user.id);
-        if (assignmentsError || !assignments) return;
+        
+        if (assignmentsError || !assignments) {
+          console.error('Error fetching assignments:', assignmentsError);
+          return;
+        }
+        
+        console.log('User assignments:', assignments);
+        
         // For each team, fetch its members
         const teamsWithMembers = await Promise.all(assignments.map(async (assignment: any) => {
           const teamId = assignment.team_id;
           const teamName = assignment.teams?.name || 'Unnamed Team';
           const isAdmin = !!assignment.team_admin;
+          
+          console.log(`Fetching members for team ${teamName} (${teamId})`);
           
           // Get all members for this team (excluding current user)
           const { data: memberAssignments } = await supabase
@@ -380,12 +391,16 @@ export default function Collaborate() {
             };
           });
 
+          console.log(`Found ${members.length} actual members for team ${teamName}`);
+
           // Fetch collaborator configurations for this team
-          const { data: configs } = await supabase
+          const { data: configs, error: configError } = await supabase
             .from('collaborator_configurations')
             .select('*')
             .eq('team_id', teamId)
             .is('assigned_user_id', null);
+
+          console.log(`Configs for team ${teamName}:`, configs, 'error:', configError);
 
           if (configs && configs.length > 0) {
             const configMembers: TeamMember[] = configs.map(config => ({
@@ -398,10 +413,13 @@ export default function Collaborate() {
               isConfiguration: true
             }));
             members.push(...configMembers);
+            console.log(`Added ${configMembers.length} config members. Total: ${members.length}`);
           }
 
           return { id: teamId, name: teamName, members, isAdmin };
         }));
+        
+        console.log('Final teams with members:', teamsWithMembers);
         setUserTeams(teamsWithMembers);
       } catch (error) {
         console.error('Error fetching user teams:', error);
@@ -444,7 +462,9 @@ export default function Collaborate() {
     // If no email provided, save as a collaborator configuration
     if (!inviteEmail || !inviteEmail.trim()) {
       try {
-        const { error } = await supabase
+        console.log('Creating config for team:', userTeam?.id, 'role:', inviteRole);
+        
+        const { data, error } = await supabase
           .from('collaborator_configurations')
           .insert({
             team_id: userTeam?.id,
@@ -452,9 +472,15 @@ export default function Collaborate() {
             collaborator_types: selectedCollaboratorTypes,
             is_coordinator: inviteAttributes.coordinator,
             is_viewer: inviteAttributes.viewer,
-          });
+          })
+          .select();
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error creating config:', error);
+          throw error;
+        }
+        
+        console.log('Config created:', data);
 
         toast({
           title: "Success",
