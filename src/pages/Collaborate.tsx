@@ -356,16 +356,47 @@ export default function Collaborate() {
           teamId: userTeam?.id,
           isCoordinator: inviteAttributes.coordinator,
           isViewer: inviteAttributes.viewer,
+          collaboratorTypes: selectedCollaboratorTypes,
         }
       });
 
       if (error) {
         console.error('Error sending invitation:', error);
-        toast({
-          title: "Error",
-          description: "Failed to send invitation. Please try again.",
-          variant: "destructive"
-        });
+        
+        // Check if it's the "user already exists" error
+        const errorMessage = error.message || '';
+        if (errorMessage.includes('already been registered') || errorMessage.includes('email_exists')) {
+          toast({
+            title: "User Already Exists",
+            description: "This email is already registered. Try adding them to your team instead.",
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Error",
+            description: "Failed to send invitation. Please try again.",
+            variant: "destructive"
+          });
+        }
+        return;
+      }
+
+      // Check if the response contains an error in the data
+      if (data && !data.success) {
+        const errorMsg = data.error || '';
+        if (errorMsg.includes('already been registered') || errorMsg.includes('email_exists')) {
+          toast({
+            title: "User Already Exists",
+            description: "This email is already registered. Try adding them to your team instead.",
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Error",
+            description: data.error || "Failed to send invitation.",
+            variant: "destructive"
+          });
+        }
         return;
       }
 
