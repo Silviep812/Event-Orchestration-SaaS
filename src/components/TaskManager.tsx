@@ -120,14 +120,53 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
 
   const fetchUsers = async () => {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('user_id, display_name');
+      // Get current user's teams
+      const { data: userTeams, error: teamsError } = await supabase
+        .from('team_assignments')
+        .select('team_id')
+        .eq('user_id', user?.id);
       
-      if (error) throw error;
-      setUsers((data || []).map(u => ({ userid: u.user_id, user_name: u.display_name, contact_name: u.display_name })));
+      if (teamsError) throw teamsError;
+      
+      if (!userTeams || userTeams.length === 0) {
+        setUsers([]);
+        return;
+      }
+      
+      const teamIds = userTeams.map(t => t.team_id);
+      
+      // Get all team members from these teams
+      const { data: teamMembers, error: membersError } = await supabase
+        .from('team_assignments')
+        .select('user_id')
+        .in('team_id', teamIds);
+      
+      if (membersError) throw membersError;
+      
+      if (!teamMembers || teamMembers.length === 0) {
+        setUsers([]);
+        return;
+      }
+      
+      // Get unique user IDs
+      const userIds = [...new Set(teamMembers.map(m => m.user_id))];
+      
+      // Fetch profiles for these users
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('user_id, display_name')
+        .in('user_id', userIds);
+      
+      if (profilesError) throw profilesError;
+      
+      setUsers((profiles || []).map(p => ({
+        userid: p.user_id,
+        user_name: p.display_name,
+        contact_name: p.display_name
+      })));
     } catch (error) {
-      console.error('Error fetching users:', error);
+      console.error('Error fetching team members:', error);
+      setUsers([]);
     }
   };
 
