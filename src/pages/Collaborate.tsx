@@ -339,11 +339,12 @@ export default function Collaborate() {
           const teamName = assignment.teams?.name || 'Unnamed Team';
           const isAdmin = !!assignment.team_admin;
           
-          // Get all members for this team (including current user)
+          // Get all members for this team (excluding current user)
           const { data: memberAssignments } = await supabase
             .from('team_assignments')
             .select('user_id, team_admin')
-            .eq('team_id', teamId);
+            .eq('team_id', teamId)
+            .neq('user_id', user.id);
 
           const userIds = (memberAssignments || []).map((ma: any) => ma.user_id);
 
@@ -373,7 +374,7 @@ export default function Collaborate() {
               name: userInfo?.name || "Unknown User",
               email: userInfo?.email || '',
               role: ma.team_admin ? 'Admin' : 'Member',
-              status: ma.user_id === user.id ? 'online' : 'offline',
+              status: 'offline',
               joinedAt: new Date().toISOString()
             };
           });
