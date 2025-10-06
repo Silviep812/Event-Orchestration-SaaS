@@ -97,67 +97,117 @@ const ManageEvent = () => {
 
   // Sync details to resources
   const syncDetailsToResources = async (eventData: ManageEventData) => {
-    if (!eventData.id) return;
+    if (!eventData.id) {
+      console.log('syncDetailsToResources: No event ID');
+      return;
+    }
+
+    console.log('syncDetailsToResources: Starting sync for event', eventData.id, 'with location', eventData.location);
 
     try {
       // Fetch resource categories
-      const { data: categories } = await supabase
+      const { data: categories, error: catError } = await supabase
         .from('resource_categories')
         .select('id, name');
       
-      if (!categories) return;
+      if (catError) {
+        console.error('syncDetailsToResources: Error fetching categories', catError);
+        throw catError;
+      }
+      
+      if (!categories) {
+        console.log('syncDetailsToResources: No categories found');
+        return;
+      }
 
       // Find category IDs
       const venueCategory = categories.find(c => c.name.toLowerCase().includes('venue'));
-      const statusAvailable = await supabase
+      const { data: statusAvailable, error: statusError } = await supabase
         .from('resource_status')
         .select('id')
         .ilike('name', '%available%')
         .single();
 
+      if (statusError) {
+        console.error('syncDetailsToResources: Error fetching status', statusError);
+      }
+
       // Auto-create venue resource if venue is set
       if (eventData.venue && venueCategory) {
-        const { data: existingVenue } = await supabase
+        console.log('syncDetailsToResources: Checking for existing venue resource');
+        const { data: existingVenue, error: venueError } = await supabase
           .from('resources')
           .select('id')
           .eq('event_id', eventData.id)
           .eq('category_id', venueCategory.id)
-          .single();
+          .maybeSingle();
+
+        if (venueError) {
+          console.error('syncDetailsToResources: Error checking venue', venueError);
+        }
 
         if (!existingVenue) {
-          await supabase.from('resources').insert({
+          console.log('syncDetailsToResources: Creating new venue resource');
+          const { error: insertError } = await supabase.from('resources').insert({
             name: eventData.venue,
             category_id: venueCategory.id,
-            status_id: statusAvailable?.data?.id || 1,
+            status_id: statusAvailable?.id || 1,
             location: eventData.location || '',
             allocated: 1,
             total: 1,
             event_id: eventData.id,
           });
+          if (insertError) {
+            console.error('syncDetailsToResources: Error inserting venue', insertError);
+          } else {
+            console.log('syncDetailsToResources: Venue resource created successfully');
+          }
         } else {
-          // Update existing venue resource
-          await supabase
+          console.log('syncDetailsToResources: Updating existing venue resource');
+          const { error: updateError } = await supabase
             .from('resources')
             .update({
               name: eventData.venue,
               location: eventData.location || '',
             })
             .eq('id', existingVenue.id);
+          if (updateError) {
+            console.error('syncDetailsToResources: Error updating venue', updateError);
+          } else {
+            console.log('syncDetailsToResources: Venue resource updated successfully');
+          }
         }
       }
 
       // Update all resources with the event location
       if (eventData.location) {
-        await supabase
+        console.log('syncDetailsToResources: Updating all resources location to', eventData.location);
+        const { data: updateResult, error: updateError } = await supabase
           .from('resources')
           .update({ location: eventData.location })
-          .eq('event_id', eventData.id);
+          .eq('event_id', eventData.id)
+          .select();
+
+        if (updateError) {
+          console.error('syncDetailsToResources: Error updating resources location', updateError);
+          throw updateError;
+        } else {
+          console.log('syncDetailsToResources: Successfully updated', updateResult?.length || 0, 'resources');
+        }
       }
 
       // Trigger resource refresh
+      console.log('syncDetailsToResources: Triggering resource refresh');
       setResourceRefreshKey(prev => prev + 1);
+      
+      console.log('syncDetailsToResources: Sync completed successfully');
     } catch (error) {
-      console.error('Error syncing details to resources:', error);
+      console.error('syncDetailsToResources: Fatal error during sync', error);
+      toast({
+        title: "Sync Error",
+        description: "Failed to sync location to resources",
+        variant: "destructive",
+      });
     }
   };
 
