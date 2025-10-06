@@ -202,6 +202,8 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
 
   // Real-time subscription for resource updates
   useEffect(() => {
+    if (!eventId) return;
+
     const channel = supabase
       .channel('resources-changes')
       .on(
@@ -210,12 +212,14 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
           event: '*',
           schema: 'public',
           table: 'resources',
-          filter: eventId ? `event_id=eq.${eventId}` : undefined,
         },
         (payload) => {
           console.log('Resource change detected:', payload);
-          // Refetch data to get the latest state
-          fetchData();
+          // Check if the change is for our event
+          const changedResource = payload.new as any;
+          if (changedResource?.event_id === eventId || payload.eventType === 'DELETE') {
+            fetchData();
+          }
         }
       )
       .subscribe();

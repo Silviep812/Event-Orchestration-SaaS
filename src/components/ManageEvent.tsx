@@ -452,8 +452,13 @@ const ManageEvent = () => {
         event: '*', 
         schema: 'public', 
         table: 'events' 
-      }, () => {
+      }, (payload) => {
+        console.log('Event change detected:', payload);
         fetchEvents();
+        // Trigger resource refresh when event is updated
+        if (payload.eventType === 'UPDATE' && selectedEvent?.id === payload.new?.id) {
+          setResourceRefreshKey(prev => prev + 1);
+        }
       })
       .subscribe();
 
