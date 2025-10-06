@@ -377,19 +377,22 @@ export default function Collaborate() {
   };
 
   const handleInviteMember = async () => {
-    if (!inviteEmail || !inviteRole) {
+    if (!inviteRole || selectedCollaboratorTypes.length === 0) {
       toast({
         title: "Error",
-        description: "Please fill in all fields.",
+        description: "Please select a role and at least one collaborator type.",
         variant: "destructive"
       });
       return;
     }
 
     try {
+      // Use user's email as placeholder since we're inviting based on collaborator types
+      const emailToUse = user?.email || 'team-member@placeholder.com';
+      
       const { data, error } = await supabase.functions.invoke('send-team-invitation', {
         body: {
-          email: inviteEmail,
+          email: emailToUse,
           role: inviteRole,
           inviterName: user?.email?.split('@')[0] || 'Team Admin',
           inviterEmail: user?.email || 'admin@example.com',
