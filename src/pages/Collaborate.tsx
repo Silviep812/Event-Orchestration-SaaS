@@ -85,27 +85,48 @@ export default function Collaborate() {
   const [isCreateTeamDialogOpen, setIsCreateTeamDialogOpen] = useState(false);
   const [teamName, setTeamName] = useState("");
   const [teamCollaboratorTypes, setTeamCollaboratorTypes] = useState<string[]>([]);
+  const [selectedEventId, setSelectedEventId] = useState<string>("");
+  const [userEvents, setUserEvents] = useState<{ id: string; name: string; collaborators: string[] }[]>([]);
   const [userTeam, setUserTeam] = useState<{ id: string; name: string } | null>(null);
   const [userTeams, setUserTeams] = useState<{ id: string; name: string; members: TeamMember[]; isAdmin: boolean }[]>([]);
   const [eventParticipants, setEventParticipants] = useState<{ email: string; name: string }[]>([]);
 
-  // Fetch event participants
+  // Fetch user events with collaborator types
   useEffect(() => {
-    const fetchEventParticipants = async () => {
+    const fetchUserEvents = async () => {
       if (!user) return;
       
       try {
         const { data, error } = await supabase
           .from('Create Event')
-          .select('event_collaborators, contact_name, email')
+          .select('userid, event_description, event_collaborators, booking_type, venue_type, supplier_type, service_rental_type, transportation_type, is_venue_available, is_booking_available, is_service_rental_available, is_supply_available, is_transportation_available, is_service_type_availabe')
           .eq('userid', user.id);
         
         if (!error && data) {
+          const events = data.map((event: any) => {
+            const collaboratorTypes: string[] = [];
+            
+            // Add collaborator types based on event configuration
+            if (event.is_booking_available && event.booking_type?.length > 0) collaboratorTypes.push('Bookings');
+            if (event.is_venue_available && event.venue_type?.length > 0) collaboratorTypes.push('Venue');
+            if (event.is_service_rental_available && event.service_rental_type) collaboratorTypes.push('Vendor Service Rental/Buy');
+            if (event.transportation_type) collaboratorTypes.push('Hospitality');
+            if (event.is_service_type_availabe) collaboratorTypes.push('Service Vendor');
+            if (event.is_transportation_available) collaboratorTypes.push('Transportation');
+            if (event.supplier_type?.length > 0) collaboratorTypes.push('Suppliers');
+            
+            return {
+              id: event.userid,
+              name: event.event_description || 'Unnamed Event',
+              collaborators: collaboratorTypes
+            };
+          });
+          
+          setUserEvents(events);
+          
+          // Also gather participants for invitations
           const participants: { email: string; name: string }[] = [];
           data.forEach((event) => {
-            if (event.email && event.contact_name) {
-              participants.push({ email: event.email, name: event.contact_name });
-            }
             if (event.event_collaborators && Array.isArray(event.event_collaborators)) {
               event.event_collaborators.forEach((collab: string) => {
                 if (collab.includes('@')) {
@@ -114,18 +135,17 @@ export default function Collaborate() {
               });
             }
           });
-          // Remove duplicates
           const uniqueParticipants = Array.from(
             new Map(participants.map(p => [p.email, p])).values()
           );
           setEventParticipants(uniqueParticipants);
         }
       } catch (error) {
-        console.error('Error fetching event participants:', error);
+        console.error('Error fetching user events:', error);
       }
     };
     
-    fetchEventParticipants();
+    fetchUserEvents();
   }, [user]);
 
   // Fetch user's team if they're an admin
@@ -538,10 +558,10 @@ export default function Collaborate() {
       return;
     }
 
-    if (teamCollaboratorTypes.length === 0) {
+    if (!selectedEventId) {
       toast({
         title: "Error",
-        description: "Please select at least one collaborator type.",
+        description: "Please select an event for this team.",
         variant: "destructive"
       });
       return;
@@ -595,12 +615,15 @@ export default function Collaborate() {
         return;
       }
 
+      const selectedEvent = userEvents.find(e => e.id === selectedEventId);
+      
       toast({
         title: "Success",
-        description: `Team "${teamName}" has been created successfully with ${teamCollaboratorTypes.join(', ')} collaborators!`,
+        description: `Team "${teamName}" created with ${selectedEvent?.collaborators.join(', ') || 'collaborators'}!`,
       });
 
       setTeamName("");
+      setSelectedEventId("");
       setTeamCollaboratorTypes([]);
       setIsCreateTeamDialogOpen(false);
       
@@ -771,6 +794,7 @@ export default function Collaborate() {
             setIsCreateTeamDialogOpen(open);
             if (!open) {
               setTeamName("");
+              setSelectedEventId("");
               setTeamCollaboratorTypes([]);
             }
           }}
@@ -789,36 +813,36 @@ export default function Collaborate() {
                 />
               </div>
               <div>
-                <label className="text-sm font-medium">Collaborator Types (select all that apply)</label>
-                <div className="mt-2 max-h-48 overflow-y-auto space-y-2 border rounded-md p-3 bg-background">
-                  {[
-                    'Bookings',
-                    'Venue',
-                    'Vendor Service Rental/Buy',
-                    'Hospitality',
-                    'Service Vendor',
-                    'Transportation',
-                    'Entertainment',
-                    'Suppliers'
-                  ].map((type) => (
-                    <label key={type} className="flex items-center gap-2 cursor-pointer hover:bg-accent/50 p-2 rounded">
-                      <input
-                        type="checkbox"
-                        checked={teamCollaboratorTypes.includes(type)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setTeamCollaboratorTypes([...teamCollaboratorTypes, type]);
-                          } else {
-                            setTeamCollaboratorTypes(teamCollaboratorTypes.filter(t => t !== type));
-                          }
-                        }}
-                        className="w-4 h-4"
-                      />
-                      <span className="text-sm">{type}</span>
-                    </label>
-                  ))}
-                </div>
+                <label className="text-sm font-medium">Select Event</label>
+                <Select value={selectedEventId} onValueChange={(value) => {
+                  setSelectedEventId(value);
+                  const event = userEvents.find(e => e.id === value);
+                  if (event) {
+                    setTeamCollaboratorTypes(event.collaborators);
+                  }
+                }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose an event" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {userEvents.map((event) => (
+                      <SelectItem key={event.id} value={event.id}>
+                        {event.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
+              {teamCollaboratorTypes.length > 0 && (
+                <div>
+                  <label className="text-sm font-medium">Collaborator Types (from event)</label>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {teamCollaboratorTypes.map((type) => (
+                      <Badge key={type} variant="secondary">{type}</Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
               <Button onClick={handleCreateTeam} className="w-full">
                 Create Team
               </Button>
