@@ -191,7 +191,17 @@ const VendorServiceDirectory = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>Service Profiles ({filteredProfiles.length})</CardTitle>
+          <CardTitle>
+            {selectedServiceTypes.length > 0 ? (
+              <>
+                {selectedServiceTypes.map(typeId =>
+                  serviceTypes.find(t => t.id?.toString() === typeId)?.name
+                ).filter(Boolean).join(', ')} ({filteredProfiles.length})
+              </>
+            ) : (
+              <>Service Profiles ({filteredProfiles.length})</>
+            )}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
