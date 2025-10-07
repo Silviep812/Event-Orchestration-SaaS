@@ -290,6 +290,8 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         })
       );
       
+      console.log('Available tasks for dependencies:', tasksWithAssignments);
+      console.log('Tasks with categories:', tasksWithAssignments.filter(t => t.category));
       setAvailableTasks(tasksWithAssignments);
     } catch (error) {
       console.error('Error fetching available tasks:', error);
@@ -1127,12 +1129,16 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                       </span>
                     </div>
                     <p className="text-sm text-muted-foreground">Select all tasks that must be completed before this task can start:</p>
-                    <Input
-                      placeholder="Search by title, description, assignee, or category (e.g., Bookings)..."
-                      value={dependencySearchTerm}
-                      onChange={(e) => setDependencySearchTerm(e.target.value)}
-                      className="mb-2"
-                    />
+                    <div className="space-y-1 mb-2">
+                      <Input
+                        placeholder="Search by title, description, assignee, or category (e.g., Bookings)..."
+                        value={dependencySearchTerm}
+                        onChange={(e) => setDependencySearchTerm(e.target.value)}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        💡 Tip: Category search only works for tasks created with collaborator types selected
+                      </p>
+                    </div>
                     <div className="flex gap-2 mb-2">
                       <Button
                         type="button"
@@ -1209,13 +1215,33 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                             </label>
                           </div>
                         ))}
-                      {availableTasks.filter(task => 
-                        task.title.toLowerCase().includes(dependencySearchTerm.toLowerCase()) ||
-                        (task.assigned_user_name || '').toLowerCase().includes(dependencySearchTerm.toLowerCase()) ||
-                        (task.category || '').toLowerCase().includes(dependencySearchTerm.toLowerCase())
-                      ).length === 0 && (
-                        <p className="text-sm text-muted-foreground text-center py-4">No tasks found</p>
-                      )}
+                      {(() => {
+                        const filteredTasks = availableTasks.filter(task => 
+                          task.title.toLowerCase().includes(dependencySearchTerm.toLowerCase()) ||
+                          (task.assigned_user_name || '').toLowerCase().includes(dependencySearchTerm.toLowerCase()) ||
+                          (task.category || '').toLowerCase().includes(dependencySearchTerm.toLowerCase())
+                        );
+                        
+                        if (filteredTasks.length === 0 && dependencySearchTerm) {
+                          return (
+                            <div className="text-center py-4 space-y-2">
+                              <p className="text-sm text-muted-foreground">No tasks found matching "{dependencySearchTerm}"</p>
+                              {dependencySearchTerm.toLowerCase().includes('booking') && availableTasks.filter(t => !t.category).length > 0 && (
+                                <p className="text-xs text-yellow-600">
+                                  Note: {availableTasks.filter(t => !t.category).length} task(s) don't have categories yet. 
+                                  Only newly created tasks with collaborator types will be searchable by category.
+                                </p>
+                              )}
+                            </div>
+                          );
+                        }
+                        
+                        if (filteredTasks.length === 0) {
+                          return <p className="text-sm text-muted-foreground text-center py-4">No tasks available</p>;
+                        }
+                        
+                        return null;
+                      })()}
                     </div>
                   </div>
                 )}
