@@ -161,13 +161,26 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
           contact_name: profile.display_name
         }));
       
-      // Remove duplicates based on userid
-      const uniqueUsers = mappedUsers.reduce((acc, user) => {
-        if (!acc.find(u => u.userid === user.userid)) {
-          acc.push(user);
+      // Handle duplicate display names by appending identifier
+      const displayNameCounts = new Map<string, number>();
+      mappedUsers.forEach(user => {
+        const count = displayNameCounts.get(user.user_name) || 0;
+        displayNameCounts.set(user.user_name, count + 1);
+      });
+      
+      const displayNameIndices = new Map<string, number>();
+      const uniqueUsers = mappedUsers.map(user => {
+        if (displayNameCounts.get(user.user_name)! > 1) {
+          const index = (displayNameIndices.get(user.user_name) || 0) + 1;
+          displayNameIndices.set(user.user_name, index);
+          return {
+            ...user,
+            user_name: `${user.user_name} (${index})`,
+            contact_name: `${user.contact_name} (${index})`
+          };
         }
-        return acc;
-      }, [] as User[]);
+        return user;
+      });
       
       console.log('Mapped users after filtering:', uniqueUsers);
       setUsers(uniqueUsers);
