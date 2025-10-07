@@ -1036,39 +1036,26 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
 
                 <div className="space-y-2 p-3 border border-primary/20 rounded-lg bg-primary/5">
                   <Label htmlFor="assigned-user" className="text-base font-semibold">Assign To</Label>
-                  {selectedCollaboratorTypes.length === 0 && (
-                    <p className="text-sm text-muted-foreground mb-2">⬅️ Select Collaborator Types first (left side)</p>
-                  )}
                   <Select 
                     value={newTask.assigned_user_id} 
                     onValueChange={(value) => {
                       const userId = value === "none" ? "" : value;
                       setNewTask({ ...newTask, assigned_user_id: userId });
                     }}
-                    disabled={selectedCollaboratorTypes.length === 0}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder={selectedCollaboratorTypes.length === 0 ? "Select collaborator types first" : "Select a person"} />
+                      <SelectValue placeholder="Select a person" />
                     </SelectTrigger>
                     <SelectContent className="bg-background z-50">
                       <SelectItem value="none">No assignment</SelectItem>
-                      {(() => {
-                        // Get all people who match the selected collaborator types
-                        const availablePeople = new Set<string>();
-                        selectedCollaboratorTypes.forEach(type => {
-                          const people = collaboratorTypeMapping[type] || [];
-                          people.forEach(person => availablePeople.add(person));
-                        });
-                        
-                        // Filter users to only show those who match
-                        return users
-                          .filter(user => availablePeople.has(user.user_name))
-                          .map((user) => (
-                            <SelectItem key={user.userid} value={user.userid}>
-                              {user.user_name}
-                            </SelectItem>
-                          ));
-                      })()}
+                      <SelectItem value="person_1">Person_1</SelectItem>
+                      <SelectItem value="person_2">Person_2</SelectItem>
+                      <SelectItem value="person_3">Person_3</SelectItem>
+                      <SelectItem value="person_4">Person_4</SelectItem>
+                      <SelectItem value="person_5">Person_5</SelectItem>
+                      <SelectItem value="person_6">Person_6</SelectItem>
+                      <SelectItem value="person_7">Person_7</SelectItem>
+                      <SelectItem value="person_8">Person_8</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1250,11 +1237,14 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     </SelectTrigger>
                     <SelectContent className="bg-background z-50">
                       <SelectItem value="none">No assignment</SelectItem>
-                      {users.map((user) => (
-                        <SelectItem key={user.userid} value={user.userid}>
-                          {user.user_name}
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="person_1">Person_1</SelectItem>
+                      <SelectItem value="person_2">Person_2</SelectItem>
+                      <SelectItem value="person_3">Person_3</SelectItem>
+                      <SelectItem value="person_4">Person_4</SelectItem>
+                      <SelectItem value="person_5">Person_5</SelectItem>
+                      <SelectItem value="person_6">Person_6</SelectItem>
+                      <SelectItem value="person_7">Person_7</SelectItem>
+                      <SelectItem value="person_8">Person_8</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
