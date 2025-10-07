@@ -919,13 +919,10 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
           </Button>
         </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={(open) => {
-          if (open) {
-            // Reset search term and preserve flag when opening
-            setDependencySearchTerm("");
-            setShouldPreserveForm(false);
-          } else {
-            // Only reset form when closing if NOT preserving
+          if (!open) {
+            // When closing dialog
             if (!shouldPreserveForm) {
+              // Only reset if we haven't just created a task
               setNewTask({
                 title: "",
                 description: "",
@@ -938,10 +935,13 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
               });
               setSelectedCollaboratorTypes([]);
             }
-            // Always reset these
+            // Always reset these when closing
             setDependencySearchTerm("");
             setValidationErrors({});
-            setShouldPreserveForm(false); // Reset flag for next open
+            setShouldPreserveForm(false); // Reset flag after closing
+          } else {
+            // When opening dialog, reset search term
+            setDependencySearchTerm("");
           }
           setIsCreateDialogOpen(open);
         }}>
@@ -1248,8 +1248,33 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
               </div>
             </div>
             
-            <div className="mt-6">
-              <Button onClick={createTask} className="w-full">
+            <div className="mt-6 flex gap-3">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setNewTask({
+                    title: "",
+                    description: "",
+                    assigned_user_id: "",
+                    priority: "medium" as const,
+                    estimated_hours: "",
+                    due_date: "",
+                    selected_event_id: "",
+                    dependencies: [] as string[]
+                  });
+                  setSelectedCollaboratorTypes([]);
+                  setValidationErrors({});
+                  setShouldPreserveForm(false);
+                  toast({
+                    title: "Form cleared",
+                    description: "All fields have been reset.",
+                  });
+                }}
+                className="flex-1"
+              >
+                Clear Form
+              </Button>
+              <Button onClick={createTask} className="flex-1">
                 Create Task
               </Button>
             </div>
