@@ -94,19 +94,45 @@ export function BudgetTracker({ eventId, selectedEventFilter }: BudgetTrackerPro
       
       console.log('Fetching budget for event:', currentEventId);
       
-      if (!currentEventId || currentEventId === "all") {
+      if (!currentEventId) {
         setEventBudget(null);
         return;
       }
 
-      // Fetch from events table
+      // If "all" is selected, sum all event budgets for the user
+      if (currentEventId === "all") {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          setEventBudget(null);
+          return;
+        }
+
+        const { data: eventsData, error: eventsError } = await supabase
+          .from('events')
+          .select('budget')
+          .eq('user_id', user.id);
+
+        if (eventsError) {
+          console.error('Error fetching all event budgets:', eventsError);
+          setEventBudget(null);
+          return;
+        }
+
+        // Sum all budgets
+        const totalBudget = eventsData?.reduce((sum, event) => sum + (event.budget || 0), 0) || 0;
+        console.log('Total budget for all events:', totalBudget);
+        setEventBudget(totalBudget > 0 ? totalBudget : null);
+        return;
+      }
+
+      // Fetch budget for specific event
       const { data, error } = await supabase
         .from('events')
         .select('budget')
         .eq('id', currentEventId)
         .maybeSingle();
 
-      console.log('Budget fetch result:', { data, error });
+      console.log('Budget fetch result:', { data, error, eventId: currentEventId });
 
       if (error) {
         console.error('Error fetching event budget:', error);
