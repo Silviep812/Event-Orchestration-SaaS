@@ -97,12 +97,10 @@ export function BudgetTracker({ eventId, selectedEventFilter }: BudgetTrackerPro
         return;
       }
 
-      console.log('Fetching budget for event:', currentEventId);
-
       const { data, error } = await supabase
-        .from('events')
-        .select('budget')
-        .eq('id', currentEventId)
+        .from('Create Event')
+        .select('event_budget')
+        .eq('userid', currentEventId)
         .maybeSingle();
 
       if (error) {
@@ -110,11 +108,9 @@ export function BudgetTracker({ eventId, selectedEventFilter }: BudgetTrackerPro
         setEventBudget(null);
         return;
       }
-
-      console.log('Event budget data:', data);
       
       // Set the budget from the event, or null if not set
-      setEventBudget(data?.budget ?? null);
+      setEventBudget(data?.event_budget ?? null);
     } catch (error) {
       console.error('Error in fetchEventBudget:', error);
       setEventBudget(null);
