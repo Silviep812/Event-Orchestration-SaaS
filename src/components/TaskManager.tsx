@@ -233,15 +233,13 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
 
   const fetchAvailableTasks = async () => {
     try {
-      let query = supabase.from('tasks').select('id, title, status').eq('archived', false);
+      // Fetch all tasks for dependency selection, not filtered by event
+      // This allows users to create dependencies across different events
+      const { data, error } = await supabase
+        .from('tasks')
+        .select('id, title, status')
+        .eq('archived', false);
       
-      if (eventId) {
-        query = query.eq('event_id', eventId);
-      } else if (selectedEventFilter && selectedEventFilter !== "all") {
-        query = query.eq('event_id', selectedEventFilter);
-      }
-      
-      const { data, error } = await query;
       if (error) throw error;
       
       setAvailableTasks(data || []);
