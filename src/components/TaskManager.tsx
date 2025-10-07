@@ -136,13 +136,20 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
 
   const fetchUsers = async () => {
     try {
-      const { data: usersData, error } = await supabase
-        .from('User')
-        .select('userid, user_name, contact_name');
+      const { data: profilesData, error } = await supabase
+        .from('profiles')
+        .select('user_id, display_name');
       
       if (error) throw error;
       
-      setUsers(usersData || []);
+      // Map profiles to User format
+      const mappedUsers = (profilesData || []).map(profile => ({
+        userid: profile.user_id,
+        user_name: profile.display_name,
+        contact_name: profile.display_name
+      }));
+      
+      setUsers(mappedUsers);
     } catch (error) {
       console.error('Error fetching users:', error);
       setUsers([]);
