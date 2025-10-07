@@ -128,7 +128,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
       if (error) throw error;
       
       const dbUsers = (profiles || [])
-        .filter(p => p.display_name !== 'Ida Event Partners')
+        .filter(p => p.display_name !== 'IDA Event Partners')
         .map(p => ({
           userid: p.user_id,
           user_name: p.display_name,
