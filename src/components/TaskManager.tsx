@@ -640,12 +640,35 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         if (assignmentError) throw assignmentError;
       }
 
-      // Fetch tasks first, then open dependency dialog
+      // Close dialog and fetch tasks list
       setIsCreateDialogOpen(false);
       await fetchTasks();
-      await fetchAvailableTasks();
       
-      // Open dependency dialog after tasks are loaded
+      // Add the newly created task to availableTasks immediately with its category
+      // This ensures it shows up in dependency search without database timing delays
+      const newTaskForList = {
+        id: createdTask.id,
+        title: newTask.title,
+        status: 'not_started' as const,
+        category: selectedCollaboratorTypes.length > 0 ? selectedCollaboratorTypes.join(', ') : null,
+        assigned_user_id: newTask.assigned_user_id,
+        assigned_user_name: undefined
+      };
+      
+      // Fetch assigned user name if available
+      if (newTask.assigned_user_id) {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('display_name')
+          .eq('user_id', newTask.assigned_user_id)
+          .single();
+        newTaskForList.assigned_user_name = profileData?.display_name || undefined;
+      }
+      
+      // Add to availableTasks list
+      setAvailableTasks(prev => [...prev, newTaskForList]);
+      
+      // Open dependency dialog with the new task
       setTaskForDependencies({ id: createdTask.id, title: newTask.title });
       setShouldPreserveForm(true);
       setShowDependencyDialog(true);
