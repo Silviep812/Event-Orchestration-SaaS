@@ -106,12 +106,12 @@ export default function TrackProgress() {
           const assigned_user_id = assignmentData?.user_id || null;
           
           if (assigned_user_id) {
-            const { data: userData } = await supabase
-              .from('User')
-              .select('user_name')
-              .eq('userid', assigned_user_id)
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('display_name')
+              .eq('user_id', assigned_user_id)
               .maybeSingle();
-            assigned_user_name = userData?.user_name || null;
+            assigned_user_name = profileData?.display_name || null;
           }
 
           return {
