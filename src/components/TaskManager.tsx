@@ -915,9 +915,9 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                   </Select>
                 </div>
 
-                {/* Collaborator Types selection */}
+                {/* Task Assignments selection */}
                 <div className="space-y-2">
-                  <Label>Collaborator Types</Label>
+                  <Label>Task Assignments</Label>
                   <p className="text-sm text-muted-foreground">Select types to filter available people:</p>
                   <div className="max-h-48 overflow-y-auto space-y-2 border rounded-md p-2">
                     {[
