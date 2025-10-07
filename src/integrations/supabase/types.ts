@@ -2832,50 +2832,6 @@ export type Database = {
           },
         ]
       }
-      User: {
-        Row: {
-          contact_name: string | null
-          contact_phone_nbr: number | null
-          created_at: string
-          email: string | null
-          is_admin: boolean | null
-          user_name: string | null
-          user_role: string | null
-          userid: string | null
-          website: string | null
-        }
-        Insert: {
-          contact_name?: string | null
-          contact_phone_nbr?: number | null
-          created_at?: string
-          email?: string | null
-          is_admin?: boolean | null
-          user_name?: string | null
-          user_role?: string | null
-          userid?: string | null
-          website?: string | null
-        }
-        Update: {
-          contact_name?: string | null
-          contact_phone_nbr?: number | null
-          created_at?: string
-          email?: string | null
-          is_admin?: boolean | null
-          user_name?: string | null
-          user_role?: string | null
-          userid?: string | null
-          website?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "User_user_name_fkey"
-            columns: ["user_name"]
-            isOneToOne: true
-            referencedRelation: "Authorization"
-            referencedColumns: ["sign_in"]
-          },
-        ]
-      }
       "User Profile": {
         Row: {
           Biz_Name: string | null
