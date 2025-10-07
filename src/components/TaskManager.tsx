@@ -846,10 +846,25 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
           </Button>
         </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={(open) => {
-          setIsCreateDialogOpen(open);
           if (open) {
-            setDependencySearchTerm(""); // Reset search term when opening dialog
+            // Reset search term when opening
+            setDependencySearchTerm("");
+          } else {
+            // Only reset form when closing
+            setNewTask({
+              title: "",
+              description: "",
+              assigned_user_id: "",
+              priority: "medium" as const,
+              estimated_hours: "",
+              due_date: "",
+              selected_event_id: "",
+              dependencies: [] as string[]
+            });
+            setSelectedCollaboratorTypes([]);
+            setDependencySearchTerm("");
           }
+          setIsCreateDialogOpen(open);
         }}>
           <DialogTrigger asChild>
             <Button>
