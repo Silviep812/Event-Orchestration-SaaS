@@ -915,11 +915,11 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                   </Select>
                 </div>
 
-                {/* Collaborator Types selection - moved before Assign To */}
+                {/* Collaborator Types selection */}
                 <div className="space-y-2">
                   <Label>Collaborator Types</Label>
-                  <p className="text-sm text-muted-foreground">Select types first to filter available people:</p>
-                  <div className="max-h-32 overflow-y-auto space-y-2 border rounded-md p-2">
+                  <p className="text-sm text-muted-foreground">Select types to filter available people:</p>
+                  <div className="max-h-48 overflow-y-auto space-y-2 border rounded-md p-2">
                     {[
                       'Bookings',
                       'Venue',
@@ -960,11 +960,14 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     </div>
                   )}
                 </div>
+              </div>
 
+              {/* Right column */}
+              <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="assigned-user">Assign To</Label>
                   {selectedCollaboratorTypes.length === 0 && (
-                    <p className="text-sm text-muted-foreground mb-2">Select Collaborator Types above to see available people</p>
+                    <p className="text-sm text-muted-foreground mb-2">Select Collaborator Types first (left side)</p>
                   )}
                   <Select 
                     value={newTask.assigned_user_id} 
@@ -977,7 +980,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     <SelectTrigger>
                       <SelectValue placeholder={selectedCollaboratorTypes.length === 0 ? "Select collaborator types first" : "Select a person"} />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-background z-50">
                       <SelectItem value="none">No assignment</SelectItem>
                       {(() => {
                         // Get all people who match the selected collaborator types
@@ -999,10 +1002,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
 
-              {/* Right column */}
-              <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="hours">Estimated Hours</Label>
                   <Input
@@ -1236,6 +1236,10 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                   </Select>
                 </div>
 
+              </div>
+
+              {/* Right column */}
+              <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="edit-assigned-user">Assign To</Label>
                   <Select value={selectedTask.assigned_user_id || "none"} onValueChange={(value) => {
@@ -1245,7 +1249,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     <SelectTrigger>
                       <SelectValue placeholder="Select a person" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-background z-50">
                       <SelectItem value="none">No assignment</SelectItem>
                       {users.map((user) => (
                         <SelectItem key={user.userid} value={user.userid}>
@@ -1255,10 +1259,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
 
-              {/* Right column */}
-              <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="edit-hours">Estimated Hours</Label>
                   <Input
