@@ -38,6 +38,8 @@ interface AvailableTask {
   id: string;
   title: string;
   status: 'not_started' | 'in_progress' | 'completed' | 'on_hold' | 'cancelled';
+  assigned_user_id?: string;
+  assigned_user_name?: string;
 }
 
 interface User {
@@ -237,12 +239,36 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
       // This allows users to create dependencies across different events
       const { data, error } = await supabase
         .from('tasks')
-        .select('id, title, status')
+        .select('id, title, status, assigned_to')
         .eq('archived', false);
       
       if (error) throw error;
       
-      setAvailableTasks(data || []);
+      // Fetch assigned user names
+      const tasksWithAssignments = await Promise.all(
+        (data || []).map(async (task) => {
+          let assigned_user_name: string | undefined;
+          
+          if (task.assigned_to) {
+            const { data: userData } = await supabase
+              .from('User')
+              .select('user_name')
+              .eq('userid', task.assigned_to)
+              .single();
+            assigned_user_name = userData?.user_name || undefined;
+          }
+          
+          return {
+            id: task.id,
+            title: task.title,
+            status: task.status,
+            assigned_user_id: task.assigned_to,
+            assigned_user_name
+          };
+        })
+      );
+      
+      setAvailableTasks(tasksWithAssignments);
     } catch (error) {
       console.error('Error fetching available tasks:', error);
     }
@@ -1009,14 +1035,16 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     <Label>Task Dependencies (Select Multiple)</Label>
                     <p className="text-sm text-muted-foreground">Select all tasks that must be completed before this task can start:</p>
                     <Input
-                      placeholder="Search tasks by title..."
+                      placeholder="Search by task assignments..."
                       value={dependencySearchTerm}
                       onChange={(e) => setDependencySearchTerm(e.target.value)}
                       className="mb-2"
                     />
                     <div className="max-h-48 overflow-y-auto space-y-2 border rounded-md p-2">
                       {availableTasks
-                        .filter(task => task.title.toLowerCase().includes(dependencySearchTerm.toLowerCase()))
+                        .filter(task => 
+                          (task.assigned_user_name || '').toLowerCase().includes(dependencySearchTerm.toLowerCase())
+                        )
                         .map((task) => (
                           <div key={task.id} className="flex items-center space-x-2">
                             <Checkbox
@@ -1041,7 +1069,9 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                             </label>
                           </div>
                         ))}
-                      {availableTasks.filter(task => task.title.toLowerCase().includes(dependencySearchTerm.toLowerCase())).length === 0 && (
+                      {availableTasks.filter(task => 
+                        (task.assigned_user_name || '').toLowerCase().includes(dependencySearchTerm.toLowerCase())
+                      ).length === 0 && (
                         <p className="text-sm text-muted-foreground text-center py-4">No tasks found</p>
                       )}
                     </div>
@@ -1293,7 +1323,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     <Label>Task Dependencies (Select Multiple)</Label>
                     <p className="text-sm text-muted-foreground">Select all tasks that must be completed before this task can start:</p>
                     <Input
-                      placeholder="Search tasks by title..."
+                      placeholder="Search by task assignments..."
                       value={dependencySearchTerm}
                       onChange={(e) => setDependencySearchTerm(e.target.value)}
                       className="mb-2"
@@ -1302,7 +1332,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                       {availableTasks
                         .filter(task => 
                           task.id !== selectedTask.id && 
-                          task.title.toLowerCase().includes(dependencySearchTerm.toLowerCase())
+                          (task.assigned_user_name || '').toLowerCase().includes(dependencySearchTerm.toLowerCase())
                         )
                         .map((task) => (
                         <div key={task.id} className="flex items-center space-x-2">
@@ -1324,7 +1354,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                       ))}
                       {availableTasks.filter(task => 
                         task.id !== selectedTask.id && 
-                        task.title.toLowerCase().includes(dependencySearchTerm.toLowerCase())
+                        (task.assigned_user_name || '').toLowerCase().includes(dependencySearchTerm.toLowerCase())
                       ).length === 0 && (
                         <p className="text-sm text-muted-foreground text-center py-4">No tasks found</p>
                       )}
