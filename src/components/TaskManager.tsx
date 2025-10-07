@@ -986,48 +986,45 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                 </div>
 
                 {/* Dependencies selection */}
-                {selectedCollaboratorTypes.length > 0 && (
+                {availableTasks.length > 0 && (
                   <div className="space-y-2">
                     <Label>Task Dependencies (Select Multiple)</Label>
-                    <p className="text-sm text-muted-foreground">Tasks from selected Task Assignments that must be completed first:</p>
+                    <p className="text-sm text-muted-foreground">Select all tasks that must be completed before this task can start:</p>
+                    <Input
+                      placeholder="Search tasks by title..."
+                      value={dependencySearchTerm}
+                      onChange={(e) => setDependencySearchTerm(e.target.value)}
+                      className="mb-2"
+                    />
                     <div className="max-h-48 overflow-y-auto space-y-2 border rounded-md p-2">
-                      {selectedCollaboratorTypes.map((type) => (
-                        <div key={type} className="space-y-2">
-                          <p className="text-xs font-semibold text-muted-foreground uppercase">{type}</p>
-                          {availableTasks
-                            .filter(task => {
-                              // Show tasks that match this collaborator type
-                              // You may need to add a field to tasks to track their collaborator types
-                              return task.title.includes(type) || true; // Simplified - showing all for now
-                            })
-                            .map((task) => (
-                            <div key={task.id} className="flex items-center space-x-2 ml-4">
-                              <Checkbox
-                                id={`dep-${task.id}`}
-                                checked={newTask.dependencies.includes(task.id)}
-                                onCheckedChange={(checked) => {
-                                  if (checked) {
-                                    setNewTask({
-                                      ...newTask,
-                                      dependencies: [...newTask.dependencies, task.id]
-                                    });
-                                  } else {
-                                    setNewTask({
-                                      ...newTask,
-                                      dependencies: newTask.dependencies.filter(id => id !== task.id)
-                                    });
-                                  }
-                                }}
-                              />
-                              <label htmlFor={`dep-${task.id}`} className="text-sm font-medium leading-none cursor-pointer">
-                                {task.title}
-                              </label>
-                            </div>
-                          ))}
-                        </div>
-                      ))}
-                      {selectedCollaboratorTypes.length === 0 && (
-                        <p className="text-sm text-muted-foreground text-center py-4">Select Task Assignments first</p>
+                      {availableTasks
+                        .filter(task => task.title.toLowerCase().includes(dependencySearchTerm.toLowerCase()))
+                        .map((task) => (
+                          <div key={task.id} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`dep-${task.id}`}
+                              checked={newTask.dependencies.includes(task.id)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setNewTask({
+                                    ...newTask,
+                                    dependencies: [...newTask.dependencies, task.id]
+                                  });
+                                } else {
+                                  setNewTask({
+                                    ...newTask,
+                                    dependencies: newTask.dependencies.filter(id => id !== task.id)
+                                  });
+                                }
+                              }}
+                            />
+                            <label htmlFor={`dep-${task.id}`} className="text-sm font-medium leading-none cursor-pointer">
+                              {task.title}
+                            </label>
+                          </div>
+                        ))}
+                      {availableTasks.filter(task => task.title.toLowerCase().includes(dependencySearchTerm.toLowerCase())).length === 0 && (
+                        <p className="text-sm text-muted-foreground text-center py-4">No tasks found</p>
                       )}
                     </div>
                   </div>
