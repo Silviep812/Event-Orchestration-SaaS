@@ -1700,6 +1700,24 @@ export type Database = {
           },
         ]
       }
+      role_permission_groups: {
+        Row: {
+          created_at: string | null
+          permission_group: Database["public"]["Enums"]["permission_level"]
+          role: Database["public"]["Enums"]["app_role"]
+        }
+        Insert: {
+          created_at?: string | null
+          permission_group: Database["public"]["Enums"]["permission_level"]
+          role: Database["public"]["Enums"]["app_role"]
+        }
+        Update: {
+          created_at?: string | null
+          permission_group?: Database["public"]["Enums"]["permission_level"]
+          role?: Database["public"]["Enums"]["app_role"]
+        }
+        Relationships: []
+      }
       rsvp_submissions: {
         Row: {
           book_id: string
@@ -3500,6 +3518,20 @@ export type Database = {
           userid: string
         }[]
       }
+      has_min_permission_level: {
+        Args: {
+          _level: Database["public"]["Enums"]["permission_level"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      has_permission_level: {
+        Args: {
+          _level: Database["public"]["Enums"]["permission_level"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -3568,6 +3600,7 @@ export type Database = {
         | "misc"
         | "vendors"
       event_status_enum: "pending" | "in_progress" | "completed" | "cancelled"
+      permission_level: "admin" | "coordinator" | "viewer"
       task_priority: "low" | "medium" | "high" | "urgent"
       task_status:
         | "not_started"
@@ -3725,6 +3758,7 @@ export const Constants = {
         "vendors",
       ],
       event_status_enum: ["pending", "in_progress", "completed", "cancelled"],
+      permission_level: ["admin", "coordinator", "viewer"],
       task_priority: ["low", "medium", "high", "urgent"],
       task_status: [
         "not_started",

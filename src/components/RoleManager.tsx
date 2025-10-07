@@ -4,7 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, Users, UserCheck } from "lucide-react";
+import { Shield, Users, UserCheck, Crown, ClipboardList, Eye } from "lucide-react";
+import { PermissionLevel } from "@/lib/permissions";
 
 interface UserRole {
   id: string;
@@ -27,6 +28,7 @@ export function RoleManager() {
   const [userRoles, setUserRoles] = useState<UserRole[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [permissionMappings, setPermissionMappings] = useState<Map<string, PermissionLevel>>(new Map());
   const { toast } = useToast();
 
   const roles = [
@@ -38,6 +40,12 @@ export function RoleManager() {
     { value: 'hospitality_provider', label: 'Hospitality Provider', description: 'Provide hospitality services' }
   ];
 
+  const permissionLevels = {
+    admin: { label: 'Admin', icon: Crown, color: 'bg-red-500/10 text-red-700 dark:text-red-400', description: 'Full system access including user management' },
+    coordinator: { label: 'Coordinator', icon: ClipboardList, color: 'bg-blue-500/10 text-blue-700 dark:text-blue-400', description: 'Can manage events and resources' },
+    viewer: { label: 'Viewer', icon: Eye, color: 'bg-gray-500/10 text-gray-700 dark:text-gray-400', description: 'Read-only access to events' }
+  };
+
   const roleColors = {
     manager: "bg-red-100 text-red-800",
     host: "bg-blue-100 text-blue-800",
@@ -48,8 +56,26 @@ export function RoleManager() {
   };
 
   useEffect(() => {
+    fetchPermissionMappings();
     fetchUsers();
   }, []);
+
+  const fetchPermissionMappings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('role_permission_groups')
+        .select('role, permission_group');
+
+      if (error) throw error;
+
+      const mappings = new Map(
+        data.map((item: any) => [item.role, item.permission_group as PermissionLevel])
+      );
+      setPermissionMappings(mappings);
+    } catch (error) {
+      console.error('Error fetching permission mappings:', error);
+    }
+  };
 
   const fetchUserRoles = async () => {
     // No longer needed as roles are now managed via auth metadata
@@ -149,6 +175,31 @@ export function RoleManager() {
         <h2 className="text-2xl font-bold">Role Management</h2>
       </div>
 
+      {/* Permission Level Legend */}
+      <Card className="bg-muted/50">
+        <CardHeader>
+          <CardTitle className="text-lg">Permission Levels</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {Object.entries(permissionLevels).map(([key, level]) => {
+              const Icon = level.icon;
+              return (
+                <div key={key} className="flex items-start gap-3">
+                  <div className={`p-2 rounded-lg ${level.color}`}>
+                    <Icon className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm">{level.label}</p>
+                    <p className="text-xs text-muted-foreground">{level.description}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Role Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
@@ -195,6 +246,9 @@ export function RoleManager() {
         {userRoles.map((userRole) => {
           const user = getUserInfo(userRole.user_id);
           const roleInfo = roles.find(r => r.value === userRole.role);
+          const permissionLevel = permissionMappings.get(userRole.role);
+          const permissionInfo = permissionLevel ? permissionLevels[permissionLevel] : null;
+          const PermissionIcon = permissionInfo?.icon;
           
           return (
             <Card key={userRole.id}>
@@ -209,9 +263,17 @@ export function RoleManager() {
                         <p className="text-sm text-muted-foreground">{user.email}</p>
                       )}
                     </div>
-                    <Badge className={roleColors[userRole.role as keyof typeof roleColors]}>
-                      {roleInfo?.label || userRole.role}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge className={roleColors[userRole.role as keyof typeof roleColors]}>
+                        {roleInfo?.label || userRole.role}
+                      </Badge>
+                      {permissionInfo && PermissionIcon && (
+                        <Badge variant="outline" className={permissionInfo.color}>
+                          <PermissionIcon className="h-3 w-3 mr-1" />
+                          {permissionInfo.label}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                   <Select
                     value={userRole.role}
