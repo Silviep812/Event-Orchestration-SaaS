@@ -98,6 +98,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
   const [loading, setLoading] = useState(true);
   const [showArchived, setShowArchived] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [shouldPreserveForm, setShouldPreserveForm] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [selectedDependencies, setSelectedDependencies] = useState<string[]>([]);
@@ -650,7 +651,10 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         description: "New task has been created successfully. You can create another task or close this dialog.",
       });
 
-      // Keep Project/Event, Task Title, and Description filled for next task
+      // Set flag to preserve form fields
+      setShouldPreserveForm(true);
+      
+      // Keep Project/Event, Task Title, Description, and Collaborator Types filled for next task
       // Reset only the fields that should be cleared
       setNewTask({
         title: newTask.title,
@@ -662,7 +666,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         selected_event_id: newTask.selected_event_id,
         dependencies: []
       });
-      setSelectedCollaboratorTypes([]);
+      // Keep selectedCollaboratorTypes - don't reset
       // Don't close dialog - let user close it or create another task
       fetchTasks();
     } catch (error) {
@@ -916,23 +920,28 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={(open) => {
           if (open) {
-            // Reset search term when opening
+            // Reset search term and preserve flag when opening
             setDependencySearchTerm("");
+            setShouldPreserveForm(false);
           } else {
-            // Only reset form when closing
-            setNewTask({
-              title: "",
-              description: "",
-              assigned_user_id: "",
-              priority: "medium" as const,
-              estimated_hours: "",
-              due_date: "",
-              selected_event_id: "",
-              dependencies: [] as string[]
-            });
-            setSelectedCollaboratorTypes([]);
+            // Only reset form when closing if NOT preserving
+            if (!shouldPreserveForm) {
+              setNewTask({
+                title: "",
+                description: "",
+                assigned_user_id: "",
+                priority: "medium" as const,
+                estimated_hours: "",
+                due_date: "",
+                selected_event_id: "",
+                dependencies: [] as string[]
+              });
+              setSelectedCollaboratorTypes([]);
+            }
+            // Always reset these
             setDependencySearchTerm("");
             setValidationErrors({});
+            setShouldPreserveForm(false); // Reset flag for next open
           }
           setIsCreateDialogOpen(open);
         }}>
