@@ -1048,21 +1048,54 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                 {/* Dependencies selection */}
                 {availableTasks.length > 0 && (
                   <div className="space-y-2">
-                    <Label>Task Dependencies (Select Multiple)</Label>
+                    <div className="flex items-center justify-between">
+                      <Label>Task Dependencies (Select Multiple)</Label>
+                      <span className="text-xs text-muted-foreground">
+                        {newTask.dependencies.length} of {availableTasks.length} selected
+                      </span>
+                    </div>
                     <p className="text-sm text-muted-foreground">Select all tasks that must be completed before this task can start:</p>
                     <Input
-                      placeholder="Search by task assignments..."
+                      placeholder="Search by title, description, or assignee..."
                       value={dependencySearchTerm}
                       onChange={(e) => setDependencySearchTerm(e.target.value)}
                       className="mb-2"
                     />
+                    <div className="flex gap-2 mb-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const filteredTasks = availableTasks.filter(task => 
+                            task.title.toLowerCase().includes(dependencySearchTerm.toLowerCase()) ||
+                            (task.assigned_user_name || '').toLowerCase().includes(dependencySearchTerm.toLowerCase())
+                          );
+                          setNewTask({
+                            ...newTask,
+                            dependencies: filteredTasks.map(t => t.id)
+                          });
+                        }}
+                      >
+                        Select All
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setNewTask({ ...newTask, dependencies: [] })}
+                      >
+                        Clear All
+                      </Button>
+                    </div>
                     <div className="max-h-48 overflow-y-auto space-y-2 border rounded-md p-2">
                       {availableTasks
                         .filter(task => 
+                          task.title.toLowerCase().includes(dependencySearchTerm.toLowerCase()) ||
                           (task.assigned_user_name || '').toLowerCase().includes(dependencySearchTerm.toLowerCase())
                         )
                         .map((task) => (
-                          <div key={task.id} className="flex items-center space-x-2">
+                          <div key={task.id} className="flex items-start space-x-2 p-2 rounded hover:bg-accent/50 transition-colors">
                             <Checkbox
                               id={`dep-${task.id}`}
                               checked={newTask.dependencies.includes(task.id)}
@@ -1079,13 +1112,26 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                                   });
                                 }
                               }}
+                              className="mt-0.5"
                             />
-                            <label htmlFor={`dep-${task.id}`} className="text-sm font-medium leading-none cursor-pointer">
-                              {task.title}
+                            <label htmlFor={`dep-${task.id}`} className="flex-1 cursor-pointer">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-sm font-medium">{task.title}</span>
+                                <Badge variant="outline" className={statusColors[task.status]}>
+                                  {task.status.replace('_', ' ')}
+                                </Badge>
+                              </div>
+                              {task.assigned_user_name && (
+                                <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
+                                  <User className="h-3 w-3" />
+                                  {task.assigned_user_name}
+                                </div>
+                              )}
                             </label>
                           </div>
                         ))}
                       {availableTasks.filter(task => 
+                        task.title.toLowerCase().includes(dependencySearchTerm.toLowerCase()) ||
                         (task.assigned_user_name || '').toLowerCase().includes(dependencySearchTerm.toLowerCase())
                       ).length === 0 && (
                         <p className="text-sm text-muted-foreground text-center py-4">No tasks found</p>
@@ -1336,22 +1382,55 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                 {/* Dependencies selection for editing */}
                 {availableTasks.filter(task => task.id !== selectedTask.id).length > 0 && (
                   <div className="space-y-2">
-                    <Label>Task Dependencies (Select Multiple)</Label>
+                    <div className="flex items-center justify-between">
+                      <Label>Task Dependencies (Select Multiple)</Label>
+                      <span className="text-xs text-muted-foreground">
+                        {selectedDependencies.length} of {availableTasks.filter(t => t.id !== selectedTask.id).length} selected
+                      </span>
+                    </div>
                     <p className="text-sm text-muted-foreground">Select all tasks that must be completed before this task can start:</p>
                     <Input
-                      placeholder="Search by task assignments..."
+                      placeholder="Search by title, description, or assignee..."
                       value={dependencySearchTerm}
                       onChange={(e) => setDependencySearchTerm(e.target.value)}
                       className="mb-2"
                     />
+                    <div className="flex gap-2 mb-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const filteredTasks = availableTasks.filter(task => 
+                            task.id !== selectedTask.id && (
+                              task.title.toLowerCase().includes(dependencySearchTerm.toLowerCase()) ||
+                              (task.assigned_user_name || '').toLowerCase().includes(dependencySearchTerm.toLowerCase())
+                            )
+                          );
+                          setSelectedDependencies(filteredTasks.map(t => t.id));
+                        }}
+                      >
+                        Select All
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSelectedDependencies([])}
+                      >
+                        Clear All
+                      </Button>
+                    </div>
                     <div className="max-h-48 overflow-y-auto space-y-2 border rounded-md p-2">
                       {availableTasks
                         .filter(task => 
-                          task.id !== selectedTask.id && 
-                          (task.assigned_user_name || '').toLowerCase().includes(dependencySearchTerm.toLowerCase())
+                          task.id !== selectedTask.id && (
+                            task.title.toLowerCase().includes(dependencySearchTerm.toLowerCase()) ||
+                            (task.assigned_user_name || '').toLowerCase().includes(dependencySearchTerm.toLowerCase())
+                          )
                         )
                         .map((task) => (
-                        <div key={task.id} className="flex items-center space-x-2">
+                        <div key={task.id} className="flex items-start space-x-2 p-2 rounded hover:bg-accent/50 transition-colors">
                           <Checkbox
                             id={`edit-dep-${task.id}`}
                             checked={selectedDependencies.includes(task.id)}
@@ -1362,15 +1441,29 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                                 setSelectedDependencies(selectedDependencies.filter(id => id !== task.id));
                               }
                             }}
+                            className="mt-0.5"
                           />
-                          <label htmlFor={`edit-dep-${task.id}`} className="text-sm font-medium leading-none cursor-pointer">
-                            {task.title}
+                          <label htmlFor={`edit-dep-${task.id}`} className="flex-1 cursor-pointer">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-sm font-medium">{task.title}</span>
+                              <Badge variant="outline" className={statusColors[task.status]}>
+                                {task.status.replace('_', ' ')}
+                              </Badge>
+                            </div>
+                            {task.assigned_user_name && (
+                              <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
+                                <User className="h-3 w-3" />
+                                {task.assigned_user_name}
+                              </div>
+                            )}
                           </label>
                         </div>
                       ))}
                       {availableTasks.filter(task => 
-                        task.id !== selectedTask.id && 
-                        (task.assigned_user_name || '').toLowerCase().includes(dependencySearchTerm.toLowerCase())
+                        task.id !== selectedTask.id && (
+                          task.title.toLowerCase().includes(dependencySearchTerm.toLowerCase()) ||
+                          (task.assigned_user_name || '').toLowerCase().includes(dependencySearchTerm.toLowerCase())
+                        )
                       ).length === 0 && (
                         <p className="text-sm text-muted-foreground text-center py-4">No tasks found</p>
                       )}
