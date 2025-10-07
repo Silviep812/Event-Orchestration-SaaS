@@ -918,7 +918,6 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                 {/* Task Assignments selection */}
                 <div className="space-y-2">
                   <Label>Task Assignments</Label>
-                  <p className="text-sm text-muted-foreground">Select types to filter available people:</p>
                   <div className="max-h-48 overflow-y-auto space-y-2 border rounded-md p-2">
                     {[
                       'Bookings',
