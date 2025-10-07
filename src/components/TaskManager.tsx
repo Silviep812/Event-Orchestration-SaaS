@@ -79,17 +79,6 @@ const statusIcons = {
   cancelled: AlertCircle
 };
 
-// Mapping of collaborator types to people who can handle them
-const collaboratorTypeMapping: Record<string, string[]> = {
-  'Bookings': ['Person_1', 'Person_2'],
-  'Venue': ['Person_3', 'Person_4'],
-  'Vendor Service Rental/Buy': ['Person_5'],
-  'Hospitality': ['Person_6'],
-  'Service Vendor': ['Person_7'],
-  'Transportation': ['Person_8'],
-  'Entertainment': ['Person_1', 'Person_3'],
-  'Suppliers': ['Person_2', 'Person_5']
-};
 
 export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -148,9 +137,6 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         .from('profiles')
         .select('user_id, display_name');
       
-      console.log('Fetched profiles:', profilesData);
-      console.log('Profiles error:', error);
-      
       if (error) throw error;
       
       // Map profiles to User format and filter out IDA Event Partners
@@ -183,7 +169,6 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         return user;
       });
       
-      console.log('Mapped users after filtering:', uniqueUsers);
       setUsers(uniqueUsers);
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -206,8 +191,6 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
       const { data, error } = await query;
       if (error) throw error;
       
-      console.log('Raw tasks fetched:', data);
-      
       const tasksWithDependenciesAndAssignments = await Promise.all(
         (data || []).map(async (task) => {
           // Fetch dependencies
@@ -223,11 +206,6 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
             .eq('task_id', task.id)
             .limit(1);
           
-          console.log(`Task "${task.title}" (${task.id}):`, {
-            assignments,
-            hasAssignment: !!assignments?.[0]
-          });
-          
           let assigned_user_name: string | undefined;
           const assigned_user_id = assignments?.[0]?.user_id || undefined;
           
@@ -238,9 +216,6 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
               .eq('user_id', assigned_user_id)
               .single();
             assigned_user_name = profileData?.display_name || undefined;
-            console.log(`  Assigned to: ${assigned_user_name}`);
-          } else {
-            console.log(`  No assignment found`);
           }
           
           return {
@@ -252,7 +227,6 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         })
       );
       
-      console.log('Tasks with assignments:', tasksWithDependenciesAndAssignments);
       setTasks(tasksWithDependenciesAndAssignments);
       
       // Fetch available tasks for dependency selection
@@ -640,33 +614,10 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         if (assignmentError) throw assignmentError;
       }
 
-      // Close dialog and fetch tasks list
+      // Close dialog and refetch tasks
       setIsCreateDialogOpen(false);
       await fetchTasks();
-      
-      // Add the newly created task to availableTasks immediately with its category
-      // This ensures it shows up in dependency search without database timing delays
-      const newTaskForList = {
-        id: createdTask.id,
-        title: newTask.title,
-        status: 'not_started' as const,
-        category: selectedCollaboratorTypes.length > 0 ? selectedCollaboratorTypes.join(', ') : null,
-        assigned_user_id: newTask.assigned_user_id,
-        assigned_user_name: undefined
-      };
-      
-      // Fetch assigned user name if available
-      if (newTask.assigned_user_id) {
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('display_name')
-          .eq('user_id', newTask.assigned_user_id)
-          .single();
-        newTaskForList.assigned_user_name = profileData?.display_name || undefined;
-      }
-      
-      // Add to availableTasks list
-      setAvailableTasks(prev => [...prev, newTaskForList]);
+      await fetchAvailableTasks();
       
       // Open dependency dialog with the new task
       setTaskForDependencies({ id: createdTask.id, title: newTask.title });
