@@ -30,15 +30,19 @@ export function RoleManager() {
   const { toast } = useToast();
 
   const roles = [
-    { value: 'admin', label: 'Admin', description: 'Full access to all features and settings' },
-    { value: 'coordinator', label: 'Coordinator', description: 'Coordinate event logistics and team activities' },
-    { value: 'viewer', label: 'Viewer', description: 'View-only access to event information' }
+    { value: 'host', label: 'Host', description: 'Primary event host responsible for overall event success' },
+    { value: 'organizer', label: 'Organizer', description: 'Coordinate event logistics and team activities' },
+    { value: 'event_planner', label: 'Event Planner', description: 'Professional event planning and design' },
+    { value: 'venue_owner', label: 'Venue Owner', description: 'Manage venue-specific requirements and services' },
+    { value: 'hospitality_provider', label: 'Hospitality Provider', description: 'Handle guest services and hospitality arrangements' }
   ];
 
   const roleColors = {
-    admin: "bg-red-100 text-red-800",
-    coordinator: "bg-blue-100 text-blue-800",
-    viewer: "bg-green-100 text-green-800"
+    host: "bg-red-100 text-red-800",
+    organizer: "bg-blue-100 text-blue-800",
+    event_planner: "bg-green-100 text-green-800",
+    venue_owner: "bg-yellow-100 text-yellow-800",
+    hospitality_provider: "bg-purple-100 text-purple-800"
   };
 
   useEffect(() => {
@@ -95,7 +99,7 @@ export function RoleManager() {
     }
   };
 
-  const changeRole = async (userId: string, newRole: 'admin' | 'coordinator' | 'viewer') => {
+  const changeRole = async (userId: string, newRole: 'host' | 'organizer' | 'event_planner' | 'venue_owner' | 'hospitality_provider') => {
     try {
       // Update existing role in user_roles table
       const { error } = await supabase
@@ -209,7 +213,7 @@ export function RoleManager() {
                   </div>
                   <Select 
                     value={userRole.role} 
-                    onValueChange={(newRole) => changeRole(userRole.user_id, newRole as 'admin' | 'coordinator' | 'viewer')}
+                    onValueChange={(newRole) => changeRole(userRole.user_id, newRole as 'host' | 'organizer' | 'event_planner' | 'venue_owner' | 'hospitality_provider')}
                   >
                     <SelectTrigger className="w-32">
                       <SelectValue />
