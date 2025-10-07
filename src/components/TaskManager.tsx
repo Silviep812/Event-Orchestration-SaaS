@@ -99,6 +99,8 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
   const [showArchived, setShowArchived] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [shouldPreserveForm, setShouldPreserveForm] = useState(false);
+  const [showDependencyDialog, setShowDependencyDialog] = useState(false);
+  const [taskForDependencies, setTaskForDependencies] = useState<{ id: string; title: string } | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [selectedDependencies, setSelectedDependencies] = useState<string[]>([]);
@@ -290,8 +292,6 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         })
       );
       
-      console.log('Available tasks for dependencies:', tasksWithAssignments);
-      console.log('Tasks with categories:', tasksWithAssignments.filter(t => t.category));
       setAvailableTasks(tasksWithAssignments);
     } catch (error) {
       console.error('Error fetching available tasks:', error);
@@ -559,8 +559,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
   };
 
   const createTask = async () => {
-    // Validate form inputs
-    const validationResult = createTaskSchema.safeParse(newTask);
+    const validationResult = createTaskSchema.safeParse({...newTask, dependencies: []});
     
     if (!validationResult.success) {
       const errors: Record<string, string> = {};
@@ -570,7 +569,6 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         }
       });
       setValidationErrors(errors);
-      
       toast({
         title: "Validation Error",
         description: "Please fix the errors in the form before submitting.",
@@ -579,30 +577,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
       return;
     }
     
-    // Clear validation errors
     setValidationErrors({});
-
-    // Check for due date conflicts with dependencies
-    if (newTask.due_date && newTask.dependencies.length > 0) {
-      const conflict = await checkDueDateConflict(newTask.due_date, newTask.dependencies);
-      if (conflict.hasConflict && conflict.suggestedDate) {
-        handleDueDateConflictConfirmation(
-          newTask.due_date,
-          conflict.suggestedDate,
-          () => {
-            // User confirmed, update due date and continue
-            setNewTask(prev => ({ ...prev, due_date: conflict.suggestedDate! }));
-            executeCreateTask(conflict.suggestedDate);
-          },
-          () => {
-            // User cancelled, do nothing
-            return;
-          }
-        );
-        return;
-      }
-    }
-
     executeCreateTask();
   };
 
@@ -643,34 +618,20 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         if (assignmentError) throw assignmentError;
       }
 
-      // Save dependencies if any
-      if (newTask.dependencies.length > 0) {
-        await saveDependencies(createdTask.id, newTask.dependencies);
-      }
-
-      toast({
-        title: "Task created",
-        description: "New task has been created successfully. You can create another task or close this dialog.",
-      });
-
-      // Set flag to preserve form fields
+      // Open dependency dialog for the newly created task
+      setTaskForDependencies({ id: createdTask.id, title: newTask.title });
       setShouldPreserveForm(true);
+      setIsCreateDialogOpen(false);
       
-      // Keep Project/Event, Task Title, Description, and Collaborator Types filled for next task
-      // Reset only the fields that should be cleared
-      setNewTask({
-        title: newTask.title,
-        description: newTask.description,
-        assigned_user_id: "",
-        priority: "medium",
-        estimated_hours: "",
-        due_date: "",
-        selected_event_id: newTask.selected_event_id,
-        dependencies: []
+      await fetchTasks();
+      await fetchAvailableTasks();
+      
+      setShowDependencyDialog(true);
+      
+      toast({
+        title: "Task Created",
+        description: "Now add dependencies (optional)",
       });
-      // Keep selectedCollaboratorTypes - don't reset
-      // Don't close dialog - let user close it or create another task
-      fetchTasks();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to create task. Please try again.";
       const isCircularDependency = errorMessage.includes("Circular dependency detected");
