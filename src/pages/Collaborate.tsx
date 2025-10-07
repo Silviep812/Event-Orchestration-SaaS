@@ -130,23 +130,23 @@ export default function Collaborate() {
   }, [user]);
 
 
-  // Fetch user's team if they're an admin
+  // Fetch user's team if they're an admin (take first admin team)
   useEffect(() => {
     const fetchUserTeam = async () => {
       if (!user) return;
 
       try {
-        const { data: teamAssignment, error } = await supabase
+        const { data: teamAssignments, error } = await supabase
           .from('team_assignments')
           .select('team_id, team_admin, teams(id, name)')
           .eq('user_id', user.id)
           .eq('team_admin', true)
-          .single();
+          .limit(1);
 
-        if (!error && teamAssignment?.teams) {
+        if (!error && teamAssignments && teamAssignments.length > 0 && teamAssignments[0].teams) {
           setUserTeam({
-            id: (teamAssignment.teams as any).id,
-            name: (teamAssignment.teams as any).name
+            id: (teamAssignments[0].teams as any).id,
+            name: (teamAssignments[0].teams as any).name
           });
         }
       } catch (error) {
