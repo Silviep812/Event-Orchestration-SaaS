@@ -177,6 +177,8 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
       const { data, error } = await query;
       if (error) throw error;
       
+      console.log('Raw tasks fetched:', data);
+      
       const tasksWithDependenciesAndAssignments = await Promise.all(
         (data || []).map(async (task) => {
           // Fetch dependencies
@@ -192,6 +194,11 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
             .eq('task_id', task.id)
             .limit(1);
           
+          console.log(`Task "${task.title}" (${task.id}):`, {
+            assignments,
+            hasAssignment: !!assignments?.[0]
+          });
+          
           let assigned_user_name: string | undefined;
           const assigned_user_id = assignments?.[0]?.user_id || undefined;
           
@@ -202,6 +209,9 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
               .eq('user_id', assigned_user_id)
               .single();
             assigned_user_name = profileData?.display_name || undefined;
+            console.log(`  Assigned to: ${assigned_user_name}`);
+          } else {
+            console.log(`  No assignment found`);
           }
           
           return {
@@ -213,6 +223,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         })
       );
       
+      console.log('Tasks with assignments:', tasksWithDependenciesAndAssignments);
       setTasks(tasksWithDependenciesAndAssignments);
       
       // Fetch available tasks for dependency selection
