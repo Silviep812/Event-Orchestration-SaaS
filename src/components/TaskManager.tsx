@@ -127,13 +127,25 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
       
       if (error) throw error;
       
-      setUsers((profiles || [])
+      const dbUsers = (profiles || [])
         .filter(p => p.display_name !== 'Ida Event Partners')
         .map(p => ({
           userid: p.user_id,
           user_name: p.display_name,
           contact_name: p.display_name
-        })));
+        }));
+      
+      // Add additional people to the list
+      const additionalPeople = [
+        'Person_1', 'Person_2', 'Person_3', 'Person_5', 
+        'Person_6', 'Person_7', 'Person_8'
+      ].map(name => ({
+        userid: `temp_${name}`,
+        user_name: name,
+        contact_name: name
+      }));
+      
+      setUsers([...dbUsers, ...additionalPeople]);
     } catch (error) {
       console.error('Error fetching users:', error);
       setUsers([]);
