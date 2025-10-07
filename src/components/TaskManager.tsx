@@ -854,11 +854,11 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
               Create Task
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-4xl">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Create New Task</DialogTitle>
             </DialogHeader>
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Left column */}
               <div className="space-y-4">
                 {!eventId && events.length > 0 && (
@@ -964,10 +964,10 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
 
               {/* Right column */}
               <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="assigned-user">Assign To</Label>
+                <div className="space-y-2 p-3 border border-primary/20 rounded-lg bg-primary/5">
+                  <Label htmlFor="assigned-user" className="text-base font-semibold">Assign To</Label>
                   {selectedCollaboratorTypes.length === 0 && (
-                    <p className="text-sm text-muted-foreground mb-2">Select Collaborator Types first (left side)</p>
+                    <p className="text-sm text-muted-foreground mb-2">⬅️ Select Collaborator Types first (left side)</p>
                   )}
                   <Select 
                     value={newTask.assigned_user_id} 
