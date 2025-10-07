@@ -1080,133 +1080,6 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                   />
                 </div>
 
-                {/* Dependencies selection */}
-                {availableTasks.length > 0 && (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label>Task Dependencies (Select Multiple)</Label>
-                      <span className="text-xs text-muted-foreground">
-                        {newTask.dependencies.length} of {availableTasks.length} selected
-                      </span>
-                    </div>
-                    <p className="text-sm text-muted-foreground">Select all tasks that must be completed before this task can start:</p>
-                    <div className="space-y-1 mb-2">
-                      <Input
-                        placeholder="Search by title, description, assignee, or category (e.g., Bookings)..."
-                        value={dependencySearchTerm}
-                        onChange={(e) => setDependencySearchTerm(e.target.value)}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        💡 Tip: Category search only works for tasks created with collaborator types selected
-                      </p>
-                    </div>
-                    <div className="flex gap-2 mb-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          const filteredTasks = availableTasks.filter(task => 
-                            task.title.toLowerCase().includes(dependencySearchTerm.toLowerCase()) ||
-                            (task.assigned_user_name || '').toLowerCase().includes(dependencySearchTerm.toLowerCase()) ||
-                            (task.category || '').toLowerCase().includes(dependencySearchTerm.toLowerCase())
-                          );
-                          setNewTask({
-                            ...newTask,
-                            dependencies: filteredTasks.map(t => t.id)
-                          });
-                        }}
-                      >
-                        Select All
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setNewTask({ ...newTask, dependencies: [] })}
-                      >
-                        Clear All
-                      </Button>
-                    </div>
-                    <div className="max-h-48 overflow-y-auto space-y-2 border rounded-md p-2">
-                       {availableTasks
-                        .filter(task => 
-                          task.title.toLowerCase().includes(dependencySearchTerm.toLowerCase()) ||
-                          (task.assigned_user_name || '').toLowerCase().includes(dependencySearchTerm.toLowerCase()) ||
-                          (task.category || '').toLowerCase().includes(dependencySearchTerm.toLowerCase())
-                        )
-                        .map((task) => (
-                          <div key={task.id} className="flex items-start space-x-2 p-2 rounded hover:bg-accent/50 transition-colors">
-                            <Checkbox
-                              id={`dep-${task.id}`}
-                              checked={newTask.dependencies.includes(task.id)}
-                              onCheckedChange={(checked) => {
-                                if (checked) {
-                                  setNewTask({
-                                    ...newTask,
-                                    dependencies: [...newTask.dependencies, task.id]
-                                  });
-                                } else {
-                                  setNewTask({
-                                    ...newTask,
-                                    dependencies: newTask.dependencies.filter(id => id !== task.id)
-                                  });
-                                }
-                              }}
-                              className="mt-0.5"
-                            />
-                            <label htmlFor={`dep-${task.id}`} className="flex-1 cursor-pointer">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="text-sm font-medium">{task.title}</span>
-                                <Badge variant="outline" className={statusColors[task.status]}>
-                                  {task.status.replace('_', ' ')}
-                                </Badge>
-                                {task.category && task.category.split(', ').map((cat, idx) => (
-                                  <Badge key={idx} variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
-                                    {cat}
-                                  </Badge>
-                                ))}
-                              </div>
-                              {task.assigned_user_name && (
-                                <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
-                                  <User className="h-3 w-3" />
-                                  {task.assigned_user_name}
-                                </div>
-                              )}
-                            </label>
-                          </div>
-                        ))}
-                      {(() => {
-                        const filteredTasks = availableTasks.filter(task => 
-                          task.title.toLowerCase().includes(dependencySearchTerm.toLowerCase()) ||
-                          (task.assigned_user_name || '').toLowerCase().includes(dependencySearchTerm.toLowerCase()) ||
-                          (task.category || '').toLowerCase().includes(dependencySearchTerm.toLowerCase())
-                        );
-                        
-                        if (filteredTasks.length === 0 && dependencySearchTerm) {
-                          return (
-                            <div className="text-center py-4 space-y-2">
-                              <p className="text-sm text-muted-foreground">No tasks found matching "{dependencySearchTerm}"</p>
-                              {dependencySearchTerm.toLowerCase().includes('booking') && availableTasks.filter(t => !t.category).length > 0 && (
-                                <p className="text-xs text-yellow-600">
-                                  Note: {availableTasks.filter(t => !t.category).length} task(s) don't have categories yet. 
-                                  Only newly created tasks with collaborator types will be searchable by category.
-                                </p>
-                              )}
-                            </div>
-                          );
-                        }
-                        
-                        if (filteredTasks.length === 0) {
-                          return <p className="text-sm text-muted-foreground text-center py-4">No tasks available</p>;
-                        }
-                        
-                        return null;
-                      })()}
-                    </div>
-                  </div>
-                )}
-
                 <div className="space-y-2 p-3 border border-primary/20 rounded-lg bg-primary/5">
                   <Label htmlFor="assigned-user" className="text-base font-semibold">Assign To</Label>
                   <Select 
@@ -1582,6 +1455,227 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Add Dependencies Dialog - Step 2 of Task Creation */}
+      <Dialog open={showDependencyDialog} onOpenChange={setShowDependencyDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Add Task Dependencies (Optional)</DialogTitle>
+            <p className="text-sm text-muted-foreground mt-2">
+              Task "{taskForDependencies?.title}" has been created! Now you can add dependencies if needed.
+            </p>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {availableTasks.filter(task => task.id !== taskForDependencies?.id).length > 0 ? (
+              <>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label>Select tasks that must be completed first:</Label>
+                    <span className="text-xs text-muted-foreground">
+                      {selectedDependencies.length} of {availableTasks.filter(t => t.id !== taskForDependencies?.id).length} selected
+                    </span>
+                  </div>
+                  
+                  <Input
+                    placeholder="Search by title, description, assignee, or category (e.g., Bookings)..."
+                    value={dependencySearchTerm}
+                    onChange={(e) => setDependencySearchTerm(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    💡 Tip: Category search only works for tasks created with collaborator types selected
+                  </p>
+                  
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const filteredTasks = availableTasks.filter(task => 
+                          task.id !== taskForDependencies?.id && (
+                            task.title.toLowerCase().includes(dependencySearchTerm.toLowerCase()) ||
+                            (task.assigned_user_name || '').toLowerCase().includes(dependencySearchTerm.toLowerCase()) ||
+                            (task.category || '').toLowerCase().includes(dependencySearchTerm.toLowerCase())
+                          )
+                        );
+                        setSelectedDependencies(filteredTasks.map(t => t.id));
+                      }}
+                    >
+                      Select All
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSelectedDependencies([])}
+                    >
+                      Clear All
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="max-h-96 overflow-y-auto space-y-2 border rounded-md p-3">
+                  {availableTasks
+                    .filter(task => 
+                      task.id !== taskForDependencies?.id && (
+                        task.title.toLowerCase().includes(dependencySearchTerm.toLowerCase()) ||
+                        (task.assigned_user_name || '').toLowerCase().includes(dependencySearchTerm.toLowerCase()) ||
+                        (task.category || '').toLowerCase().includes(dependencySearchTerm.toLowerCase())
+                      )
+                    )
+                    .map((task) => (
+                      <div key={task.id} className="flex items-start space-x-2 p-2 rounded hover:bg-accent/50 transition-colors">
+                        <Checkbox
+                          id={`new-dep-${task.id}`}
+                          checked={selectedDependencies.includes(task.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedDependencies([...selectedDependencies, task.id]);
+                            } else {
+                              setSelectedDependencies(selectedDependencies.filter(id => id !== task.id));
+                            }
+                          }}
+                          className="mt-0.5"
+                        />
+                        <label htmlFor={`new-dep-${task.id}`} className="flex-1 cursor-pointer">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm font-medium">{task.title}</span>
+                            <Badge variant="outline" className={statusColors[task.status]}>
+                              {task.status.replace('_', ' ')}
+                            </Badge>
+                            {task.category && task.category.split(', ').map((cat, idx) => (
+                              <Badge key={idx} variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                                {cat}
+                              </Badge>
+                            ))}
+                          </div>
+                          {task.assigned_user_name && (
+                            <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
+                              <User className="h-3 w-3" />
+                              {task.assigned_user_name}
+                            </div>
+                          )}
+                        </label>
+                      </div>
+                    ))}
+                  {(() => {
+                    const filteredTasks = availableTasks.filter(task => 
+                      task.id !== taskForDependencies?.id && (
+                        task.title.toLowerCase().includes(dependencySearchTerm.toLowerCase()) ||
+                        (task.assigned_user_name || '').toLowerCase().includes(dependencySearchTerm.toLowerCase()) ||
+                        (task.category || '').toLowerCase().includes(dependencySearchTerm.toLowerCase())
+                      )
+                    );
+                    
+                    if (filteredTasks.length === 0 && dependencySearchTerm) {
+                      return (
+                        <div className="text-center py-4 space-y-2">
+                          <p className="text-sm text-muted-foreground">No tasks found matching "{dependencySearchTerm}"</p>
+                          {dependencySearchTerm.toLowerCase().includes('booking') && availableTasks.filter(t => !t.category).length > 0 && (
+                            <p className="text-xs text-yellow-600">
+                              Note: {availableTasks.filter(t => !t.category).length} task(s) don't have categories yet. 
+                              Only newly created tasks with collaborator types will be searchable by category.
+                            </p>
+                          )}
+                        </div>
+                      );
+                    }
+                    
+                    if (filteredTasks.length === 0) {
+                      return <p className="text-sm text-muted-foreground text-center py-4">No tasks available</p>;
+                    }
+                    
+                    return null;
+                  })()}
+                </div>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-8">No other tasks available to set as dependencies.</p>
+            )}
+          </div>
+
+          <div className="flex gap-3 mt-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowDependencyDialog(false);
+                setTaskForDependencies(null);
+                setSelectedDependencies([]);
+                setDependencySearchTerm("");
+                setShouldPreserveForm(false);
+                setIsCreateDialogOpen(false);
+                setNewTask({
+                  title: "",
+                  description: "",
+                  assigned_user_id: "",
+                  priority: "medium",
+                  estimated_hours: "",
+                  due_date: "",
+                  selected_event_id: "",
+                  dependencies: []
+                });
+                setSelectedCollaboratorTypes([]);
+                toast({
+                  title: "Task Created",
+                  description: "Task created successfully without dependencies.",
+                });
+              }}
+              className="flex-1"
+            >
+              Skip Dependencies
+            </Button>
+            <Button
+              onClick={async () => {
+                if (!taskForDependencies?.id) return;
+                
+                try {
+                  if (selectedDependencies.length > 0) {
+                    await saveDependencies(taskForDependencies.id, selectedDependencies);
+                  }
+                  
+                  setShowDependencyDialog(false);
+                  setTaskForDependencies(null);
+                  setSelectedDependencies([]);
+                  setDependencySearchTerm("");
+                  setShouldPreserveForm(false);
+                  setIsCreateDialogOpen(false);
+                  setNewTask({
+                    title: "",
+                    description: "",
+                    assigned_user_id: "",
+                    priority: "medium",
+                    estimated_hours: "",
+                    due_date: "",
+                    selected_event_id: "",
+                    dependencies: []
+                  });
+                  setSelectedCollaboratorTypes([]);
+                  
+                  await fetchTasks();
+                  
+                  toast({
+                    title: "Dependencies Added",
+                    description: selectedDependencies.length > 0 
+                      ? `${selectedDependencies.length} dependenc${selectedDependencies.length === 1 ? 'y' : 'ies'} added successfully.`
+                      : "Task created successfully.",
+                  });
+                } catch (error) {
+                  console.error('Error saving dependencies:', error);
+                  toast({
+                    title: "Error",
+                    description: "Failed to save dependencies. Please try again.",
+                    variant: "destructive",
+                  });
+                }
+              }}
+              className="flex-1"
+            >
+              Save Dependencies
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Due Date Conflict Confirmation Dialog */}
       <Dialog open={dueDateConflictDialog.isOpen} onOpenChange={(open) => {
