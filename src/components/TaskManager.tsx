@@ -161,8 +161,16 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
           contact_name: profile.display_name
         }));
       
-      console.log('Mapped users after filtering:', mappedUsers);
-      setUsers(mappedUsers);
+      // Remove duplicates based on userid
+      const uniqueUsers = mappedUsers.reduce((acc, user) => {
+        if (!acc.find(u => u.userid === user.userid)) {
+          acc.push(user);
+        }
+        return acc;
+      }, [] as User[]);
+      
+      console.log('Mapped users after filtering:', uniqueUsers);
+      setUsers(uniqueUsers);
     } catch (error) {
       console.error('Error fetching users:', error);
       setUsers([]);
