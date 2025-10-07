@@ -132,6 +132,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
   const [selectedCollaboratorTypes, setSelectedCollaboratorTypes] = useState<string[]>([]);
   const [dependencySearchTerm, setDependencySearchTerm] = useState<string>("");
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [clearFormAfterSave, setClearFormAfterSave] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const { events, applyEventFilter } = useEventFilter();
@@ -1616,7 +1617,18 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
             )}
           </div>
 
-          <div className="flex gap-3 mt-4">
+          <div className="flex items-center gap-2 mt-4 mb-2 px-1">
+            <Checkbox
+              id="clear-form"
+              checked={clearFormAfterSave}
+              onCheckedChange={(checked) => setClearFormAfterSave(checked === true)}
+            />
+            <label htmlFor="clear-form" className="text-sm text-muted-foreground cursor-pointer">
+              Clear form after saving (uncheck to create similar tasks)
+            </label>
+          </div>
+
+          <div className="flex gap-3">
             <Button
               variant="outline"
               onClick={() => {
@@ -1626,17 +1638,22 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                 setDependencySearchTerm("");
                 setShouldPreserveForm(false);
                 setIsCreateDialogOpen(false);
-                setNewTask({
-                  title: "",
-                  description: "",
-                  assigned_user_id: "",
-                  priority: "medium",
-                  estimated_hours: "",
-                  due_date: "",
-                  selected_event_id: "",
-                  dependencies: []
-                });
-                setSelectedCollaboratorTypes([]);
+                
+                if (clearFormAfterSave) {
+                  setNewTask({
+                    title: "",
+                    description: "",
+                    assigned_user_id: "",
+                    priority: "medium",
+                    estimated_hours: "",
+                    due_date: "",
+                    selected_event_id: "",
+                    dependencies: []
+                  });
+                  setSelectedCollaboratorTypes([]);
+                  setClearFormAfterSave(false);
+                }
+                
                 toast({
                   title: "Task Created",
                   description: "Task created successfully without dependencies.",
@@ -1661,17 +1678,21 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                   setDependencySearchTerm("");
                   setShouldPreserveForm(false);
                   setIsCreateDialogOpen(false);
-                  setNewTask({
-                    title: "",
-                    description: "",
-                    assigned_user_id: "",
-                    priority: "medium",
-                    estimated_hours: "",
-                    due_date: "",
-                    selected_event_id: "",
-                    dependencies: []
-                  });
-                  setSelectedCollaboratorTypes([]);
+                  
+                  if (clearFormAfterSave) {
+                    setNewTask({
+                      title: "",
+                      description: "",
+                      assigned_user_id: "",
+                      priority: "medium",
+                      estimated_hours: "",
+                      due_date: "",
+                      selected_event_id: "",
+                      dependencies: []
+                    });
+                    setSelectedCollaboratorTypes([]);
+                    setClearFormAfterSave(false);
+                  }
                   
                   await fetchTasks();
                   
