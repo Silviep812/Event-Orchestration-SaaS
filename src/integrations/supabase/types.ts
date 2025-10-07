@@ -2322,6 +2322,7 @@ export type Database = {
           assigned_to: string | null
           assigned_venue_role: string | null
           assined_vendor_role: string | null
+          category: string | null
           created_at: string
           created_by: string
           description: string | null
@@ -2346,6 +2347,7 @@ export type Database = {
           assigned_to?: string | null
           assigned_venue_role?: string | null
           assined_vendor_role?: string | null
+          category?: string | null
           created_at?: string
           created_by: string
           description?: string | null
@@ -2370,6 +2372,7 @@ export type Database = {
           assigned_to?: string | null
           assigned_venue_role?: string | null
           assined_vendor_role?: string | null
+          category?: string | null
           created_at?: string
           created_by?: string
           description?: string | null

@@ -33,6 +33,7 @@ interface Task {
   updated_at: string;
   event_id?: string;
   dependencies?: string[]; // Array of task IDs this task depends on
+  category?: string; // Task category based on collaborator type (Bookings, Venue, etc.)
 }
 
 interface AvailableTask {
@@ -41,6 +42,7 @@ interface AvailableTask {
   status: 'not_started' | 'in_progress' | 'completed' | 'on_hold' | 'cancelled';
   assigned_user_id?: string;
   assigned_user_name?: string;
+  category?: string;
 }
 
 interface User {
@@ -247,7 +249,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
       // This allows users to create dependencies across different events
       const { data, error } = await supabase
         .from('tasks')
-        .select('id, title, status')
+        .select('id, title, status, category')
         .eq('archived', false);
       
       if (error) throw error;
@@ -281,7 +283,8 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
             title: task.title,
             status: task.status,
             assigned_user_id,
-            assigned_user_name
+            assigned_user_name,
+            category: task.category
           };
         })
       );
@@ -612,7 +615,8 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         estimated_hours: newTask.estimated_hours ? parseFloat(newTask.estimated_hours) : null,
         due_date: overrideDueDate || newTask.due_date || null,
         event_id: eventId || newTask.selected_event_id || null,
-        created_by: user.id
+        created_by: user.id,
+        category: selectedCollaboratorTypes.length > 0 ? selectedCollaboratorTypes.join(', ') : null
       };
 
       const { data: createdTask, error } = await supabase
@@ -1115,7 +1119,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     </div>
                     <p className="text-sm text-muted-foreground">Select all tasks that must be completed before this task can start:</p>
                     <Input
-                      placeholder="Search by title, description, or assignee..."
+                      placeholder="Search by title, description, assignee, or category (e.g., Bookings)..."
                       value={dependencySearchTerm}
                       onChange={(e) => setDependencySearchTerm(e.target.value)}
                       className="mb-2"
@@ -1128,7 +1132,8 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                         onClick={() => {
                           const filteredTasks = availableTasks.filter(task => 
                             task.title.toLowerCase().includes(dependencySearchTerm.toLowerCase()) ||
-                            (task.assigned_user_name || '').toLowerCase().includes(dependencySearchTerm.toLowerCase())
+                            (task.assigned_user_name || '').toLowerCase().includes(dependencySearchTerm.toLowerCase()) ||
+                            (task.category || '').toLowerCase().includes(dependencySearchTerm.toLowerCase())
                           );
                           setNewTask({
                             ...newTask,
@@ -1148,10 +1153,11 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                       </Button>
                     </div>
                     <div className="max-h-48 overflow-y-auto space-y-2 border rounded-md p-2">
-                      {availableTasks
+                       {availableTasks
                         .filter(task => 
                           task.title.toLowerCase().includes(dependencySearchTerm.toLowerCase()) ||
-                          (task.assigned_user_name || '').toLowerCase().includes(dependencySearchTerm.toLowerCase())
+                          (task.assigned_user_name || '').toLowerCase().includes(dependencySearchTerm.toLowerCase()) ||
+                          (task.category || '').toLowerCase().includes(dependencySearchTerm.toLowerCase())
                         )
                         .map((task) => (
                           <div key={task.id} className="flex items-start space-x-2 p-2 rounded hover:bg-accent/50 transition-colors">
@@ -1179,6 +1185,11 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                                 <Badge variant="outline" className={statusColors[task.status]}>
                                   {task.status.replace('_', ' ')}
                                 </Badge>
+                                {task.category && task.category.split(', ').map((cat, idx) => (
+                                  <Badge key={idx} variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                                    {cat}
+                                  </Badge>
+                                ))}
                               </div>
                               {task.assigned_user_name && (
                                 <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
@@ -1191,7 +1202,8 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                         ))}
                       {availableTasks.filter(task => 
                         task.title.toLowerCase().includes(dependencySearchTerm.toLowerCase()) ||
-                        (task.assigned_user_name || '').toLowerCase().includes(dependencySearchTerm.toLowerCase())
+                        (task.assigned_user_name || '').toLowerCase().includes(dependencySearchTerm.toLowerCase()) ||
+                        (task.category || '').toLowerCase().includes(dependencySearchTerm.toLowerCase())
                       ).length === 0 && (
                         <p className="text-sm text-muted-foreground text-center py-4">No tasks found</p>
                       )}
@@ -1257,6 +1269,15 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     {task.priority}
                   </Badge>
                 </div>
+                {task.category && (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {task.category.split(', ').map((cat, idx) => (
+                      <Badge key={idx} variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                        {cat}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
               </CardHeader>
               <CardContent className="space-y-3">
                 {task.description && (
