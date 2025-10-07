@@ -845,7 +845,12 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
             {showArchived ? "Hide Archived" : "Show Archived"}
           </Button>
         </div>
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <Dialog open={isCreateDialogOpen} onOpenChange={(open) => {
+          setIsCreateDialogOpen(open);
+          if (open) {
+            setDependencySearchTerm(""); // Reset search term when opening dialog
+          }
+        }}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
@@ -1169,6 +1174,9 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         <Dialog open={isEditDialogOpen} onOpenChange={(open) => {
           if (!open) {
             setSelectedDependencies([]);
+            setDependencySearchTerm(""); // Reset search term
+          } else {
+            setDependencySearchTerm(""); // Reset search term when opening
           }
           setIsEditDialogOpen(open);
         }}>
