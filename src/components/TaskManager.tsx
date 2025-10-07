@@ -142,12 +142,14 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
       
       if (error) throw error;
       
-      // Map profiles to User format
-      const mappedUsers = (profilesData || []).map(profile => ({
-        userid: profile.user_id,
-        user_name: profile.display_name,
-        contact_name: profile.display_name
-      }));
+      // Map profiles to User format and filter out IDA Event Partners
+      const mappedUsers = (profilesData || [])
+        .filter(profile => profile.display_name !== 'IDA Event Partners')
+        .map(profile => ({
+          userid: profile.user_id,
+          user_name: profile.display_name,
+          contact_name: profile.display_name
+        }));
       
       setUsers(mappedUsers);
     } catch (error) {
