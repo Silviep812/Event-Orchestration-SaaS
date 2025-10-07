@@ -30,15 +30,21 @@ export function RoleManager() {
   const { toast } = useToast();
 
   const roles = [
-    { value: 'admin', label: 'Admin', description: 'Full access to all features and settings' },
-    { value: 'coordinator', label: 'Coordinator', description: 'Coordinate event logistics and team activities' },
-    { value: 'viewer', label: 'Viewer', description: 'View-only access to event information' }
+    { value: 'manager', label: 'Manager', description: 'Full access to manage events, users, and system settings' },
+    { value: 'host', label: 'Host', description: 'Host and manage events' },
+    { value: 'organizer', label: 'Organizer', description: 'Organize and coordinate event details' },
+    { value: 'event_planner', label: 'Event Planner', description: 'Plan and execute event logistics' },
+    { value: 'venue_owner', label: 'Venue Owner', description: 'Manage venue-related information' },
+    { value: 'hospitality_provider', label: 'Hospitality Provider', description: 'Provide hospitality services' }
   ];
 
   const roleColors = {
-    admin: "bg-red-100 text-red-800",
-    coordinator: "bg-blue-100 text-blue-800",
-    viewer: "bg-green-100 text-green-800"
+    manager: "bg-red-100 text-red-800",
+    host: "bg-blue-100 text-blue-800",
+    organizer: "bg-green-100 text-green-800",
+    event_planner: "bg-purple-100 text-purple-800",
+    venue_owner: "bg-yellow-100 text-yellow-800",
+    hospitality_provider: "bg-pink-100 text-pink-800"
   };
 
   useEffect(() => {
@@ -95,7 +101,7 @@ export function RoleManager() {
     }
   };
 
-  const changeRole = async (userId: string, newRole: 'admin' | 'coordinator' | 'viewer') => {
+  const changeRole = async (userId: string, newRole: 'host' | 'organizer' | 'event_planner' | 'venue_owner' | 'hospitality_provider' | 'manager') => {
     try {
       // Update existing role in user_roles table
       const { error } = await supabase
@@ -207,9 +213,9 @@ export function RoleManager() {
                       {roleInfo?.label || userRole.role}
                     </Badge>
                   </div>
-                  <Select 
-                    value={userRole.role} 
-                    onValueChange={(newRole) => changeRole(userRole.user_id, newRole as 'admin' | 'coordinator' | 'viewer')}
+                  <Select
+                    value={userRole.role}
+                    onValueChange={(newRole) => changeRole(userRole.user_id, newRole as 'host' | 'organizer' | 'event_planner' | 'venue_owner' | 'hospitality_provider' | 'manager')}
                   >
                     <SelectTrigger className="w-32">
                       <SelectValue />
