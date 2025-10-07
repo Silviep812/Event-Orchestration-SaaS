@@ -74,10 +74,16 @@ const statusIcons = {
   cancelled: AlertCircle
 };
 
-// Mapping of person names to their default collaborator types
-const personCollaboratorMapping: Record<string, string[]> = {
-  'Person_1': ['Bookings'],
-  // Add more mappings here as needed
+// Mapping of collaborator types to people who can handle them
+const collaboratorTypeMapping: Record<string, string[]> = {
+  'Bookings': ['Person_1', 'Person_2'],
+  'Venue': ['Person_3', 'Person_4'],
+  'Vendor Service Rental/Buy': ['Person_5'],
+  'Hospitality': ['Person_6'],
+  'Service Vendor': ['Person_7'],
+  'Transportation': ['Person_8'],
+  'Entertainment': ['Person_1', 'Person_3'],
+  'Suppliers': ['Person_2', 'Person_5']
 };
 
 export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) {
@@ -909,30 +915,87 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                   </Select>
                 </div>
 
+                {/* Collaborator Types selection - moved before Assign To */}
+                <div className="space-y-2">
+                  <Label>Collaborator Types</Label>
+                  <p className="text-sm text-muted-foreground">Select types first to filter available people:</p>
+                  <div className="max-h-32 overflow-y-auto space-y-2 border rounded-md p-2">
+                    {[
+                      'Bookings',
+                      'Venue',
+                      'Vendor Service Rental/Buy',
+                      'Hospitality',
+                      'Service Vendor',
+                      'Transportation',
+                      'Entertainment',
+                      'Suppliers'
+                    ].map((type) => (
+                      <div key={type} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`collab-${type}`}
+                          checked={selectedCollaboratorTypes.includes(type)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedCollaboratorTypes([...selectedCollaboratorTypes, type]);
+                            } else {
+                              setSelectedCollaboratorTypes(selectedCollaboratorTypes.filter(t => t !== type));
+                            }
+                            // Clear assignment when collaborator types change
+                            setNewTask({ ...newTask, assigned_user_id: "" });
+                          }}
+                        />
+                        <label htmlFor={`collab-${type}`} className="text-sm font-medium leading-none cursor-pointer">
+                          {type}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                  {selectedCollaboratorTypes.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {selectedCollaboratorTypes.map(type => (
+                        <Badge key={type} variant="secondary" className="text-xs">
+                          {type}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="assigned-user">Assign To</Label>
-                  <Select value={newTask.assigned_user_id} onValueChange={(value) => {
-                    const userId = value === "none" ? "" : value;
-                    setNewTask({ ...newTask, assigned_user_id: userId });
-                    
-                    // Auto-select collaborator types based on assigned person
-                    if (userId) {
-                      const selectedUser = users.find(u => u.userid === userId);
-                      if (selectedUser && personCollaboratorMapping[selectedUser.user_name]) {
-                        setSelectedCollaboratorTypes(personCollaboratorMapping[selectedUser.user_name]);
-                      }
-                    }
-                  }}>
+                  {selectedCollaboratorTypes.length === 0 && (
+                    <p className="text-sm text-muted-foreground mb-2">Select Collaborator Types above to see available people</p>
+                  )}
+                  <Select 
+                    value={newTask.assigned_user_id} 
+                    onValueChange={(value) => {
+                      const userId = value === "none" ? "" : value;
+                      setNewTask({ ...newTask, assigned_user_id: userId });
+                    }}
+                    disabled={selectedCollaboratorTypes.length === 0}
+                  >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a person" />
+                      <SelectValue placeholder={selectedCollaboratorTypes.length === 0 ? "Select collaborator types first" : "Select a person"} />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">No assignment</SelectItem>
-                      {users.map((user) => (
-                        <SelectItem key={user.userid} value={user.userid}>
-                          {user.user_name}
-                        </SelectItem>
-                      ))}
+                      {(() => {
+                        // Get all people who match the selected collaborator types
+                        const availablePeople = new Set<string>();
+                        selectedCollaboratorTypes.forEach(type => {
+                          const people = collaboratorTypeMapping[type] || [];
+                          people.forEach(person => availablePeople.add(person));
+                        });
+                        
+                        // Filter users to only show those who match
+                        return users
+                          .filter(user => availablePeople.has(user.user_name))
+                          .map((user) => (
+                            <SelectItem key={user.userid} value={user.userid}>
+                              {user.user_name}
+                            </SelectItem>
+                          ));
+                      })()}
                     </SelectContent>
                   </Select>
                 </div>
@@ -966,7 +1029,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                 {availableTasks.length > 0 && (
                   <div className="space-y-2">
                     <Label>Task Dependencies (Select Multiple)</Label>
-                    <p className="text-sm text-muted-foreground">Select all tasks that must be completed before this task can start:</p>
+                    <p className="text-sm text-muted-foreground">Select tasks (not people) that must be completed first:</p>
                     <Input
                       placeholder="Search tasks by title..."
                       value={dependencySearchTerm}
@@ -1010,50 +1073,6 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     </div>
                   </div>
                 )}
-                
-                {/* Collaborator Types selection */}
-                <div className="space-y-2">
-                  <Label>Collaborator Types</Label>
-                  <p className="text-sm text-muted-foreground">Select all that apply:</p>
-                  <div className="max-h-48 overflow-y-auto space-y-2 border rounded-md p-2">
-                    {[
-                      'Bookings',
-                      'Venue',
-                      'Vendor Service Rental/Buy',
-                      'Hospitality',
-                      'Service Vendor',
-                      'Transportation',
-                      'Entertainment',
-                      'Suppliers'
-                    ].map((type) => (
-                      <div key={type} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`collab-${type}`}
-                          checked={selectedCollaboratorTypes.includes(type)}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setSelectedCollaboratorTypes([...selectedCollaboratorTypes, type]);
-                            } else {
-                              setSelectedCollaboratorTypes(selectedCollaboratorTypes.filter(t => t !== type));
-                            }
-                          }}
-                        />
-                        <label htmlFor={`collab-${type}`} className="text-sm font-medium leading-none cursor-pointer">
-                          {type}
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                  {selectedCollaboratorTypes.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {selectedCollaboratorTypes.map(type => (
-                        <Badge key={type} variant="secondary" className="text-xs">
-                          {type}
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-                </div>
               </div>
             </div>
             
@@ -1222,14 +1241,6 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                   <Select value={selectedTask.assigned_user_id || "none"} onValueChange={(value) => {
                     const userId = value === "none" ? undefined : value;
                     setSelectedTask({ ...selectedTask, assigned_user_id: userId });
-                    
-                    // Auto-select collaborator types based on assigned person
-                    if (userId) {
-                      const selectedUser = users.find(u => u.userid === userId);
-                      if (selectedUser && personCollaboratorMapping[selectedUser.user_name]) {
-                        setSelectedCollaboratorTypes(personCollaboratorMapping[selectedUser.user_name]);
-                      }
-                    }
                   }}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select a person" />
