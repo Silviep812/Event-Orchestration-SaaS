@@ -136,31 +136,13 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
 
   const fetchUsers = async () => {
     try {
-      const { data: profiles, error } = await supabase
-        .from('profiles')
-        .select('user_id, display_name');
+      const { data: usersData, error } = await supabase
+        .from('User')
+        .select('userid, user_name, contact_name');
       
       if (error) throw error;
       
-      const dbUsers = (profiles || [])
-        .filter(p => p.display_name !== 'IDA Event Partners')
-        .map(p => ({
-          userid: p.user_id,
-          user_name: p.display_name,
-          contact_name: p.display_name
-        }));
-      
-      // Add additional people to the list
-      const additionalPeople = [
-        'Person_1', 'Person_2', 'Person_3', 'Person_4', 'Person_5', 
-        'Person_6', 'Person_7', 'Person_8'
-      ].map(name => ({
-        userid: `temp_${name}`,
-        user_name: name,
-        contact_name: name
-      }));
-      
-      setUsers([...dbUsers, ...additionalPeople]);
+      setUsers(usersData || []);
     } catch (error) {
       console.error('Error fetching users:', error);
       setUsers([]);
