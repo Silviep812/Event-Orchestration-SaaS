@@ -61,6 +61,7 @@ export function BudgetTracker({ eventId, selectedEventFilter }: BudgetTrackerPro
   const [loading, setLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+  const [eventBudget, setEventBudget] = useState<number>(0);
   const [newItem, setNewItem] = useState({
     category: "",
     item_name: "",
@@ -84,7 +85,33 @@ export function BudgetTracker({ eventId, selectedEventFilter }: BudgetTrackerPro
 
   useEffect(() => {
     fetchBudgetItems();
+    fetchEventBudget();
   }, [eventId, selectedEventFilter, showArchived]);
+
+  const fetchEventBudget = async () => {
+    try {
+      const currentEventId = eventId || selectedEventFilter;
+      
+      if (!currentEventId || currentEventId === "all") {
+        setEventBudget(0);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('events')
+        .select('budget')
+        .eq('id', currentEventId)
+        .single();
+
+      if (error) throw error;
+
+      // Default to 0 if no budget is set
+      setEventBudget(data?.budget || 0);
+    } catch (error) {
+      console.error('Error fetching event budget:', error);
+      setEventBudget(0);
+    }
+  };
 
   const fetchBudgetItems = async () => {
     try {
@@ -292,7 +319,8 @@ export function BudgetTracker({ eventId, selectedEventFilter }: BudgetTrackerPro
   };
 
   const calculateTotals = () => {
-    const totalEstimated = budgetItems.reduce((sum, item) => sum + (item.estimated_cost || 0), 0);
+    // Use event budget as estimated total (defaults to 0 if not set)
+    const totalEstimated = eventBudget;
     const totalActual = budgetItems.reduce((sum, item) => sum + (item.actual_cost || 0), 0);
     const variance = totalActual - totalEstimated;
     const variancePercentage = totalEstimated > 0 ? (variance / totalEstimated) * 100 : 0;
@@ -456,6 +484,7 @@ export function BudgetTracker({ eventId, selectedEventFilter }: BudgetTrackerPro
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Estimated Total</p>
                 <p className="text-2xl font-bold">${totalEstimated.toFixed(2)}</p>
+                <p className="text-xs text-muted-foreground mt-1">From event budget</p>
               </div>
               <DollarSign className="h-8 w-8 text-muted-foreground" />
             </div>
