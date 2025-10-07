@@ -74,6 +74,12 @@ const statusIcons = {
   cancelled: AlertCircle
 };
 
+// Mapping of person names to their default collaborator types
+const personCollaboratorMapping: Record<string, string[]> = {
+  'Person_1': ['Bookings'],
+  // Add more mappings here as needed
+};
+
 export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [availableTasks, setAvailableTasks] = useState<AvailableTask[]>([]);
@@ -902,7 +908,18 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
 
                 <div className="space-y-2">
                   <Label htmlFor="assigned-user">Assign To</Label>
-                  <Select value={newTask.assigned_user_id} onValueChange={(value) => setNewTask({ ...newTask, assigned_user_id: value === "none" ? "" : value })}>
+                  <Select value={newTask.assigned_user_id} onValueChange={(value) => {
+                    const userId = value === "none" ? "" : value;
+                    setNewTask({ ...newTask, assigned_user_id: userId });
+                    
+                    // Auto-select collaborator types based on assigned person
+                    if (userId) {
+                      const selectedUser = users.find(u => u.userid === userId);
+                      if (selectedUser && personCollaboratorMapping[selectedUser.user_name]) {
+                        setSelectedCollaboratorTypes(personCollaboratorMapping[selectedUser.user_name]);
+                      }
+                    }
+                  }}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select a person" />
                     </SelectTrigger>
@@ -1184,7 +1201,18 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
 
                 <div className="space-y-2">
                   <Label htmlFor="edit-assigned-user">Assign To</Label>
-                  <Select value={selectedTask.assigned_user_id || "none"} onValueChange={(value) => setSelectedTask({ ...selectedTask, assigned_user_id: value === "none" ? undefined : value })}>
+                  <Select value={selectedTask.assigned_user_id || "none"} onValueChange={(value) => {
+                    const userId = value === "none" ? undefined : value;
+                    setSelectedTask({ ...selectedTask, assigned_user_id: userId });
+                    
+                    // Auto-select collaborator types based on assigned person
+                    if (userId) {
+                      const selectedUser = users.find(u => u.userid === userId);
+                      if (selectedUser && personCollaboratorMapping[selectedUser.user_name]) {
+                        setSelectedCollaboratorTypes(personCollaboratorMapping[selectedUser.user_name]);
+                      }
+                    }
+                  }}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select a person" />
                     </SelectTrigger>
