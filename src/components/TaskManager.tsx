@@ -576,14 +576,15 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         description: "New task has been created successfully.",
       });
 
+      // Keep Project/Event, Task Title, and Description filled for next task
       setNewTask({
-        title: "",
-        description: "",
+        title: newTask.title,
+        description: newTask.description,
         assigned_user_id: "",
         priority: "medium",
         estimated_hours: "",
         due_date: "",
-        selected_event_id: "",
+        selected_event_id: newTask.selected_event_id,
         dependencies: []
       });
       setSelectedCollaboratorTypes([]);
