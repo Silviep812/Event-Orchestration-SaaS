@@ -640,14 +640,14 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         if (assignmentError) throw assignmentError;
       }
 
-      // Open dependency dialog for the newly created task
-      setTaskForDependencies({ id: createdTask.id, title: newTask.title });
-      setShouldPreserveForm(true);
+      // Fetch tasks first, then open dependency dialog
       setIsCreateDialogOpen(false);
-      
       await fetchTasks();
       await fetchAvailableTasks();
       
+      // Open dependency dialog after tasks are loaded
+      setTaskForDependencies({ id: createdTask.id, title: newTask.title });
+      setShouldPreserveForm(true);
       setShowDependencyDialog(true);
       
       toast({
@@ -1572,13 +1572,14 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     );
                     
                     if (filteredTasks.length === 0 && dependencySearchTerm) {
+                      const tasksWithoutCategory = availableTasks.filter(t => t.id !== taskForDependencies?.id && !t.category).length;
                       return (
                         <div className="text-center py-4 space-y-2">
                           <p className="text-sm text-muted-foreground">No tasks found matching "{dependencySearchTerm}"</p>
-                          {dependencySearchTerm.toLowerCase().includes('booking') && availableTasks.filter(t => !t.category).length > 0 && (
+                          {tasksWithoutCategory > 0 && (
                             <p className="text-xs text-yellow-600">
-                              Note: {availableTasks.filter(t => !t.category).length} task(s) don't have categories yet. 
-                              Only newly created tasks with collaborator types will be searchable by category.
+                              💡 {tasksWithoutCategory} task(s) don't have categories. 
+                              Tip: Select collaborator types when creating tasks to enable category search.
                             </p>
                           )}
                         </div>
@@ -1594,7 +1595,14 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                 </div>
               </>
             ) : (
-              <p className="text-sm text-muted-foreground text-center py-8">No other tasks available to set as dependencies.</p>
+              <div className="text-center py-8 space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  No other tasks available yet.
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Create more tasks first, then you can add dependencies between them.
+                </p>
+              </div>
             )}
           </div>
 
