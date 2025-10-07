@@ -1092,14 +1092,14 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     </SelectTrigger>
                     <SelectContent className="bg-background z-50">
                       <SelectItem value="none">No assignment</SelectItem>
-                      <SelectItem value="person_1">Person_1</SelectItem>
-                      <SelectItem value="person_2">Person_2</SelectItem>
-                      <SelectItem value="person_3">Person_3</SelectItem>
-                      <SelectItem value="person_4">Person_4</SelectItem>
-                      <SelectItem value="person_5">Person_5</SelectItem>
-                      <SelectItem value="person_6">Person_6</SelectItem>
-                      <SelectItem value="person_7">Person_7</SelectItem>
-                      <SelectItem value="person_8">Person_8</SelectItem>
+                      {users.map((user) => (
+                        <SelectItem key={user.userid} value={user.userid}>
+                          {user.user_name || user.contact_name || 'Unnamed User'}
+                        </SelectItem>
+                      ))}
+                      {users.length === 0 && (
+                        <SelectItem value="none" disabled>No users available</SelectItem>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -1284,14 +1284,14 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     </SelectTrigger>
                     <SelectContent className="bg-background z-50">
                       <SelectItem value="none">No assignment</SelectItem>
-                      <SelectItem value="person_1">Person_1</SelectItem>
-                      <SelectItem value="person_2">Person_2</SelectItem>
-                      <SelectItem value="person_3">Person_3</SelectItem>
-                      <SelectItem value="person_4">Person_4</SelectItem>
-                      <SelectItem value="person_5">Person_5</SelectItem>
-                      <SelectItem value="person_6">Person_6</SelectItem>
-                      <SelectItem value="person_7">Person_7</SelectItem>
-                      <SelectItem value="person_8">Person_8</SelectItem>
+                      {users.map((user) => (
+                        <SelectItem key={user.userid} value={user.userid}>
+                          {user.user_name || user.contact_name || 'Unnamed User'}
+                        </SelectItem>
+                      ))}
+                      {users.length === 0 && (
+                        <SelectItem value="none" disabled>No users available</SelectItem>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
