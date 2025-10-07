@@ -905,28 +905,9 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={(open) => {
           if (!open) {
-            // When closing dialog
-            if (!shouldPreserveForm) {
-              // Only reset if we haven't just created a task
-              setNewTask({
-                title: "",
-                description: "",
-                assigned_user_id: "",
-                priority: "medium" as const,
-                estimated_hours: "",
-                due_date: "",
-                selected_event_id: "",
-                dependencies: [] as string[]
-              });
-              setSelectedCollaboratorTypes([]);
-            }
-            // Always reset these when closing
+            // Only clear validation errors and search term when closing
             setDependencySearchTerm("");
             setValidationErrors({});
-            setShouldPreserveForm(false); // Reset flag after closing
-          } else {
-            // When opening dialog, reset search term
-            setDependencySearchTerm("");
           }
           setIsCreateDialogOpen(open);
         }}>
