@@ -14,6 +14,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useEventFilter } from "@/hooks/useEventFilter";
 import { CheckCircle2, Clock, AlertCircle, Plus, Calendar, User, Archive, ArchiveRestore, Eye, EyeOff, Link } from "lucide-react";
 import { format } from "date-fns";
+import { createTaskSchema } from "@/lib/validation/taskValidation";
 
 interface Task {
   id: string;
@@ -125,6 +126,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
   });
   const [selectedCollaboratorTypes, setSelectedCollaboratorTypes] = useState<string[]>([]);
   const [dependencySearchTerm, setDependencySearchTerm] = useState<string>("");
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const { toast } = useToast();
   const { user } = useAuth();
   const { events, applyEventFilter } = useEventFilter();
@@ -551,7 +553,28 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
   };
 
   const createTask = async () => {
-    if (!newTask.title.trim()) return;
+    // Validate form inputs
+    const validationResult = createTaskSchema.safeParse(newTask);
+    
+    if (!validationResult.success) {
+      const errors: Record<string, string> = {};
+      validationResult.error.issues.forEach((issue) => {
+        if (issue.path[0]) {
+          errors[issue.path[0].toString()] = issue.message;
+        }
+      });
+      setValidationErrors(errors);
+      
+      toast({
+        title: "Validation Error",
+        description: "Please fix the errors in the form before submitting.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Clear validation errors
+    setValidationErrors({});
 
     // Check for due date conflicts with dependencies
     if (newTask.due_date && newTask.dependencies.length > 0) {
@@ -583,8 +606,8 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
       if (!user) throw new Error('Not authenticated');
 
       const taskData = {
-        title: newTask.title,
-        description: newTask.description || null,
+        title: newTask.title.trim(),
+        description: newTask.description?.trim() || null,
         priority: newTask.priority as any,
         estimated_hours: newTask.estimated_hours ? parseFloat(newTask.estimated_hours) : null,
         due_date: overrideDueDate || newTask.due_date || null,
@@ -905,6 +928,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
             });
             setSelectedCollaboratorTypes([]);
             setDependencySearchTerm("");
+            setValidationErrors({});
           }
           setIsCreateDialogOpen(open);
         }}>
@@ -923,9 +947,15 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
               <div className="space-y-4">
                 {!eventId && events.length > 0 && (
                   <div className="space-y-2">
-                    <Label htmlFor="event">Select Project/Event</Label>
-                    <Select value={newTask.selected_event_id} onValueChange={(value) => setNewTask({ ...newTask, selected_event_id: value })}>
-                      <SelectTrigger>
+                    <Label htmlFor="event">Select Project/Event *</Label>
+                    <Select 
+                      value={newTask.selected_event_id} 
+                      onValueChange={(value) => {
+                        setNewTask({ ...newTask, selected_event_id: value });
+                        setValidationErrors({ ...validationErrors, selected_event_id: "" });
+                      }}
+                    >
+                      <SelectTrigger className={validationErrors.selected_event_id ? "border-destructive" : ""}>
                         <SelectValue placeholder="Choose a project/event" />
                       </SelectTrigger>
                       <SelectContent>
@@ -936,17 +966,29 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                         ))}
                       </SelectContent>
                     </Select>
+                    {validationErrors.selected_event_id && (
+                      <p className="text-sm text-destructive">{validationErrors.selected_event_id}</p>
+                    )}
                   </div>
                 )}
 
                 <div className="space-y-2">
-                  <Label htmlFor="title">Task Title</Label>
+                  <Label htmlFor="title">Task Title *</Label>
                   <Input
                     id="title"
                     placeholder="Enter task title"
                     value={newTask.title}
-                    onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
+                    onChange={(e) => {
+                      setNewTask({ ...newTask, title: e.target.value });
+                      setValidationErrors({ ...validationErrors, title: "" });
+                    }}
+                    className={validationErrors.title ? "border-destructive" : ""}
+                    maxLength={200}
                   />
+                  {validationErrors.title && (
+                    <p className="text-sm text-destructive">{validationErrors.title}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground">{newTask.title.length}/200 characters</p>
                 </div>
                 
                 <div className="space-y-2">
@@ -955,9 +997,18 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     id="description"
                     placeholder="Enter task description"
                     value={newTask.description}
-                    onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
+                    onChange={(e) => {
+                      setNewTask({ ...newTask, description: e.target.value });
+                      setValidationErrors({ ...validationErrors, description: "" });
+                    }}
                     rows={4}
+                    className={validationErrors.description ? "border-destructive" : ""}
+                    maxLength={1000}
                   />
+                  {validationErrors.description && (
+                    <p className="text-sm text-destructive">{validationErrors.description}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground">{newTask.description.length}/1000 characters</p>
                 </div>
 
                 <div className="space-y-2">
@@ -1029,10 +1080,18 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     id="hours"
                     type="number"
                     step="0.5"
+                    min="0"
                     placeholder="0.0"
                     value={newTask.estimated_hours}
-                    onChange={(e) => setNewTask({ ...newTask, estimated_hours: e.target.value })}
+                    onChange={(e) => {
+                      setNewTask({ ...newTask, estimated_hours: e.target.value });
+                      setValidationErrors({ ...validationErrors, estimated_hours: "" });
+                    }}
+                    className={validationErrors.estimated_hours ? "border-destructive" : ""}
                   />
+                  {validationErrors.estimated_hours && (
+                    <p className="text-sm text-destructive">{validationErrors.estimated_hours}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
