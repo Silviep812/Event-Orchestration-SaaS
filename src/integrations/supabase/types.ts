@@ -3553,6 +3553,7 @@ export type Database = {
         | "event_planner"
         | "venue_owner"
         | "hospitality_provider"
+        | "manager"
       budget_category:
         | "venue"
         | "catering"
@@ -3707,6 +3708,7 @@ export const Constants = {
         "event_planner",
         "venue_owner",
         "hospitality_provider",
+        "manager",
       ],
       budget_category: [
         "venue",
