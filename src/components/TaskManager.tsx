@@ -137,7 +137,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
       
       // Add additional people to the list
       const additionalPeople = [
-        'Person_1', 'Person_2', 'Person_3', 'Person_5', 
+        'Person_1', 'Person_2', 'Person_3', 'Person_4', 'Person_5', 
         'Person_6', 'Person_7', 'Person_8'
       ].map(name => ({
         userid: `temp_${name}`,
