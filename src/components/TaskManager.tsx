@@ -573,10 +573,11 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
 
       toast({
         title: "Task created",
-        description: "New task has been created successfully.",
+        description: "New task has been created successfully. You can create another task or close this dialog.",
       });
 
       // Keep Project/Event, Task Title, and Description filled for next task
+      // Reset only the fields that should be cleared
       setNewTask({
         title: newTask.title,
         description: newTask.description,
@@ -588,7 +589,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         dependencies: []
       });
       setSelectedCollaboratorTypes([]);
-      setIsCreateDialogOpen(false);
+      // Don't close dialog - let user close it or create another task
       fetchTasks();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to create task. Please try again.";
