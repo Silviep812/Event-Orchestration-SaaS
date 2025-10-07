@@ -140,6 +140,9 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         .from('profiles')
         .select('user_id, display_name');
       
+      console.log('Fetched profiles:', profilesData);
+      console.log('Profiles error:', error);
+      
       if (error) throw error;
       
       // Map profiles to User format and filter out IDA Event Partners
@@ -151,6 +154,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
           contact_name: profile.display_name
         }));
       
+      console.log('Mapped users after filtering:', mappedUsers);
       setUsers(mappedUsers);
     } catch (error) {
       console.error('Error fetching users:', error);
