@@ -61,7 +61,7 @@ export function BudgetTracker({ eventId, selectedEventFilter }: BudgetTrackerPro
   const [loading, setLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
-  const [eventBudget, setEventBudget] = useState<number>(0);
+  const [eventBudget, setEventBudget] = useState<number | null>(null);
   const [newItem, setNewItem] = useState({
     category: "",
     item_name: "",
@@ -93,23 +93,31 @@ export function BudgetTracker({ eventId, selectedEventFilter }: BudgetTrackerPro
       const currentEventId = eventId || selectedEventFilter;
       
       if (!currentEventId || currentEventId === "all") {
-        setEventBudget(0);
+        setEventBudget(null);
         return;
       }
+
+      console.log('Fetching budget for event:', currentEventId);
 
       const { data, error } = await supabase
         .from('events')
         .select('budget')
         .eq('id', currentEventId)
-        .single();
+        .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching event budget:', error);
+        setEventBudget(null);
+        return;
+      }
 
-      // Default to 0 if no budget is set
-      setEventBudget(data?.budget || 0);
+      console.log('Event budget data:', data);
+      
+      // Set the budget from the event, or null if not set
+      setEventBudget(data?.budget ?? null);
     } catch (error) {
-      console.error('Error fetching event budget:', error);
-      setEventBudget(0);
+      console.error('Error in fetchEventBudget:', error);
+      setEventBudget(null);
     }
   };
 
@@ -319,8 +327,8 @@ export function BudgetTracker({ eventId, selectedEventFilter }: BudgetTrackerPro
   };
 
   const calculateTotals = () => {
-    // Use event budget as estimated total (defaults to 0 if not set)
-    const totalEstimated = eventBudget;
+    // Use event budget as estimated total (defaults to 0 if not set or null)
+    const totalEstimated = eventBudget ?? 0;
     const totalActual = budgetItems.reduce((sum, item) => sum + (item.actual_cost || 0), 0);
     const variance = totalActual - totalEstimated;
     const variancePercentage = totalEstimated > 0 ? (variance / totalEstimated) * 100 : 0;
@@ -483,8 +491,12 @@ export function BudgetTracker({ eventId, selectedEventFilter }: BudgetTrackerPro
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Estimated Total</p>
-                <p className="text-2xl font-bold">${totalEstimated.toFixed(2)}</p>
-                <p className="text-xs text-muted-foreground mt-1">From event budget</p>
+                <p className="text-2xl font-bold">
+                  {eventBudget !== null ? `$${totalEstimated.toFixed(2)}` : 'No budget set'}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {eventBudget !== null ? 'From event budget' : 'Set budget in Create Event'}
+                </p>
               </div>
               <DollarSign className="h-8 w-8 text-muted-foreground" />
             </div>
