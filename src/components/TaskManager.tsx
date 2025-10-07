@@ -196,12 +196,12 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
           const assigned_user_id = assignments?.[0]?.user_id || undefined;
           
           if (assigned_user_id) {
-            const { data: userData } = await supabase
-              .from('User')
-              .select('user_name')
-              .eq('userid', assigned_user_id)
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('display_name')
+              .eq('user_id', assigned_user_id)
               .single();
-            assigned_user_name = userData?.user_name || undefined;
+            assigned_user_name = profileData?.display_name || undefined;
           }
           
           return {
@@ -234,7 +234,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
       // This allows users to create dependencies across different events
       const { data, error } = await supabase
         .from('tasks')
-        .select('id, title, status, assigned_to')
+        .select('id, title, status')
         .eq('archived', false);
       
       if (error) throw error;
@@ -243,21 +243,31 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
       const tasksWithAssignments = await Promise.all(
         (data || []).map(async (task) => {
           let assigned_user_name: string | undefined;
+          let assigned_user_id: string | undefined;
           
-          if (task.assigned_to) {
-            const { data: userData } = await supabase
-              .from('User')
-              .select('user_name')
-              .eq('userid', task.assigned_to)
+          // Fetch user assignment from task_assignments table
+          const { data: assignments } = await supabase
+            .from('task_assignments')
+            .select('user_id')
+            .eq('task_id', task.id)
+            .limit(1);
+          
+          assigned_user_id = assignments?.[0]?.user_id || undefined;
+          
+          if (assigned_user_id) {
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('display_name')
+              .eq('user_id', assigned_user_id)
               .single();
-            assigned_user_name = userData?.user_name || undefined;
+            assigned_user_name = profileData?.display_name || undefined;
           }
           
           return {
             id: task.id,
             title: task.title,
             status: task.status,
-            assigned_user_id: task.assigned_to,
+            assigned_user_id,
             assigned_user_name
           };
         })
