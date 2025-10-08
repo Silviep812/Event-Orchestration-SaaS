@@ -27,10 +27,18 @@ interface User {
   avatar?: string;
 }
 
+interface Event {
+  userid: string;
+  event_description: string;
+  event_start_date: string;
+  created_at: string;
+}
+
 export function RoleManager() {
   const [userRoles, setUserRoles] = useState<UserRole[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [usersWithoutRoles, setUsersWithoutRoles] = useState<User[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [permissionMappings, setPermissionMappings] = useState<Map<string, PermissionLevel>>(new Map());
   const { toast } = useToast();
@@ -62,7 +70,22 @@ export function RoleManager() {
   useEffect(() => {
     fetchPermissionMappings();
     fetchUsers();
+    fetchEvents();
   }, []);
+
+  const fetchEvents = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('Create Event')
+        .select('userid, event_description, event_start_date, created_at')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setEvents(data || []);
+    } catch (error) {
+      console.error('Error fetching events:', error);
+    }
+  };
 
   const fetchPermissionMappings = async () => {
     try {
@@ -169,18 +192,20 @@ export function RoleManager() {
   const changeRole = async (
     userId: string, 
     newRole: 'host' | 'organizer' | 'event_planner' | 'venue_owner' | 'hospitality_provider' | 'manager',
-    permissionLevel: PermissionLevel
+    permissionLevel: PermissionLevel,
+    eventId: string | null = null
   ) => {
     try {
-      console.log('Attempting to assign role:', { userId, newRole, permissionLevel });
+      console.log('Attempting to assign role:', { userId, newRole, permissionLevel, eventId });
       
-      // Upsert role with permission level - insert if not exists, update if exists
+      // Upsert role with permission level and event_id
       const { data, error } = await supabase
         .from('user_roles')
         .upsert({ 
           user_id: userId, 
           role: newRole,
-          permission_level: permissionLevel
+          permission_level: permissionLevel,
+          event_id: eventId
         }, { 
           onConflict: 'user_id,role' 
         })
@@ -192,7 +217,9 @@ export function RoleManager() {
 
       toast({
         title: "Role and permissions updated",
-        description: "User role and permission level have been updated successfully.",
+        description: eventId 
+          ? "User role and permission level have been updated for the selected event."
+          : "User role and permission level have been updated globally.",
       });
 
       fetchUsers(); // Refresh the data
@@ -303,6 +330,7 @@ export function RoleManager() {
           const currentPermission = userRole.permission_level || permissionMappings.get(userRole.role) || 'viewer';
           const permissionInfo = permissionLevels[currentPermission];
           const PermissionIcon = permissionInfo?.icon;
+          const assignedEvent = events.find(e => e.userid === userRole.event_id);
           
           return (
             <Card key={userRole.id}>
@@ -316,6 +344,11 @@ export function RoleManager() {
                         </h4>
                         {user?.email && (
                           <p className="text-sm text-muted-foreground">{user.email}</p>
+                        )}
+                        {userRole.event_id && assignedEvent && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Event: {assignedEvent.event_description || 'Unnamed Event'}
+                          </p>
                         )}
                       </div>
                       <div className="flex items-center gap-2">
@@ -334,12 +367,35 @@ export function RoleManager() {
                   
                   <div className="flex items-center gap-3">
                     <div className="flex-1">
+                      <label className="text-xs text-muted-foreground mb-1 block">Event</label>
+                      <Select
+                        value={userRole.event_id || 'global'}
+                        onValueChange={(eventId) => {
+                          const finalEventId = eventId === 'global' ? null : eventId;
+                          changeRole(userRole.user_id, userRole.role as any, currentPermission, finalEventId);
+                        }}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="global">Global (All Events)</SelectItem>
+                          {events.map((event) => (
+                            <SelectItem key={event.userid} value={event.userid}>
+                              {event.event_description || `Event ${event.userid.slice(0, 8)}`}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="flex-1">
                       <label className="text-xs text-muted-foreground mb-1 block">Role</label>
                       <Select
                         value={userRole.role}
                         onValueChange={(newRole) => {
                           const suggestedPermission = permissionMappings.get(newRole) || currentPermission;
-                          changeRole(userRole.user_id, newRole as any, suggestedPermission);
+                          changeRole(userRole.user_id, newRole as any, suggestedPermission, userRole.event_id);
                         }}
                       >
                         <SelectTrigger className="w-full">
@@ -364,7 +420,7 @@ export function RoleManager() {
                       </label>
                       <Select
                         value={currentPermission}
-                        onValueChange={(newPermission) => changeRole(userRole.user_id, userRole.role as any, newPermission as PermissionLevel)}
+                        onValueChange={(newPermission) => changeRole(userRole.user_id, userRole.role as any, newPermission as PermissionLevel, userRole.event_id)}
                       >
                         <SelectTrigger className="w-full">
                           <SelectValue />
@@ -400,10 +456,11 @@ export function RoleManager() {
               key={user.id}
               user={user}
               roles={roles}
+              events={events}
               permissionLevels={permissionLevels}
               permissionMappings={permissionMappings}
-              onAssign={(userId, role, permissionLevel) => 
-                changeRole(userId, role as any, permissionLevel)
+              onAssign={(userId, role, permissionLevel, eventId) => 
+                changeRole(userId, role as any, permissionLevel, eventId)
               }
             />
           ))}

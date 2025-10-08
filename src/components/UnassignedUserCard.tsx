@@ -4,6 +4,12 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PermissionLevel } from "@/lib/permissions";
 
+interface Event {
+  userid: string;
+  event_description: string;
+  event_start_date: string;
+}
+
 interface UnassignedUserCardProps {
   user: {
     id: string;
@@ -11,20 +17,23 @@ interface UnassignedUserCardProps {
     email: string;
   };
   roles: Array<{ value: string; label: string; description: string }>;
+  events: Event[];
   permissionLevels: Record<string, { label: string; description: string }>;
   permissionMappings: Map<string, PermissionLevel>;
-  onAssign: (userId: string, role: string, permissionLevel: PermissionLevel) => void;
+  onAssign: (userId: string, role: string, permissionLevel: PermissionLevel, eventId: string | null) => void;
 }
 
 export function UnassignedUserCard({ 
   user, 
   roles, 
+  events,
   permissionLevels, 
   permissionMappings, 
   onAssign 
 }: UnassignedUserCardProps) {
   const [selectedRole, setSelectedRole] = useState('');
   const [selectedPermission, setSelectedPermission] = useState<PermissionLevel>('viewer');
+  const [selectedEvent, setSelectedEvent] = useState<string>('global');
 
   return (
     <Card className="border-dashed">
@@ -45,6 +54,26 @@ export function UnassignedUserCard({
           </div>
           
           <div className="flex items-center gap-3">
+            <div className="flex-1">
+              <label className="text-xs text-muted-foreground mb-1 block">Event</label>
+              <Select
+                value={selectedEvent}
+                onValueChange={setSelectedEvent}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="global">Global (All Events)</SelectItem>
+                  {events.map((event) => (
+                    <SelectItem key={event.userid} value={event.userid}>
+                      {event.event_description || `Event ${event.userid.slice(0, 8)}`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
             <div className="flex-1">
               <label className="text-xs text-muted-foreground mb-1 block">Role</label>
               <Select
@@ -96,7 +125,8 @@ export function UnassignedUserCard({
             <button
               onClick={() => {
                 if (selectedRole) {
-                  onAssign(user.id, selectedRole, selectedPermission);
+                  const finalEventId = selectedEvent === 'global' ? null : selectedEvent;
+                  onAssign(user.id, selectedRole, selectedPermission, finalEventId);
                 }
               }}
               disabled={!selectedRole}
