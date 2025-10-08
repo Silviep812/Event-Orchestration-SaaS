@@ -13,7 +13,7 @@ interface WorkflowData {
   supplier_id?: string;
   serv_vendor_sup_id?: string;
   serv_vendor_rent_id?: string;
-  event_id?: string;
+  event_id: string; // Now required due to NOT NULL constraint
   created_at?: string;
   updated_at?: string;
 }
@@ -43,41 +43,35 @@ export const useWorkflow = () => {
     try {
       const workflow_type_id = getUserTypeId(userType);
       
-      // Check if workflow already exists for this user
+      // Check if workflow already exists for this user (ordered by most recent)
       const { data: existingWorkflow } = await supabase
         .from('workflows')
         .select('id')
         .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
 
-      let result;
-      if (existingWorkflow) {
-        // Update existing workflow
-        result = await supabase
-          .from('workflows')
-          .update({ workflow_type_id })
-          .eq('id', existingWorkflow.id)
-          .select()
-          .single();
-        
-        setWorkflowId(existingWorkflow.id);
-      } else {
-        // Create new workflow
-        result = await supabase
-          .from('workflows')
-          .insert({ 
-            user_id: user.id,
-            workflow_type_id 
-          })
-          .select()
-          .single();
-        
-        if (result.data) {
-          setWorkflowId(result.data.id);
-        }
+      if (!existingWorkflow) {
+        toast({
+          title: "Error",
+          description: "No workflow found. Please select an event first.",
+          variant: "destructive"
+        });
+        return null;
       }
 
-      if (result.error) {
+      // Update existing workflow with workflow type
+      const { data, error } = await supabase
+        .from('workflows')
+        .update({ workflow_type_id })
+        .eq('id', existingWorkflow.id)
+        .select()
+        .single();
+      
+      setWorkflowId(existingWorkflow.id);
+
+      if (error) {
         toast({
           title: "Error",
           description: "Failed to save workflow type",
@@ -86,7 +80,7 @@ export const useWorkflow = () => {
         return null;
       }
 
-      return result.data?.id;
+      return data?.id;
     } catch (error) {
       console.error('Error saving workflow type:', error);
       toast({
@@ -100,17 +94,27 @@ export const useWorkflow = () => {
     }
   };
 
-  const updateWorkflowSelections = async (updates: Partial<WorkflowData>) => {
+  const updateWorkflowSelections = async (updates: Partial<Omit<WorkflowData, 'user_id' | 'event_id'>> & { event_id?: string }) => {
     if (!user?.id) return false;
 
     setLoading(true);
     try {
-      // If no workflow exists, create one
+      // If no workflow exists and we have event_id, create one
       if (!workflowId) {
+        if (!updates.event_id) {
+          toast({
+            title: "Error",
+            description: "Cannot create workflow without an event",
+            variant: "destructive"
+          });
+          return false;
+        }
+
         const { data, error } = await supabase
           .from('workflows')
           .insert({ 
             user_id: user.id,
+            event_id: updates.event_id,
             ...updates
           })
           .select()
@@ -161,7 +165,7 @@ export const useWorkflow = () => {
     }
   };
 
-  // Load existing workflow on mount
+  // Load most recent workflow on mount
   useEffect(() => {
     const loadWorkflow = async () => {
       if (!user?.id) return;
@@ -170,6 +174,8 @@ export const useWorkflow = () => {
         .from('workflows')
         .select('id')
         .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       if (data) {

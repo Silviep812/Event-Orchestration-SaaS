@@ -52,19 +52,8 @@ export default function WorkflowSetup() {
   const handleEventSelection = async (eventId: string) => {
     console.log('handle event selection called with:', eventId);
     setSelectedEvent(eventId);
-    // Check if workflow exists for this event
-    const { data: existingWorkflow } = await supabase
-      .from('workflows')
-      .select('id')
-      .eq('event_id', eventId)
-      .eq('user_id', user?.id)
-      .maybeSingle();
-
-    if (!existingWorkflow) {
-      // Create new workflow record
-      await supabase.from('workflows').insert({ event_id: eventId, user_id: user?.id });
-    }
-    // Save event_id to workflow
+    
+    // Save event_id to workflow (will create if doesn't exist)
     await updateWorkflowSelections({ event_id: eventId });
     setCurrentStep("user-type");
   };
