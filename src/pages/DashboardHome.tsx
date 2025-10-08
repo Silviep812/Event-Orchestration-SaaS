@@ -121,17 +121,59 @@ const DashboardHome = () => {
         // Fetch all change_logs for the user
         const { data: changeLogs } = await supabase
           .from('change_logs')
-          .select('id, entity_type, action, created_at, field_name, old_value, new_value, change_description')
+          .select('id, entity_type, action, created_at, field_name, old_value, new_value, change_description, entity_id')
           .eq('changed_by', user.id)
           .order('created_at', { ascending: false })
           .limit(20);
+
+        // If there are workflow logs, fetch their event names
+        let workflowEventMap: Record<string, string> = {};
+        if (changeLogs) {
+          const workflowIds = changeLogs.filter(log => log.entity_type === 'workflow').map(log => log.entity_id).filter(Boolean);
+          if (workflowIds.length > 0) {
+            const { data: workflows } = await supabase
+              .from('workflows')
+              .select('id, event_id')
+              .in('id', workflowIds);
+            const eventIds = Array.from(new Set((workflows || []).map(w => w.event_id).filter(Boolean)));
+            let eventTitleMap: Record<string, string> = {};
+            if (eventIds.length > 0) {
+              const { data: events } = await supabase
+                .from('events')
+                .select('id, title')
+                .in('id', eventIds);
+              (events || []).forEach(event => {
+                eventTitleMap[event.id] = event.title;
+              });
+            }
+            (workflows || []).forEach(w => {
+              workflowEventMap[w.id] = eventTitleMap[w.event_id] || 'Unnamed Event';
+            });
+          }
+        }
 
         if (changeLogs) {
           changeLogs.forEach(log => {
             let description = '';
             // Format date fields
             const dateFields = ['due_date', 'start_date', 'end_date'];
-            if (dateFields.includes(log.field_name)) {
+            if (log.entity_type === 'workflow') {
+              const eventName = workflowEventMap[log.entity_id] || 'Unnamed Event';
+              // Build the usual message, then append event name
+              if (log.change_description) {
+                description = `${log.change_description} in ${eventName}`;
+              } else if (log.field_name && log.old_value && log.new_value) {
+                description = `Workflow ${log.field_name.replace('_', ' ')} changed from "${log.old_value}" to "${log.new_value}" in ${eventName}`;
+              } else if (log.action === 'created') {
+                description = `Workflow created in ${eventName}`;
+              } else if (log.action === 'updated') {
+                description = `Workflow ${log.field_name ? log.field_name.replace('_', ' ') : ''} updated in ${eventName}`.trim();
+              } else if (log.action === 'deleted') {
+                description = `Workflow deleted in ${eventName}`;
+              } else {
+                description = `Workflow ${log.action} in ${eventName}`;
+              }
+            } else if (dateFields.includes(log.field_name)) {
               const formatDate = (dateStr: string) => {
                 if (!dateStr) return '';
                 const d = new Date(dateStr);
