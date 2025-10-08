@@ -202,6 +202,29 @@ const DashboardHome = () => {
           });
         }
 
+        // Fetch budget status updates from change_logs
+        const { data: budgetLogs } = await supabase
+          .from('change_logs')
+          .select('id, entity_type, action, created_at, field_name, old_value, new_value, change_description')
+          .eq('changed_by', user.id)
+          .eq('entity_type', 'budget_item')
+          .eq('field_name', 'payment_status')
+          .order('created_at', { ascending: false })
+          .limit(5);
+
+        console.log('budgetLogs', budgetLogs);
+
+        if (budgetLogs) {
+          budgetLogs.forEach(log => {
+            activitiesData.push({
+              id: `budget-${log.id}`,
+              description: `Budget status changed from "${log.old_value}" to "${log.new_value}"`,
+              timestamp: log.created_at,
+              type: 'resource'
+            });
+          });
+        }
+
         // Sort all activities by timestamp
         activitiesData.sort((a, b) => 
           new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
