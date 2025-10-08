@@ -92,13 +92,31 @@ export function RoleManager() {
 
       if (rolesError) throw rolesError;
 
-      // Get users from get-invited-users function for the dropdown
-      const { data: invitedData, error: invitedError } = await supabase.functions.invoke('get-invited-users');
+      // Get all users from profiles table
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('user_id, display_name, created_at');
       
-      const invitedUsers = invitedData?.teamMembers || [];
+      if (profilesError) throw profilesError;
+
+      // Get auth users to fetch emails
+      const { data: authData } = await supabase.auth.admin.listUsers();
+      const authUsers = authData?.users || [];
+      
+      const allUsers = profilesData?.map((profile: any) => {
+        const authUser = authUsers.find((u: any) => u.id === profile.user_id);
+        return {
+          id: profile.user_id,
+          name: profile.display_name || 'Unknown User',
+          email: authUser?.email || '',
+          status: 'online' as const,
+          joinedAt: profile.created_at || new Date().toISOString(),
+          avatar: authUser?.user_metadata?.avatar_url
+        };
+      }) || [];
       
       // Create users list with role information
-      const usersWithRoles = invitedUsers.map((user: any) => {
+      const usersWithRoles = allUsers.map((user: any) => {
         const userRole = userRolesData?.find(role => role.user_id === user.id);
         return {
           ...user,
@@ -109,9 +127,12 @@ export function RoleManager() {
       setUsers(usersWithRoles);
       
       // Separate users without roles
-      const unassignedUsers = invitedUsers.filter((user: any) => 
+      const unassignedUsers = allUsers.filter((user: any) => 
         !userRolesData?.find(role => role.user_id === user.id)
-      );
+      ).map((user: any) => ({
+        ...user,
+        role: 'Member'
+      }));
       setUsersWithoutRoles(unassignedUsers);
       
       // Set all role assignments for display (including those not in invited users)
@@ -125,7 +146,7 @@ export function RoleManager() {
       setUserRoles(roleAssignments);
       
       // If no roles exist and current user exists, offer to set up admin
-      if (roleAssignments.length === 0 && invitedUsers.length > 0) {
+      if (roleAssignments.length === 0 && allUsers.length > 0) {
         console.log('No roles exist yet. Consider assigning initial admin role.');
       }
     } catch (error) {
