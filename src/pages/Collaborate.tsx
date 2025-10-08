@@ -260,70 +260,89 @@ export default function Collaborate() {
     fetchTeamMembers();
   }, [user, userTeam]);
 
-  // Set mock data for messages, files, and activities
+  // Fetch real activity data for invited and joined team members
   useEffect(() => {
-    setMessages([
-      {
-        id: "1",
-        content: "Welcome to the collaboration space! Let's work together on the upcoming events.",
-        sender: "system",
-        senderName: "System",
-        timestamp: "2024-08-15T10:00:00Z",
-        type: "system"
-      },
-      {
-        id: "2",
-        content: "I've uploaded the venue contract for review. Please check it out!",
-        sender: "1",
-        senderName: "John Doe",
-        timestamp: "2024-08-15T10:30:00Z",
-        type: "text"
-      }
-    ]);
+    const fetchActivities = async () => {
+      if (!user) return;
 
-    setSharedFiles([
-      {
-        id: "1",
-        name: "Venue_Contract_Final.pdf",
-        size: "2.4 MB",
-        uploadedBy: "John Doe",
-        uploadedAt: "2024-08-15T10:25:00Z",
-        url: "#"
-      },
-      {
-        id: "2",
-        name: "Budget_Breakdown.xlsx",
-        size: "1.8 MB",
-        uploadedBy: "Sarah Wilson",
-        uploadedAt: "2024-08-15T09:15:00Z",
-        url: "#"
-      }
-    ]);
+      try {
+        const activitiesData: Activity[] = [];
 
-    setActivities([
-      {
-        id: "1",
-        user: "John Doe",
-        action: "uploaded Venue_Contract_Final.pdf",
-        timestamp: "2024-08-15T10:25:00Z",
-        type: "file"
-      },
-      {
-        id: "2",
-        user: "Sarah Wilson",
-        action: "completed task: Review vendor proposals",
-        timestamp: "2024-08-15T09:45:00Z",
-        type: "task"
-      },
-      {
-        id: "3",
-        user: "Mike Johnson",
-        action: "joined the team",
-        timestamp: "2024-08-15T08:30:00Z",
-        type: "member"
+        // Fetch all teams the user is part of
+        const { data: userTeamAssignments } = await supabase
+          .from('team_assignments')
+          .select('team_id')
+          .eq('user_id', user.id);
+
+        if (!userTeamAssignments || userTeamAssignments.length === 0) {
+          setActivities([]);
+          return;
+        }
+
+        const teamIds = userTeamAssignments.map(ta => ta.team_id);
+
+        // Fetch all team assignments for these teams
+        const { data: allAssignments } = await supabase
+          .from('team_assignments')
+          .select('user_id, created_at, team_id')
+          .in('team_id', teamIds)
+          .order('created_at', { ascending: false });
+
+        if (allAssignments) {
+          // Get user details for all assignments
+          const userIds = allAssignments.map(a => a.user_id);
+          const { data: usersData } = await supabase
+            .from('profiles')
+            .select('user_id, display_name')
+            .in('user_id', userIds);
+
+          const usersMap = new Map(usersData?.map(u => [u.user_id, u.display_name]) || []);
+
+          // Add "joined team" activities
+          allAssignments.forEach(assignment => {
+            activitiesData.push({
+              id: `joined-${assignment.user_id}-${assignment.created_at}`,
+              user: usersMap.get(assignment.user_id) || 'Unknown User',
+              action: 'joined the team',
+              timestamp: assignment.created_at,
+              type: 'member'
+            });
+          });
+        }
+
+        // Fetch collaborator configurations (invited but not yet assigned)
+        const { data: configs } = await supabase
+          .from('collaborator_configurations')
+          .select('id, role, created_at, team_id')
+          .in('team_id', teamIds)
+          .is('assigned_user_id', null)
+          .order('created_at', { ascending: false });
+
+        if (configs) {
+          configs.forEach(config => {
+            activitiesData.push({
+              id: `invited-${config.id}`,
+              user: 'System',
+              action: `invited ${config.role} to join the team`,
+              timestamp: config.created_at,
+              type: 'member'
+            });
+          });
+        }
+
+        // Sort all activities by timestamp
+        activitiesData.sort((a, b) => 
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        );
+
+        setActivities(activitiesData);
+      } catch (error) {
+        console.error('Error fetching activities:', error);
       }
-    ]);
-  }, [user]);
+    };
+
+    fetchActivities();
+  }, [user, refreshTrigger]);
 
   // Fetch user's teams and their members
   useEffect(() => {
