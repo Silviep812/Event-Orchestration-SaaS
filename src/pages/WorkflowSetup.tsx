@@ -108,10 +108,20 @@ export default function WorkflowSetup() {
     
     if (!existingWorkflow) {
       // Create new workflow record for this event
-      await supabase.from('workflows').insert({ 
-        event_id: eventId, 
-        user_id: user?.id 
-      });
+      const { data: newWorkflow } = await supabase
+        .from('workflows')
+        .insert({ 
+          event_id: eventId, 
+          user_id: user?.id 
+        })
+        .select('id')
+        .single();
+      
+      if (newWorkflow) {
+        setWorkflowIdForEvent(newWorkflow.id);
+      }
+    } else {
+      setWorkflowIdForEvent(existingWorkflow.id);
     }
     
     setCurrentStep("user-type");
@@ -418,6 +428,7 @@ export default function WorkflowSetup() {
             <WorkflowDashboard 
               userType={selectedUserType}
               selectedTheme={selectedTheme}
+              workflowId={workflowIdForEvent || undefined}
               setCurrentStep={setCurrentStep}
             />
           )}
