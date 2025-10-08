@@ -129,16 +129,24 @@ const DashboardHome = () => {
         if (changeLogs) {
           changeLogs.forEach(log => {
             let description = '';
-            
-            // Create meaningful descriptions based on entity type and action
-            if (log.change_description) {
+            // Format date fields
+            const dateFields = ['due_date', 'start_date', 'end_date'];
+            if (dateFields.includes(log.field_name)) {
+              const formatDate = (dateStr: string) => {
+                if (!dateStr) return '';
+                const d = new Date(dateStr);
+                if (isNaN(d.getTime())) return dateStr;
+                return `${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getDate().toString().padStart(2,'0')}/${d.getFullYear()}`;
+              };
+              description = `${log.entity_type} ${log.field_name.replace('_', ' ')} changed from "${formatDate(log.old_value)}" to "${formatDate(log.new_value)}"`;
+            } else if (log.change_description) {
               description = log.change_description;
             } else if (log.field_name && log.old_value && log.new_value) {
-              description = `${log.entity_type} ${log.field_name} changed from "${log.old_value}" to "${log.new_value}"`;
+              description = `${log.entity_type} ${log.field_name.replace('_', ' ')} changed from "${log.old_value}" to "${log.new_value}"`;
             } else if (log.action === 'created') {
               description = `${log.entity_type} created`;
             } else if (log.action === 'updated') {
-              description = `${log.entity_type} ${log.field_name || ''} updated`.trim();
+              description = `${log.entity_type} ${log.field_name ? log.field_name.replace('_', ' ') : ''} updated`.trim();
             } else if (log.action === 'deleted') {
               description = `${log.entity_type} deleted`;
             } else {
