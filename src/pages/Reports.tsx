@@ -432,7 +432,6 @@ const Reports = () => {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                       outerRadius={80}
                       fill="#8884d8"
                       dataKey="value"
@@ -444,6 +443,15 @@ const Reports = () => {
                     <Tooltip />
                   </PieChart>
                 </ResponsiveContainer>
+                {/* Legend for entity types */}
+                <div className="flex flex-wrap gap-2 mt-4 justify-center">
+                  {reportData?.changesByType.map((entry, idx) => (
+                    <span key={idx} className="flex items-center gap-2 text-s">
+                      <span style={{ background: entry.color, width: 12, height: 12, display: 'inline-block', borderRadius: 2 }} />
+                      {entry.name}
+                    </span>
+                  ))}
+                </div>
               </CardContent>
             </Card>
 
