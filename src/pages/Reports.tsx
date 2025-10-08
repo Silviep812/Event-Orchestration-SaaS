@@ -181,17 +181,15 @@ const Reports = () => {
       .sort(([a], [b]) => new Date(a).getTime() - new Date(b).getTime())
       .map(([date, changes]) => ({ date, changes }));
 
-    // Top modified entities
-    const entityCount: { [key: string]: number } = {};
+    // Top modified entities (group by entity type)
+    const entityTypeCount: { [key: string]: number } = {};
     logs.forEach(log => {
-      const key = `${log.entity_type}:${log.entity_id}`;
-      entityCount[key] = (entityCount[key] || 0) + 1;
+      entityTypeCount[log.entity_type] = (entityTypeCount[log.entity_type] || 0) + 1;
     });
-
-    const topModifiedEntities = Object.entries(entityCount)
+    const topModifiedEntities = Object.entries(entityTypeCount)
       .sort(([, a], [, b]) => b - a)
       .slice(0, 10)
-      .map(([entity, changes]) => ({ entity: entity.split(':')[0], changes }));
+      .map(([entity, changes]) => ({ entity: entity.replace('_', ' ').toUpperCase(), changes }));
 
     // User activity
     const userCount: { [key: string]: number } = {};
