@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar, MapPin, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useWorkflow } from "@/hooks/useWorkflow";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
@@ -23,6 +24,7 @@ export function EventSelector({ onSelectEvent, selectedEvent }: EventSelectorPro
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const { updateWorkflowSelections } = useWorkflow();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -81,12 +83,9 @@ export function EventSelector({ onSelectEvent, selectedEvent }: EventSelectorPro
       .eq('event_id', eventId)
       .maybeSingle();
     
-    if (!existingWorkflow) {
-      // Create new workflow record for this event
-      await supabase.from('workflows').insert({ 
-        event_id: eventId, 
-        user_id: user?.id 
-      });
+    if (!existingWorkflow && user?.id) {
+      // Create new workflow record for this event with change tracking
+      await updateWorkflowSelections({ event_id: eventId });
     }
     onSelectEvent(eventId);
   };

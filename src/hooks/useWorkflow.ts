@@ -111,13 +111,18 @@ export const useWorkflow = () => {
     }
   };
 
-  const updateWorkflowSelections = async (updates: Partial<Omit<WorkflowData, 'user_id' | 'event_id'>> & { event_id?: string }) => {
+  const updateWorkflowSelections = async (
+    updates: Partial<Omit<WorkflowData, 'user_id' | 'event_id'>> & { event_id?: string },
+    targetWorkflowId?: string
+  ) => {
     if (!user?.id) return false;
+
+    const effectiveWorkflowId = targetWorkflowId || workflowId;
 
     setLoading(true);
     try {
       // If no workflow exists and we have event_id, create one
-      if (!workflowId) {
+      if (!effectiveWorkflowId) {
         if (!updates.event_id) {
           toast({
             title: "Error",
@@ -171,14 +176,14 @@ export const useWorkflow = () => {
       const { data: currentWorkflow } = await supabase
         .from('workflows')
         .select('*')
-        .eq('id', workflowId)
+        .eq('id', effectiveWorkflowId)
         .single();
 
       // Update existing workflow
       const { error } = await supabase
         .from('workflows')
         .update(updates)
-        .eq('id', workflowId)
+        .eq('id', effectiveWorkflowId)
         .eq('user_id', user.id);
 
       if (error) {
@@ -199,6 +204,7 @@ export const useWorkflow = () => {
           supplier_id: 'Supplier Selection',
           serv_vendor_sup_id: 'Service Vendor Selection',
           serv_vendor_rent_id: 'Service Rental Selection',
+          event_id: 'Event Selection',
         };
 
         for (const [key, newValue] of Object.entries(updates)) {
@@ -206,7 +212,7 @@ export const useWorkflow = () => {
           if (oldValue !== newValue && key !== 'updated_at') {
             const { error: logError } = await supabase.rpc('log_change', {
               p_entity_type: 'workflow',
-              p_entity_id: workflowId,
+              p_entity_id: effectiveWorkflowId,
               p_action: 'updated',
               p_field_name: key,
               p_old_value: oldValue?.toString() || null,
