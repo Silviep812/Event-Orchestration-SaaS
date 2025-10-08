@@ -247,7 +247,8 @@ const Profile = () => {
         .from('avatars')
         .getPublicUrl(fileName);
 
-      const avatarUrl = urlData.publicUrl;
+      // Add cache-busting query param
+      const avatarUrl = urlData.publicUrl + `?t=${Date.now()}`;
 
       // Update profile with new avatar URL
       const { error: updateError } = await supabase
