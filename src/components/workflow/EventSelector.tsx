@@ -105,7 +105,7 @@ export function EventSelector({ onSelectEvent, selectedEvent }: EventSelectorPro
     return (
       <Card>
         <CardContent className="p-12 text-center">
-          <p className="text-muted-foreground">No events found. Please create an event first.</p>
+          <p className="text-muted-foreground">There are currently no events available. Please create an event or review your workflow dashboard for more details.</p>
         </CardContent>
       </Card>
     );
