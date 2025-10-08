@@ -559,7 +559,7 @@ export const WorkflowDashboard = ({ userType, selectedTheme, workflowId, setCurr
         <div>
           <h1 className="text-3xl font-bold">{"Workflow Dashboard - " + eventTitle}</h1>
           <p className="text-muted-foreground">
-            {userType.replace("-", " ").replace(/\b\w/g, l => l.toUpperCase())} • Theme ID: {selectedTheme}
+            {userType.replace("-", " ").replace(/\b\w/g, l => l.toUpperCase())}
           </p>
         </div>
         <div className="flex gap-2">
