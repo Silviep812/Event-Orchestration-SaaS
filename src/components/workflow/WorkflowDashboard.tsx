@@ -529,8 +529,10 @@ export const WorkflowDashboard = ({ userType, selectedTheme, workflowId, setCurr
     fetchEventTitle();
   }, [workflowId, getWorkflowById]);
 
-  const completedSteps = steps.filter(step => step.status === "completed").length;
-  const progressPercentage = (completedSteps / steps.length) * 100;
+  // Calculate event progress based on completed tasks (excluding cancelled)
+  const validTasks = eventTasks.filter(task => task.status !== "cancelled");
+  const completedTasks = validTasks.filter(task => task.status === "completed").length;
+  const eventProgressPercentage = validTasks.length > 0 ? (completedTasks / validTasks.length) * 100 : 0;
 
   // Calculate upcoming deadlines based on event tasks with a future due_date
   const now = new Date();
@@ -538,9 +540,9 @@ export const WorkflowDashboard = ({ userType, selectedTheme, workflowId, setCurr
 
   const stats = [
     {
-      title: "Workflow Progress",
-      value: `${completedSteps}/${steps.length}`,
-      description: `${Math.round(progressPercentage)}% Complete`,
+      title: "Event Progress",
+      value: `${completedTasks}/${validTasks.length}`,
+      description: `${Math.round(eventProgressPercentage)}% Complete`,
       icon: TrendingUp,
     },
     {
@@ -593,9 +595,9 @@ export const WorkflowDashboard = ({ userType, selectedTheme, workflowId, setCurr
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">Workflow Completion</span>
-              <span className="text-sm text-muted-foreground">{Math.round(progressPercentage)}%</span>
+              <span className="text-sm text-muted-foreground">{Math.round(eventProgressPercentage)}%</span>
             </div>
-            <Progress value={progressPercentage} className="w-full" />
+            <Progress value={eventProgressPercentage} className="w-full" />
           </div>
         </CardContent>
       </Card>
