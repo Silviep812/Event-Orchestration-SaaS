@@ -45,6 +45,9 @@ export default function WorkflowSetup() {
           .maybeSingle();
         
         if (workflow) {
+          // Store workflow ID for updates
+          setWorkflowIdForEvent(workflow.id);
+          
           // Pre-populate all selections
           if (workflow.workflow_type_id) {
             const userTypeMap: Record<number, string> = {
@@ -159,7 +162,14 @@ export default function WorkflowSetup() {
     setSelectedTheme(themeId);
     
     // Save theme selection to workflow
-    await updateWorkflowSelections({ theme_id: themeId });
+    if (workflowIdForEvent && selectedEvent) {
+      await supabase
+        .from('workflows')
+        .update({ theme_id: themeId })
+        .eq('id', workflowIdForEvent);
+    } else {
+      await updateWorkflowSelections({ theme_id: themeId });
+    }
     
     setCurrentStep(getNextStepForUserType(selectedUserType, "theme"));
   };
@@ -168,7 +178,14 @@ export default function WorkflowSetup() {
     setSelectedHospitality(hospitalityId);
     
     // Save hospitality selection to workflow
-    await updateWorkflowSelections({ hospitality_id: hospitalityId });
+    if (workflowIdForEvent && selectedEvent) {
+      await supabase
+        .from('workflows')
+        .update({ hospitality_id: hospitalityId })
+        .eq('id', workflowIdForEvent);
+    } else {
+      await updateWorkflowSelections({ hospitality_id: hospitalityId });
+    }
     
     setCurrentStep(getNextStepForUserType(selectedUserType, "hospitality"));
   };
@@ -177,18 +194,33 @@ export default function WorkflowSetup() {
     setSelectedVenue(venueId);
     
     // Save venue selection to workflow
-    await updateWorkflowSelections({ venue_id: venueId });
+    if (workflowIdForEvent && selectedEvent) {
+      await supabase
+        .from('workflows')
+        .update({ venue_id: venueId })
+        .eq('id', workflowIdForEvent);
+    } else {
+      await updateWorkflowSelections({ venue_id: venueId });
+    }
     
     setCurrentStep(getNextStepForUserType(selectedUserType, "venue"));
   };
 
   const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
+  const [workflowIdForEvent, setWorkflowIdForEvent] = useState<string | null>(null);
 
   const handleServiceVendorSelection = async (vendorId: string) => {
     setSelectedServiceVendor(vendorId);
     
     // Save service vendor selection to workflow
-    await updateWorkflowSelections({ serv_vendor_sup_id: vendorId });
+    if (workflowIdForEvent && selectedEvent) {
+      await supabase
+        .from('workflows')
+        .update({ serv_vendor_sup_id: vendorId })
+        .eq('id', workflowIdForEvent);
+    } else {
+      await updateWorkflowSelections({ serv_vendor_sup_id: vendorId });
+    }
     
     // Move to next step if both selections are made or skip to suppliers step
     if (selectedServiceRental) {
@@ -200,7 +232,14 @@ export default function WorkflowSetup() {
     setSelectedServiceRental(rentalId);
     
     // Save service rental selection to workflow
-    await updateWorkflowSelections({ serv_vendor_rent_id: rentalId });
+    if (workflowIdForEvent && selectedEvent) {
+      await supabase
+        .from('workflows')
+        .update({ serv_vendor_rent_id: rentalId })
+        .eq('id', workflowIdForEvent);
+    } else {
+      await updateWorkflowSelections({ serv_vendor_rent_id: rentalId });
+    }
     
     // Move to next step if both selections are made or skip to suppliers step
     if (selectedServiceVendor) {
@@ -212,7 +251,14 @@ export default function WorkflowSetup() {
     setSelectedSupplier(supplier);
     
     // Save supplier selection to workflow
-    await updateWorkflowSelections({ supplier_id: supplier.id });
+    if (workflowIdForEvent && selectedEvent) {
+      await supabase
+        .from('workflows')
+        .update({ supplier_id: supplier.id })
+        .eq('id', workflowIdForEvent);
+    } else {
+      await updateWorkflowSelections({ supplier_id: supplier.id });
+    }
     
     setCurrentStep(getNextStepForUserType(selectedUserType, "suppliers"));
   };
