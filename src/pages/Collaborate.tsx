@@ -494,7 +494,16 @@ export default function Collaborate() {
 
         toast({
           title: "Success",
-          description: `${inviteRole} role with ${selectedCollaboratorTypes.join(', ')} access configured.`,
+          description: `${inviteRole} role configured. You can now assign tasks to this role.`,
+          action: (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => window.location.href = '/dashboard/project-management'}
+            >
+              Go to Tasks
+            </Button>
+          ),
         });
         
         setIsInviteDialogOpen(false);
@@ -576,8 +585,17 @@ export default function Collaborate() {
       toast({
         title: isExistingUser ? "Team Member Added" : "Invitation Sent",
         description: isExistingUser 
-          ? `${inviteEmail} has been added to your team as ${inviteRole}.`
-          : `Invitation sent to ${inviteEmail} as ${inviteRole}.`,
+          ? `${inviteEmail} has been added to your team. You can now assign tasks to them.`
+          : `Invitation sent to ${inviteEmail} as ${inviteRole}. They will be available for task assignment once they join.`,
+        action: (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => window.location.href = '/dashboard/project-management'}
+          >
+            Go to Tasks
+          </Button>
+        ),
       });
 
       setInviteEmail("");

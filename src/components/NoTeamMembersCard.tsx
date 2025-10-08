@@ -19,7 +19,7 @@ export function NoTeamMembersCard({ userTeam, userTeams, onCreateTeam, onInviteM
         <p className="text-muted-foreground text-center mb-4 max-w-md">
           {!userTeam
             ? "You don't belong to any team. Start by creating a team and inviting team members to collaborate on your events."
-            : `${userTeam.name} has no members. Start by inviting team members to collaborate on your events.`}
+            : `${userTeam.name} has no members. Start by inviting team members who you can assign to tasks.`}
         </p>
         <div className="flex gap-3">
           {(!userTeam || showCreateOnly) && (
@@ -37,7 +37,7 @@ export function NoTeamMembersCard({ userTeam, userTeams, onCreateTeam, onInviteM
               className="bg-gradient-to-r from-primary to-secondary shadow-lg hover:shadow-xl transition-shadow"
             >
               <UserPlus className="w-4 h-4 mr-2" />
-              Invite Member
+              Invite for Tasks
             </Button>
           )}
         </div>
