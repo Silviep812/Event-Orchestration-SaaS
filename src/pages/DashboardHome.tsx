@@ -118,140 +118,46 @@ const DashboardHome = () => {
           type: 'task' | 'analytics' | 'resource';
         }> = [];
 
-        // Fetch completed tasks
-        const { data: completedTasks } = await supabase
-          .from('tasks')
-          .select('id, title, updated_at, event_id')
-          .eq('created_by', user.id)
-          .eq('status', 'completed')
-          .order('updated_at', { ascending: false })
-          .limit(5);
-
-        // Fetch event titles for completed tasks
-        let eventTitleMap: Record<string, string> = {};
-        if (completedTasks && completedTasks.length > 0) {
-          const eventIds = Array.from(new Set(completedTasks.map(task => task.event_id).filter(Boolean)));
-          if (eventIds.length > 0) {
-            const { data: eventData } = await supabase
-              .from('events')
-              .select('id, title')
-              .in('id', eventIds);
-            (eventData || []).forEach(event => {
-              eventTitleMap[event.id] = event.title;
-            });
-          }
-        }
-
-        // Fetch latest tasks (any status, including cancelled)
-        const { data: recentTasks } = await supabase
-          .from('tasks')
-          .select('id, title, updated_at, event_id, status')
-          .eq('created_by', user.id)
-          .order('updated_at', { ascending: false })
-          .limit(5);
-
-        if (recentTasks) {
-          recentTasks.forEach(task => {
-            const eventTitle = eventTitleMap[task.event_id] || 'Unnamed Event';
-            activitiesData.push({
-              id: `task-${task.id}`,
-              description: `Task "${task.title}" status updated to ${task.status.replace('_', ' ')} in ${eventTitle}`,
-              timestamp: task.updated_at,
-              type: 'task'
-            });
-          });
-        }
-
-        // Fetch event analytics updates from change_logs
-        const { data: analyticsLogs } = await supabase
+        // Fetch all change_logs for the user
+        const { data: changeLogs } = await supabase
           .from('change_logs')
-          .select('id, entity_type, action, created_at, change_description')
+          .select('id, entity_type, action, created_at, field_name, old_value, new_value, change_description')
           .eq('changed_by', user.id)
-          .eq('entity_type', 'event_analytics')
           .order('created_at', { ascending: false })
-          .limit(3);
+          .limit(20);
 
-        if (analyticsLogs) {
-          analyticsLogs.forEach(log => {
+        if (changeLogs) {
+          changeLogs.forEach(log => {
+            let description = '';
+            
+            // Create meaningful descriptions based on entity type and action
+            if (log.change_description) {
+              description = log.change_description;
+            } else if (log.field_name && log.old_value && log.new_value) {
+              description = `${log.entity_type} ${log.field_name} changed from "${log.old_value}" to "${log.new_value}"`;
+            } else if (log.action === 'created') {
+              description = `${log.entity_type} created`;
+            } else if (log.action === 'updated') {
+              description = `${log.entity_type} ${log.field_name || ''} updated`.trim();
+            } else if (log.action === 'deleted') {
+              description = `${log.entity_type} deleted`;
+            } else {
+              description = `${log.entity_type} ${log.action}`;
+            }
+
+            // Determine activity type based on entity_type
+            let activityType: 'task' | 'analytics' | 'resource' = 'resource';
+            if (log.entity_type === 'task') {
+              activityType = 'task';
+            } else if (log.entity_type === 'event_analytics') {
+              activityType = 'analytics';
+            }
+
             activitiesData.push({
-              id: `analytics-${log.id}`,
-              description: log.change_description || 'Event analytics updated',
+              id: `log-${log.id}`,
+              description,
               timestamp: log.created_at,
-              type: 'analytics'
-            });
-          });
-        }
-
-        // Fetch resource allocation updates
-        const { data: resourceLogs } = await supabase
-          .from('change_logs')
-          .select('id, entity_type, action, created_at, change_description, field_name')
-          .eq('changed_by', user.id)
-          .eq('entity_type', 'resource')
-          .order('created_at', { ascending: false })
-          .limit(3);
-
-        if (resourceLogs) {
-          resourceLogs.forEach(log => {
-            activitiesData.push({
-              id: `resource-${log.id}`,
-              description: log.change_description || `Resource ${log.field_name || 'allocation'} updated`,
-              timestamp: log.created_at,
-              type: 'resource'
-            });
-          });
-        }
-
-        // Fetch budget status updates from change_logs
-        const { data: budgetLogs } = await supabase
-          .from('change_logs')
-          .select('id, entity_type, action, created_at, field_name, old_value, new_value, change_description, entity_id')
-          .eq('changed_by', user.id)
-          .eq('entity_type', 'budget_item')
-          .eq('field_name', 'payment_status')
-          .order('created_at', { ascending: false })
-          .limit(5);
-
-        // Fetch event_id for each budget_item
-        let budgetEventMap: Record<string, string> = {};
-        if (budgetLogs && budgetLogs.length > 0) {
-          const budgetItemIds = Array.from(new Set(budgetLogs.map(log => log.entity_id).filter(Boolean)));
-          if (budgetItemIds.length > 0) {
-            const { data: budgetItems } = await supabase
-              .from('budget_items')
-              .select('id, event_id')
-              .in('id', budgetItemIds);
-            (budgetItems || []).forEach(item => {
-              budgetEventMap[item.id] = item.event_id;
-            });
-          }
-        }
-
-        // Map event titles for budget items
-        let allEventIds = Object.values(budgetEventMap);
-        let allEventTitles: Record<string, string> = { ...eventTitleMap };
-        if (allEventIds.length > 0) {
-          const missingEventIds = allEventIds.filter(eid => !allEventTitles[eid]);
-          if (missingEventIds.length > 0) {
-            const { data: moreEvents } = await supabase
-              .from('events')
-              .select('id, title')
-              .in('id', missingEventIds);
-            (moreEvents || []).forEach(event => {
-              allEventTitles[event.id] = event.title;
-            });
-          }
-        }
-
-        if (budgetLogs) {
-          budgetLogs.forEach(log => {
-            const eventId = budgetEventMap[log.entity_id];
-            const eventTitle = allEventTitles[eventId] || 'Unnamed Event';
-            activitiesData.push({
-              id: `budget-${log.id}`,
-              description: `Budget status changed from "${log.old_value}" to "${log.new_value}" in ${eventTitle}`,
-              timestamp: log.created_at,
-              type: 'resource'
+              type: activityType
             });
           });
         }
