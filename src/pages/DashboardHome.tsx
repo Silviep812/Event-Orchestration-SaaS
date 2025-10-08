@@ -215,7 +215,7 @@ const DashboardHome = () => {
               description = `${log.entity_type} ${log.action}`;
             }
             // Always append event name if available
-            if (log._eventName) {
+            if (log._eventName && log._eventName !== 'Unnamed Event') {
               description += ` in ${log._eventName}`;
             }
 
