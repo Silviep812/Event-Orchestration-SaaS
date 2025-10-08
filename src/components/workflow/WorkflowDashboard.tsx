@@ -538,6 +538,11 @@ export const WorkflowDashboard = ({ userType, selectedTheme, workflowId, setCurr
   const now = new Date();
   const upcomingDeadlines = eventTasks.filter(task => task.due_date && new Date(task.due_date) > now).length;
 
+  // Calculate overall progress based on workflow selections made
+  const selectionKeys = Object.keys(selections);
+  const selectionsMade = selectionKeys.filter(key => selections[key as keyof WorkflowSelections]).length;
+  const overallProgressPercentage = selectionKeys.length > 0 ? (selectionsMade / selectionKeys.length) * 100 : 0;
+
   const stats = [
     {
       title: "Event Progress",
@@ -589,15 +594,18 @@ export const WorkflowDashboard = ({ userType, selectedTheme, workflowId, setCurr
       <Card>
         <CardHeader>
           <CardTitle>Overall Progress</CardTitle>
-          <CardDescription>Track your event planning workflow completion</CardDescription>
+          <CardDescription>Workflow selections completed</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Workflow Completion</span>
-              <span className="text-sm text-muted-foreground">{Math.round(eventProgressPercentage)}%</span>
+              <span className="text-sm font-medium">Selections Made</span>
+              <span className="text-sm text-muted-foreground">{Math.round(overallProgressPercentage)}%</span>
             </div>
-            <Progress value={eventProgressPercentage} className="w-full" />
+            <Progress value={overallProgressPercentage} className="w-full" />
+            <div className="text-xs text-muted-foreground mt-2">
+              {selectionsMade} of {selectionKeys.length} selections completed
+            </div>
           </div>
         </CardContent>
       </Card>
