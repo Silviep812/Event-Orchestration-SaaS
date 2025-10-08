@@ -35,6 +35,38 @@ export default function WorkflowSetup() {
     const eventId = searchParams.get('eventId');
     if (eventId) {
       setSelectedEvent(eventId);
+      
+      // Load existing workflow data for this event
+      const loadExistingWorkflow = async () => {
+        const { data: workflow } = await supabase
+          .from('workflows')
+          .select('*')
+          .eq('event_id', eventId)
+          .maybeSingle();
+        
+        if (workflow) {
+          // Pre-populate all selections
+          if (workflow.workflow_type_id) {
+            const userTypeMap: Record<number, string> = {
+              1: 'social-organizer',
+              2: 'professional-planner',
+              3: 'hospitality-provider',
+              4: 'venue-owner',
+              5: 'host'
+            };
+            setSelectedUserType(userTypeMap[workflow.workflow_type_id] || '');
+          }
+          
+          if (workflow.theme_id) setSelectedTheme(workflow.theme_id);
+          if (workflow.hospitality_id) setSelectedHospitality(workflow.hospitality_id);
+          if (workflow.venue_id) setSelectedVenue(workflow.venue_id);
+          if (workflow.serv_vendor_sup_id) setSelectedServiceVendor(workflow.serv_vendor_sup_id);
+          if (workflow.serv_vendor_rent_id) setSelectedServiceRental(workflow.serv_vendor_rent_id);
+          if (workflow.supplier_id) setSelectedSupplier({ id: workflow.supplier_id });
+        }
+      };
+      
+      loadExistingWorkflow();
       setCurrentStep("user-type");
     }
   }, [searchParams]);
