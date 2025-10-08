@@ -262,6 +262,12 @@ const Profile = () => {
       // Update local state
       setProfile(prev => ({ ...prev, avatar_url: avatarUrl }));
 
+      // Reload profile from database to ensure latest avatar_url
+      await loadUserProfile();
+
+      // Dispatch custom event to update header avatar
+      window.dispatchEvent(new Event('profileUpdated'));
+
       toast({
         title: "Avatar updated",
         description: "Your profile picture has been updated successfully."

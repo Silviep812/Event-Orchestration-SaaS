@@ -43,6 +43,15 @@ export function DashboardHeader() {
     };
 
     loadUserProfile();
+
+    // Listen for avatar/profile update events
+    const handleProfileUpdate = () => {
+      loadUserProfile();
+    };
+    window.addEventListener('profileUpdated', handleProfileUpdate);
+    return () => {
+      window.removeEventListener('profileUpdated', handleProfileUpdate);
+    };
   }, [user?.id]);
 
   const handleSignOut = async () => {
