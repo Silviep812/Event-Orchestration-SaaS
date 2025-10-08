@@ -2919,23 +2919,43 @@ export type Database = {
       user_roles: {
         Row: {
           created_at: string
+          event_id: string | null
           id: string
+          permission_level:
+            | Database["public"]["Enums"]["permission_level"]
+            | null
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Insert: {
           created_at?: string
+          event_id?: string | null
           id?: string
+          permission_level?:
+            | Database["public"]["Enums"]["permission_level"]
+            | null
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Update: {
           created_at?: string
+          event_id?: string | null
           id?: string
+          permission_level?:
+            | Database["public"]["Enums"]["permission_level"]
+            | null
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       "Vendor Directory": {
         Row: {
@@ -3523,6 +3543,7 @@ export type Database = {
       }
       has_min_permission_level: {
         Args: {
+          _event_id?: string
           _level: Database["public"]["Enums"]["permission_level"]
           _user_id: string
         }
@@ -3530,6 +3551,7 @@ export type Database = {
       }
       has_permission_level: {
         Args: {
+          _event_id?: string
           _level: Database["public"]["Enums"]["permission_level"]
           _user_id: string
         }

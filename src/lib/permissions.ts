@@ -64,14 +64,20 @@ export function usePermissions(): PermissionsResult {
       }
 
       try {
-        const mappings = await fetchPermissionMappings();
-        
+        // Query user_roles table to get permission_level directly
+        const { data, error } = await supabase
+          .from('user_roles')
+          .select('permission_level')
+          .eq('user_id', (await supabase.auth.getUser()).data.user?.id);
+
+        if (error) throw error;
+
         // Find highest permission level from user's roles
         let highestLevel: PermissionLevel | null = null;
         const levelPriority = { admin: 3, coordinator: 2, viewer: 1 };
 
-        for (const role of userRoles) {
-          const level = mappings.get(role);
+        for (const roleData of data || []) {
+          const level = roleData.permission_level as PermissionLevel;
           if (level) {
             if (!highestLevel || levelPriority[level] > levelPriority[highestLevel]) {
               highestLevel = level;

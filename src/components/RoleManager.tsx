@@ -6,11 +6,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Shield, Users, UserCheck, Crown, ClipboardList, Eye } from "lucide-react";
 import { PermissionLevel } from "@/lib/permissions";
+import { UnassignedUserCard } from "./UnassignedUserCard";
 
 interface UserRole {
   id: string;
   user_id: string;
   role: string;
+  permission_level: PermissionLevel | null;
+  event_id: string | null;
   created_at: string;
 }
 
@@ -88,7 +91,7 @@ export function RoleManager() {
       // Get all role assignments from user_roles table
       const { data: userRolesData, error: rolesError } = await supabase
         .from('user_roles')
-        .select('user_id, role, created_at');
+        .select('user_id, role, permission_level, event_id, created_at');
 
       if (rolesError) throw rolesError;
 
@@ -140,6 +143,8 @@ export function RoleManager() {
         id: role.user_id,
         user_id: role.user_id,
         role: role.role,
+        permission_level: role.permission_level,
+        event_id: role.event_id,
         created_at: role.created_at
       })) || [];
       
@@ -161,16 +166,21 @@ export function RoleManager() {
     }
   };
 
-  const changeRole = async (userId: string, newRole: 'host' | 'organizer' | 'event_planner' | 'venue_owner' | 'hospitality_provider' | 'manager') => {
+  const changeRole = async (
+    userId: string, 
+    newRole: 'host' | 'organizer' | 'event_planner' | 'venue_owner' | 'hospitality_provider' | 'manager',
+    permissionLevel: PermissionLevel
+  ) => {
     try {
-      console.log('Attempting to assign role:', { userId, newRole });
+      console.log('Attempting to assign role:', { userId, newRole, permissionLevel });
       
-      // Upsert role - insert if not exists, update if exists
+      // Upsert role with permission level - insert if not exists, update if exists
       const { data, error } = await supabase
         .from('user_roles')
         .upsert({ 
           user_id: userId, 
-          role: newRole 
+          role: newRole,
+          permission_level: permissionLevel
         }, { 
           onConflict: 'user_id,role' 
         })
@@ -181,8 +191,8 @@ export function RoleManager() {
       if (error) throw error;
 
       toast({
-        title: "Role updated",
-        description: "User role has been updated successfully.",
+        title: "Role and permissions updated",
+        description: "User role and permission level have been updated successfully.",
       });
 
       fetchUsers(); // Refresh the data
@@ -290,54 +300,90 @@ export function RoleManager() {
         {userRoles.map((userRole) => {
           const user = getUserInfo(userRole.user_id);
           const roleInfo = roles.find(r => r.value === userRole.role);
-          const permissionLevel = permissionMappings.get(userRole.role);
-          const permissionInfo = permissionLevel ? permissionLevels[permissionLevel] : null;
+          const currentPermission = userRole.permission_level || permissionMappings.get(userRole.role) || 'viewer';
+          const permissionInfo = permissionLevels[currentPermission];
           const PermissionIcon = permissionInfo?.icon;
           
           return (
             <Card key={userRole.id}>
               <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div>
-                      <h4 className="font-semibold">
-                        {user?.name || 'Unknown User'}
-                      </h4>
-                      {user?.email && (
-                        <p className="text-sm text-muted-foreground">{user.email}</p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge className={roleColors[userRole.role as keyof typeof roleColors]}>
-                        {roleInfo?.label || userRole.role}
-                      </Badge>
-                      {permissionInfo && PermissionIcon && (
-                        <Badge variant="outline" className={permissionInfo.color}>
-                          <PermissionIcon className="h-3 w-3 mr-1" />
-                          {permissionInfo.label}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div>
+                        <h4 className="font-semibold">
+                          {user?.name || 'Unknown User'}
+                        </h4>
+                        {user?.email && (
+                          <p className="text-sm text-muted-foreground">{user.email}</p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge className={roleColors[userRole.role as keyof typeof roleColors]}>
+                          {roleInfo?.label || userRole.role}
                         </Badge>
-                      )}
+                        {permissionInfo && PermissionIcon && (
+                          <Badge variant="outline" className={permissionInfo.color}>
+                            <PermissionIcon className="h-3 w-3 mr-1" />
+                            {permissionInfo.label}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                   </div>
-                  <Select
-                    value={userRole.role}
-                    onValueChange={(newRole) => changeRole(userRole.user_id, newRole as 'host' | 'organizer' | 'event_planner' | 'venue_owner' | 'hospitality_provider' | 'manager')}
-                  >
-                    <SelectTrigger className="w-32">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {roles.map((role) => (
-                        <SelectItem key={role.value} value={role.value}>
-                          {role.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1">
+                      <label className="text-xs text-muted-foreground mb-1 block">Role</label>
+                      <Select
+                        value={userRole.role}
+                        onValueChange={(newRole) => {
+                          const suggestedPermission = permissionMappings.get(newRole) || currentPermission;
+                          changeRole(userRole.user_id, newRole as any, suggestedPermission);
+                        }}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {roles.map((role) => (
+                            <SelectItem key={role.value} value={role.value}>
+                              {role.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="flex-1">
+                      <label className="text-xs text-muted-foreground mb-1 block">
+                        Permission Level
+                        {permissionMappings.get(userRole.role) && currentPermission === permissionMappings.get(userRole.role) && (
+                          <span className="text-xs text-muted-foreground ml-1">(suggested)</span>
+                        )}
+                      </label>
+                      <Select
+                        value={currentPermission}
+                        onValueChange={(newPermission) => changeRole(userRole.user_id, userRole.role as any, newPermission as PermissionLevel)}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(permissionLevels).map(([key, level]) => (
+                            <SelectItem key={key} value={key}>
+                              {level.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  
+                  {roleInfo?.description && (
+                    <p className="text-sm text-muted-foreground">{roleInfo.description}</p>
+                  )}
                 </div>
-                {roleInfo?.description && (
-                  <p className="text-sm text-muted-foreground mt-2">{roleInfo.description}</p>
-                )}
               </CardContent>
             </Card>
           );
@@ -350,38 +396,16 @@ export function RoleManager() {
           <h3 className="text-lg font-semibold">Users Without Roles</h3>
           
           {usersWithoutRoles.map((user) => (
-            <Card key={user.id} className="border-dashed">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div>
-                      <h4 className="font-semibold">{user.name || 'Unknown User'}</h4>
-                      {user.email && (
-                        <p className="text-sm text-muted-foreground">{user.email}</p>
-                      )}
-                    </div>
-                    <Badge variant="outline" className="text-muted-foreground">
-                      No Role Assigned
-                    </Badge>
-                  </div>
-                  <Select
-                    value=""
-                    onValueChange={(newRole) => changeRole(user.id, newRole as 'host' | 'organizer' | 'event_planner' | 'venue_owner' | 'hospitality_provider' | 'manager')}
-                  >
-                    <SelectTrigger className="w-40">
-                      <SelectValue placeholder="Assign role..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {roles.map((role) => (
-                        <SelectItem key={role.value} value={role.value}>
-                          {role.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardContent>
-            </Card>
+            <UnassignedUserCard
+              key={user.id}
+              user={user}
+              roles={roles}
+              permissionLevels={permissionLevels}
+              permissionMappings={permissionMappings}
+              onAssign={(userId, role, permissionLevel) => 
+                changeRole(userId, role as any, permissionLevel)
+              }
+            />
           ))}
         </div>
       )}
