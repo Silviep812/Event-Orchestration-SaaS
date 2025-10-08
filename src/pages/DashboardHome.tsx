@@ -121,7 +121,7 @@ const DashboardHome = () => {
         // Fetch completed tasks
         const { data: completedTasks } = await supabase
           .from('tasks')
-          .select('id, title, updated_at, event_id, events(title)')
+          .select('id, title, updated_at, event_id')
           .eq('created_by', user.id)
           .eq('status', 'completed')
           .order('updated_at', { ascending: false })
