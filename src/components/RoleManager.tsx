@@ -129,11 +129,20 @@ export function RoleManager() {
 
   const changeRole = async (userId: string, newRole: 'host' | 'organizer' | 'event_planner' | 'venue_owner' | 'hospitality_provider' | 'manager') => {
     try {
-      // Update existing role in user_roles table
-      const { error } = await supabase
+      console.log('Attempting to assign role:', { userId, newRole });
+      
+      // Upsert role - insert if not exists, update if exists
+      const { data, error } = await supabase
         .from('user_roles')
-        .update({ role: newRole })
-        .eq('user_id', userId);
+        .upsert({ 
+          user_id: userId, 
+          role: newRole 
+        }, { 
+          onConflict: 'user_id,role' 
+        })
+        .select();
+
+      console.log('Role assignment result:', { data, error });
 
       if (error) throw error;
 
@@ -144,6 +153,7 @@ export function RoleManager() {
 
       fetchUsers(); // Refresh the data
     } catch (error: any) {
+      console.error('Error updating role:', error);
       toast({
         title: "Error updating role",
         description: error?.message || "Failed to update role. Please try again.",
