@@ -27,6 +27,7 @@ interface User {
 export function RoleManager() {
   const [userRoles, setUserRoles] = useState<UserRole[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [usersWithoutRoles, setUsersWithoutRoles] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [permissionMappings, setPermissionMappings] = useState<Map<string, PermissionLevel>>(new Map());
   const { toast } = useToast();
@@ -107,6 +108,12 @@ export function RoleManager() {
 
       setUsers(usersWithRoles);
       
+      // Separate users without roles
+      const unassignedUsers = invitedUsers.filter((user: any) => 
+        !userRolesData?.find(role => role.user_id === user.id)
+      );
+      setUsersWithoutRoles(unassignedUsers);
+      
       // Set all role assignments for display (including those not in invited users)
       const roleAssignments = userRolesData?.map((role: any) => ({
         id: role.user_id,
@@ -116,7 +123,13 @@ export function RoleManager() {
       })) || [];
       
       setUserRoles(roleAssignments);
+      
+      // If no roles exist and current user exists, offer to set up admin
+      if (roleAssignments.length === 0 && invitedUsers.length > 0) {
+        console.log('No roles exist yet. Consider assigning initial admin role.');
+      }
     } catch (error) {
+      console.error('Error fetching users:', error);
       toast({
         title: "Error fetching users",
         description: "Failed to load users. Please try again.",
@@ -310,11 +323,53 @@ export function RoleManager() {
         })}
       </div>
 
-      {userRoles.length === 0 && (
+      {/* Users Without Roles Section */}
+      {usersWithoutRoles.length > 0 && (
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">Users Without Roles</h3>
+          
+          {usersWithoutRoles.map((user) => (
+            <Card key={user.id} className="border-dashed">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div>
+                      <h4 className="font-semibold">{user.name || 'Unknown User'}</h4>
+                      {user.email && (
+                        <p className="text-sm text-muted-foreground">{user.email}</p>
+                      )}
+                    </div>
+                    <Badge variant="outline" className="text-muted-foreground">
+                      No Role Assigned
+                    </Badge>
+                  </div>
+                  <Select
+                    value=""
+                    onValueChange={(newRole) => changeRole(user.id, newRole as 'host' | 'organizer' | 'event_planner' | 'venue_owner' | 'hospitality_provider' | 'manager')}
+                  >
+                    <SelectTrigger className="w-40">
+                      <SelectValue placeholder="Assign role..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {roles.map((role) => (
+                        <SelectItem key={role.value} value={role.value}>
+                          {role.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {userRoles.length === 0 && usersWithoutRoles.length === 0 && (
         <div className="text-center py-12">
           <Shield className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-          <h3 className="text-lg font-semibold mb-2">No roles assigned yet</h3>
-          <p className="text-muted-foreground mb-4">Start by assigning roles to team members.</p>
+          <h3 className="text-lg font-semibold mb-2">No users found</h3>
+          <p className="text-muted-foreground mb-4">Invite team members to get started.</p>
         </div>
       )}
 
