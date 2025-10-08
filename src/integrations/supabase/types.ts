@@ -3313,7 +3313,7 @@ export type Database = {
       workflows: {
         Row: {
           created_at: string
-          event_id: string | null
+          event_id: string
           hospitality_id: string | null
           id: string
           serv_vendor_rent_id: string | null
@@ -3327,7 +3327,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          event_id?: string | null
+          event_id: string
           hospitality_id?: string | null
           id?: string
           serv_vendor_rent_id?: string | null
@@ -3341,7 +3341,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          event_id?: string | null
+          event_id?: string
           hospitality_id?: string | null
           id?: string
           serv_vendor_rent_id?: string | null
