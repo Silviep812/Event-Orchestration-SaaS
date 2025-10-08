@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -81,6 +82,7 @@ const statusIcons = {
 
 
 export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [availableTasks, setAvailableTasks] = useState<AvailableTask[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -129,7 +131,19 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
   useEffect(() => {
     fetchTasks();
     fetchUsers();
-  }, [eventId, user, selectedEventFilter, showArchived]);
+    
+    // Check URL parameters for auto-opening modal
+    const openModal = searchParams.get('openModal');
+    const urlEventId = searchParams.get('eventId');
+    
+    if (openModal === 'true') {
+      setIsCreateDialogOpen(true);
+      // Remove the openModal parameter from URL
+      const newSearchParams = new URLSearchParams(searchParams);
+      newSearchParams.delete('openModal');
+      setSearchParams(newSearchParams, { replace: true });
+    }
+  }, [eventId, user, selectedEventFilter, showArchived, searchParams, setSearchParams]);
 
   const fetchUsers = async () => {
     try {
