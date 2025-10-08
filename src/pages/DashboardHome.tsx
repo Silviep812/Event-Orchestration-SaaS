@@ -200,8 +200,9 @@ const DashboardHome = () => {
                 return `${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getDate().toString().padStart(2,'0')}/${d.getFullYear()}`;
               };
               description = `${log.entity_type} ${log.field_name.replace('_', ' ')} changed from "${formatDate(log.old_value)}" to "${formatDate(log.new_value)}"`;
-            } else if (log.change_description) {
-              description = log.change_description;
+            
+            } else if (log.entity_type === 'workflow') {
+              description = `${log.entity_type} ${log.field_name.replace('_', ' ')} changed`;
             } else if (log.field_name && log.old_value && log.new_value) {
               description = `${log.entity_type} ${log.field_name.replace('_', ' ')} changed from "${log.old_value}" to "${log.new_value}"`;
             } else if (log.action === 'created') {
