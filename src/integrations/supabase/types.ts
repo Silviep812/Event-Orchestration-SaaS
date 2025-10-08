@@ -3357,7 +3357,7 @@ export type Database = {
           {
             foreignKeyName: "workflows_event_id_fkey"
             columns: ["event_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "events"
             referencedColumns: ["id"]
           },
