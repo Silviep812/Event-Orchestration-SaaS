@@ -153,8 +153,12 @@ export default function WorkflowSetup() {
     }
   };
 
-  const handleSupplierSelection = (supplier: any) => {
+  const handleSupplierSelection = async (supplier: any) => {
     setSelectedSupplier(supplier);
+    
+    // Save supplier selection to workflow
+    await updateWorkflowSelections({ supplier_id: supplier.id });
+    
     setCurrentStep(getNextStepForUserType(selectedUserType, "suppliers"));
   };
 
