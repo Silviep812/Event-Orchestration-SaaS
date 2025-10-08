@@ -18,6 +18,12 @@ const DashboardHome = () => {
     recentEvents: []
   });
   const [loading, setLoading] = useState(true);
+  const [activities, setActivities] = useState<Array<{
+    id: string;
+    description: string;
+    timestamp: string;
+    type: 'task' | 'analytics' | 'resource';
+  }>>([]);
   const { toast } = useToast();
 
   // Fetch real-time analytics data
@@ -97,6 +103,95 @@ const DashboardHome = () => {
 
     fetchDashboardAnalytics();
   }, [toast]);
+
+  // Fetch real activity data
+  useEffect(() => {
+    const fetchActivities = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const activitiesData: Array<{
+          id: string;
+          description: string;
+          timestamp: string;
+          type: 'task' | 'analytics' | 'resource';
+        }> = [];
+
+        // Fetch completed tasks
+        const { data: completedTasks } = await supabase
+          .from('tasks')
+          .select('id, title, updated_at, event_id, events(title)')
+          .eq('created_by', user.id)
+          .eq('status', 'completed')
+          .order('updated_at', { ascending: false })
+          .limit(5);
+
+        if (completedTasks) {
+          completedTasks.forEach(task => {
+            const eventTitle = (task as any).events?.title || 'Unknown Event';
+            activitiesData.push({
+              id: `task-${task.id}`,
+              description: `Task "${task.title}" completed in ${eventTitle}`,
+              timestamp: task.updated_at,
+              type: 'task'
+            });
+          });
+        }
+
+        // Fetch event analytics updates from change_logs
+        const { data: analyticsLogs } = await supabase
+          .from('change_logs')
+          .select('id, entity_type, action, created_at, change_description')
+          .eq('changed_by', user.id)
+          .eq('entity_type', 'event_analytics')
+          .order('created_at', { ascending: false })
+          .limit(3);
+
+        if (analyticsLogs) {
+          analyticsLogs.forEach(log => {
+            activitiesData.push({
+              id: `analytics-${log.id}`,
+              description: log.change_description || 'Event analytics updated',
+              timestamp: log.created_at,
+              type: 'analytics'
+            });
+          });
+        }
+
+        // Fetch resource allocation updates
+        const { data: resourceLogs } = await supabase
+          .from('change_logs')
+          .select('id, entity_type, action, created_at, change_description, field_name')
+          .eq('changed_by', user.id)
+          .eq('entity_type', 'resource')
+          .order('created_at', { ascending: false })
+          .limit(3);
+
+        if (resourceLogs) {
+          resourceLogs.forEach(log => {
+            activitiesData.push({
+              id: `resource-${log.id}`,
+              description: log.change_description || `Resource ${log.field_name || 'allocation'} updated`,
+              timestamp: log.created_at,
+              type: 'resource'
+            });
+          });
+        }
+
+        // Sort all activities by timestamp
+        activitiesData.sort((a, b) => 
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        );
+
+        setActivities(activitiesData.slice(0, 10));
+      } catch (error) {
+        console.error('Error fetching activities:', error);
+      }
+    };
+
+    fetchActivities();
+  }, []);
 
   const stats = [
     {
@@ -342,27 +437,43 @@ const DashboardHome = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="flex items-start gap-3 p-3 rounded-lg bg-surface/50">
-                  <div className="w-2 h-2 rounded-full bg-primary mt-2"></div>
-                  <div>
-                    <p className="text-sm font-medium">Event analytics updated</p>
-                    <p className="text-xs text-muted-foreground">2 minutes ago</p>
+                {activities.length > 0 ? (
+                  activities.map((activity) => {
+                    const colorMap = {
+                      task: 'bg-secondary',
+                      analytics: 'bg-primary',
+                      resource: 'bg-accent'
+                    };
+                    
+                    const getRelativeTime = (timestamp: string) => {
+                      const now = new Date();
+                      const then = new Date(timestamp);
+                      const diffMs = now.getTime() - then.getTime();
+                      const diffMins = Math.floor(diffMs / 60000);
+                      const diffHours = Math.floor(diffMs / 3600000);
+                      const diffDays = Math.floor(diffMs / 86400000);
+                      
+                      if (diffMins < 60) return `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
+                      if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+                      return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+                    };
+
+                    return (
+                      <div key={activity.id} className="flex items-start gap-3 p-3 rounded-lg bg-surface/50">
+                        <div className={`w-2 h-2 rounded-full ${colorMap[activity.type]} mt-2`}></div>
+                        <div>
+                          <p className="text-sm font-medium">{activity.description}</p>
+                          <p className="text-xs text-muted-foreground">{getRelativeTime(activity.timestamp)}</p>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="text-center p-8 text-muted-foreground">
+                    <Activity className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p>No recent activity</p>
                   </div>
-                </div>
-                <div className="flex items-start gap-3 p-3 rounded-lg bg-surface/50">
-                  <div className="w-2 h-2 rounded-full bg-secondary mt-2"></div>
-                  <div>
-                    <p className="text-sm font-medium">New task completed in Annual Conference 2024</p>
-                    <p className="text-xs text-muted-foreground">15 minutes ago</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3 p-3 rounded-lg bg-surface/50">
-                  <div className="w-2 h-2 rounded-full bg-accent mt-2"></div>
-                  <div>
-                    <p className="text-sm font-medium">Resource allocation updated</p>
-                    <p className="text-xs text-muted-foreground">1 hour ago</p>
-                  </div>
-                </div>
+                )}
               </div>
             </CardContent>
           </Card>
