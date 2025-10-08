@@ -280,6 +280,7 @@ export const WorkflowDashboard = ({ userType, selectedTheme, workflowId, setCurr
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [eventTitle, setEventTitle] = useState<string>("");
 
   const handleCustomize = async () => {
     const workflowData = workflowId 
@@ -512,6 +513,22 @@ export const WorkflowDashboard = ({ userType, selectedTheme, workflowId, setCurr
     loadWorkflowSelections();
   }, [getWorkflowData, getWorkflowById, workflowId]);
 
+  useEffect(() => {
+    async function fetchEventTitle() {
+      if (!workflowId) return;
+      const workflowData = await getWorkflowById(workflowId);
+      if (workflowData?.event_id) {
+        const { data: event } = await supabase
+          .from('events')
+          .select('title')
+          .eq('id', workflowData.event_id)
+          .maybeSingle();
+        setEventTitle(event?.title || "Event");
+      }
+    }
+    fetchEventTitle();
+  }, [workflowId, getWorkflowById]);
+
   const completedSteps = steps.filter(step => step.status === "completed").length;
   const progressPercentage = (completedSteps / steps.length) * 100;
 
@@ -540,7 +557,7 @@ export const WorkflowDashboard = ({ userType, selectedTheme, workflowId, setCurr
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Workflow Dashboard</h1>
+          <h1 className="text-3xl font-bold">{"Workflow Dashboard - " + eventTitle}</h1>
           <p className="text-muted-foreground">
             {userType.replace("-", " ").replace(/\b\w/g, l => l.toUpperCase())} • Theme ID: {selectedTheme}
           </p>
