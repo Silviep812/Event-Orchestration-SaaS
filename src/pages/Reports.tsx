@@ -97,6 +97,25 @@ const Reports = () => {
     fetchChangeData();
   }, [dateRange, entityTypeFilter, actionFilter]);
 
+  // Helper to get display names for user IDs
+  const [userDisplayNames, setUserDisplayNames] = useState<Record<string, string>>({});
+  useEffect(() => {
+    const fetchUserNames = async () => {
+      const userIds = Array.from(new Set(changeLogs.map(log => log.changed_by)));
+      if (userIds.length === 0) return;
+      const { data } = await supabase
+        .from('profiles')
+        .select('user_id, display_name')
+        .in('user_id', userIds);
+      const nameMap: Record<string, string> = {};
+      (data || []).forEach(profile => {
+        nameMap[profile.user_id] = profile.display_name || profile.user_id.substring(0, 8) + '...';
+      });
+      setUserDisplayNames(nameMap);
+    };
+    fetchUserNames();
+  }, [changeLogs]);
+
   const fetchChangeData = async () => {
     try {
       setLoading(true);
@@ -183,7 +202,10 @@ const Reports = () => {
     const userActivity = Object.entries(userCount)
       .sort(([, a], [, b]) => b - a)
       .slice(0, 10)
-      .map(([user, changes]) => ({ user: user.substring(0, 8) + '...', changes }));
+      .map(([user, changes]) => ({
+        user, // always store user id here
+        changes
+      }));
 
     setReportData({
       totalChanges: logs.length,
@@ -433,7 +455,10 @@ const Reports = () => {
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={reportData?.userActivity || []}>
+                  <BarChart data={(reportData?.userActivity || []).map(({ user, changes }) => {
+                    const displayName = userDisplayNames[user] || user.substring(0, 8) + '...';
+                    return { user: displayName, changes };
+                  })}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="user" />
                     <YAxis />
