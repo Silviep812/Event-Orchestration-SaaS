@@ -154,6 +154,26 @@ const DashboardHome = () => {
           });
         }
 
+        // Fetch latest tasks (any status, including cancelled)
+        const { data: recentTasks } = await supabase
+          .from('tasks')
+          .select('id, title, updated_at, event_id, status')
+          .eq('created_by', user.id)
+          .order('updated_at', { ascending: false })
+          .limit(5);
+
+        if (recentTasks) {
+          recentTasks.forEach(task => {
+            const eventTitle = eventTitleMap[task.event_id] || 'Unnamed Event';
+            activitiesData.push({
+              id: `task-${task.id}`,
+              description: `Task "${task.title}" status updated to ${task.status} in ${eventTitle}`,
+              timestamp: task.updated_at,
+              type: 'task'
+            });
+          });
+        }
+
         // Fetch event analytics updates from change_logs
         const { data: analyticsLogs } = await supabase
           .from('change_logs')
