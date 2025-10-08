@@ -155,7 +155,7 @@ const DashboardHome = () => {
             const eventTitle = eventTitleMap[task.event_id] || 'Unnamed Event';
             activitiesData.push({
               id: `task-${task.id}`,
-              description: `Task "${task.title}" status updated to ${task.status} in ${eventTitle}`,
+              description: `Task "${task.title}" status updated to ${task.status.replace('_', ' ')} in ${eventTitle}`,
               timestamp: task.updated_at,
               type: 'task'
             });
