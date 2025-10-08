@@ -777,7 +777,7 @@ export const WorkflowDashboard = ({ userType, selectedTheme, workflowId, setCurr
               <Card>
                 <CardContent className="flex flex-col items-center justify-center py-12">
                   <p className="text-muted-foreground mb-4">No tasks created yet</p>
-                  <Button size="sm" onClick={() => setIsCreateTaskOpen(true)}>
+                  <Button size="sm">
                     <Plus className="h-4 w-4 mr-2" />
                     Create First Task
                   </Button>
