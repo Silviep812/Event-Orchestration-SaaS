@@ -46,7 +46,7 @@ export const useWorkflow = () => {
       // Check if workflow already exists for this user (ordered by most recent)
       const { data: existingWorkflow } = await supabase
         .from('workflows')
-        .select('id')
+        .select('id, workflow_type_id')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(1)
@@ -78,6 +78,19 @@ export const useWorkflow = () => {
           variant: "destructive"
         });
         return null;
+      }
+
+      // Log the workflow type change
+      if (data) {
+        await supabase.rpc('log_change', {
+          p_entity_type: 'workflow',
+          p_entity_id: existingWorkflow.id,
+          p_action: existingWorkflow.workflow_type_id ? 'updated' : 'created',
+          p_field_name: 'workflow_type_id',
+          p_old_value: existingWorkflow.workflow_type_id?.toString() || null,
+          p_new_value: workflow_type_id.toString(),
+          p_description: `Workflow type ${existingWorkflow.workflow_type_id ? 'changed' : 'set'} to ${userType}`
+        });
       }
 
       return data?.id;
@@ -131,9 +144,27 @@ export const useWorkflow = () => {
 
         if (data) {
           setWorkflowId(data.id);
+          
+          // Log workflow creation
+          await supabase.rpc('log_change', {
+            p_entity_type: 'workflow',
+            p_entity_id: data.id,
+            p_action: 'created',
+            p_field_name: null,
+            p_old_value: null,
+            p_new_value: null,
+            p_description: 'New workflow created'
+          });
         }
         return true;
       }
+
+      // Fetch current workflow data to compare changes
+      const { data: currentWorkflow } = await supabase
+        .from('workflows')
+        .select('*')
+        .eq('id', workflowId)
+        .single();
 
       // Update existing workflow
       const { error } = await supabase
@@ -149,6 +180,33 @@ export const useWorkflow = () => {
           variant: "destructive"
         });
         return false;
+      }
+
+      // Log changes for each updated field
+      if (currentWorkflow) {
+        const fieldLabels: Record<string, string> = {
+          theme_id: 'Event Theme',
+          hospitality_id: 'Hospitality Selection',
+          venue_id: 'Venue Selection',
+          supplier_id: 'Supplier Selection',
+          serv_vendor_sup_id: 'Service Vendor Selection',
+          serv_vendor_rent_id: 'Service Rental Selection',
+        };
+
+        for (const [key, newValue] of Object.entries(updates)) {
+          const oldValue = currentWorkflow[key as keyof typeof currentWorkflow];
+          if (oldValue !== newValue && key !== 'updated_at') {
+            await supabase.rpc('log_change', {
+              p_entity_type: 'workflow',
+              p_entity_id: workflowId,
+              p_action: 'updated',
+              p_field_name: key,
+              p_old_value: oldValue?.toString() || null,
+              p_new_value: newValue?.toString() || null,
+              p_description: `${fieldLabels[key] || key} ${oldValue ? 'changed' : 'set'}`
+            });
+          }
+        }
       }
 
       return true;
