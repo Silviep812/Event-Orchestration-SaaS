@@ -73,6 +73,24 @@ export function EventSelector({ onSelectEvent, selectedEvent }: EventSelectorPro
     fetchEvents();
   }, [user, toast]);
 
+  const handleSelectEvent = async (eventId: string) => {
+    // Check if workflow exists for this event (regardless of user)
+    const { data: existingWorkflow } = await supabase
+      .from('workflows')
+      .select('id')
+      .eq('event_id', eventId)
+      .maybeSingle();
+    
+    if (!existingWorkflow) {
+      // Create new workflow record for this event
+      await supabase.from('workflows').insert({ 
+        event_id: eventId, 
+        user_id: user?.id 
+      });
+    }
+    onSelectEvent(eventId);
+  };
+
   if (loading) {
     return (
       <Card>
@@ -113,7 +131,7 @@ export function EventSelector({ onSelectEvent, selectedEvent }: EventSelectorPro
                 ? "ring-2 ring-primary bg-primary/5"
                 : "hover:border-primary/50"
             }`}
-            onClick={() => onSelectEvent(event.id)}
+            onClick={() => handleSelectEvent(event.id)}
           >
             <CardHeader>
               <div className="flex items-start justify-between">
@@ -136,7 +154,7 @@ export function EventSelector({ onSelectEvent, selectedEvent }: EventSelectorPro
 
       {selectedEvent && (
         <div className="flex justify-end">
-          <Button onClick={() => onSelectEvent(selectedEvent)} size="lg">
+          <Button onClick={() => handleSelectEvent(selectedEvent)} size="lg">
             Continue
           </Button>
         </div>
