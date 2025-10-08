@@ -180,8 +180,79 @@ export const useWorkflow = () => {
     loadWorkflow();
   }, [user?.id]);
 
+  const getAllWorkflows = useCallback(async (): Promise<WorkflowData[]> => {
+    if (!user?.id) return [];
+
+    try {
+      const { data, error } = await supabase
+        .from('workflows')
+        .select(`
+          id,
+          workflow_type_id,
+          user_id,
+          theme_id,
+          hospitality_id,
+          venue_id,
+          supplier_id,
+          serv_vendor_sup_id,
+          serv_vendor_rent_id,
+          event_id,
+          created_at,
+          updated_at
+        `)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching workflows:', error);
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching workflows:', error);
+      return [];
+    }
+  }, [user?.id]);
+
+  const getWorkflowById = useCallback(async (workflowId: string): Promise<WorkflowData | null> => {
+    if (!user?.id) return null;
+
+    try {
+      const { data, error } = await supabase
+        .from('workflows')
+        .select(`
+          id,
+          workflow_type_id,
+          user_id,
+          theme_id,
+          hospitality_id,
+          venue_id,
+          supplier_id,
+          serv_vendor_sup_id,
+          serv_vendor_rent_id,
+          event_id,
+          created_at,
+          updated_at
+        `)
+        .eq('id', workflowId)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching workflow:', error);
+        return null;
+      }
+
+      return data || null;
+    } catch (error) {
+      console.error('Error fetching workflow:', error);
+      return null;
+    }
+  }, [user?.id]);
+
   const getWorkflowData = useCallback(async (): Promise<WorkflowData | null> => {
-  if (!user?.id) return null;
+    if (!user?.id) return null;
 
     try {
       const { data, error } = await supabase
@@ -220,6 +291,8 @@ export const useWorkflow = () => {
     loading,
     saveWorkflowType,
     updateWorkflowSelections,
-    getWorkflowData
+    getWorkflowData,
+    getAllWorkflows,
+    getWorkflowById
   };
 };

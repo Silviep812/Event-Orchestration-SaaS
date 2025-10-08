@@ -47,6 +47,7 @@ type SetupStep = "user-type" | "theme" | "hospitality" | "venue" | "services" | 
 interface WorkflowDashboardProps {
   userType: string;
   selectedTheme: number;
+  workflowId?: string;
   setCurrentStep?: (step: SetupStep) => void;
 }
 
@@ -248,7 +249,7 @@ const getPriorityColor = (priority: string) => {
   }
 };
 
-export const WorkflowDashboard = ({ userType, selectedTheme, setCurrentStep }: WorkflowDashboardProps) => {
+export const WorkflowDashboard = ({ userType, selectedTheme, workflowId, setCurrentStep }: WorkflowDashboardProps) => {
   const [steps, setSteps] = useState<WorkflowStep[]>([]);
   const [eventTasks, setEventTasks] = useState<any[]>([]);
   const [selections, setSelections] = useState<WorkflowSelections>({
@@ -273,7 +274,7 @@ export const WorkflowDashboard = ({ userType, selectedTheme, setCurrentStep }: W
     estimated_hours: "",
     due_date: "",
   });
-  const { getWorkflowData } = useWorkflow();
+  const { getWorkflowData, getWorkflowById } = useWorkflow();
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -312,7 +313,9 @@ export const WorkflowDashboard = ({ userType, selectedTheme, setCurrentStep }: W
       if (!currentUser) throw new Error('Not authenticated');
 
       // Get the event_id from the workflow
-      const workflowData = await getWorkflowData();
+      const workflowData = workflowId 
+        ? await getWorkflowById(workflowId)
+        : await getWorkflowData();
       
       const taskData = {
         title: newTask.title,
@@ -355,20 +358,22 @@ export const WorkflowDashboard = ({ userType, selectedTheme, setCurrentStep }: W
   };
 
   const refreshEventTasks = useCallback(async () => {
-  const workflowData = await getWorkflowData();
+    const workflowData = workflowId 
+      ? await getWorkflowById(workflowId)
+      : await getWorkflowData();
 
-  if (workflowData?.event_id) {
-    const { data: tasks, error } = await supabase
-      .from('tasks')
-      .select('*')
-      .eq('event_id', workflowData.event_id)
-      .order('created_at', { ascending: false });
+    if (workflowData?.event_id) {
+      const { data: tasks, error } = await supabase
+        .from('tasks')
+        .select('*')
+        .eq('event_id', workflowData.event_id)
+        .order('created_at', { ascending: false });
 
-    if (!error) {
-      setEventTasks(tasks || []);
+      if (!error) {
+        setEventTasks(tasks || []);
+      }
     }
-  }
-}, [getWorkflowData]);
+  }, [getWorkflowData, getWorkflowById, workflowId]);
 
   useEffect(() => {
     setSteps(workflowSteps[userType] || []);
@@ -376,7 +381,10 @@ export const WorkflowDashboard = ({ userType, selectedTheme, setCurrentStep }: W
 
   useEffect(() => {
     const loadEventTasks = async () => {
-      const workflowData = await getWorkflowData();
+      const workflowData = workflowId 
+        ? await getWorkflowById(workflowId)
+        : await getWorkflowData();
+        
       if (workflowData?.event_id) {
         const { data: tasks, error } = await supabase
           .from('tasks')
@@ -393,11 +401,13 @@ export const WorkflowDashboard = ({ userType, selectedTheme, setCurrentStep }: W
     };
 
     loadEventTasks();
-  }, [getWorkflowData]);
+  }, [getWorkflowData, getWorkflowById, workflowId]);
 
   useEffect(() => {
     const loadWorkflowSelections = async () => {
-      const workflowData = await getWorkflowData();
+      const workflowData = workflowId 
+        ? await getWorkflowById(workflowId)
+        : await getWorkflowData();
       if (workflowData) {
         // Fetch actual names/details for selected items
         const newSelections: WorkflowSelections = {
@@ -492,7 +502,7 @@ export const WorkflowDashboard = ({ userType, selectedTheme, setCurrentStep }: W
     };
 
     loadWorkflowSelections();
-  }, [getWorkflowData]);
+  }, [getWorkflowData, getWorkflowById, workflowId]);
 
   const completedSteps = steps.filter(step => step.status === "completed").length;
   const progressPercentage = (completedSteps / steps.length) * 100;

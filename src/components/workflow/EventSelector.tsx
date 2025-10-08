@@ -30,15 +30,34 @@ export function EventSelector({ onSelectEvent, selectedEvent }: EventSelectorPro
       if (!user) return;
 
       try {
-        const { data, error } = await supabase
+        // Fetch all events
+        const { data: eventsData, error: eventsError } = await supabase
           .from("events")
           .select("id, user_id, title, description")
           .eq("user_id", user.id)
           .order("start_date", { ascending: true });
 
-        if (error) throw error;
+        if (eventsError) throw eventsError;
 
-        setEvents(data || []);
+        // Fetch existing workflows to filter out events that already have workflows
+        const { data: workflowsData, error: workflowsError } = await supabase
+          .from("workflows")
+          .select("event_id")
+          .eq("user_id", user.id);
+
+        if (workflowsError) throw workflowsError;
+
+        // Get event IDs that already have workflows
+        const eventIdsWithWorkflows = new Set(
+          workflowsData?.map(w => w.event_id).filter(Boolean) || []
+        );
+
+        // Filter out events that already have workflows
+        const availableEvents = (eventsData || []).filter(
+          event => !eventIdsWithWorkflows.has(event.id)
+        );
+
+        setEvents(availableEvents);
       } catch (error) {
         console.error("Error fetching events:", error);
         toast({
@@ -52,7 +71,7 @@ export function EventSelector({ onSelectEvent, selectedEvent }: EventSelectorPro
     };
 
     fetchEvents();
-  }, [user, onSelectEvent, toast]);
+  }, [user, toast]);
 
   if (loading) {
     return (
