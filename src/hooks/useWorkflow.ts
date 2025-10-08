@@ -82,7 +82,7 @@ export const useWorkflow = () => {
 
       // Log the workflow type change
       if (data) {
-        await supabase.rpc('log_change', {
+        const { error: logError } = await supabase.rpc('log_change', {
           p_entity_type: 'workflow',
           p_entity_id: existingWorkflow.id,
           p_action: existingWorkflow.workflow_type_id ? 'updated' : 'created',
@@ -91,6 +91,10 @@ export const useWorkflow = () => {
           p_new_value: workflow_type_id.toString(),
           p_description: `Workflow type ${existingWorkflow.workflow_type_id ? 'changed' : 'set'} to ${userType}`
         });
+        
+        if (logError) {
+          console.error('Error logging workflow type change:', logError);
+        }
       }
 
       return data?.id;
@@ -146,7 +150,7 @@ export const useWorkflow = () => {
           setWorkflowId(data.id);
           
           // Log workflow creation
-          await supabase.rpc('log_change', {
+          const { error: logError } = await supabase.rpc('log_change', {
             p_entity_type: 'workflow',
             p_entity_id: data.id,
             p_action: 'created',
@@ -155,6 +159,10 @@ export const useWorkflow = () => {
             p_new_value: null,
             p_description: 'New workflow created'
           });
+          
+          if (logError) {
+            console.error('Error logging workflow creation:', logError);
+          }
         }
         return true;
       }
@@ -196,7 +204,7 @@ export const useWorkflow = () => {
         for (const [key, newValue] of Object.entries(updates)) {
           const oldValue = currentWorkflow[key as keyof typeof currentWorkflow];
           if (oldValue !== newValue && key !== 'updated_at') {
-            await supabase.rpc('log_change', {
+            const { error: logError } = await supabase.rpc('log_change', {
               p_entity_type: 'workflow',
               p_entity_id: workflowId,
               p_action: 'updated',
@@ -205,6 +213,10 @@ export const useWorkflow = () => {
               p_new_value: newValue?.toString() || null,
               p_description: `${fieldLabels[key] || key} ${oldValue ? 'changed' : 'set'}`
             });
+            
+            if (logError) {
+              console.error(`Error logging workflow field ${key} change:`, logError);
+            }
           }
         }
       }
