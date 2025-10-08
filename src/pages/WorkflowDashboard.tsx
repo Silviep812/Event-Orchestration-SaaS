@@ -182,11 +182,40 @@ export default function WorkflowDashboard() {
   }
 
   // Show the dashboard for the selected workflow
+  const selectedWorkflow = workflows.find(w => w.id === selectedWorkflowId);
+  const selectedEvent = selectedWorkflow?.event_id ? events[selectedWorkflow.event_id] : null;
+
   return (
-    <WorkflowDashboardComponent 
-      userType={userType}
-      selectedTheme={selectedTheme}
-      workflowId={selectedWorkflowId!}
-    />
+    <div className="min-h-screen bg-background">
+      <div className="border-b bg-card">
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">
+                {selectedEvent?.title || "Workflow Dashboard"}
+              </h1>
+              {selectedEvent?.description && (
+                <p className="text-sm text-muted-foreground mt-1">
+                  {selectedEvent.description}
+                </p>
+              )}
+            </div>
+            {workflows.length > 1 && (
+              <Button 
+                variant="outline" 
+                onClick={() => setSelectedWorkflowId(null)}
+              >
+                Change Workflow
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+      <WorkflowDashboardComponent 
+        userType={userType}
+        selectedTheme={selectedTheme}
+        workflowId={selectedWorkflowId!}
+      />
+    </div>
   );
 }
