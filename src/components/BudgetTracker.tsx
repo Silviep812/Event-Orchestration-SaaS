@@ -367,7 +367,7 @@ export function BudgetTracker({ eventId, selectedEventFilter }: BudgetTrackerPro
     
     const totalActual = budgetItems.reduce((sum, item) => sum + (item.actual_cost || 0), 0);
     const variance = totalActual - totalEstimated;
-    const variancePercentage = totalEstimated > 0 ? (variance / totalEstimated) * 100 : 0;
+    const variancePercentage = totalBudget > 0 ? (variance / totalBudget) * 100 : 0;
 
     return { totalEstimated, totalActual, variance, variancePercentage };
   };
