@@ -183,7 +183,7 @@ export default function Collaborate() {
         const userIds = assignments.map(a => a.user_id);
         const { data: usersData, error: usersError } = await supabase
           .from('profiles')
-          .select('user_id, display_name')
+          .select('user_id, display_name, avatar_url')
           .in('user_id', userIds);
 
         if (usersError) {
@@ -224,7 +224,8 @@ export default function Collaborate() {
             role: roleDisplay,
             status: assignment.user_id === user?.id ? 'online' as const : 'offline' as const,
             joinedAt: new Date().toISOString(),
-            isConfiguration: false
+            isConfiguration: false,
+            avatar: userDetails?.avatar_url || ''
           };
         });
 
@@ -365,7 +366,7 @@ export default function Collaborate() {
           if (userIds.length > 0) {
             const { data: profilesData } = await supabase
               .from('profiles')
-              .select('user_id, display_name')
+              .select('user_id, display_name, avatar_url')
               .in('user_id', userIds);
 
             if (profilesData) {
@@ -388,7 +389,8 @@ export default function Collaborate() {
               email: userInfo?.email || '',
               role: ma.team_admin ? 'Admin' : 'Member',
               status: 'offline',
-              joinedAt: new Date().toISOString()
+              joinedAt: new Date().toISOString(),
+              avatar: userInfo?.avatar_url || ''
             };
           });
 
@@ -833,10 +835,13 @@ export default function Collaborate() {
                 <div className="flex items-center gap-4">
                   <div className="relative">
                     <Avatar className="w-16 h-16">
-                      <AvatarImage src={selectedMember.avatar} />
-                      <AvatarFallback className="text-lg">
-                        {selectedMember.name.split(' ').map(n => n[0]).join('')}
-                      </AvatarFallback>
+                      {selectedMember.avatar ? (
+                        <AvatarImage src={selectedMember.avatar} alt={selectedMember.name} />
+                      ) : (
+                        <AvatarFallback className="text-lg">
+                          {selectedMember.name.split(' ').map(n => n[0]).join('')}
+                        </AvatarFallback>
+                      )}
                     </Avatar>
                     <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${getStatusColor(selectedMember.status)}`} />
                   </div>
