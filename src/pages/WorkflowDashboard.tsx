@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
 import { WorkflowDashboard as WorkflowDashboardComponent } from "@/components/workflow/WorkflowDashboard";
 import { useWorkflow } from "@/hooks/useWorkflow";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -29,7 +28,6 @@ interface Event {
 }
 
 export default function WorkflowDashboard() {
-  const [searchParams] = useSearchParams();
   const { getAllWorkflows, getWorkflowById, loading } = useWorkflow();
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(null);
@@ -57,12 +55,8 @@ export default function WorkflowDashboard() {
       const allWorkflows = await getAllWorkflows();
       setWorkflows(allWorkflows);
 
-      // Check if workflowId is in URL params
-      const urlWorkflowId = searchParams.get('workflowId');
-      if (urlWorkflowId) {
-        setSelectedWorkflowId(urlWorkflowId);
-      } else if (allWorkflows.length === 1 && allWorkflows[0].id) {
-        // If only one workflow and no URL param, auto-select it
+      // If only one workflow, auto-select it
+      if (allWorkflows.length === 1 && allWorkflows[0].id) {
         setSelectedWorkflowId(allWorkflows[0].id);
       }
 

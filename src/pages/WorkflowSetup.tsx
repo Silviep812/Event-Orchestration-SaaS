@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { WorkflowSelector } from "@/components/workflow/WorkflowSelector";
 import { EventSelector } from "@/components/workflow/EventSelector";
 import { EventThemeSelector } from "@/components/workflow/EventThemeSelector";
@@ -19,7 +19,6 @@ type SetupStep = "event" | "user-type" | "theme" | "hospitality" | "venue" | "se
 
 export default function WorkflowSetup() {
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
   const { userRoles, user } = useAuth();
   const { saveWorkflowType, updateWorkflowSelections, loading } = useWorkflow();
   const [currentStep, setCurrentStep] = useState<SetupStep>("event");
@@ -252,8 +251,6 @@ export default function WorkflowSetup() {
     setSelectedSupplier(supplier);
     
     // Save supplier selection to workflow
-    let finalWorkflowId = workflowIdForEvent;
-    
     if (workflowIdForEvent && selectedEvent) {
       await supabase
         .from('workflows')
@@ -261,23 +258,9 @@ export default function WorkflowSetup() {
         .eq('id', workflowIdForEvent);
     } else {
       await updateWorkflowSelections({ supplier_id: supplier.id });
-      // Get the workflow ID from the database
-      const { data } = await supabase
-        .from('workflows')
-        .select('id')
-        .eq('event_id', selectedEvent)
-        .eq('user_id', user?.id)
-        .maybeSingle();
-      
-      if (data) {
-        finalWorkflowId = data.id;
-      }
     }
     
-    // Redirect to Workflow Dashboard with the workflow ID
-    if (finalWorkflowId) {
-      navigate(`/dashboard/workflow?workflowId=${finalWorkflowId}`);
-    }
+    setCurrentStep(getNextStepForUserType(selectedUserType, "suppliers"));
   };
 
   const handleBack = () => {
@@ -428,6 +411,14 @@ export default function WorkflowSetup() {
             <SupplierSelector 
               onSelectSupplier={handleSupplierSelection}
               selectedSupplier={selectedSupplier}
+            />
+          )}
+
+          {currentStep === "dashboard" && selectedUserType && selectedTheme && selectedSupplier && (
+            <WorkflowDashboard 
+              userType={selectedUserType}
+              selectedTheme={selectedTheme}
+              setCurrentStep={setCurrentStep}
             />
           )}
         </div>
