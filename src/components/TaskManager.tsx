@@ -622,6 +622,14 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
 
       if (error) throw error;
 
+      // Log task creation
+      await supabase.rpc('log_change', {
+        p_entity_type: 'task',
+        p_entity_id: createdTask.id,
+        p_action: 'created',
+        p_description: `Created task: ${taskData.title}`
+      });
+
       // Save user assignment if provided
       if (newTask.assigned_user_id) {
         const { error: assignmentError } = await supabase
@@ -633,6 +641,17 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
           });
 
         if (assignmentError) throw assignmentError;
+
+        // Log assignment
+        const assignedUser = users.find(u => u.userid === newTask.assigned_user_id);
+        await supabase.rpc('log_change', {
+          p_entity_type: 'task',
+          p_entity_id: createdTask.id,
+          p_action: 'assigned',
+          p_field_name: 'assigned_to',
+          p_new_value: assignedUser?.user_name || newTask.assigned_user_id,
+          p_description: `Task assigned to ${assignedUser?.user_name || 'user'}`
+        });
       }
 
       // Close dialog and refetch tasks
@@ -661,10 +680,14 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
     }
   };
 
-  const updateTaskAssignment = async (taskId: string, assignedUserId?: string) => {
+  const updateTaskAssignment = async (taskId: string, assignedUserId?: string, oldAssignedUserId?: string) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
+
+      // Get old and new user names for logging
+      const oldUser = oldAssignedUserId ? users.find(u => u.userid === oldAssignedUserId) : null;
+      const newUser = assignedUserId ? users.find(u => u.userid === assignedUserId) : null;
 
       // First, remove existing assignments
       await supabase
@@ -684,6 +707,21 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
 
         if (error) throw error;
       }
+
+      // Log assignment change
+      if (oldAssignedUserId !== assignedUserId) {
+        await supabase.rpc('log_change', {
+          p_entity_type: 'task',
+          p_entity_id: taskId,
+          p_action: 'updated',
+          p_field_name: 'assigned_to',
+          p_old_value: oldUser?.user_name || (oldAssignedUserId ? 'Unknown User' : 'Unassigned'),
+          p_new_value: newUser?.user_name || (assignedUserId ? 'Unknown User' : 'Unassigned'),
+          p_description: assignedUserId 
+            ? `Task reassigned from ${oldUser?.user_name || 'Unassigned'} to ${newUser?.user_name || 'user'}`
+            : `Task unassigned from ${oldUser?.user_name || 'user'}`
+        });
+      }
     } catch (error) {
       console.error('Error updating task assignment:', error);
       throw error;
@@ -692,6 +730,9 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
 
   const updateTask = async (taskId: string, updates: Partial<Task>) => {
     try {
+      // Get the original task for comparison
+      const originalTask = tasks.find(t => t.id === taskId);
+      
       // Remove assigned_user_id and assigned_user_name from updates as they're handled separately
       const { assigned_user_id, assigned_user_name, ...taskUpdates } = updates;
       
@@ -702,9 +743,46 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
 
       if (error) throw error;
 
+      // Log field changes
+      if (originalTask) {
+        const changes: Array<{field: string, oldValue: any, newValue: any}> = [];
+        
+        if (updates.title && updates.title !== originalTask.title) {
+          changes.push({ field: 'title', oldValue: originalTask.title, newValue: updates.title });
+        }
+        if (updates.description !== undefined && updates.description !== originalTask.description) {
+          changes.push({ field: 'description', oldValue: originalTask.description || 'None', newValue: updates.description || 'None' });
+        }
+        if (updates.status && updates.status !== originalTask.status) {
+          changes.push({ field: 'status', oldValue: originalTask.status, newValue: updates.status });
+        }
+        if (updates.priority && updates.priority !== originalTask.priority) {
+          changes.push({ field: 'priority', oldValue: originalTask.priority, newValue: updates.priority });
+        }
+        if (updates.estimated_hours !== undefined && updates.estimated_hours !== originalTask.estimated_hours) {
+          changes.push({ field: 'estimated_hours', oldValue: originalTask.estimated_hours?.toString() || 'None', newValue: updates.estimated_hours?.toString() || 'None' });
+        }
+        if (updates.due_date !== undefined && updates.due_date !== originalTask.due_date) {
+          changes.push({ field: 'due_date', oldValue: originalTask.due_date || 'None', newValue: updates.due_date || 'None' });
+        }
+
+        // Log each change
+        for (const change of changes) {
+          await supabase.rpc('log_change', {
+            p_entity_type: 'task',
+            p_entity_id: taskId,
+            p_action: 'updated',
+            p_field_name: change.field,
+            p_old_value: String(change.oldValue),
+            p_new_value: String(change.newValue),
+            p_description: `Updated ${change.field} from "${change.oldValue}" to "${change.newValue}"`
+          });
+        }
+      }
+
       // Handle user assignment if provided
       if (assigned_user_id !== undefined) {
-        await updateTaskAssignment(taskId, assigned_user_id);
+        await updateTaskAssignment(taskId, assigned_user_id, originalTask?.assigned_user_id);
       }
 
       setTasks(tasks.map(task => 
@@ -858,12 +936,24 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
 
   const archiveTask = async (taskId: string, archived: boolean) => {
     try {
+      const task = tasks.find(t => t.id === taskId);
+      
       const { error } = await supabase
         .from('tasks')
         .update({ archived })
         .eq('id', taskId);
 
       if (error) throw error;
+
+      // Log archive/restore action
+      await supabase.rpc('log_change', {
+        p_entity_type: 'task',
+        p_entity_id: taskId,
+        p_action: archived ? 'archived' : 'restored',
+        p_description: archived 
+          ? `Archived task: ${task?.title || 'Unknown'}`
+          : `Restored task: ${task?.title || 'Unknown'}`
+      });
 
       toast({
         title: archived ? "Task archived" : "Task restored",

@@ -362,7 +362,7 @@ export default function Collaborate() {
 
           const userIds = (memberAssignments || []).map((ma: any) => ma.user_id);
 
-          let usersMap: Record<string, { id: string; name: string; email: string }> = {};
+          let usersMap: Record<string, { id: string; name: string; email: string; avatar_url?: string }> = {};
           if (userIds.length > 0) {
             const { data: profilesData } = await supabase
               .from('profiles')
@@ -374,7 +374,8 @@ export default function Collaborate() {
                 acc[u.user_id] = { 
                   id: u.user_id, 
                   name: u.display_name || 'Unknown User',
-                  email: '' 
+                  email: '',
+                  avatar_url: u.avatar_url
                 };
                 return acc;
               }, {});
