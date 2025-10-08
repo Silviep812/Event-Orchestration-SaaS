@@ -532,6 +532,10 @@ export const WorkflowDashboard = ({ userType, selectedTheme, workflowId, setCurr
   const completedSteps = steps.filter(step => step.status === "completed").length;
   const progressPercentage = (completedSteps / steps.length) * 100;
 
+  // Calculate upcoming deadlines based on event tasks with a future due_date
+  const now = new Date();
+  const upcomingDeadlines = eventTasks.filter(task => task.due_date && new Date(task.due_date) > now).length;
+
   const stats = [
     {
       title: "Workflow Progress",
@@ -547,8 +551,8 @@ export const WorkflowDashboard = ({ userType, selectedTheme, workflowId, setCurr
     },
     {
       title: "Upcoming Deadlines",
-      value: steps.filter(step => step.status === "not_started").length.toString(),
-      description: "Tasks to be started",
+      value: upcomingDeadlines.toString(),
+      description: "Tasks with future due dates",
       icon: Calendar,
     },
   ];
