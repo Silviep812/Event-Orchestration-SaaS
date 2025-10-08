@@ -127,9 +127,24 @@ const DashboardHome = () => {
           .order('updated_at', { ascending: false })
           .limit(5);
 
+        // Fetch event titles for completed tasks
+        let eventTitleMap: Record<string, string> = {};
+        if (completedTasks && completedTasks.length > 0) {
+          const eventIds = Array.from(new Set(completedTasks.map(task => task.event_id).filter(Boolean)));
+          if (eventIds.length > 0) {
+            const { data: eventData } = await supabase
+              .from('events')
+              .select('id, title')
+              .in('id', eventIds);
+            (eventData || []).forEach(event => {
+              eventTitleMap[event.id] = event.title;
+            });
+          }
+        }
+
         if (completedTasks) {
           completedTasks.forEach(task => {
-            const eventTitle = (task as any).events?.title || 'Unknown Event';
+            const eventTitle = eventTitleMap[task.event_id] || 'Unnamed Event';
             activitiesData.push({
               id: `task-${task.id}`,
               description: `Task "${task.title}" completed in ${eventTitle}`,
