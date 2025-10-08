@@ -205,20 +205,51 @@ const DashboardHome = () => {
         // Fetch budget status updates from change_logs
         const { data: budgetLogs } = await supabase
           .from('change_logs')
-          .select('id, entity_type, action, created_at, field_name, old_value, new_value, change_description')
+          .select('id, entity_type, action, created_at, field_name, old_value, new_value, change_description, entity_id')
           .eq('changed_by', user.id)
           .eq('entity_type', 'budget_item')
           .eq('field_name', 'payment_status')
           .order('created_at', { ascending: false })
           .limit(5);
 
-        console.log('budgetLogs', budgetLogs);
+        // Fetch event_id for each budget_item
+        let budgetEventMap: Record<string, string> = {};
+        if (budgetLogs && budgetLogs.length > 0) {
+          const budgetItemIds = Array.from(new Set(budgetLogs.map(log => log.entity_id).filter(Boolean)));
+          if (budgetItemIds.length > 0) {
+            const { data: budgetItems } = await supabase
+              .from('budget_items')
+              .select('id, event_id')
+              .in('id', budgetItemIds);
+            (budgetItems || []).forEach(item => {
+              budgetEventMap[item.id] = item.event_id;
+            });
+          }
+        }
+
+        // Map event titles for budget items
+        let allEventIds = Object.values(budgetEventMap);
+        let allEventTitles: Record<string, string> = { ...eventTitleMap };
+        if (allEventIds.length > 0) {
+          const missingEventIds = allEventIds.filter(eid => !allEventTitles[eid]);
+          if (missingEventIds.length > 0) {
+            const { data: moreEvents } = await supabase
+              .from('events')
+              .select('id, title')
+              .in('id', missingEventIds);
+            (moreEvents || []).forEach(event => {
+              allEventTitles[event.id] = event.title;
+            });
+          }
+        }
 
         if (budgetLogs) {
           budgetLogs.forEach(log => {
+            const eventId = budgetEventMap[log.entity_id];
+            const eventTitle = allEventTitles[eventId] || 'Unnamed Event';
             activitiesData.push({
               id: `budget-${log.id}`,
-              description: `Budget status changed from "${log.old_value}" to "${log.new_value}"`,
+              description: `Budget status changed from "${log.old_value}" to "${log.new_value}" in ${eventTitle}`,
               timestamp: log.created_at,
               type: 'resource'
             });
