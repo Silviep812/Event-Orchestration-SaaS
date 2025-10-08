@@ -126,30 +126,65 @@ const DashboardHome = () => {
           .order('created_at', { ascending: false })
           .limit(20);
 
-        // If there are workflow logs, fetch their event names
-        let workflowEventMap: Record<string, string> = {};
-        if (changeLogs) {
+        // Map event names for all change logs
+        let changeLogEventMap: Record<string, string> = {};
+        if (changeLogs && changeLogs.length > 0) {
+          // Collect all possible event_ids from entity_id (for budget_item, workflow, task, etc.)
+          const budgetItemIds = changeLogs.filter(log => log.entity_type === 'budget_item').map(log => log.entity_id).filter(Boolean);
           const workflowIds = changeLogs.filter(log => log.entity_type === 'workflow').map(log => log.entity_id).filter(Boolean);
+          const taskIds = changeLogs.filter(log => log.entity_type === 'task').map(log => log.entity_id).filter(Boolean);
+          // Fetch event_ids for each type
+          let eventIds: string[] = [];
+          // Budget items
+          if (budgetItemIds.length > 0) {
+            const { data: budgetItems } = await supabase
+              .from('budget_items')
+              .select('id, event_id')
+              .in('id', budgetItemIds);
+            (budgetItems || []).forEach(item => {
+              changeLogEventMap[item.id] = item.event_id;
+              eventIds.push(item.event_id);
+            });
+          }
+          // Workflows
           if (workflowIds.length > 0) {
             const { data: workflows } = await supabase
               .from('workflows')
               .select('id, event_id')
               .in('id', workflowIds);
-            const eventIds = Array.from(new Set((workflows || []).map(w => w.event_id).filter(Boolean)));
-            let eventTitleMap: Record<string, string> = {};
-            if (eventIds.length > 0) {
-              const { data: events } = await supabase
-                .from('events')
-                .select('id, title')
-                .in('id', eventIds);
-              (events || []).forEach(event => {
-                eventTitleMap[event.id] = event.title;
-              });
-            }
             (workflows || []).forEach(w => {
-              workflowEventMap[w.id] = eventTitleMap[w.event_id] || 'Unnamed Event';
+              changeLogEventMap[w.id] = w.event_id;
+              eventIds.push(w.event_id);
             });
           }
+          // Tasks
+          if (taskIds.length > 0) {
+            const { data: tasks } = await supabase
+              .from('tasks')
+              .select('id, event_id')
+              .in('id', taskIds);
+            (tasks || []).forEach(t => {
+              changeLogEventMap[t.id] = t.event_id;
+              eventIds.push(t.event_id);
+            });
+          }
+          // Remove duplicates
+          eventIds = Array.from(new Set(eventIds.filter(Boolean)));
+          // Fetch event titles
+          let allEventTitles: Record<string, string> = {};
+          if (eventIds.length > 0) {
+            const { data: events } = await supabase
+              .from('events')
+              .select('id, title')
+              .in('id', eventIds);
+            (events || []).forEach(event => {
+              allEventTitles[event.id] = event.title;
+            });
+          }
+          // Attach event name to each log
+          changeLogs.forEach(log => {
+            log._eventName = allEventTitles[changeLogEventMap[log.entity_id]] || 'Unnamed Event';
+          });
         }
 
         if (changeLogs) {
@@ -157,23 +192,7 @@ const DashboardHome = () => {
             let description = '';
             // Format date fields
             const dateFields = ['due_date', 'start_date', 'end_date'];
-            if (log.entity_type === 'workflow') {
-              const eventName = workflowEventMap[log.entity_id] || 'Unnamed Event';
-              // Build the usual message, then append event name
-              if (log.change_description) {
-                description = `${log.change_description} in ${eventName}`;
-              } else if (log.field_name && log.old_value && log.new_value) {
-                description = `Workflow ${log.field_name.replace('_', ' ')} changed from "${log.old_value}" to "${log.new_value}" in ${eventName}`;
-              } else if (log.action === 'created') {
-                description = `Workflow created in ${eventName}`;
-              } else if (log.action === 'updated') {
-                description = `Workflow ${log.field_name ? log.field_name.replace('_', ' ') : ''} updated in ${eventName}`.trim();
-              } else if (log.action === 'deleted') {
-                description = `Workflow deleted in ${eventName}`;
-              } else {
-                description = `Workflow ${log.action} in ${eventName}`;
-              }
-            } else if (dateFields.includes(log.field_name)) {
+            if (dateFields.includes(log.field_name)) {
               const formatDate = (dateStr: string) => {
                 if (!dateStr) return '';
                 const d = new Date(dateStr);
@@ -193,6 +212,10 @@ const DashboardHome = () => {
               description = `${log.entity_type} deleted`;
             } else {
               description = `${log.entity_type} ${log.action}`;
+            }
+            // Always append event name if available
+            if (log._eventName) {
+              description += ` in ${log._eventName}`;
             }
 
             // Determine activity type based on entity_type
