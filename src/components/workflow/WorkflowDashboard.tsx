@@ -49,6 +49,8 @@ interface WorkflowDashboardProps {
   selectedTheme: number;
   workflowId?: string;
   setCurrentStep?: (step: SetupStep) => void;
+  onChangeWorkflow?: () => void;
+  showChangeWorkflow?: boolean;
 }
 
 interface WorkflowSelections {
@@ -249,7 +251,7 @@ const getPriorityColor = (priority: string) => {
   }
 };
 
-export const WorkflowDashboard = ({ userType, selectedTheme, workflowId, setCurrentStep }: WorkflowDashboardProps) => {
+export const WorkflowDashboard = ({ userType, selectedTheme, workflowId, setCurrentStep, onChangeWorkflow, showChangeWorkflow }: WorkflowDashboardProps) => {
   const [steps, setSteps] = useState<WorkflowStep[]>([]);
   const [eventTasks, setEventTasks] = useState<any[]>([]);
   const [selections, setSelections] = useState<WorkflowSelections>({
@@ -544,6 +546,11 @@ export const WorkflowDashboard = ({ userType, selectedTheme, workflowId, setCurr
           </p>
         </div>
         <div className="flex gap-2">
+          {showChangeWorkflow && (
+            <Button variant="outline" size="sm" onClick={onChangeWorkflow || (() => navigate('/dashboard/select-workflow'))}>
+              Change Workflow
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={handleCustomize}>
             <Settings className="h-4 w-4 mr-2" />
             Customize
