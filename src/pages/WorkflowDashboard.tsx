@@ -35,7 +35,6 @@ export default function WorkflowDashboard() {
   const [selectedTheme, setSelectedTheme] = useState<number | undefined>(undefined);
   const [events, setEvents] = useState<Record<string, Event>>({});
   const [isLoadingWorkflows, setIsLoadingWorkflows] = useState(true);
-  const [isLoadingSelectedWorkflow, setIsLoadingSelectedWorkflow] = useState(false);
 
   // Map workflow_type_id back to user type string
   const getUserTypeString = (typeId?: number): string => {
@@ -89,25 +88,20 @@ export default function WorkflowDashboard() {
   // Load selected workflow data
   useEffect(() => {
     const loadSelectedWorkflow = async () => {
-      if (!selectedWorkflowId) {
-        setIsLoadingSelectedWorkflow(false);
-        return;
-      }
+      if (!selectedWorkflowId) return;
 
-      setIsLoadingSelectedWorkflow(true);
       const data = await getWorkflowById(selectedWorkflowId);
       if (data) {
         setUserType(getUserTypeString(data.workflow_type_id));
         setSelectedTheme(data.theme_id || undefined);
       }
-      setIsLoadingSelectedWorkflow(false);
     };
     loadSelectedWorkflow();
   }, [selectedWorkflowId, getWorkflowById]);
 
-  if (loading || isLoadingWorkflows || isLoadingSelectedWorkflow) {
+  if (loading || isLoadingWorkflows) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-[400px]">
         <Card>
           <CardContent className="flex flex-col items-center gap-4 p-6">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
