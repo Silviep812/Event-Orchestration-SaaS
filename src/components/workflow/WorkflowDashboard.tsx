@@ -279,11 +279,17 @@ export const WorkflowDashboard = ({ userType, selectedTheme, workflowId, setCurr
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const handleCustomize = () => {
+  const handleCustomize = async () => {
+    const workflowData = workflowId 
+      ? await getWorkflowById(workflowId)
+      : await getWorkflowData();
+    
+    const eventId = workflowData?.event_id;
+    
     if (setCurrentStep) {
       setCurrentStep("user-type");
     } else {
-      navigate("/dashboard/workflow?step=1");
+      navigate(`/dashboard/workflow?eventId=${eventId}`);
     }
   };
 

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { WorkflowSelector } from "@/components/workflow/WorkflowSelector";
 import { EventSelector } from "@/components/workflow/EventSelector";
 import { EventThemeSelector } from "@/components/workflow/EventThemeSelector";
@@ -17,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 type SetupStep = "event" | "user-type" | "theme" | "hospitality" | "venue" | "services" | "suppliers" | "dashboard";
 
 export default function WorkflowSetup() {
+  const [searchParams] = useSearchParams();
   const { userRoles, user } = useAuth();
   const { saveWorkflowType, updateWorkflowSelections, loading } = useWorkflow();
   const [currentStep, setCurrentStep] = useState<SetupStep>("event");
@@ -27,6 +29,15 @@ export default function WorkflowSetup() {
   const [selectedVenue, setSelectedVenue] = useState<string | undefined>(undefined);
   const [selectedServiceVendor, setSelectedServiceVendor] = useState<string | null>(null);
   const [selectedServiceRental, setSelectedServiceRental] = useState<string | null>(null);
+
+  // Check if editing existing workflow (coming from dashboard)
+  useEffect(() => {
+    const eventId = searchParams.get('eventId');
+    if (eventId) {
+      setSelectedEvent(eventId);
+      setCurrentStep("user-type");
+    }
+  }, [searchParams]);
 
   // Auto-detect user type from Supabase roles
   useEffect(() => {
