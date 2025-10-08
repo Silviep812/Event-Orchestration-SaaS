@@ -354,8 +354,17 @@ export function BudgetTracker({ eventId, selectedEventFilter }: BudgetTrackerPro
   };
 
   const calculateTotals = () => {
-    // Use event budget as estimated total (defaults to 0 if not set or null)
-    const totalEstimated = eventBudget ?? 0;
+    // Start with the event budget
+    const totalBudget = eventBudget ?? 0;
+    
+    // Sum all paid items (estimated cost for paid items)
+    const totalPaid = budgetItems
+      .filter(item => item.payment_status === 'paid')
+      .reduce((sum, item) => sum + (item.estimated_cost || 0), 0);
+    
+    // Estimated total is budget minus paid items
+    const totalEstimated = totalBudget - totalPaid;
+    
     const totalActual = budgetItems.reduce((sum, item) => sum + (item.actual_cost || 0), 0);
     const variance = totalActual - totalEstimated;
     const variancePercentage = totalEstimated > 0 ? (variance / totalEstimated) * 100 : 0;
