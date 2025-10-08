@@ -142,18 +142,6 @@ const DashboardHome = () => {
           }
         }
 
-        if (completedTasks) {
-          completedTasks.forEach(task => {
-            const eventTitle = eventTitleMap[task.event_id] || 'Unnamed Event';
-            activitiesData.push({
-              id: `task-${task.id}`,
-              description: `Task "${task.title}" completed in ${eventTitle}`,
-              timestamp: task.updated_at,
-              type: 'task'
-            });
-          });
-        }
-
         // Fetch latest tasks (any status, including cancelled)
         const { data: recentTasks } = await supabase
           .from('tasks')
