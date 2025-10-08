@@ -960,18 +960,10 @@ export default function Collaborate() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="team" className="flex items-center gap-2">
             <Users className="w-4 h-4" />
             Team
-          </TabsTrigger>
-          <TabsTrigger value="chat" className="flex items-center gap-2">
-            <MessageSquare className="w-4 h-4" />
-            Chat
-          </TabsTrigger>
-          <TabsTrigger value="files" className="flex items-center gap-2">
-            <FileText className="w-4 h-4" />
-            Files
           </TabsTrigger>
           <TabsTrigger value="activity" className="flex items-center gap-2">
             <Clock className="w-4 h-4" />
@@ -1081,83 +1073,6 @@ export default function Collaborate() {
               ))}
             </div>
           )}
-        </TabsContent>
-
-        <TabsContent value="chat" className="space-y-4">
-          <Card className="h-96">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MessageSquare className="w-5 h-5" />
-                Team Chat
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col h-full">
-              <ScrollArea className="flex-1 pr-4">
-                <div className="space-y-4">
-                  {messages.map((message) => (
-                    <div key={message.id} className="flex gap-3">
-                      <Avatar className="w-8 h-8">
-                        <AvatarFallback className="text-xs">
-                          {message.senderName.split(' ').map(n => n[0]).join('')}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-medium text-sm">{message.senderName}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {new Date(message.timestamp).toLocaleTimeString()}
-                          </span>
-                        </div>
-                        <p className="text-sm">{message.content}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
-              <div className="flex gap-2 mt-4">
-                <Input
-                  placeholder="Type a message..."
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                />
-                <Button onClick={handleSendMessage}>
-                  <Send className="w-4 h-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="files" className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h3 className="text-lg font-semibold">Shared Files</h3>
-            <Button variant="outline">
-              <Upload className="w-4 h-4 mr-2" />
-              Upload File
-            </Button>
-          </div>
-          
-          <div className="grid gap-4">
-            {sharedFiles.map((file) => (
-              <Card key={file.id}>
-                <CardContent className="flex items-center justify-between p-4">
-                  <div className="flex items-center gap-3">
-                    <FileIcon className="w-8 h-8 text-primary" />
-                    <div>
-                      <h4 className="font-medium">{file.name}</h4>
-                      <p className="text-sm text-muted-foreground">
-                        {file.size} • Uploaded by {file.uploadedBy} • {new Date(file.uploadedAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                  <Button variant="ghost" size="sm">
-                    <Download className="w-4 h-4" />
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
         </TabsContent>
 
         <TabsContent value="activity" className="space-y-4">
