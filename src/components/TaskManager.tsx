@@ -138,6 +138,13 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
     
     if (openModal === 'true') {
       setIsCreateDialogOpen(true);
+      
+      // Auto-select the event if eventId is provided in URL or props
+      const targetEventId = urlEventId || eventId;
+      if (targetEventId) {
+        setNewTask(prev => ({ ...prev, selected_event_id: targetEventId }));
+      }
+      
       // Remove the openModal parameter from URL
       const newSearchParams = new URLSearchParams(searchParams);
       newSearchParams.delete('openModal');
