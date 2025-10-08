@@ -453,7 +453,12 @@ const DashboardHome = () => {
                       <div key={activity.id} className="flex items-start gap-3 p-3 rounded-lg bg-surface/50">
                         <div className={`w-2 h-2 rounded-full ${colorMap[activity.type]} mt-2`}></div>
                         <div>
-                          <p className="text-sm font-medium">{activity.description.replace(/_/g, ' ')}</p>
+                          <p className="text-sm font-medium">{
+                            (() => {
+                              const desc = activity.description.replace(/_/g, ' ');
+                              return desc.charAt(0).toUpperCase() + desc.slice(1);
+                            })()
+                          }</p>
                           <p className="text-xs text-muted-foreground">{getRelativeTime(activity.timestamp)}</p>
                         </div>
                       </div>
