@@ -574,7 +574,7 @@ const Reports = () => {
                           )}
                         </TableCell>
                         <TableCell className="font-mono text-xs">
-                          {log.changed_by.substring(0, 8)}...
+                          {userDisplayNames[log.changed_by] || log.changed_by.substring(0, 8) + '...'}
                         </TableCell>
                       </TableRow>
                     ))}
