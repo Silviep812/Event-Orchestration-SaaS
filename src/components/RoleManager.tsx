@@ -188,39 +188,36 @@ export function RoleManager() {
   };
 
   const changeRole = async (
+    roleAssignmentId: string,
     userId: string, 
     newRole: 'host' | 'organizer' | 'event_planner' | 'venue_owner' | 'hospitality_provider' | 'manager',
     permissionLevel: PermissionLevel,
     eventId: string | null = null
   ) => {
     try {
-      console.log('Attempting to assign role:', { userId, newRole, permissionLevel, eventId });
+      console.log('Updating role assignment:', { roleAssignmentId, userId, newRole, permissionLevel, eventId });
       
-      // Upsert role with permission level and event_id
+      // Update the specific role assignment by ID
       const { data, error } = await supabase
         .from('user_roles')
-        .upsert({ 
-          user_id: userId, 
+        .update({ 
           role: newRole,
           permission_level: permissionLevel,
           event_id: eventId
-        }, { 
-          onConflict: 'user_id,role' 
         })
+        .eq('id', roleAssignmentId)
         .select();
 
-      console.log('Role assignment result:', { data, error });
+      console.log('Role update result:', { data, error });
 
       if (error) throw error;
 
       toast({
-        title: "Role and permissions updated",
-        description: eventId 
-          ? "User role and permission level have been updated for the selected event."
-          : "User role and permission level have been updated globally.",
+        title: "Role updated",
+        description: "User role and permission level have been updated successfully.",
       });
 
-      fetchUsers(); // Refresh the data
+      await fetchUsers(); // Refresh the data
     } catch (error: any) {
       console.error('Error updating role:', error);
       toast({
@@ -372,7 +369,7 @@ export function RoleManager() {
                         onValueChange={(eventId) => {
                           console.log('[RoleManager] Event changed to:', eventId);
                           const finalEventId = eventId === 'global' ? null : eventId;
-                          changeRole(userRole.user_id, userRole.role as any, currentPermission, finalEventId);
+                          changeRole(userRole.id, userRole.user_id, userRole.role as any, currentPermission, finalEventId);
                         }}
                       >
                         <SelectTrigger className="w-full">
@@ -396,7 +393,7 @@ export function RoleManager() {
                         value={userRole.role}
                         onValueChange={(newRole) => {
                           const suggestedPermission = permissionMappings.get(newRole) || currentPermission;
-                          changeRole(userRole.user_id, newRole as any, suggestedPermission, userRole.event_id);
+                          changeRole(userRole.id, userRole.user_id, newRole as any, suggestedPermission, userRole.event_id);
                         }}
                       >
                         <SelectTrigger className="w-full">
@@ -422,7 +419,7 @@ export function RoleManager() {
                       <Select
                         key={`permission-${userRole.user_id}-${userRole.role}-${currentPermission}`}
                         value={currentPermission}
-                        onValueChange={(newPermission) => changeRole(userRole.user_id, userRole.role as any, newPermission as PermissionLevel, userRole.event_id)}
+                        onValueChange={(newPermission) => changeRole(userRole.id, userRole.user_id, userRole.role as any, newPermission as PermissionLevel, userRole.event_id)}
                       >
                         <SelectTrigger className="w-full">
                           <SelectValue placeholder="Select permission..." />
@@ -461,9 +458,31 @@ export function RoleManager() {
               events={events}
               permissionLevels={permissionLevels}
               permissionMappings={permissionMappings}
-              onAssign={(userId, role, permissionLevel, eventId) => 
-                changeRole(userId, role as any, permissionLevel, eventId)
-              }
+              onAssign={async (userId, role, permissionLevel, eventId) => {
+                // For new assignments, create a new role
+                const { error } = await supabase
+                  .from('user_roles')
+                  .insert({ 
+                    user_id: userId, 
+                    role: role as any,
+                    permission_level: permissionLevel,
+                    event_id: eventId
+                  });
+                
+                if (error) {
+                  toast({
+                    title: "Error assigning role",
+                    description: error.message,
+                    variant: "destructive",
+                  });
+                } else {
+                  toast({
+                    title: "Role assigned",
+                    description: "User role has been assigned successfully.",
+                  });
+                  await fetchUsers();
+                }
+              }}
             />
           ))}
         </div>
