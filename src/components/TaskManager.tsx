@@ -130,7 +130,14 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
 
   useEffect(() => {
     fetchTasks();
-    fetchUsers();
+    
+    // Fetch users filtered by event when available
+    const currentEventId = eventId || selectedEventFilter;
+    if (currentEventId && currentEventId !== "all") {
+      fetchUsers(currentEventId);
+    } else {
+      fetchUsers();
+    }
     
     // Check URL parameters for auto-opening modal
     const openModal = searchParams.get('openModal');
@@ -152,22 +159,53 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
     }
   }, [eventId, user, selectedEventFilter, showArchived, searchParams, setSearchParams]);
 
-  const fetchUsers = async () => {
+  const fetchUsers = async (filterByEventId?: string) => {
     try {
-      const { data: profilesData, error } = await supabase
-        .from('profiles')
-        .select('user_id, display_name');
+      let mappedUsers: User[] = [];
       
-      if (error) throw error;
-      
-      // Map profiles to User format and filter out IDA Event Partners
-      const mappedUsers = (profilesData || [])
-        .filter(profile => profile.display_name !== 'IDA Event Partners')
-        .map(profile => ({
-          userid: profile.user_id,
-          user_name: profile.display_name,
-          contact_name: profile.display_name
-        }));
+      if (filterByEventId) {
+        // Fetch users who have roles for this specific event
+        const { data: userRoles, error: rolesError } = await supabase
+          .from('user_roles')
+          .select('user_id')
+          .eq('event_id', filterByEventId);
+        
+        if (rolesError) throw rolesError;
+        
+        if (userRoles && userRoles.length > 0) {
+          const userIds = userRoles.map(role => role.user_id);
+          
+          const { data: profilesData, error: profilesError } = await supabase
+            .from('profiles')
+            .select('user_id, display_name')
+            .in('user_id', userIds);
+          
+          if (profilesError) throw profilesError;
+          
+          mappedUsers = (profilesData || [])
+            .filter(profile => profile.display_name !== 'IDA Event Partners')
+            .map(profile => ({
+              userid: profile.user_id,
+              user_name: profile.display_name,
+              contact_name: profile.display_name
+            }));
+        }
+      } else {
+        // Fetch all users if no event filter
+        const { data: profilesData, error } = await supabase
+          .from('profiles')
+          .select('user_id, display_name');
+        
+        if (error) throw error;
+        
+        mappedUsers = (profilesData || [])
+          .filter(profile => profile.display_name !== 'IDA Event Partners')
+          .map(profile => ({
+            userid: profile.user_id,
+            user_name: profile.display_name,
+            contact_name: profile.display_name
+          }));
+      }
       
       // Handle duplicate display names by appending identifier
       const displayNameCounts = new Map<string, number>();
@@ -1015,8 +1053,10 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     <Select 
                       value={newTask.selected_event_id} 
                       onValueChange={(value) => {
-                        setNewTask({ ...newTask, selected_event_id: value });
+                        setNewTask({ ...newTask, selected_event_id: value, assigned_user_id: "" });
                         setValidationErrors({ ...validationErrors, selected_event_id: "" });
+                        // Fetch users for the selected event
+                        fetchUsers(value);
                       }}
                     >
                       <SelectTrigger className={validationErrors.selected_event_id ? "border-destructive" : ""}>
