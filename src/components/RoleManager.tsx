@@ -41,6 +41,7 @@ export function RoleManager() {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [permissionMappings, setPermissionMappings] = useState<Map<string, PermissionLevel>>(new Map());
+  const [dataTimestamp, setDataTimestamp] = useState(Date.now());
   const { toast } = useToast();
 
   const roles = [
@@ -170,6 +171,9 @@ export function RoleManager() {
       setUserRoles(roleAssignments);
       console.log('[RoleManager] Users loaded:', allUsers.length, 'Role assignments:', roleAssignments.length);
       console.log('[RoleManager] Users without roles:', unassignedUsers.length);
+      
+      // Update timestamp to force Select component re-renders
+      setDataTimestamp(Date.now());
       
       // If no roles exist and current user exists, offer to set up admin
       if (roleAssignments.length === 0 && allUsers.length > 0) {
@@ -323,7 +327,7 @@ export function RoleManager() {
         {userRoles.map((userRole) => {
           const user = getUserInfo(userRole.user_id);
           const roleInfo = roles.find(r => r.value === userRole.role);
-          const currentPermission = userRole.permission_level || permissionMappings.get(userRole.role) || 'viewer';
+          const currentPermission = userRole.permission_level || permissionMappings.get(userRole.role || 'host') || 'viewer';
           const permissionInfo = permissionLevels[currentPermission];
           const PermissionIcon = permissionInfo?.icon;
           const assignedEvent = events.find(e => e.userid === userRole.event_id);
@@ -365,6 +369,7 @@ export function RoleManager() {
                     <div className="flex-1">
                       <label className="text-xs text-muted-foreground mb-1 block">Event</label>
                       <Select
+                        key={`${userRole.id}-event-${dataTimestamp}`}
                         value={userRole.event_id || 'global'}
                         onValueChange={(eventId) => {
                           console.log('[RoleManager] Event changed to:', eventId);
@@ -389,7 +394,8 @@ export function RoleManager() {
                     <div className="flex-1">
                       <label className="text-xs text-muted-foreground mb-1 block">Role</label>
                       <Select
-                        value={userRole.role}
+                        key={`${userRole.id}-role-${dataTimestamp}`}
+                        value={userRole.role || 'host'}
                         onValueChange={(newRole) => {
                           const suggestedPermission = permissionMappings.get(newRole) || currentPermission;
                           changeRole(userRole.id, userRole.user_id, newRole as any, suggestedPermission, userRole.event_id);
@@ -416,6 +422,7 @@ export function RoleManager() {
                         )}
                       </label>
                       <Select
+                        key={`${userRole.id}-permission-${dataTimestamp}`}
                         value={currentPermission}
                         onValueChange={(newPermission) => changeRole(userRole.id, userRole.user_id, userRole.role as any, newPermission as PermissionLevel, userRole.event_id)}
                       >
