@@ -422,7 +422,7 @@ export function RoleManager() {
                         )}
                       </label>
                       <Select
-                        key={`${userRole.id}-permission-${dataTimestamp}`}
+                        key={`${userRole.id}-permission-${dataTimestamp}-${currentPermission}`}
                         value={currentPermission}
                         onValueChange={(newPermission) => changeRole(userRole.id, userRole.user_id, userRole.role as any, newPermission as PermissionLevel, userRole.event_id)}
                       >
