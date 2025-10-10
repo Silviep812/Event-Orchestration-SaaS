@@ -327,7 +327,8 @@ export function RoleManager() {
         {userRoles.map((userRole) => {
           const user = getUserInfo(userRole.user_id);
           const roleInfo = roles.find(r => r.value === userRole.role);
-          const currentPermission = userRole.permission_level || permissionMappings.get(userRole.role || 'host') || 'viewer';
+          // Use the actual database value, with 'viewer' as fallback only if null
+          const currentPermission = userRole.permission_level ?? 'viewer';
           const permissionInfo = permissionLevels[currentPermission];
           const PermissionIcon = permissionInfo?.icon;
           const assignedEvent = events.find(e => e.userid === userRole.event_id);
