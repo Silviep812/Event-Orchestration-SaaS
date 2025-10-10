@@ -367,7 +367,7 @@ export function RoleManager() {
                     <div className="flex-1">
                       <label className="text-xs text-muted-foreground mb-1 block">Event</label>
                       <Select
-                        key={`event-${userRole.id}`}
+                        key={`event-${userRole.id}-${userRole.event_id || 'global'}`}
                         value={userRole.event_id || 'global'}
                         onValueChange={(eventId) => {
                           console.log('[RoleManager] Event changed to:', eventId);
@@ -392,7 +392,7 @@ export function RoleManager() {
                     <div className="flex-1">
                       <label className="text-xs text-muted-foreground mb-1 block">Role</label>
                       <Select
-                        key={`role-${userRole.id}`}
+                        key={`role-${userRole.id}-${userRole.role}`}
                         value={userRole.role}
                         onValueChange={(newRole) => {
                           const suggestedPermission = permissionMappings.get(newRole) || currentPermission;
@@ -420,7 +420,7 @@ export function RoleManager() {
                         )}
                       </label>
                       <Select
-                        key={`permission-${userRole.id}`}
+                        key={`permission-${userRole.id}-${currentPermission}`}
                         value={currentPermission}
                         onValueChange={(newPermission) => changeRole(userRole.id, userRole.user_id, userRole.role as any, newPermission as PermissionLevel, userRole.event_id)}
                       >
