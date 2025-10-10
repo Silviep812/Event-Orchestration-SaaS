@@ -68,6 +68,7 @@ export function RoleManager() {
   };
 
   useEffect(() => {
+    console.log('[RoleManager] Component mounted, fetching data...');
     fetchPermissionMappings();
     fetchUsers();
     fetchEvents();
@@ -81,9 +82,10 @@ export function RoleManager() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+      console.log('[RoleManager] Events loaded:', data?.length || 0, data);
       setEvents(data || []);
     } catch (error) {
-      console.error('Error fetching events:', error);
+      console.error('[RoleManager] Error fetching events:', error);
     }
   };
 
@@ -172,10 +174,12 @@ export function RoleManager() {
       })) || [];
       
       setUserRoles(roleAssignments);
+      console.log('[RoleManager] Users loaded:', allUsers.length, 'Role assignments:', roleAssignments.length);
+      console.log('[RoleManager] Users without roles:', unassignedUsers.length);
       
       // If no roles exist and current user exists, offer to set up admin
       if (roleAssignments.length === 0 && allUsers.length > 0) {
-        console.log('No roles exist yet. Consider assigning initial admin role.');
+        console.log('[RoleManager] No roles exist yet. Consider assigning initial admin role.');
       }
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -371,6 +375,7 @@ export function RoleManager() {
                       <Select
                         value={userRole.event_id || 'global'}
                         onValueChange={(eventId) => {
+                          console.log('[RoleManager] Event changed to:', eventId);
                           const finalEventId = eventId === 'global' ? null : eventId;
                           changeRole(userRole.user_id, userRole.role as any, currentPermission, finalEventId);
                         }}
