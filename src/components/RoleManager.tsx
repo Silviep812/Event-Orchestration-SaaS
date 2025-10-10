@@ -324,6 +324,12 @@ export function RoleManager() {
       <div className="space-y-4">
         <h3 className="text-lg font-semibold">Current Role Assignments</h3>
         
+        {userRoles.length === 0 && usersWithoutRoles.length > 0 ? (
+          <Card className="p-6 text-center">
+            <p className="text-muted-foreground">No role assignments yet. Assign roles to users below.</p>
+          </Card>
+        ) : null}
+        
         {userRoles.map((userRole) => {
           const user = getUserInfo(userRole.user_id);
           const roleInfo = roles.find(r => r.value === userRole.role);
