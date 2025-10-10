@@ -120,28 +120,22 @@ export function RoleManager() {
 
       if (rolesError) throw rolesError;
 
-      // Get all users from profiles table
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('user_id, display_name, created_at');
+      // Call edge function to get users with emails (admin access required)
+      const { data: usersResponse, error: usersError } = await supabase.functions.invoke('get-users-for-roles');
       
-      if (profilesError) throw profilesError;
-
-      // Get auth users to fetch emails
-      const { data: authData } = await supabase.auth.admin.listUsers();
-      const authUsers = authData?.users || [];
+      if (usersError) {
+        console.error('Error fetching users from edge function:', usersError);
+        throw usersError;
+      }
       
-      const allUsers = profilesData?.map((profile: any) => {
-        const authUser = authUsers.find((u: any) => u.id === profile.user_id);
-        return {
-          id: profile.user_id,
-          name: profile.display_name || 'Unknown User',
-          email: authUser?.email || '',
-          status: 'online' as const,
-          joinedAt: profile.created_at || new Date().toISOString(),
-          avatar: authUser?.user_metadata?.avatar_url
-        };
-      }) || [];
+      const allUsers = usersResponse?.users?.map((user: any) => ({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        status: 'online' as const,
+        joinedAt: user.created_at || new Date().toISOString(),
+        avatar: user.avatar
+      })) || [];
       
       // Create users list with role information
       const usersWithRoles = allUsers.map((user: any) => {
