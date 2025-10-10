@@ -1575,8 +1575,19 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
               </div>
             </div>
             
-            <div className="mt-6">
-              <Button onClick={handleUpdateTask} className="w-full">
+            <div className="mt-6 flex gap-3">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setIsEditDialogOpen(false);
+                  setSelectedTask(null);
+                  setSelectedDependencies([]);
+                }}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button onClick={handleUpdateTask} className="flex-1">
                 Save Changes
               </Button>
             </div>
