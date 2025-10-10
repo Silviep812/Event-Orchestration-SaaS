@@ -41,7 +41,6 @@ export function RoleManager() {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [permissionMappings, setPermissionMappings] = useState<Map<string, PermissionLevel>>(new Map());
-  const [refreshKey, setRefreshKey] = useState(0);
   const { toast } = useToast();
 
   const roles = [
@@ -213,9 +212,8 @@ export function RoleManager() {
 
       if (error) throw error;
 
-      // Refresh the data and force UI update
+      // Refresh the data
       await fetchUsers();
-      setRefreshKey(prev => prev + 1);
       
       toast({
         title: "Role updated",
@@ -331,7 +329,7 @@ export function RoleManager() {
           const assignedEvent = events.find(e => e.userid === userRole.event_id);
           
           return (
-            <Card key={`${userRole.id}-${refreshKey}`}>
+            <Card key={userRole.id}>
               <CardContent className="p-4">
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
@@ -367,7 +365,6 @@ export function RoleManager() {
                     <div className="flex-1">
                       <label className="text-xs text-muted-foreground mb-1 block">Event</label>
                       <Select
-                        key={`event-${userRole.id}-${userRole.event_id || 'global'}`}
                         value={userRole.event_id || 'global'}
                         onValueChange={(eventId) => {
                           console.log('[RoleManager] Event changed to:', eventId);
@@ -392,7 +389,6 @@ export function RoleManager() {
                     <div className="flex-1">
                       <label className="text-xs text-muted-foreground mb-1 block">Role</label>
                       <Select
-                        key={`role-${userRole.id}-${userRole.role}`}
                         value={userRole.role}
                         onValueChange={(newRole) => {
                           const suggestedPermission = permissionMappings.get(newRole) || currentPermission;
@@ -420,7 +416,6 @@ export function RoleManager() {
                         )}
                       </label>
                       <Select
-                        key={`permission-${userRole.id}-${currentPermission}`}
                         value={currentPermission}
                         onValueChange={(newPermission) => changeRole(userRole.id, userRole.user_id, userRole.role as any, newPermission as PermissionLevel, userRole.event_id)}
                       >
