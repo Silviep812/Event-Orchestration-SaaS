@@ -401,7 +401,7 @@ export function RoleManager() {
                         <SelectTrigger className="w-full">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent className="z-50 bg-background border">
+                        <SelectContent>
                           {roles.map((role) => (
                             <SelectItem key={role.value} value={role.value}>
                               {role.label}
@@ -425,7 +425,7 @@ export function RoleManager() {
                         <SelectTrigger className="w-full">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent className="z-50 bg-background border">
+                        <SelectContent>
                           {Object.entries(permissionLevels).map(([key, level]) => (
                             <SelectItem key={key} value={key}>
                               {level.label}
