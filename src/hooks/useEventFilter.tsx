@@ -14,28 +14,51 @@ export function useEventFilter() {
   const [eventsLoading, setEventsLoading] = useState(false);
   const { user } = useAuth();
 
-  const fetchUserEvents = async () => {
-    if (!user) return;
-    
-    setEventsLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('events')
-        .select('id, title, start_date')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      setEvents(data || []);
-    } catch (error) {
-      console.error('Error fetching events:', error);
-    } finally {
-      setEventsLoading(false);
-    }
-  };
-
   useEffect(() => {
+    const fetchUserEvents = async () => {
+      if (!user) return;
+      
+      setEventsLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('events')
+          .select('id, title, start_date')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        setEvents(data || []);
+      } catch (error) {
+        console.error('Error fetching events:', error);
+      } finally {
+        setEventsLoading(false);
+      }
+    };
+
     fetchUserEvents();
+
+    // Set up real-time subscription for events
+    if (user) {
+      const channel = supabase
+        .channel('events-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'events',
+            filter: `user_id=eq.${user.id}`
+          },
+          () => {
+            fetchUserEvents();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
   }, [user]);
 
   const applyEventFilter = (query: any, eventId?: string) => {
