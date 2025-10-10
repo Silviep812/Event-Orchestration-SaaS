@@ -41,6 +41,7 @@ export function RoleManager() {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [permissionMappings, setPermissionMappings] = useState<Map<string, PermissionLevel>>(new Map());
+  const [refreshKey, setRefreshKey] = useState(0);
   const { toast } = useToast();
 
   const roles = [
@@ -212,8 +213,9 @@ export function RoleManager() {
 
       if (error) throw error;
 
-      // Refresh the data first, then show success message
+      // Refresh the data and force UI update
       await fetchUsers();
+      setRefreshKey(prev => prev + 1);
       
       toast({
         title: "Role updated",
@@ -329,7 +331,7 @@ export function RoleManager() {
           const assignedEvent = events.find(e => e.userid === userRole.event_id);
           
           return (
-            <Card key={`${userRole.user_id}-${userRole.role}`}>
+            <Card key={`${userRole.id}-${refreshKey}`}>
               <CardContent className="p-4">
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
