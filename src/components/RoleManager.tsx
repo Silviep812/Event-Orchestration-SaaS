@@ -395,8 +395,8 @@ export function RoleManager() {
                     <div className="flex-1">
                       <label className="text-xs text-muted-foreground mb-1 block">Role</label>
                       <Select
-                        key={`${userRole.id}-role-${dataTimestamp}`}
-                        value={userRole.role || 'host'}
+                        key={`${userRole.id}-role-${dataTimestamp}-${userRole.role}`}
+                        value={userRole.role}
                         onValueChange={(newRole) => {
                           const suggestedPermission = permissionMappings.get(newRole) || currentPermission;
                           changeRole(userRole.id, userRole.user_id, newRole as any, suggestedPermission, userRole.event_id);
