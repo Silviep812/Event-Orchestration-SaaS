@@ -333,7 +333,7 @@ export function RoleManager() {
           const assignedEvent = events.find(e => e.userid === userRole.event_id);
           
           return (
-            <Card key={userRole.id}>
+            <Card key={`${userRole.user_id}-${userRole.role}-${userRole.permission_level}`}>
               <CardContent className="p-4">
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
