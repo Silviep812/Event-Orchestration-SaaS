@@ -128,6 +128,7 @@ const DashboardHome = () => {
 
         // Map event names for all change logs
         let changeLogEventMap: Record<string, string> = {};
+        let allEventTitles: Record<string, string> = {};
         if (changeLogs && changeLogs.length > 0) {
           // Collect all possible event_ids from entity_id (for budget_item, workflow, task, etc.)
           const budgetItemIds = changeLogs.filter(log => log.entity_type === 'budget_item').map(log => log.entity_id).filter(Boolean);
@@ -171,7 +172,6 @@ const DashboardHome = () => {
           // Remove duplicates
           eventIds = Array.from(new Set(eventIds.filter(Boolean)));
           // Fetch event titles
-          let allEventTitles: Record<string, string> = {};
           if (eventIds.length > 0) {
             const { data: events } = await supabase
               .from('events')
@@ -181,10 +181,6 @@ const DashboardHome = () => {
               allEventTitles[event.id] = event.title;
             });
           }
-          // Attach event name to each log
-          changeLogs.forEach(log => {
-            log._eventName = allEventTitles[changeLogEventMap[log.entity_id]] || 'Unnamed Event';
-          });
         }
 
         if (changeLogs) {
@@ -214,9 +210,11 @@ const DashboardHome = () => {
             } else {
               description = `${log.entity_type} ${log.action}`;
             }
-            // Always append event name if available
-            if (log._eventName && log._eventName !== 'Unnamed Event') {
-              description += ` in ${log._eventName}`;
+            // Append event name if available
+            const eventId = changeLogEventMap[log.entity_id];
+            const eventName = eventId ? allEventTitles[eventId] : null;
+            if (eventName && eventName !== 'Unnamed Event') {
+              description += ` in ${eventName}`;
             }
 
             // Determine activity type based on entity_type

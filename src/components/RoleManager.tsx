@@ -399,9 +399,9 @@ export function RoleManager() {
                         }}
                       >
                         <SelectTrigger className="w-full">
-                          <SelectValue />
+                          <SelectValue placeholder="Select role..." />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-popover">
                           {roles.map((role) => (
                             <SelectItem key={role.value} value={role.value}>
                               {role.label}
@@ -423,9 +423,9 @@ export function RoleManager() {
                         onValueChange={(newPermission) => changeRole(userRole.user_id, userRole.role as any, newPermission as PermissionLevel, userRole.event_id)}
                       >
                         <SelectTrigger className="w-full">
-                          <SelectValue />
+                          <SelectValue placeholder="Select permission level..." />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-popover">
                           {Object.entries(permissionLevels).map(([key, level]) => (
                             <SelectItem key={key} value={key}>
                               {level.label}
