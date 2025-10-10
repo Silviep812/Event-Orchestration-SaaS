@@ -117,7 +117,7 @@ export function RoleManager() {
       // Get all role assignments from user_roles table
       const { data: userRolesData, error: rolesError } = await supabase
         .from('user_roles')
-        .select('user_id, role, permission_level, event_id, created_at');
+        .select('id, user_id, role, permission_level, event_id, created_at');
 
       if (rolesError) throw rolesError;
 
@@ -160,7 +160,7 @@ export function RoleManager() {
       
       // Set all role assignments for display (including those not in invited users)
       const roleAssignments = userRolesData?.map((role: any) => ({
-        id: role.user_id,
+        id: role.id, // Use the actual row ID, not user_id
         user_id: role.user_id,
         role: role.role,
         permission_level: role.permission_level,
