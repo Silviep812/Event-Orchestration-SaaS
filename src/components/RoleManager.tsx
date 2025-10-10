@@ -28,9 +28,9 @@ interface User {
 }
 
 interface Event {
-  userid: string;
-  event_description: string;
-  event_start_date: string;
+  id: string;
+  title: string;
+  start_date: string;
   created_at: string;
 }
 
@@ -78,8 +78,8 @@ export function RoleManager() {
   const fetchEvents = async () => {
     try {
       const { data, error } = await supabase
-        .from('Create Event')
-        .select('userid, event_description, event_start_date, created_at')
+        .from('events')
+        .select('id, title, start_date, created_at')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -337,7 +337,7 @@ export function RoleManager() {
           const currentPermission = userRole.permission_level ?? 'viewer';
           const permissionInfo = permissionLevels[currentPermission];
           const PermissionIcon = permissionInfo?.icon;
-          const assignedEvent = events.find(e => e.userid === userRole.event_id);
+          const assignedEvent = events.find(e => e.id === userRole.event_id);
           
           return (
             <Card key={userRole.id}>
@@ -354,7 +354,7 @@ export function RoleManager() {
                         )}
                         {userRole.event_id && assignedEvent && (
                           <p className="text-xs text-muted-foreground mt-1">
-                            Event: {assignedEvent.event_description || 'Unnamed Event'}
+                            Event: {assignedEvent.title || 'Unnamed Event'}
                           </p>
                         )}
                       </div>
@@ -390,8 +390,8 @@ export function RoleManager() {
                         <SelectContent>
                           <SelectItem value="global">Global (All Events)</SelectItem>
                           {events.map((event) => (
-                            <SelectItem key={event.userid} value={event.userid}>
-                              {event.event_description || `Event ${event.userid.slice(0, 8)}`}
+                            <SelectItem key={event.id} value={event.id}>
+                              {event.title || `Event ${event.id.slice(0, 8)}`}
                             </SelectItem>
                           ))}
                         </SelectContent>

@@ -5,9 +5,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PermissionLevel } from "@/lib/permissions";
 
 interface Event {
-  userid: string;
-  event_description: string;
-  event_start_date: string;
+  id: string;
+  title: string;
+  start_date: string;
 }
 
 interface UnassignedUserCardProps {
@@ -66,8 +66,8 @@ export function UnassignedUserCard({
                 <SelectContent>
                   <SelectItem value="global">Global (All Events)</SelectItem>
                   {events.map((event) => (
-                    <SelectItem key={event.userid} value={event.userid}>
-                      {event.event_description || `Event ${event.userid.slice(0, 8)}`}
+                    <SelectItem key={event.id} value={event.id}>
+                      {event.title || `Event ${event.id.slice(0, 8)}`}
                     </SelectItem>
                   ))}
                 </SelectContent>
