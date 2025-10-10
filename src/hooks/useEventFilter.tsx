@@ -16,12 +16,8 @@ export function useEventFilter() {
 
   useEffect(() => {
     const fetchUserEvents = async () => {
-      if (!user) {
-        console.log('useEventFilter: No user, skipping fetch');
-        return;
-      }
+      if (!user) return;
       
-      console.log('useEventFilter: Fetching events for user:', user.id, user.email);
       setEventsLoading(true);
       try {
         const { data, error } = await supabase
@@ -30,11 +26,7 @@ export function useEventFilter() {
           .eq('user_id', user.id)
           .order('created_at', { ascending: false });
         
-        if (error) {
-          console.error('useEventFilter: Error fetching events:', error);
-          throw error;
-        }
-        console.log('useEventFilter: Fetched events:', data);
+        if (error) throw error;
         setEvents(data || []);
       } catch (error) {
         console.error('Error fetching events:', error);
