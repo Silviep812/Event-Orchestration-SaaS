@@ -212,12 +212,13 @@ export function RoleManager() {
 
       if (error) throw error;
 
+      // Refresh the data first, then show success message
+      await fetchUsers();
+      
       toast({
         title: "Role updated",
         description: "User role and permission level have been updated successfully.",
       });
-
-      await fetchUsers(); // Refresh the data
     } catch (error: any) {
       console.error('Error updating role:', error);
       toast({
