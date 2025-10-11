@@ -24,6 +24,7 @@ interface Task {
   assigned_to?: string;
   assigned_user_id?: string;
   assigned_user_name?: string;
+  assigned_role?: string;
   status: 'not_started' | 'in_progress' | 'completed' | 'on_hold' | 'cancelled';
   priority: 'low' | 'medium' | 'high' | 'urgent';
   estimated_hours?: number;
@@ -118,7 +119,8 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
     estimated_hours: "",
     due_date: "",
     selected_event_id: "",
-    dependencies: [] as string[]
+    dependencies: [] as string[],
+    assigned_role: ""
   });
   const [selectedCollaboratorTypes, setSelectedCollaboratorTypes] = useState<string[]>([]);
   const [dependencySearchTerm, setDependencySearchTerm] = useState<string>("");
@@ -131,13 +133,8 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
   useEffect(() => {
     fetchTasks();
     
-    // Fetch users filtered by event when available
-    const currentEventId = eventId || selectedEventFilter;
-    if (currentEventId && currentEventId !== "all") {
-      fetchUsers(currentEventId);
-    } else {
-      fetchUsers();
-    }
+    // Always fetch all users (not filtered by event)
+    fetchUsers();
     
     // Check URL parameters for auto-opening modal
     const openModal = searchParams.get('openModal');
@@ -159,44 +156,27 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
     }
   }, [eventId, user, selectedEventFilter, showArchived, searchParams, setSearchParams]);
 
-  const fetchUsers = async (filterByEventId?: string) => {
+  const fetchUsers = async () => {
     try {
+      // Fetch all users who have any role assigned (not filtered by event)
+      const { data: userRoles, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('user_id');
+      
+      if (rolesError) throw rolesError;
+      
       let mappedUsers: User[] = [];
       
-      if (filterByEventId) {
-        // Fetch users who have roles for this specific event
-        const { data: userRoles, error: rolesError } = await supabase
-          .from('user_roles')
-          .select('user_id')
-          .eq('event_id', filterByEventId);
+      if (userRoles && userRoles.length > 0) {
+        // Get unique user IDs
+        const uniqueUserIds = [...new Set(userRoles.map(role => role.user_id))];
         
-        if (rolesError) throw rolesError;
-        
-        if (userRoles && userRoles.length > 0) {
-          const userIds = userRoles.map(role => role.user_id);
-          
-          const { data: profilesData, error: profilesError } = await supabase
-            .from('profiles')
-            .select('user_id, display_name')
-            .in('user_id', userIds);
-          
-          if (profilesError) throw profilesError;
-          
-          mappedUsers = (profilesData || [])
-            .filter(profile => profile.display_name !== 'IDA Event Partners')
-            .map(profile => ({
-              userid: profile.user_id,
-              user_name: profile.display_name,
-              contact_name: profile.display_name
-            }));
-        }
-      } else {
-        // Fetch all users if no event filter
-        const { data: profilesData, error } = await supabase
+        const { data: profilesData, error: profilesError } = await supabase
           .from('profiles')
-          .select('user_id, display_name');
+          .select('user_id, display_name')
+          .in('user_id', uniqueUserIds);
         
-        if (error) throw error;
+        if (profilesError) throw profilesError;
         
         mappedUsers = (profilesData || [])
           .filter(profile => profile.display_name !== 'IDA Event Partners')
@@ -277,11 +257,18 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
             assigned_user_name = profileData?.display_name || undefined;
           }
           
+          // Get role assignment from task columns
+          const roleAssignment = task.assigned_venue_role || 
+                                 task.assigned_supplier_vendor_role || 
+                                 task.assigned_service_vendor_role || 
+                                 task.assined_vendor_role;
+          
           return {
             ...task,
             dependencies: deps?.map(d => d.depends_on_task_id) || [],
             assigned_user_id,
-            assigned_user_name
+            assigned_user_name,
+            assigned_role: roleAssignment
           };
         })
       );
@@ -1055,8 +1042,6 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                       onValueChange={(value) => {
                         setNewTask({ ...newTask, selected_event_id: value, assigned_user_id: "" });
                         setValidationErrors({ ...validationErrors, selected_event_id: "" });
-                        // Fetch users for the selected event
-                        fetchUsers(value);
                       }}
                     >
                       <SelectTrigger className={validationErrors.selected_event_id ? "border-destructive" : ""}>
@@ -1209,7 +1194,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                 </div>
 
                 <div className="space-y-2 p-3 border border-primary/20 rounded-lg bg-primary/5">
-                  <Label htmlFor="assigned-user" className="text-base font-semibold">Assign To</Label>
+                  <Label htmlFor="assigned-user" className="text-base font-semibold">Assign To User</Label>
                   <Select 
                     value={newTask.assigned_user_id} 
                     onValueChange={(value) => {
@@ -1233,6 +1218,36 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     </SelectContent>
                   </Select>
                 </div>
+
+                <div className="space-y-2 p-3 border border-purple-200 rounded-lg bg-purple-50">
+                  <Label htmlFor="assigned-role" className="text-base font-semibold">Or Assign By Role</Label>
+                  <p className="text-xs text-muted-foreground">Assign to a predefined role type</p>
+                  <Select 
+                    value={newTask.assigned_role} 
+                    onValueChange={(value) => {
+                      const role = value === "none" ? "" : value;
+                      setNewTask({ ...newTask, assigned_role: role });
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a role" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background z-50">
+                      <SelectItem value="none">No role assignment</SelectItem>
+                      <SelectItem value="manager">Manager</SelectItem>
+                      <SelectItem value="host">Host</SelectItem>
+                      <SelectItem value="organizer">Organizer</SelectItem>
+                      <SelectItem value="event_planner">Event Planner</SelectItem>
+                      <SelectItem value="venue_owner">Venue Owner</SelectItem>
+                      <SelectItem value="hospitality_provider">Hospitality Provider</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {newTask.assigned_role && (
+                    <p className="text-xs text-purple-700 font-medium mt-1">
+                      ✓ Will be assigned to: {newTask.assigned_role.replace('_', ' ')}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
             
@@ -1248,7 +1263,8 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     estimated_hours: "",
                     due_date: "",
                     selected_event_id: "",
-                    dependencies: [] as string[]
+                    dependencies: [] as string[],
+                    assigned_role: ""
                   });
                   setSelectedCollaboratorTypes([]);
                   setValidationErrors({});
@@ -1438,7 +1454,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
               {/* Right column */}
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="edit-assigned-user">Assign To</Label>
+                  <Label htmlFor="edit-assigned-user">Assign To User</Label>
                   <Select value={selectedTask.assigned_user_id || "none"} onValueChange={(value) => {
                     const userId = value === "none" ? undefined : value;
                     setSelectedTask({ ...selectedTask, assigned_user_id: userId });
@@ -1458,6 +1474,36 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                       )}
                     </SelectContent>
                   </Select>
+                </div>
+
+                <div className="space-y-2 p-3 border border-purple-200 rounded-lg bg-purple-50">
+                  <Label htmlFor="edit-assigned-role" className="text-base font-semibold">Or Assign By Role</Label>
+                  <p className="text-xs text-muted-foreground">Assign to a predefined role type</p>
+                  <Select 
+                    value={selectedTask.assigned_role || "none"} 
+                    onValueChange={(value) => {
+                      const role = value === "none" ? "" : value;
+                      setSelectedTask({ ...selectedTask, assigned_role: role });
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a role" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background z-50">
+                      <SelectItem value="none">No role assignment</SelectItem>
+                      <SelectItem value="manager">Manager</SelectItem>
+                      <SelectItem value="host">Host</SelectItem>
+                      <SelectItem value="organizer">Organizer</SelectItem>
+                      <SelectItem value="event_planner">Event Planner</SelectItem>
+                      <SelectItem value="venue_owner">Venue Owner</SelectItem>
+                      <SelectItem value="hospitality_provider">Hospitality Provider</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {selectedTask.assigned_role && (
+                    <p className="text-xs text-purple-700 font-medium mt-1">
+                      ✓ Assigned to: {selectedTask.assigned_role.replace('_', ' ')}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -1773,7 +1819,8 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     estimated_hours: "",
                     due_date: "",
                     selected_event_id: "",
-                    dependencies: []
+                    dependencies: [],
+                    assigned_role: ""
                   });
                   setSelectedCollaboratorTypes([]);
                   setClearFormAfterSave(false);
@@ -1813,7 +1860,8 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                       estimated_hours: "",
                       due_date: "",
                       selected_event_id: "",
-                      dependencies: []
+                      dependencies: [],
+                      assigned_role: ""
                     });
                     setSelectedCollaboratorTypes([]);
                     setClearFormAfterSave(false);
