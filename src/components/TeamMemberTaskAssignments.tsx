@@ -143,27 +143,25 @@ export function TeamMemberTaskAssignments() {
       });
 
       // Create team member summaries
-      const teamMembersData: TeamMemberWithTasks[] = Array.from(userTasksMap.entries())
-        .map(([userId, tasks]) => {
-          const completed = tasks.filter(t => t.taskStatus === 'completed').length;
-          const pending = tasks.filter(t => t.taskStatus === 'pending' || t.taskStatus === 'in_progress').length;
-          const overdue = tasks.filter(t => {
-            if (!t.taskDueDate) return false;
-            return new Date(t.taskDueDate) < new Date() && t.taskStatus !== 'completed';
-          }).length;
+      const teamMembersData: TeamMemberWithTasks[] = Array.from(userTasksMap.entries()).map(([userId, tasks]) => {
+        const completed = tasks.filter(t => t.taskStatus === 'completed').length;
+        const pending = tasks.filter(t => t.taskStatus === 'pending' || t.taskStatus === 'in_progress').length;
+        const overdue = tasks.filter(t => {
+          if (!t.taskDueDate) return false;
+          return new Date(t.taskDueDate) < new Date() && t.taskStatus !== 'completed';
+        }).length;
 
-          return {
-            userId,
-            userName: tasks[0].userName,
-            userEmail: tasks[0].userEmail,
-            totalTasks: tasks.length,
-            completedTasks: completed,
-            pendingTasks: pending,
-            overdueTasks: overdue,
-            tasks
-          };
-        })
-        .filter(member => member.userName !== 'sphines' && member.userEmail !== 'sphines@idaeventpartners.com');
+        return {
+          userId,
+          userName: tasks[0].userName,
+          userEmail: tasks[0].userEmail,
+          totalTasks: tasks.length,
+          completedTasks: completed,
+          pendingTasks: pending,
+          overdueTasks: overdue,
+          tasks
+        };
+      });
 
       // Sort by total tasks (descending)
       teamMembersData.sort((a, b) => b.totalTasks - a.totalTasks);
