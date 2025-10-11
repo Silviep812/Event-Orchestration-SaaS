@@ -1,9 +1,12 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { ClipboardList, CheckCircle2, Clock, AlertCircle } from "lucide-react";
+import { ClipboardList, CheckCircle2, Clock, AlertCircle, UserPlus } from "lucide-react";
 import { format } from "date-fns";
+import { toast } from "sonner";
 
 interface TaskAssignment {
   id: string;
@@ -31,7 +34,9 @@ interface TeamMemberWithTasks {
 
 export function TeamMemberTaskAssignments() {
   const [teamMembers, setTeamMembers] = useState<TeamMemberWithTasks[]>([]);
+  const [unassignedTasks, setUnassignedTasks] = useState<TaskAssignment[]>([]);
   const [unassignedTasksCount, setUnassignedTasksCount] = useState(0);
+  const [allUsers, setAllUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -48,29 +53,43 @@ export function TeamMemberTaskAssignments() {
       if (usersError) throw usersError;
       
       const allUsers = usersResponse?.users || [];
+      setAllUsers(allUsers);
 
-      // Fetch all tasks with their assignments
+      // Fetch all tasks with their event titles
       const { data: tasks, error: tasksError } = await supabase
         .from('tasks')
-        .select(`
-          id,
-          title,
-          status,
-          priority,
-          due_date,
-          assigned_to,
-          event_id,
-          events (
-            title
-          )
-        `)
+        .select('id, title, status, priority, due_date, assigned_to, event_id')
         .order('due_date', { ascending: true });
-
+      
       if (tasksError) throw tasksError;
 
-      // Count unassigned tasks
-      const unassigned = tasks?.filter(task => !task.assigned_to).length || 0;
-      setUnassignedTasksCount(unassigned);
+      // Fetch event titles separately
+      const eventIds = [...new Set(tasks?.map(t => t.event_id).filter(Boolean))];
+      const { data: events } = await supabase
+        .from('events')
+        .select('id, title')
+        .in('id', eventIds);
+      
+      const eventMap = new Map(events?.map(e => [e.id, e.title]) || []);
+
+      // Count unassigned tasks and store them
+      const unassigned = tasks?.filter(task => !task.assigned_to) || [];
+      setUnassignedTasksCount(unassigned.length);
+      
+      // Convert unassigned tasks to TaskAssignment format
+      const unassignedTasksList = unassigned.map((task: any) => ({
+        id: task.id,
+        user_id: '',
+        userName: '',
+        userEmail: '',
+        taskId: task.id,
+        taskTitle: task.title,
+        taskStatus: task.status,
+        taskPriority: task.priority,
+        taskDueDate: task.due_date,
+        eventTitle: task.event_id ? eventMap.get(task.event_id) || null : null
+      }));
+      setUnassignedTasks(unassignedTasksList);
 
       // Group tasks by user
       const userTasksMap = new Map<string, TaskAssignment[]>();
@@ -89,7 +108,7 @@ export function TeamMemberTaskAssignments() {
               taskStatus: task.status,
               taskPriority: task.priority,
               taskDueDate: task.due_date,
-              eventTitle: task.events?.title || null
+              eventTitle: task.event_id ? eventMap.get(task.event_id) || null : null
             };
 
             if (!userTasksMap.has(user.id)) {
@@ -148,6 +167,76 @@ export function TeamMemberTaskAssignments() {
     }
   };
 
+  const assignTask = async (taskId: string, userId: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      // Update the task's assigned_to field
+      const { error: taskError } = await supabase
+        .from('tasks')
+        .update({ assigned_to: userId })
+        .eq('id', taskId);
+
+      if (taskError) throw taskError;
+
+      // Create task assignment record
+      const { error: assignmentError } = await supabase
+        .from('task_assignments')
+        .insert({
+          task_id: taskId,
+          user_id: userId,
+          created_by: user.id
+        });
+
+      if (assignmentError) throw assignmentError;
+
+      toast.success('Task assigned successfully');
+      fetchTaskAssignments();
+    } catch (error) {
+      console.error('Error assigning task:', error);
+      toast.error('Failed to assign task');
+    }
+  };
+
+  const reassignTask = async (taskId: string, newUserId: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      // Update the task's assigned_to field
+      const { error: taskError } = await supabase
+        .from('tasks')
+        .update({ assigned_to: newUserId })
+        .eq('id', taskId);
+
+      if (taskError) throw taskError;
+
+      // Delete old assignment
+      await supabase
+        .from('task_assignments')
+        .delete()
+        .eq('task_id', taskId);
+
+      // Create new assignment
+      const { error: assignmentError } = await supabase
+        .from('task_assignments')
+        .insert({
+          task_id: taskId,
+          user_id: newUserId,
+          created_by: user.id
+        });
+
+      if (assignmentError) throw assignmentError;
+
+      toast.success('Task reassigned successfully');
+      fetchTaskAssignments();
+    } catch (error) {
+      console.error('Error reassigning task:', error);
+      toast.error('Failed to reassign task');
+    }
+  };
+
   if (loading) {
     return <div className="flex justify-center py-8">Loading task assignments...</div>;
   }
@@ -194,6 +283,53 @@ export function TeamMemberTaskAssignments() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Unassigned Tasks Section */}
+      {unassignedTasksCount > 0 && (
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">Unassigned Tasks ({unassignedTasksCount})</h3>
+          <Card>
+            <CardContent className="p-6">
+              <div className="space-y-2">
+                {unassignedTasks.map((task) => (
+                  <div key={task.taskId} className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-sm">{task.taskTitle}</p>
+                        <Badge className={getPriorityColor(task.taskPriority)}>
+                          {task.taskPriority}
+                        </Badge>
+                      </div>
+                      {task.eventTitle && (
+                        <p className="text-xs text-muted-foreground mt-1">Event: {task.eventTitle}</p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {task.taskDueDate && (
+                        <p className="text-xs text-muted-foreground">
+                          Due: {format(new Date(task.taskDueDate), 'MMM d, yyyy')}
+                        </p>
+                      )}
+                      <Select onValueChange={(userId) => assignTask(task.taskId, userId)}>
+                        <SelectTrigger className="w-[180px]">
+                          <SelectValue placeholder="Assign to..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {allUsers.map((user) => (
+                            <SelectItem key={user.id} value={user.id}>
+                              {user.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Team Member Task Assignments */}
       <div className="space-y-4">
@@ -261,6 +397,21 @@ export function TeamMemberTaskAssignments() {
                         <Badge variant={task.taskStatus === 'completed' ? 'default' : 'outline'}>
                           {task.taskStatus}
                         </Badge>
+                        <Select 
+                          defaultValue={member.userId}
+                          onValueChange={(userId) => reassignTask(task.taskId, userId)}
+                        >
+                          <SelectTrigger className="w-[140px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {allUsers.map((user) => (
+                              <SelectItem key={user.id} value={user.id}>
+                                {user.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
                   ))}
