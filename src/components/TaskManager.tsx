@@ -1287,112 +1287,272 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
       </div>
 
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {tasks.map((task) => {
-          const StatusIcon = statusIcons[task.status];
-          return (
-            <Card 
-              key={task.id} 
-              className="hover:shadow-md transition-shadow cursor-pointer"
-              onClick={() => {
-                setSelectedTask(task);
-                setSelectedDependencies(task.dependencies || []);
-                setIsEditDialogOpen(true);
-              }}
-            >
-              <CardHeader className="pb-2">
-                <div className="flex items-start justify-between">
-                  <CardTitle className="text-lg">{task.title}</CardTitle>
-                  <Badge className={priorityColors[task.priority]}>
-                    {task.priority}
-                  </Badge>
+      {(() => {
+        // Group tasks by category
+        const groupedTasks = new Map<string, Task[]>();
+        const uncategorizedTasks: Task[] = [];
+        
+        tasks.forEach(task => {
+          if (task.category) {
+            // Split comma-separated categories
+            const categories = task.category.split(', ').map(c => c.trim());
+            categories.forEach(cat => {
+              if (!groupedTasks.has(cat)) {
+                groupedTasks.set(cat, []);
+              }
+              groupedTasks.get(cat)!.push(task);
+            });
+          } else {
+            uncategorizedTasks.push(task);
+          }
+        });
+
+        // Define category order and display names
+        const categoryOrder = [
+          { key: 'Venue', display: 'Venue' },
+          { key: 'Hospitality', display: 'Hospitality' },
+          { key: 'Transportation', display: 'Transportation' },
+          { key: 'Service Vendor', display: 'Service Vendor' },
+          { key: 'Vendor Service Rental/Buy', display: 'Vendor Service Rental/Buy' },
+          { key: 'Supplier', display: 'Supplier' },
+          { key: 'Bookings', display: 'Bookings' }
+        ];
+
+        return (
+          <>
+            {categoryOrder.map(({ key, display }) => {
+              const categoryTasks = groupedTasks.get(key);
+              if (!categoryTasks || categoryTasks.length === 0) return null;
+
+              return (
+                <div key={key} className="mb-6">
+                  <Card className="border-2">
+                    <CardHeader className="bg-muted/30">
+                      <CardTitle className="text-xl flex items-center gap-2">
+                        <Badge variant="outline" className="text-sm px-3 py-1">
+                          {display}
+                        </Badge>
+                        <span className="text-muted-foreground text-sm font-normal">
+                          ({categoryTasks.length} {categoryTasks.length === 1 ? 'task' : 'tasks'})
+                        </span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-4">
+                      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                        {categoryTasks.map((task) => {
+                          const StatusIcon = statusIcons[task.status];
+                          return (
+                            <Card
+                              key={task.id}
+                              className="cursor-pointer hover:shadow-md transition-shadow"
+                              onClick={() => {
+                                setSelectedTask(task);
+                                setSelectedDependencies(task.dependencies || []);
+                                setIsEditDialogOpen(true);
+                              }}
+                            >
+                              <CardHeader className="pb-2">
+                                <div className="flex items-start justify-between">
+                                  <CardTitle className="text-base">{task.title}</CardTitle>
+                                  <Badge className={priorityColors[task.priority]}>
+                                    {task.priority}
+                                  </Badge>
+                                </div>
+                              </CardHeader>
+                              <CardContent className="space-y-2">
+                                {task.description && (
+                                  <p className="text-xs text-muted-foreground line-clamp-2">{task.description}</p>
+                                )}
+
+                                <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                  <StatusIcon className="h-3 w-3" />
+                                  <Select value={task.status} onValueChange={(value: any) => updateTask(task.id, { status: value })}>
+                                    <SelectTrigger className="h-7 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="not_started">Not Started</SelectItem>
+                                      <SelectItem value="in_progress">In Progress</SelectItem>
+                                      <SelectItem value="completed">Completed</SelectItem>
+                                      <SelectItem value="on_hold">On Hold</SelectItem>
+                                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+
+                                {(task.assigned_user_name || task.assigned_role) && (
+                                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                    <User className="h-3 w-3" />
+                                    <span>
+                                      {task.assigned_user_name || task.assigned_role?.replace('_', ' ')}
+                                    </span>
+                                  </div>
+                                )}
+
+                                {task.estimated_hours && (
+                                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                    <Clock className="h-3 w-3" />
+                                    <span>{task.estimated_hours}h</span>
+                                  </div>
+                                )}
+
+                                {task.due_date && (
+                                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                    <Calendar className="h-3 w-3" />
+                                    <span>{format(new Date(task.due_date), 'MMM d')}</span>
+                                  </div>
+                                )}
+
+                                {task.dependencies && task.dependencies.length > 0 && (
+                                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                    <Link className="h-3 w-3" />
+                                    <span>{task.dependencies.length} dep{task.dependencies.length > 1 ? 's' : ''}</span>
+                                  </div>
+                                )}
+
+                                <div className="flex items-center gap-2 pt-1" onClick={(e) => e.stopPropagation()}>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => archiveTask(task.id, !task.archived)}
+                                    className="flex items-center gap-1 h-7 text-xs"
+                                  >
+                                    {task.archived ? (
+                                      <>
+                                        <ArchiveRestore className="h-3 w-3" />
+                                        Restore
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Archive className="h-3 w-3" />
+                                        Archive
+                                      </>
+                                    )}
+                                  </Button>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
-                {task.category && (
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {task.category.split(', ').map((cat, idx) => (
-                      <Badge key={idx} variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
-                        {cat}
+              );
+            })}
+
+            {/* Uncategorized tasks section */}
+            {uncategorizedTasks.length > 0 && (
+              <div className="mb-6">
+                <Card className="border-2 border-dashed">
+                  <CardHeader className="bg-muted/10">
+                    <CardTitle className="text-xl flex items-center gap-2">
+                      <Badge variant="outline" className="text-sm px-3 py-1">
+                        Uncategorized
                       </Badge>
-                    ))}
-                  </div>
-                )}
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {task.description && (
-                  <p className="text-sm text-muted-foreground">{task.description}</p>
-                )}
+                      <span className="text-muted-foreground text-sm font-normal">
+                        ({uncategorizedTasks.length} {uncategorizedTasks.length === 1 ? 'task' : 'tasks'})
+                      </span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-4">
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                      {uncategorizedTasks.map((task) => {
+                        const StatusIcon = statusIcons[task.status];
+                        return (
+                          <Card
+                            key={task.id}
+                            className="cursor-pointer hover:shadow-md transition-shadow"
+                            onClick={() => {
+                              setSelectedTask(task);
+                              setSelectedDependencies(task.dependencies || []);
+                              setIsEditDialogOpen(true);
+                            }}
+                          >
+                            <CardHeader className="pb-2">
+                              <div className="flex items-start justify-between">
+                                <CardTitle className="text-base">{task.title}</CardTitle>
+                                <Badge className={priorityColors[task.priority]}>
+                                  {task.priority}
+                                </Badge>
+                              </div>
+                            </CardHeader>
+                            <CardContent className="space-y-2">
+                              {task.description && (
+                                <p className="text-xs text-muted-foreground line-clamp-2">{task.description}</p>
+                              )}
 
-                <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                  <StatusIcon className="h-4 w-4" />
-                  <Select value={task.status} onValueChange={(value: any) => updateTask(task.id, { status: value })}>
-                    <SelectTrigger className="h-8">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="not_started">Not Started</SelectItem>
-                      <SelectItem value="in_progress">In Progress</SelectItem>
-                      <SelectItem value="completed">Completed</SelectItem>
-                      <SelectItem value="on_hold">On Hold</SelectItem>
-                      <SelectItem value="cancelled">Cancelled</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                              <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                <StatusIcon className="h-3 w-3" />
+                                <Select value={task.status} onValueChange={(value: any) => updateTask(task.id, { status: value })}>
+                                  <SelectTrigger className="h-7 text-xs">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="not_started">Not Started</SelectItem>
+                                    <SelectItem value="in_progress">In Progress</SelectItem>
+                                    <SelectItem value="completed">Completed</SelectItem>
+                                    <SelectItem value="on_hold">On Hold</SelectItem>
+                                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
 
-                {task.assigned_user_name && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <User className="h-3 w-3" />
-                    <span>
-                      {task.assigned_user_name}
-                    </span>
-                  </div>
-                )}
+                              {(task.assigned_user_name || task.assigned_role) && (
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                  <User className="h-3 w-3" />
+                                  <span>
+                                    {task.assigned_user_name || task.assigned_role?.replace('_', ' ')}
+                                  </span>
+                                </div>
+                              )}
 
-                {task.estimated_hours && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Clock className="h-3 w-3" />
-                    <span>{task.estimated_hours}h estimated</span>
-                  </div>
-                )}
+                              {task.estimated_hours && (
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                  <Clock className="h-3 w-3" />
+                                  <span>{task.estimated_hours}h</span>
+                                </div>
+                              )}
 
-                  {task.due_date && (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Calendar className="h-3 w-3" />
-                      <span>Due: {format(new Date(task.due_date), 'MMM d, yyyy')}</span>
+                              {task.due_date && (
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                  <Calendar className="h-3 w-3" />
+                                  <span>{format(new Date(task.due_date), 'MMM d')}</span>
+                                </div>
+                              )}
+
+                              <div className="flex items-center gap-2 pt-1" onClick={(e) => e.stopPropagation()}>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => archiveTask(task.id, !task.archived)}
+                                  className="flex items-center gap-1 h-7 text-xs"
+                                >
+                                  {task.archived ? (
+                                    <>
+                                      <ArchiveRestore className="h-3 w-3" />
+                                      Restore
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Archive className="h-3 w-3" />
+                                      Archive
+                                    </>
+                                  )}
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
                     </div>
-                  )}
-
-                  {task.dependencies && task.dependencies.length > 0 && (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Link className="h-3 w-3" />
-                      <span>Depends on {task.dependencies.length} task{task.dependencies.length > 1 ? 's' : ''}</span>
-                    </div>
-                  )}
-
-                  <div className="flex items-center gap-2 pt-2" onClick={(e) => e.stopPropagation()}>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => archiveTask(task.id, !task.archived)}
-                      className="flex items-center gap-1"
-                    >
-                      {task.archived ? (
-                        <>
-                          <ArchiveRestore className="h-3 w-3" />
-                          Restore
-                        </>
-                      ) : (
-                        <>
-                          <Archive className="h-3 w-3" />
-                          Archive
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+          </>
+        );
+      })()}
 
       {/* Edit Task Dialog */}
       {selectedTask && (
