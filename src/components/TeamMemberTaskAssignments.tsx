@@ -315,12 +315,12 @@ export function TeamMemberTaskAssignments() {
                 {unassignedTasks.map((task) => (
                   <div key={task.taskId} className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
                     <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium text-sm">{task.taskTitle}</p>
-                        {task.taskCategory && (
-                          <Badge variant="outline">{task.taskCategory}</Badge>
-                        )}
-                      </div>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-sm">{task.taskTitle}</p>
+                          {task.taskCategory && (
+                            <Badge className="bg-primary text-primary-foreground font-semibold">{task.taskCategory}</Badge>
+                          )}
+                        </div>
                       {task.eventTitle && (
                         <p className="text-xs text-muted-foreground mt-1">Event: {task.eventTitle}</p>
                       )}
@@ -402,7 +402,7 @@ export function TeamMemberTaskAssignments() {
                         <div className="flex items-center gap-2">
                           <p className="font-medium text-sm">{task.taskTitle}</p>
                           {task.taskCategory && (
-                            <Badge variant="outline">{task.taskCategory}</Badge>
+                            <Badge className="bg-primary text-primary-foreground font-semibold">{task.taskCategory}</Badge>
                           )}
                         </div>
                         {task.eventTitle && (
