@@ -72,7 +72,8 @@ export function TeamMemberTaskAssignments() {
         'Vendor Service Rental/Buy',
         'Hospitality',
         'Supplier',
-        'Entertainment'
+        'Entertainment',
+        'Booking'
       ];
 
       // Filter tasks to only show resource-type tasks
