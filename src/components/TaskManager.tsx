@@ -230,8 +230,26 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
       const { data, error } = await query;
       if (error) throw error;
       
+      // Define valid resource type categories
+      const resourceCategories = [
+        'Venue',
+        'Transportation', 
+        'Service Vendor',
+        'Vendor Service Rental/Buy',
+        'Hospitality',
+        'Supplier',
+        'Entertainment',
+        'Bookings'
+      ];
+      
+      // Filter tasks to only show resource-type tasks
+      const filteredData = (data || []).filter(task => 
+        resourceCategories.includes(task.category) || 
+        task.title === 'Lee Task Team'
+      );
+      
       const tasksWithDependenciesAndAssignments = await Promise.all(
-        (data || []).map(async (task) => {
+        filteredData.map(async (task) => {
           // Fetch dependencies
           const { data: deps } = await supabase
             .from('tasks_dependencies')
@@ -299,9 +317,27 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
       
       if (error) throw error;
       
+      // Define valid resource type categories
+      const resourceCategories = [
+        'Venue',
+        'Transportation', 
+        'Service Vendor',
+        'Vendor Service Rental/Buy',
+        'Hospitality',
+        'Supplier',
+        'Entertainment',
+        'Bookings'
+      ];
+      
+      // Filter tasks to only show resource-type tasks
+      const filteredData = (data || []).filter(task => 
+        resourceCategories.includes(task.category) || 
+        task.title === 'Lee Task Team'
+      );
+      
       // Fetch assigned user names
       const tasksWithAssignments = await Promise.all(
-        (data || []).map(async (task) => {
+        filteredData.map(async (task) => {
           let assigned_user_name: string | undefined;
           let assigned_user_id: string | undefined;
           
