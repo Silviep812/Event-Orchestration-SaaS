@@ -73,7 +73,7 @@ export function TeamMemberTaskAssignments() {
         'Hospitality',
         'Supplier',
         'Entertainment',
-        'Booking'
+        'Bookings'
       ];
 
       // Filter tasks to only show resource-type tasks
