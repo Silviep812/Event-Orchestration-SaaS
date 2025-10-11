@@ -3,10 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
-import { ClipboardList, CheckCircle2, Clock, AlertCircle, UserPlus } from "lucide-react";
+import { ClipboardList, CheckCircle2, Clock, AlertCircle, UserPlus, Check, X } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 interface TaskAssignment {
   id: string;
@@ -39,6 +42,8 @@ export function TeamMemberTaskAssignments() {
   const [unassignedTasksCount, setUnassignedTasksCount] = useState(0);
   const [allUsers, setAllUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [pendingAssignments, setPendingAssignments] = useState<Record<string, string>>({});
+  const [openPopovers, setOpenPopovers] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     fetchTaskAssignments();
@@ -331,18 +336,73 @@ export function TeamMemberTaskAssignments() {
                           Due: {format(new Date(task.taskDueDate), 'MMM d, yyyy')}
                         </p>
                       )}
-                      <Select onValueChange={(userId) => assignTask(task.taskId, userId)}>
-                        <SelectTrigger className="w-[180px]">
-                          <SelectValue placeholder="Assign to..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {allUsers.map((user) => (
-                            <SelectItem key={user.id} value={user.id}>
-                              {user.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Popover open={openPopovers[task.taskId]} onOpenChange={(open) => setOpenPopovers({...openPopovers, [task.taskId]: open})}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className="w-[180px] justify-between"
+                          >
+                            {pendingAssignments[task.taskId] 
+                              ? allUsers.find((user) => user.id === pendingAssignments[task.taskId])?.name
+                              : "Assign to..."}
+                            <UserPlus className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[200px] p-0">
+                          <Command>
+                            <CommandInput placeholder="Search user..." />
+                            <CommandEmpty>No user found.</CommandEmpty>
+                            <CommandGroup>
+                              {allUsers.map((user) => (
+                                <CommandItem
+                                  key={user.id}
+                                  value={user.name}
+                                  onSelect={() => {
+                                    setPendingAssignments({...pendingAssignments, [task.taskId]: user.id});
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      pendingAssignments[task.taskId] === user.id ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                  {user.name}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                      {pendingAssignments[task.taskId] && (
+                        <>
+                          <Button 
+                            size="sm" 
+                            onClick={() => {
+                              assignTask(task.taskId, pendingAssignments[task.taskId]);
+                              setPendingAssignments({...pendingAssignments, [task.taskId]: undefined});
+                              setOpenPopovers({...openPopovers, [task.taskId]: false});
+                            }}
+                            className="h-8"
+                          >
+                            <Check className="h-4 w-4 mr-1" />
+                            Save
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => {
+                              setPendingAssignments({...pendingAssignments, [task.taskId]: undefined});
+                              setOpenPopovers({...openPopovers, [task.taskId]: false});
+                            }}
+                            className="h-8"
+                          >
+                            <X className="h-4 w-4 mr-1" />
+                            Cancel
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -418,21 +478,73 @@ export function TeamMemberTaskAssignments() {
                         <Badge variant={task.taskStatus === 'completed' ? 'default' : 'outline'}>
                           {task.taskStatus}
                         </Badge>
-                        <Select 
-                          defaultValue={member.userId}
-                          onValueChange={(userId) => reassignTask(task.taskId, userId)}
-                        >
-                          <SelectTrigger className="w-[140px]">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {allUsers.map((user) => (
-                              <SelectItem key={user.id} value={user.id}>
-                                {user.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <Popover open={openPopovers[`reassign-${task.taskId}`]} onOpenChange={(open) => setOpenPopovers({...openPopovers, [`reassign-${task.taskId}`]: open})}>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              className="w-[140px] justify-between"
+                            >
+                              {pendingAssignments[`reassign-${task.taskId}`] 
+                                ? allUsers.find((user) => user.id === pendingAssignments[`reassign-${task.taskId}`])?.name
+                                : allUsers.find((user) => user.id === member.userId)?.name}
+                              <UserPlus className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[200px] p-0">
+                            <Command>
+                              <CommandInput placeholder="Search user..." />
+                              <CommandEmpty>No user found.</CommandEmpty>
+                              <CommandGroup>
+                                {allUsers.map((user) => (
+                                  <CommandItem
+                                    key={user.id}
+                                    value={user.name}
+                                    onSelect={() => {
+                                      setPendingAssignments({...pendingAssignments, [`reassign-${task.taskId}`]: user.id});
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        (pendingAssignments[`reassign-${task.taskId}`] || member.userId) === user.id ? "opacity-100" : "opacity-0"
+                                      )}
+                                    />
+                                    {user.name}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
+                        {pendingAssignments[`reassign-${task.taskId}`] && pendingAssignments[`reassign-${task.taskId}`] !== member.userId && (
+                          <>
+                            <Button 
+                              size="sm" 
+                              onClick={() => {
+                                reassignTask(task.taskId, pendingAssignments[`reassign-${task.taskId}`]);
+                                setPendingAssignments({...pendingAssignments, [`reassign-${task.taskId}`]: undefined});
+                                setOpenPopovers({...openPopovers, [`reassign-${task.taskId}`]: false});
+                              }}
+                              className="h-8"
+                            >
+                              <Check className="h-4 w-4 mr-1" />
+                              Change
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => {
+                                setPendingAssignments({...pendingAssignments, [`reassign-${task.taskId}`]: undefined});
+                                setOpenPopovers({...openPopovers, [`reassign-${task.taskId}`]: false});
+                              }}
+                              className="h-8"
+                            >
+                              <X className="h-4 w-4 mr-1" />
+                              Cancel
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </div>
                   ))}
