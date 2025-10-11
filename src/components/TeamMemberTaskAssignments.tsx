@@ -19,6 +19,7 @@ interface TaskAssignment {
   taskPriority: string;
   taskDueDate: string | null;
   eventTitle: string | null;
+  taskCategory: string | null;
 }
 
 interface TeamMemberWithTasks {
@@ -104,7 +105,8 @@ export function TeamMemberTaskAssignments() {
         taskStatus: task.status,
         taskPriority: task.priority,
         taskDueDate: task.due_date,
-        eventTitle: task.event_id ? eventMap.get(task.event_id) || null : null
+        eventTitle: task.event_id ? eventMap.get(task.event_id) || null : null,
+        taskCategory: task.category
       }));
       setUnassignedTasks(unassignedTasksList);
 
@@ -125,7 +127,8 @@ export function TeamMemberTaskAssignments() {
               taskStatus: task.status,
               taskPriority: task.priority,
               taskDueDate: task.due_date,
-              eventTitle: task.event_id ? eventMap.get(task.event_id) || null : null
+              eventTitle: task.event_id ? eventMap.get(task.event_id) || null : null,
+              taskCategory: task.category
             };
 
             if (!userTasksMap.has(user.id)) {
@@ -313,9 +316,9 @@ export function TeamMemberTaskAssignments() {
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <p className="font-medium text-sm">{task.taskTitle}</p>
-                        <Badge className={getPriorityColor(task.taskPriority)}>
-                          {task.taskPriority}
-                        </Badge>
+                        {task.taskCategory && (
+                          <Badge variant="outline">{task.taskCategory}</Badge>
+                        )}
                       </div>
                       {task.eventTitle && (
                         <p className="text-xs text-muted-foreground mt-1">Event: {task.eventTitle}</p>
@@ -397,9 +400,9 @@ export function TeamMemberTaskAssignments() {
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <p className="font-medium text-sm">{task.taskTitle}</p>
-                          <Badge className={getPriorityColor(task.taskPriority)}>
-                            {task.taskPriority}
-                          </Badge>
+                          {task.taskCategory && (
+                            <Badge variant="outline">{task.taskCategory}</Badge>
+                          )}
                         </div>
                         {task.eventTitle && (
                           <p className="text-xs text-muted-foreground mt-1">Event: {task.eventTitle}</p>
