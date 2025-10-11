@@ -77,21 +77,10 @@ export function TeamMemberTaskAssignments() {
       ];
 
       // Filter tasks to only show resource-type tasks
-      // Explicitly exclude generic team coordination tasks by title
-      const filteredTasks = tasks?.filter(task => {
-        const title = task.title?.toLowerCase() || '';
-        
-        // Exclude tasks with these phrases in their title
-        if (title.includes('coordinating team') || 
-            title.includes('collaborating team') ||
-            title.includes('collaborator team')) {
-          return false;
-        }
-        
-        // Include tasks with valid resource categories or "Lee Task Team"
-        return resourceCategories.includes(task.category) || 
-               task.title === 'Lee Task Team';
-      }) || [];
+      const filteredTasks = tasks?.filter(task => 
+        resourceCategories.includes(task.category) || 
+        task.title === 'Lee Task Team'
+      ) || [];
 
       // Fetch event titles separately
       const eventIds = [...new Set(filteredTasks?.map(t => t.event_id).filter(Boolean))];
