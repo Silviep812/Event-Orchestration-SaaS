@@ -230,34 +230,8 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
       const { data, error } = await query;
       if (error) throw error;
       
-      // Define valid resource type categories
-      const resourceCategories = [
-        'Venue',
-        'Transportation', 
-        'Service Vendor',
-        'Vendor Service Rental/Buy',
-        'Hospitality',
-        'Supplier',
-        'Entertainment',
-        'Bookings'
-      ];
-      
-      // Filter tasks to only show resource-type tasks
-      // Exclude generic coordinating/collaborating team tasks
-      const filteredData = (data || []).filter(task => {
-        const title = task.title?.toLowerCase() || '';
-        const isGenericTeamTask = title.includes('coordinating team') || 
-                                   title.includes('collaborating team') ||
-                                   title.includes('collaborator team');
-        
-        if (isGenericTeamTask) return false;
-        
-        return resourceCategories.includes(task.category) || 
-               task.title === 'Lee Task Team';
-      });
-      
       const tasksWithDependenciesAndAssignments = await Promise.all(
-        filteredData.map(async (task) => {
+        (data || []).map(async (task) => {
           // Fetch dependencies
           const { data: deps } = await supabase
             .from('tasks_dependencies')
@@ -325,35 +299,9 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
       
       if (error) throw error;
       
-      // Define valid resource type categories
-      const resourceCategories = [
-        'Venue',
-        'Transportation', 
-        'Service Vendor',
-        'Vendor Service Rental/Buy',
-        'Hospitality',
-        'Supplier',
-        'Entertainment',
-        'Bookings'
-      ];
-      
-      // Filter tasks to only show resource-type tasks
-      // Exclude generic coordinating/collaborating team tasks
-      const filteredData = (data || []).filter(task => {
-        const title = task.title?.toLowerCase() || '';
-        const isGenericTeamTask = title.includes('coordinating team') || 
-                                   title.includes('collaborating team') ||
-                                   title.includes('collaborator team');
-        
-        if (isGenericTeamTask) return false;
-        
-        return resourceCategories.includes(task.category) || 
-               task.title === 'Lee Task Team';
-      });
-      
       // Fetch assigned user names
       const tasksWithAssignments = await Promise.all(
-        filteredData.map(async (task) => {
+        (data || []).map(async (task) => {
           let assigned_user_name: string | undefined;
           let assigned_user_id: string | undefined;
           
