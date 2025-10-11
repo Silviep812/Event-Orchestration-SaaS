@@ -405,8 +405,9 @@ export function RoleManager() {
                         key={`${userRole.id}-role-${dataTimestamp}-${userRole.role}`}
                         value={userRole.role}
                         onValueChange={(newRole) => {
-                          const suggestedPermission = permissionMappings.get(newRole) || currentPermission;
-                          changeRole(userRole.id, userRole.user_id, newRole as any, suggestedPermission, userRole.event_id);
+                          console.log('[RoleManager] Role changed to:', newRole, 'for user:', userRole.user_id);
+                          // Only change role, keep current permission
+                          changeRole(userRole.id, userRole.user_id, newRole as any, currentPermission, userRole.event_id);
                         }}
                       >
                         <SelectTrigger className="w-full">

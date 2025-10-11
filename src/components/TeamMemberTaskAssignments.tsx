@@ -55,6 +55,7 @@ export function TeamMemberTaskAssignments() {
       if (usersError) throw usersError;
       
       const allUsers = usersResponse?.users || [];
+      console.log('[TeamMemberTaskAssignments] Loaded users:', allUsers.length, allUsers);
       setAllUsers(allUsers);
 
       // Fetch all tasks with their categories
