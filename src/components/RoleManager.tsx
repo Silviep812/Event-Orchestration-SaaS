@@ -55,18 +55,18 @@ export function RoleManager() {
   ];
 
   const permissionLevels = {
-    admin: { label: 'Admin', icon: Crown, color: 'bg-red-500/10 text-red-700 dark:text-red-400', description: 'Full system access including user management' },
-    coordinator: { label: 'Coordinator', icon: ClipboardList, color: 'bg-blue-500/10 text-blue-700 dark:text-blue-400', description: 'Can manage events and resources' },
-    viewer: { label: 'Viewer', icon: Eye, color: 'bg-gray-500/10 text-gray-700 dark:text-gray-400', description: 'Read-only access to events' }
+    admin: { label: 'Admin', icon: Crown, color: 'bg-destructive/10 text-destructive', description: 'Full system access including user management' },
+    coordinator: { label: 'Coordinator', icon: ClipboardList, color: 'bg-primary/10 text-primary', description: 'Can manage events and resources' },
+    viewer: { label: 'Viewer', icon: Eye, color: 'bg-muted-foreground/10 text-muted-foreground', description: 'Read-only access to events' }
   };
 
   const roleColors = {
-    manager: "bg-red-100 text-red-800",
-    host: "bg-blue-100 text-blue-800",
-    organizer: "bg-green-100 text-green-800",
-    event_planner: "bg-purple-100 text-purple-800",
-    venue_owner: "bg-yellow-100 text-yellow-800",
-    hospitality_provider: "bg-pink-100 text-pink-800"
+    manager: "bg-destructive/10 text-destructive",
+    host: "bg-primary/10 text-primary",
+    organizer: "bg-accent/50 text-accent-foreground",
+    event_planner: "bg-secondary/50 text-secondary-foreground",
+    venue_owner: "bg-muted text-muted-foreground",
+    hospitality_provider: "bg-primary/20 text-primary"
   };
 
   useEffect(() => {
