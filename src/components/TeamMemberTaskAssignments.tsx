@@ -55,19 +55,33 @@ export function TeamMemberTaskAssignments() {
       const allUsers = usersResponse?.users || [];
       setAllUsers(allUsers);
 
-      // Fetch all tasks with their event titles, filtering out generic team coordination tasks
+      // Fetch all tasks with their categories
       const { data: tasks, error: tasksError } = await supabase
         .from('tasks')
         .select('id, title, status, priority, due_date, assigned_to, event_id, category')
-        .not('title', 'ilike', '%coordinating team%')
-        .not('title', 'ilike', '%collaborators%')
-        .not('title', 'eq', 'Lee collaborator team')
         .order('due_date', { ascending: true });
       
       if (tasksError) throw tasksError;
 
+      // Define valid resource type categories
+      const resourceCategories = [
+        'Venue',
+        'Transportation', 
+        'Service Vendor',
+        'Vendor Service Rental/Buy',
+        'Hospitality',
+        'Supplier',
+        'Entertainment'
+      ];
+
+      // Filter tasks to only show resource-type tasks
+      const filteredTasks = tasks?.filter(task => 
+        resourceCategories.includes(task.category) || 
+        task.title === 'Lee Task Team'
+      ) || [];
+
       // Fetch event titles separately
-      const eventIds = [...new Set(tasks?.map(t => t.event_id).filter(Boolean))];
+      const eventIds = [...new Set(filteredTasks?.map(t => t.event_id).filter(Boolean))];
       const { data: events } = await supabase
         .from('events')
         .select('id, title')
@@ -76,7 +90,7 @@ export function TeamMemberTaskAssignments() {
       const eventMap = new Map(events?.map(e => [e.id, e.title]) || []);
 
       // Count unassigned tasks and store them
-      const unassigned = tasks?.filter(task => !task.assigned_to) || [];
+      const unassigned = filteredTasks?.filter(task => !task.assigned_to) || [];
       setUnassignedTasksCount(unassigned.length);
       
       // Convert unassigned tasks to TaskAssignment format
@@ -97,7 +111,7 @@ export function TeamMemberTaskAssignments() {
       // Group tasks by user
       const userTasksMap = new Map<string, TaskAssignment[]>();
       
-      tasks?.forEach((task: any) => {
+      filteredTasks?.forEach((task: any) => {
         if (task.assigned_to) {
           const user = allUsers.find((u: any) => u.id === task.assigned_to);
           if (user) {
