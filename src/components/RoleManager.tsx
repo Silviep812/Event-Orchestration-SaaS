@@ -386,7 +386,11 @@ export function RoleManager() {
                         }}
                       >
                         <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select event..." />
+                          <SelectValue>
+                            {userRole.event_id 
+                              ? (assignedEvent?.title || 'Unnamed Event')
+                              : 'Global (All Events)'}
+                          </SelectValue>
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="global">Global (All Events)</SelectItem>
