@@ -55,10 +55,13 @@ export function TeamMemberTaskAssignments() {
       const allUsers = usersResponse?.users || [];
       setAllUsers(allUsers);
 
-      // Fetch all tasks with their event titles
+      // Fetch all tasks with their event titles, filtering out generic team coordination tasks
       const { data: tasks, error: tasksError } = await supabase
         .from('tasks')
-        .select('id, title, status, priority, due_date, assigned_to, event_id')
+        .select('id, title, status, priority, due_date, assigned_to, event_id, category')
+        .not('title', 'ilike', '%coordinating team%')
+        .not('title', 'ilike', '%collaborators%')
+        .not('title', 'eq', 'Lee collaborator team')
         .order('due_date', { ascending: true });
       
       if (tasksError) throw tasksError;
