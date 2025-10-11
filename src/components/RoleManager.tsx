@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Shield, Users, UserCheck, Crown, ClipboardList, Eye } from "lucide-react";
 import { PermissionLevel } from "@/lib/permissions";
 import { UnassignedUserCard } from "./UnassignedUserCard";
+import { TeamMemberTaskAssignments } from "./TeamMemberTaskAssignments";
 
 interface UserRole {
   id: string;
@@ -507,6 +508,9 @@ export function RoleManager() {
           <p className="text-muted-foreground mb-4">Invite team members to get started.</p>
         </div>
       )}
+
+      {/* Team Member Task Assignments */}
+      <TeamMemberTaskAssignments />
 
       {/* Role Descriptions */}
       <div className="space-y-4">
