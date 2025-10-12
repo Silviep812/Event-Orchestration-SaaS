@@ -70,10 +70,23 @@ export function RoleManager() {
   };
 
   useEffect(() => {
+    let isMounted = true;
     console.log('[RoleManager] Component mounted, fetching data...');
-    fetchPermissionMappings();
-    fetchUsers();
-    fetchEvents();
+    
+    const fetchData = async () => {
+      if (!isMounted) return;
+      await fetchPermissionMappings();
+      if (!isMounted) return;
+      await fetchUsers();
+      if (!isMounted) return;
+      await fetchEvents();
+    };
+    
+    fetchData();
+    
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const fetchEvents = async () => {
@@ -84,7 +97,7 @@ export function RoleManager() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      console.log('[RoleManager] Events loaded:', data?.length || 0, data);
+      console.log('[RoleManager] Events loaded:', data?.length || 0);
       setEvents(data || []);
     } catch (error) {
       console.error('[RoleManager] Error fetching events:', error);

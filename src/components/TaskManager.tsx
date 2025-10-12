@@ -131,30 +131,45 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
   const { events, applyEventFilter } = useEventFilter();
 
   useEffect(() => {
-    fetchTasks();
+    let isMounted = true;
     
-    // Always fetch all users (not filtered by event)
-    fetchUsers();
-    
-    // Check URL parameters for auto-opening modal
-    const openModal = searchParams.get('openModal');
-    const urlEventId = searchParams.get('eventId');
-    
-    if (openModal === 'true') {
-      setIsCreateDialogOpen(true);
+    const fetchData = async () => {
+      if (!isMounted) return;
+      setLoading(true);
+      await fetchTasks();
+      if (!isMounted) return;
       
-      // Auto-select the event if eventId is provided in URL or props
-      const targetEventId = urlEventId || eventId;
-      if (targetEventId) {
-        setNewTask(prev => ({ ...prev, selected_event_id: targetEventId }));
+      // Always fetch all users (not filtered by event)
+      await fetchUsers();
+      
+      // Check URL parameters for auto-opening modal
+      const openModal = searchParams.get('openModal');
+      const urlEventId = searchParams.get('eventId');
+      
+      if (openModal === 'true' && isMounted) {
+        setIsCreateDialogOpen(true);
+        
+        // Auto-select the event if eventId is provided in URL or props
+        const targetEventId = urlEventId || eventId;
+        if (targetEventId) {
+          setNewTask(prev => ({ ...prev, selected_event_id: targetEventId }));
+        }
+        
+        // Remove the openModal parameter from URL
+        const newSearchParams = new URLSearchParams(searchParams);
+        newSearchParams.delete('openModal');
+        setSearchParams(newSearchParams, { replace: true });
       }
       
-      // Remove the openModal parameter from URL
-      const newSearchParams = new URLSearchParams(searchParams);
-      newSearchParams.delete('openModal');
-      setSearchParams(newSearchParams, { replace: true });
-    }
-  }, [eventId, user, selectedEventFilter, showArchived, searchParams, setSearchParams]);
+      if (isMounted) setLoading(false);
+    };
+    
+    fetchData();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [eventId, selectedEventFilter, showArchived]);
 
   const fetchUsers = async () => {
     try {
@@ -283,8 +298,6 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         description: "Failed to load tasks. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
     }
   };
 

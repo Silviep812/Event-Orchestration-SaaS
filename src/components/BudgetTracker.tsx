@@ -84,8 +84,22 @@ export function BudgetTracker({ eventId, selectedEventFilter }: BudgetTrackerPro
   const [editingCost, setEditingCost] = useState<{ [id: string]: { estimated?: string; actual?: string } }>({});
 
   useEffect(() => {
-    fetchBudgetItems();
-    fetchEventBudget();
+    let isMounted = true;
+    
+    const fetchData = async () => {
+      if (!isMounted) return;
+      setLoading(true);
+      await fetchBudgetItems();
+      if (!isMounted) return;
+      await fetchEventBudget();
+      if (isMounted) setLoading(false);
+    };
+    
+    fetchData();
+    
+    return () => {
+      isMounted = false;
+    };
   }, [eventId, selectedEventFilter, showArchived]);
 
   const fetchEventBudget = async () => {
@@ -172,8 +186,6 @@ export function BudgetTracker({ eventId, selectedEventFilter }: BudgetTrackerPro
         description: "Failed to load budget items. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
     }
   };
 
