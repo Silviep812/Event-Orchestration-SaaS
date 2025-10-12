@@ -1310,9 +1310,24 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between">
                     <CardTitle className="text-base">{task.title}</CardTitle>
-                    <Badge className={priorityColors[task.priority]}>
-                      {task.priority}
-                    </Badge>
+                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                      <Select 
+                        value={task.priority} 
+                        onValueChange={(value: 'low' | 'medium' | 'high' | 'urgent') => 
+                          updateTask(task.id, { priority: value })
+                        }
+                      >
+                        <SelectTrigger className={`h-7 text-xs ${priorityColors[task.priority]}`}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-background z-50">
+                          <SelectItem value="low">Low</SelectItem>
+                          <SelectItem value="medium">Medium</SelectItem>
+                          <SelectItem value="high">High</SelectItem>
+                          <SelectItem value="urgent">Urgent</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-2">
