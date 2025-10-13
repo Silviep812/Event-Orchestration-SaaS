@@ -1182,92 +1182,6 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
 
               {/* Right column */}
               <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="hours">Estimated Hours</Label>
-                  <Input
-                    id="hours"
-                    type="number"
-                    step="0.5"
-                    min="0"
-                    placeholder="0.0"
-                    value={newTask.estimated_hours}
-                    onChange={(e) => {
-                      setNewTask({ ...newTask, estimated_hours: e.target.value });
-                      setValidationErrors({ ...validationErrors, estimated_hours: "" });
-                    }}
-                    className={validationErrors.estimated_hours ? "border-destructive" : ""}
-                  />
-                  {validationErrors.estimated_hours && (
-                    <p className="text-sm text-destructive">{validationErrors.estimated_hours}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="due_date">Due Date</Label>
-                  <Input
-                    id="due_date"
-                    type="datetime-local"
-                    value={newTask.due_date}
-                    onChange={(e) => setNewTask({ ...newTask, due_date: e.target.value })}
-                  />
-                </div>
-
-                <div className="space-y-2 p-3 border border-primary/20 rounded-lg bg-primary/5">
-                  <Label htmlFor="assigned-user" className="text-base font-semibold">Assign Coordinator</Label>
-                  <Select 
-                    value={newTask.assigned_user_id} 
-                    onValueChange={(value) => {
-                      const userId = value === "none" ? "" : value;
-                      setNewTask({ ...newTask, assigned_user_id: userId });
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a person" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-background z-50">
-                      <SelectItem value="none">No assignment</SelectItem>
-                      {users.map((user) => (
-                        <SelectItem key={user.userid} value={user.userid}>
-                          {user.user_name || user.contact_name || 'Unnamed User'}
-                        </SelectItem>
-                      ))}
-                      {users.length === 0 && (
-                        <SelectItem value="none" disabled>No users available</SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2 p-3 border border-purple-200 rounded-lg bg-purple-50">
-                  <Label htmlFor="assigned-role" className="text-base font-semibold">Assign Coordinator</Label>
-                  <p className="text-xs text-muted-foreground">Assign to a predefined role type</p>
-                  <Select 
-                    value={newTask.assigned_role} 
-                    onValueChange={(value) => {
-                      const role = value === "none" ? "" : value;
-                      setNewTask({ ...newTask, assigned_role: role });
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a role" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-background z-50">
-                      <SelectItem value="none">No role assignment</SelectItem>
-                      <SelectItem value="manager">Manager</SelectItem>
-                      <SelectItem value="host">Host</SelectItem>
-                      <SelectItem value="organizer">Organizer</SelectItem>
-                      <SelectItem value="event_planner">Event Planner</SelectItem>
-                      <SelectItem value="venue_owner">Venue Owner</SelectItem>
-                      <SelectItem value="hospitality_provider">Hospitality Provider</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {newTask.assigned_role && (
-                    <p className="text-xs text-purple-700 font-medium mt-1">
-                      ✓ Will be assigned to: {newTask.assigned_role.replace('_', ' ')}
-                    </p>
-                  )}
-                </div>
-
                 <div className="space-y-2 p-3 border border-blue-200 rounded-lg bg-blue-50">
                   <Label htmlFor="coordinator-name" className="text-base font-semibold">
                     Assign Coordinator
@@ -1326,6 +1240,92 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                       </Button>
                     </div>
                   )}
+                </div>
+
+                <div className="space-y-2 p-3 border border-primary/20 rounded-lg bg-primary/5">
+                  <Label htmlFor="assigned-user" className="text-base font-semibold">Assign Coordinator</Label>
+                  <Select 
+                    value={newTask.assigned_user_id} 
+                    onValueChange={(value) => {
+                      const userId = value === "none" ? "" : value;
+                      setNewTask({ ...newTask, assigned_user_id: userId });
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a person" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background z-50">
+                      <SelectItem value="none">No assignment</SelectItem>
+                      {users.map((user) => (
+                        <SelectItem key={user.userid} value={user.userid}>
+                          {user.user_name || user.contact_name || 'Unnamed User'}
+                        </SelectItem>
+                      ))}
+                      {users.length === 0 && (
+                        <SelectItem value="none" disabled>No users available</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2 p-3 border border-purple-200 rounded-lg bg-purple-50">
+                  <Label htmlFor="assigned-role" className="text-base font-semibold">Assign Coordinator</Label>
+                  <p className="text-xs text-muted-foreground">Assign to a predefined role type</p>
+                  <Select 
+                    value={newTask.assigned_role} 
+                    onValueChange={(value) => {
+                      const role = value === "none" ? "" : value;
+                      setNewTask({ ...newTask, assigned_role: role });
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a role" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background z-50">
+                      <SelectItem value="none">No role assignment</SelectItem>
+                      <SelectItem value="manager">Manager</SelectItem>
+                      <SelectItem value="host">Host</SelectItem>
+                      <SelectItem value="organizer">Organizer</SelectItem>
+                      <SelectItem value="event_planner">Event Planner</SelectItem>
+                      <SelectItem value="venue_owner">Venue Owner</SelectItem>
+                      <SelectItem value="hospitality_provider">Hospitality Provider</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {newTask.assigned_role && (
+                    <p className="text-xs text-purple-700 font-medium mt-1">
+                      ✓ Will be assigned to: {newTask.assigned_role.replace('_', ' ')}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="hours">Estimated Hours</Label>
+                  <Input
+                    id="hours"
+                    type="number"
+                    step="0.5"
+                    min="0"
+                    placeholder="0.0"
+                    value={newTask.estimated_hours}
+                    onChange={(e) => {
+                      setNewTask({ ...newTask, estimated_hours: e.target.value });
+                      setValidationErrors({ ...validationErrors, estimated_hours: "" });
+                    }}
+                    className={validationErrors.estimated_hours ? "border-destructive" : ""}
+                  />
+                  {validationErrors.estimated_hours && (
+                    <p className="text-sm text-destructive">{validationErrors.estimated_hours}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="due_date">Due Date</Label>
+                  <Input
+                    id="due_date"
+                    type="datetime-local"
+                    value={newTask.due_date}
+                    onChange={(e) => setNewTask({ ...newTask, due_date: e.target.value })}
+                  />
                 </div>
               </div>
             </div>
@@ -1553,59 +1553,6 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
 
               {/* Right column */}
               <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="edit-assigned-user">Assign Coordinator</Label>
-                  <Select value={selectedTask.assigned_user_id || "none"} onValueChange={(value) => {
-                    const userId = value === "none" ? undefined : value;
-                    setSelectedTask({ ...selectedTask, assigned_user_id: userId });
-                  }}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a person" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-background z-50">
-                      <SelectItem value="none">No assignment</SelectItem>
-                      {users.map((user) => (
-                        <SelectItem key={user.userid} value={user.userid}>
-                          {user.user_name || user.contact_name || 'Unnamed User'}
-                        </SelectItem>
-                      ))}
-                      {users.length === 0 && (
-                        <SelectItem value="none" disabled>No users available</SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2 p-3 border border-purple-200 rounded-lg bg-purple-50">
-                  <Label htmlFor="edit-assigned-role" className="text-base font-semibold">Assign Coordinator</Label>
-                  <p className="text-xs text-muted-foreground">Assign to a predefined role type</p>
-                  <Select 
-                    value={selectedTask.assigned_role || "none"} 
-                    onValueChange={(value) => {
-                      const role = value === "none" ? "" : value;
-                      setSelectedTask({ ...selectedTask, assigned_role: role });
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a role" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-background z-50">
-                      <SelectItem value="none">No role assignment</SelectItem>
-                      <SelectItem value="manager">Manager</SelectItem>
-                      <SelectItem value="host">Host</SelectItem>
-                      <SelectItem value="organizer">Organizer</SelectItem>
-                      <SelectItem value="event_planner">Event Planner</SelectItem>
-                      <SelectItem value="venue_owner">Venue Owner</SelectItem>
-                      <SelectItem value="hospitality_provider">Hospitality Provider</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {selectedTask.assigned_role && (
-                    <p className="text-xs text-purple-700 font-medium mt-1">
-                      ✓ Assigned to: {selectedTask.assigned_role.replace('_', ' ')}
-                    </p>
-                  )}
-                </div>
-
                 <div className="space-y-2 p-3 border border-blue-200 rounded-lg bg-blue-50">
                   <Label htmlFor="edit-coordinator-name" className="text-base font-semibold">
                     Assign Coordinator
@@ -1691,6 +1638,59 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                         <X className="h-4 w-4" />
                       </Button>
                     </div>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-assigned-user">Assign Coordinator</Label>
+                  <Select value={selectedTask.assigned_user_id || "none"} onValueChange={(value) => {
+                    const userId = value === "none" ? undefined : value;
+                    setSelectedTask({ ...selectedTask, assigned_user_id: userId });
+                  }}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a person" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background z-50">
+                      <SelectItem value="none">No assignment</SelectItem>
+                      {users.map((user) => (
+                        <SelectItem key={user.userid} value={user.userid}>
+                          {user.user_name || user.contact_name || 'Unnamed User'}
+                        </SelectItem>
+                      ))}
+                      {users.length === 0 && (
+                        <SelectItem value="none" disabled>No users available</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2 p-3 border border-purple-200 rounded-lg bg-purple-50">
+                  <Label htmlFor="edit-assigned-role" className="text-base font-semibold">Assign Coordinator</Label>
+                  <p className="text-xs text-muted-foreground">Assign to a predefined role type</p>
+                  <Select 
+                    value={selectedTask.assigned_role || "none"} 
+                    onValueChange={(value) => {
+                      const role = value === "none" ? "" : value;
+                      setSelectedTask({ ...selectedTask, assigned_role: role });
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a role" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background z-50">
+                      <SelectItem value="none">No role assignment</SelectItem>
+                      <SelectItem value="manager">Manager</SelectItem>
+                      <SelectItem value="host">Host</SelectItem>
+                      <SelectItem value="organizer">Organizer</SelectItem>
+                      <SelectItem value="event_planner">Event Planner</SelectItem>
+                      <SelectItem value="venue_owner">Venue Owner</SelectItem>
+                      <SelectItem value="hospitality_provider">Hospitality Provider</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {selectedTask.assigned_role && (
+                    <p className="text-xs text-purple-700 font-medium mt-1">
+                      ✓ Assigned to: {selectedTask.assigned_role.replace('_', ' ')}
+                    </p>
                   )}
                 </div>
 
