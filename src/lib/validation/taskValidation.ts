@@ -20,7 +20,11 @@ export const createTaskSchema = z.object({
       { message: "Estimated hours must be a positive number" }
     ),
   due_date: z.string().optional(),
-  dependencies: z.array(z.string()).optional()
+  dependencies: z.array(z.string()).optional(),
+  assigned_coordinator_name: z.string()
+    .trim()
+    .max(100, { message: "Coordinator name must be less than 100 characters" })
+    .optional()
 });
 
 export const updateTaskSchema = z.object({

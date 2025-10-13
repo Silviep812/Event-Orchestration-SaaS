@@ -13,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useEventFilter } from "@/hooks/useEventFilter";
-import { CheckCircle2, Clock, AlertCircle, Plus, Calendar, User, Archive, ArchiveRestore, Eye, EyeOff, Link } from "lucide-react";
+import { CheckCircle2, Clock, AlertCircle, Plus, Calendar, User, Archive, ArchiveRestore, Eye, EyeOff, Link, Save, X } from "lucide-react";
 import { format } from "date-fns";
 import { createTaskSchema } from "@/lib/validation/taskValidation";
 
@@ -25,6 +25,7 @@ interface Task {
   assigned_user_id?: string;
   assigned_user_name?: string;
   assigned_role?: string;
+  assigned_coordinator_name?: string;
   status: 'not_started' | 'in_progress' | 'completed' | 'on_hold' | 'cancelled';
   priority: 'low' | 'medium' | 'high' | 'urgent';
   estimated_hours?: number;
@@ -126,6 +127,9 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
   const [dependencySearchTerm, setDependencySearchTerm] = useState<string>("");
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [clearFormAfterSave, setClearFormAfterSave] = useState(false);
+  const [coordinatorName, setCoordinatorName] = useState(""); // For Create Task dialog
+  const [editCoordinatorName, setEditCoordinatorName] = useState(""); // For Edit Task dialog
+  const [isSavingCoordinatorName, setIsSavingCoordinatorName] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const { events, applyEventFilter } = useEventFilter();
@@ -283,7 +287,8 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
             dependencies: deps?.map(d => d.depends_on_task_id) || [],
             assigned_user_id,
             assigned_user_name,
-            assigned_role: roleAssignment
+            assigned_role: roleAssignment,
+            assigned_coordinator_name: task.assigned_coordinator_name
           };
         })
       );
@@ -649,7 +654,8 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         due_date: overrideDueDate || newTask.due_date || null,
         event_id: eventId || newTask.selected_event_id || null,
         created_by: user.id,
-        category: selectedCollaboratorTypes.length > 0 ? selectedCollaboratorTypes.join(', ') : null
+        category: selectedCollaboratorTypes.length > 0 ? selectedCollaboratorTypes.join(', ') : null,
+        assigned_coordinator_name: (newTask as any).assigned_coordinator_name || null
       };
 
       const { data: createdTask, error } = await supabase
@@ -1207,7 +1213,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                 </div>
 
                 <div className="space-y-2 p-3 border border-primary/20 rounded-lg bg-primary/5">
-                  <Label htmlFor="assigned-user" className="text-base font-semibold">Assign To User</Label>
+                  <Label htmlFor="assigned-user" className="text-base font-semibold">Assign Coordinator</Label>
                   <Select 
                     value={newTask.assigned_user_id} 
                     onValueChange={(value) => {
@@ -1233,7 +1239,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                 </div>
 
                 <div className="space-y-2 p-3 border border-purple-200 rounded-lg bg-purple-50">
-                  <Label htmlFor="assigned-role" className="text-base font-semibold">Or Assign By Role</Label>
+                  <Label htmlFor="assigned-role" className="text-base font-semibold">Assign Coordinator</Label>
                   <p className="text-xs text-muted-foreground">Assign to a predefined role type</p>
                   <Select 
                     value={newTask.assigned_role} 
@@ -1259,6 +1265,66 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     <p className="text-xs text-purple-700 font-medium mt-1">
                       ✓ Will be assigned to: {newTask.assigned_role.replace('_', ' ')}
                     </p>
+                  )}
+                </div>
+
+                <div className="space-y-2 p-3 border border-blue-200 rounded-lg bg-blue-50">
+                  <Label htmlFor="coordinator-name" className="text-base font-semibold">
+                    Assign Coordinator
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Or enter coordinator name manually
+                  </p>
+                  <div className="flex gap-2">
+                    <Input
+                      id="coordinator-name"
+                      placeholder="Enter coordinator's name"
+                      value={coordinatorName}
+                      onChange={(e) => setCoordinatorName(e.target.value)}
+                      maxLength={100}
+                    />
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        if (coordinatorName.trim()) {
+                          setNewTask({ 
+                            ...newTask, 
+                            assigned_coordinator_name: coordinatorName.trim() 
+                          } as any);
+                          toast({
+                            title: "Coordinator assigned",
+                            description: `${coordinatorName.trim()} assigned to this task`,
+                          });
+                          setCoordinatorName("");
+                        }
+                      }}
+                      disabled={!coordinatorName.trim()}
+                    >
+                      <Save className="h-4 w-4 mr-1" />
+                      Save
+                    </Button>
+                  </div>
+                  {(newTask as any).assigned_coordinator_name && (
+                    <div className="flex items-center justify-between p-2 bg-white rounded border border-blue-300">
+                      <div className="flex items-center gap-2">
+                        <User className="h-4 w-4 text-blue-600" />
+                        <span className="text-sm font-medium">{(newTask as any).assigned_coordinator_name}</span>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setNewTask({ ...newTask, assigned_coordinator_name: undefined } as any);
+                          toast({
+                            title: "Coordinator removed",
+                            description: "Manual coordinator assignment cleared",
+                          });
+                        }}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
                   )}
                 </div>
               </div>
@@ -1373,6 +1439,13 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                                   </div>
                                 )}
 
+                                {task.assigned_coordinator_name && (
+                                  <div className="flex items-center gap-1 text-sm text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                                    <User className="h-3 w-3" />
+                                    <span>{task.assigned_coordinator_name}</span>
+                                  </div>
+                                )}
+
                                 {task.estimated_hours && (
                                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                     <Clock className="h-3 w-3" />
@@ -1481,7 +1554,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
               {/* Right column */}
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="edit-assigned-user">Assign To User</Label>
+                  <Label htmlFor="edit-assigned-user">Assign Coordinator</Label>
                   <Select value={selectedTask.assigned_user_id || "none"} onValueChange={(value) => {
                     const userId = value === "none" ? undefined : value;
                     setSelectedTask({ ...selectedTask, assigned_user_id: userId });
@@ -1504,7 +1577,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                 </div>
 
                 <div className="space-y-2 p-3 border border-purple-200 rounded-lg bg-purple-50">
-                  <Label htmlFor="edit-assigned-role" className="text-base font-semibold">Or Assign By Role</Label>
+                  <Label htmlFor="edit-assigned-role" className="text-base font-semibold">Assign Coordinator</Label>
                   <p className="text-xs text-muted-foreground">Assign to a predefined role type</p>
                   <Select 
                     value={selectedTask.assigned_role || "none"} 
@@ -1530,6 +1603,94 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     <p className="text-xs text-purple-700 font-medium mt-1">
                       ✓ Assigned to: {selectedTask.assigned_role.replace('_', ' ')}
                     </p>
+                  )}
+                </div>
+
+                <div className="space-y-2 p-3 border border-blue-200 rounded-lg bg-blue-50">
+                  <Label htmlFor="edit-coordinator-name" className="text-base font-semibold">
+                    Assign Coordinator
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Or enter coordinator name manually
+                  </p>
+                  <div className="flex gap-2">
+                    <Input
+                      id="edit-coordinator-name"
+                      placeholder="Enter coordinator's name"
+                      value={editCoordinatorName || selectedTask.assigned_coordinator_name || ""}
+                      onChange={(e) => setEditCoordinatorName(e.target.value)}
+                      maxLength={100}
+                    />
+                    <Button
+                      type="button"
+                      onClick={async () => {
+                        if (editCoordinatorName.trim()) {
+                          setIsSavingCoordinatorName(true);
+                          try {
+                            await updateTask(selectedTask.id, {
+                              assigned_coordinator_name: editCoordinatorName.trim()
+                            });
+                            setSelectedTask({
+                              ...selectedTask,
+                              assigned_coordinator_name: editCoordinatorName.trim()
+                            });
+                            toast({
+                              title: "Coordinator updated",
+                              description: `${editCoordinatorName.trim()} assigned to this task`,
+                            });
+                            setEditCoordinatorName("");
+                          } catch (error) {
+                            toast({
+                              title: "Error",
+                              description: "Failed to update coordinator",
+                              variant: "destructive",
+                            });
+                          } finally {
+                            setIsSavingCoordinatorName(false);
+                          }
+                        }
+                      }}
+                      disabled={!editCoordinatorName.trim() || isSavingCoordinatorName}
+                    >
+                      <Save className="h-4 w-4 mr-1" />
+                      {isSavingCoordinatorName ? "Saving..." : "Change"}
+                    </Button>
+                  </div>
+                  {selectedTask.assigned_coordinator_name && (
+                    <div className="flex items-center justify-between p-2 bg-white rounded border border-blue-300">
+                      <div className="flex items-center gap-2">
+                        <User className="h-4 w-4 text-blue-600" />
+                        <span className="text-sm font-medium">{selectedTask.assigned_coordinator_name}</span>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={async () => {
+                          try {
+                            await updateTask(selectedTask.id, {
+                              assigned_coordinator_name: null
+                            });
+                            setSelectedTask({
+                              ...selectedTask,
+                              assigned_coordinator_name: undefined
+                            });
+                            toast({
+                              title: "Coordinator removed",
+                              description: "Manual coordinator assignment cleared",
+                            });
+                          } catch (error) {
+                            toast({
+                              title: "Error",
+                              description: "Failed to remove coordinator",
+                              variant: "destructive",
+                            });
+                          }
+                        }}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
                   )}
                 </div>
 
