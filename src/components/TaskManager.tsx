@@ -1033,6 +1033,41 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
             {showArchived ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             {showArchived ? "Hide Archived" : "Show Archived"}
           </Button>
+          <Button
+            variant="outline"
+            onClick={async () => {
+              try {
+                // Update all tasks with old description text
+                const { error } = await supabase
+                  .from('tasks')
+                  .update({ description: 'Enter task collaborator name' })
+                  .in('description', [
+                    'Assign task responsibilities',
+                    'Assign coordinator responsibility', 
+                    'Assign tasks to team members'
+                  ]);
+
+                if (error) throw error;
+
+                toast({
+                  title: "Descriptions updated",
+                  description: "Task descriptions have been updated successfully.",
+                });
+
+                fetchTasks();
+              } catch (error) {
+                console.error('Error updating descriptions:', error);
+                toast({
+                  title: "Error",
+                  description: "Failed to update task descriptions.",
+                  variant: "destructive",
+                });
+              }
+            }}
+            className="flex items-center gap-2 text-xs"
+          >
+            Update Old Descriptions
+          </Button>
         </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={(open) => {
           if (!open) {
