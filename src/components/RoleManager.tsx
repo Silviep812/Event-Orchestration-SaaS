@@ -83,9 +83,61 @@ export function RoleManager() {
     };
     
     fetchData();
+
+    // Set up real-time subscriptions for automatic updates
+    const eventsChannel = supabase
+      .channel('events-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'events'
+        },
+        (payload) => {
+          console.log('[RoleManager] Events changed:', payload);
+          fetchEvents();
+        }
+      )
+      .subscribe();
+
+    const rolesChannel = supabase
+      .channel('user-roles-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'user_roles'
+        },
+        (payload) => {
+          console.log('[RoleManager] User roles changed:', payload);
+          fetchUsers();
+        }
+      )
+      .subscribe();
+
+    const profilesChannel = supabase
+      .channel('profiles-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'profiles'
+        },
+        (payload) => {
+          console.log('[RoleManager] Profiles changed:', payload);
+          fetchUsers();
+        }
+      )
+      .subscribe();
     
     return () => {
       isMounted = false;
+      supabase.removeChannel(eventsChannel);
+      supabase.removeChannel(rolesChannel);
+      supabase.removeChannel(profilesChannel);
     };
   }, []);
 
