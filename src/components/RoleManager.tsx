@@ -87,7 +87,7 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
 
     // Set up real-time subscriptions for automatic updates
     const eventsChannel = supabase
-      .channel('events-changes')
+      .channel('role-manager-events-changes')
       .on(
         'postgres_changes',
         {
@@ -97,13 +97,15 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
         },
         (payload) => {
           console.log('[RoleManager] Events changed:', payload);
-          fetchEvents();
+          if (isMounted) {
+            fetchEvents();
+          }
         }
       )
       .subscribe();
 
     const rolesChannel = supabase
-      .channel('user-roles-changes')
+      .channel('role-manager-user-roles-changes')
       .on(
         'postgres_changes',
         {
@@ -113,13 +115,15 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
         },
         (payload) => {
           console.log('[RoleManager] User roles changed:', payload);
-          fetchUsers();
+          if (isMounted) {
+            fetchUsers();
+          }
         }
       )
       .subscribe();
 
     const profilesChannel = supabase
-      .channel('profiles-changes')
+      .channel('role-manager-profiles-changes')
       .on(
         'postgres_changes',
         {
@@ -129,7 +133,9 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
         },
         (payload) => {
           console.log('[RoleManager] Profiles changed:', payload);
-          fetchUsers();
+          if (isMounted) {
+            fetchUsers();
+          }
         }
       )
       .subscribe();
@@ -152,33 +158,46 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
 
       if (eventsError) throw eventsError;
 
-      // Fetch profiles for organizer names
-      const userIds = eventsData?.map(e => e.user_id).filter(Boolean) || [];
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('user_id, display_name')
-        .in('user_id', userIds);
+      // Fetch profiles for organizer names only if we have events
+      if (eventsData && eventsData.length > 0) {
+        const userIds = eventsData.map(e => e.user_id).filter(Boolean);
+        
+        if (userIds.length > 0) {
+          const { data: profilesData, error: profilesError } = await supabase
+            .from('profiles')
+            .select('user_id, display_name')
+            .in('user_id', userIds);
 
-      if (profilesError) console.error('Error fetching profiles:', profilesError);
+          if (profilesError) {
+            console.error('Error fetching profiles:', profilesError);
+          }
 
-      // Create a map of user_id to display_name
-      const profilesMap = new Map(
-        profilesData?.map(p => [p.user_id, p.display_name]) || []
-      );
+          // Create a map of user_id to display_name
+          const profilesMap = new Map(
+            profilesData?.map(p => [p.user_id, p.display_name]) || []
+          );
 
-      // Combine events with organizer names
-      const eventsWithOrganizer = eventsData?.map(event => ({
-        id: event.id,
-        title: event.title,
-        start_date: event.start_date,
-        created_at: event.created_at,
-        organizer_name: profilesMap.get(event.user_id) || 'Unknown'
-      })) || [];
+          // Combine events with organizer names
+          const eventsWithOrganizer = eventsData.map(event => ({
+            id: event.id,
+            title: event.title,
+            start_date: event.start_date,
+            created_at: event.created_at,
+            organizer_name: profilesMap.get(event.user_id) || 'Unknown'
+          }));
 
-      console.log('[RoleManager] Events loaded:', eventsWithOrganizer.length);
-      setEvents(eventsWithOrganizer);
+          console.log('[RoleManager] Events loaded:', eventsWithOrganizer.length);
+          setEvents(eventsWithOrganizer);
+          return;
+        }
+      }
+      
+      // If no events or no user IDs, just set empty
+      setEvents([]);
+      console.log('[RoleManager] No events found');
     } catch (error) {
       console.error('[RoleManager] Error fetching events:', error);
+      setEvents([]);
     }
   };
 
@@ -206,6 +225,8 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
 
   const fetchUsers = async () => {
     try {
+      setLoading(true);
+      
       // Get all role assignments from user_roles table
       const { data: userRolesData, error: rolesError } = await supabase
         .from('user_roles')
