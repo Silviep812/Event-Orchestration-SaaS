@@ -33,6 +33,7 @@ interface Event {
   title: string;
   start_date: string;
   created_at: string;
+  organizer_name?: string;
 }
 
 export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilter?: string }) {
@@ -143,14 +144,39 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
 
   const fetchEvents = async () => {
     try {
-      const { data, error } = await supabase
+      // Fetch events
+      const { data: eventsData, error: eventsError } = await supabase
         .from('events')
-        .select('id, title, start_date, created_at')
+        .select('id, title, start_date, created_at, user_id')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      console.log('[RoleManager] Events loaded:', data?.length || 0);
-      setEvents(data || []);
+      if (eventsError) throw eventsError;
+
+      // Fetch profiles for organizer names
+      const userIds = eventsData?.map(e => e.user_id).filter(Boolean) || [];
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('user_id, display_name')
+        .in('user_id', userIds);
+
+      if (profilesError) console.error('Error fetching profiles:', profilesError);
+
+      // Create a map of user_id to display_name
+      const profilesMap = new Map(
+        profilesData?.map(p => [p.user_id, p.display_name]) || []
+      );
+
+      // Combine events with organizer names
+      const eventsWithOrganizer = eventsData?.map(event => ({
+        id: event.id,
+        title: event.title,
+        start_date: event.start_date,
+        created_at: event.created_at,
+        organizer_name: profilesMap.get(event.user_id) || 'Unknown'
+      })) || [];
+
+      console.log('[RoleManager] Events loaded:', eventsWithOrganizer.length);
+      setEvents(eventsWithOrganizer);
     } catch (error) {
       console.error('[RoleManager] Error fetching events:', error);
     }
@@ -402,32 +428,10 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
                   
                   <div className="flex items-center gap-3">
                     <div className="flex-1">
-                      <label className="text-xs text-muted-foreground mb-1 block">Event</label>
-                      <Select
-                        key={`${userRole.id}-event-${dataTimestamp}`}
-                        value={userRole.event_id || 'global'}
-                        onValueChange={(eventId) => {
-                          console.log('[RoleManager] Event changed to:', eventId);
-                          const finalEventId = eventId === 'global' ? null : eventId;
-                          changeRole(userRole.id, userRole.user_id, userRole.role as any, currentPermission, finalEventId);
-                        }}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue>
-                            {userRole.event_id 
-                              ? (assignedEvent?.title || 'Unnamed Event')
-                              : 'Global (All Events)'}
-                          </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="global">Global (All Events)</SelectItem>
-                          {events.map((event) => (
-                            <SelectItem key={event.id} value={event.id}>
-                              {event.title || `Event ${event.id.slice(0, 8)}`}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <label className="text-xs text-muted-foreground mb-1 block">Event Organizer</label>
+                      <p className="text-sm font-medium">
+                        {assignedEvent?.organizer_name || 'Not specified'}
+                      </p>
                     </div>
                     
                     <div className="flex-1">
