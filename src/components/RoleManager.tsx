@@ -296,7 +296,7 @@ export function RoleManager() {
       </Card>
 
       {/* Role Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -317,18 +317,6 @@ export function RoleManager() {
                 <p className="text-2xl font-bold">{userRoles.length}</p>
               </div>
               <UserCheck className="h-8 w-8 text-muted-foreground" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Available Roles</p>
-                <p className="text-2xl font-bold">{roles.length}</p>
-              </div>
-              <Shield className="h-8 w-8 text-muted-foreground" />
             </div>
           </CardContent>
         </Card>
