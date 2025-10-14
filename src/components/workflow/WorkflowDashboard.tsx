@@ -294,7 +294,7 @@ export const WorkflowDashboard = ({ userType, selectedTheme, workflowId, setCurr
     if (setCurrentStep) {
       setCurrentStep("user-type");
     } else {
-      navigate(`/dashboard/workflow?eventId=${eventId}`);
+      navigate(`/dashboard/workflow-dashboard?eventId=${eventId}`);
     }
   };
 

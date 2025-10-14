@@ -8,7 +8,6 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import DashboardHome from "./pages/DashboardHome";
-import WorkflowSetup from "./pages/WorkflowSetup";
 import WorkflowDashboard from "./pages/WorkflowDashboard";
 import ThemesDirectory from "./pages/ThemesDirectory";
 import ProjectManagement from "./pages/ProjectManagement";
@@ -50,7 +49,6 @@ const App = () => (
             <Route path="/contact" element={<Contact />} />
             <Route path="/dashboard" element={<Dashboard />}>
               <Route index element={<DashboardHome />} />
-              <Route path="workflow" element={<WorkflowSetup />} />
               <Route path="workflow-dashboard" element={<WorkflowDashboard />} />
               <Route path="themes" element={<ThemesDirectory />} />
               <Route path="project-management" element={<ProjectManagement />} />

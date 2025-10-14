@@ -289,9 +289,9 @@ const DashboardHome = () => {
       </div>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={() => window.location.href = '/dashboard/workflow'}>
+          <Button variant="outline" onClick={() => window.location.href = '/dashboard/workflow-dashboard'}>
             <Settings className="h-4 w-4 mr-2" />
-            Setup Workflow
+            Workflow
           </Button>
           <Button variant="outline" onClick={() => window.location.href = '/dashboard/themes'}>
             <Palette className="h-4 w-4 mr-2" />

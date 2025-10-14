@@ -1,6 +1,4 @@
-import { useState, useEffect } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { useWorkflow } from "@/hooks/useWorkflow";
 import {
   Calendar,
   Settings,
@@ -92,16 +90,9 @@ const menuGroups = [
         hoverColor: "hover:bg-green-50"
       },
       {
-        title: "Workflow Setup",
-        url: "/dashboard/workflow",
-        icon: Workflow,
-        color: "text-green-600",
-        hoverColor: "hover:bg-green-50"
-      },
-      {
-        title: "Workflow Dashboard",
+        title: "Workflow",
         url: "/dashboard/workflow-dashboard",
-        icon: BarChart3,
+        icon: Workflow,
         color: "text-green-600",
         hoverColor: "hover:bg-green-50"
       },
@@ -240,12 +231,6 @@ export function AppSidebar() {
   const location = useLocation();
   const currentPath = location.pathname;
   const collapsed = state === "collapsed";
-  const { workflowId } = useWorkflow();
-  const [hasWorkflow, setHasWorkflow] = useState(false);
-
-  useEffect(() => {
-    setHasWorkflow(!!workflowId);
-  }, [workflowId]);
 
   const isActive = (path: string) => currentPath === path;
   
@@ -284,13 +269,6 @@ export function AppSidebar() {
             <SidebarGroupContent>
               <SidebarMenu>
                 {group.items
-                  .filter((item) => {
-                    // Hide Workflow Dashboard if user doesn't have a workflow
-                    if (item.url === "/dashboard/workflow-dashboard" && !hasWorkflow) {
-                      return false;
-                    }
-                    return true;
-                  })
                   .map((item) => (
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton asChild>
