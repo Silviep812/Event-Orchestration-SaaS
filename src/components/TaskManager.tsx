@@ -1194,7 +1194,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                   <div className="flex gap-2">
                     <Input
                       id="coordinator-name"
-                      placeholder="Enter coordinator's name"
+                      placeholder="Enter task collaborator's name"
                       value={coordinatorName}
                       onChange={(e) => setCoordinatorName(e.target.value)}
                       maxLength={100}
@@ -1595,7 +1595,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                   <div className="flex gap-2">
                     <Input
                       id="edit-coordinator-name"
-                      placeholder="Enter coordinator's name"
+                      placeholder="Enter task collaborator's name"
                       value={editCoordinatorName || selectedTask.assigned_coordinator_name || ""}
                       onChange={(e) => setEditCoordinatorName(e.target.value)}
                       maxLength={100}
