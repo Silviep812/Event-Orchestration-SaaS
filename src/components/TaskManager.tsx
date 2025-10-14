@@ -1422,70 +1422,95 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
 
                 <div className="border-t pt-3 mt-3 space-y-2" onClick={(e) => e.stopPropagation()}>
                   <p className="text-xs font-semibold text-foreground">
-                    Assign Collaborator task to
+                    {task.assigned_coordinator_name ? "Assign Collaborator to" : "Assign Collaborator task to"}
                   </p>
-                  {task.assigned_coordinator_name && (
-                    <div className="flex items-center gap-2 bg-blue-50 dark:bg-blue-950/30 px-3 py-2 rounded border border-blue-200 dark:border-blue-800 mb-2">
+                  {task.assigned_coordinator_name && !cardCollaboratorInput[task.id] ? (
+                    <div className="flex items-center justify-between gap-2 bg-blue-50 dark:bg-blue-950/30 px-3 py-2 rounded border border-blue-200 dark:border-blue-800">
                       <div className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400">
                         <User className="h-4 w-4" />
                         <span className="font-medium">{task.assigned_coordinator_name}</span>
                       </div>
-                    </div>
-                  )}
-                  <div className="flex flex-col gap-2">
-                    <Input
-                      placeholder="Enter task collaborator name"
-                      value={cardCollaboratorInput[task.id] || task.assigned_coordinator_name || ""}
-                      onChange={(e) => {
-                        e.stopPropagation();
-                        setCardCollaboratorInput({ ...cardCollaboratorInput, [task.id]: e.target.value });
-                      }}
-                      onClick={(e) => e.stopPropagation()}
-                      className="h-9 text-sm"
-                    />
-                    <div className="flex gap-2">
                       <Button
+                        variant="outline"
                         size="sm"
-                        className="flex-1 h-8 text-xs"
-                        disabled={isSavingCardCollaborator[task.id] || !cardCollaboratorInput[task.id]?.trim()}
-                        onClick={async (e) => {
+                        className="h-7 text-xs px-3"
+                        onClick={(e) => {
                           e.stopPropagation();
-                          const collaboratorName = cardCollaboratorInput[task.id]?.trim();
-                          if (!collaboratorName) return;
-
-                          setIsSavingCardCollaborator({ ...isSavingCardCollaborator, [task.id]: true });
-
-                          try {
-                            const { error } = await supabase
-                              .from('tasks')
-                              .update({ assigned_coordinator_name: collaboratorName })
-                              .eq('id', task.id);
-
-                            if (error) throw error;
-
-                            toast({
-                              title: "Collaborator assigned",
-                              description: `${collaboratorName} has been assigned to this task.`,
-                            });
-
-                            setCardCollaboratorInput({ ...cardCollaboratorInput, [task.id]: "" });
-                            fetchTasks();
-                          } catch (error) {
-                            console.error('Error assigning collaborator:', error);
-                            toast({
-                              title: "Error",
-                              description: "Failed to assign collaborator.",
-                              variant: "destructive",
-                            });
-                          } finally {
-                            setIsSavingCardCollaborator({ ...isSavingCardCollaborator, [task.id]: false });
-                          }
+                          setCardCollaboratorInput({ ...cardCollaboratorInput, [task.id]: task.assigned_coordinator_name || "" });
                         }}
                       >
-                        {isSavingCardCollaborator[task.id] ? "Saving..." : task.assigned_coordinator_name ? "Update" : "Save"}
+                        Change
                       </Button>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="flex flex-col gap-2">
+                      <Input
+                        placeholder="Enter task collaborator name"
+                        value={cardCollaboratorInput[task.id] || ""}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          setCardCollaboratorInput({ ...cardCollaboratorInput, [task.id]: e.target.value });
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="h-9 text-sm"
+                      />
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          className="flex-1 h-8 text-xs"
+                          disabled={isSavingCardCollaborator[task.id] || !cardCollaboratorInput[task.id]?.trim()}
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            const collaboratorName = cardCollaboratorInput[task.id]?.trim();
+                            if (!collaboratorName) return;
+
+                            setIsSavingCardCollaborator({ ...isSavingCardCollaborator, [task.id]: true });
+
+                            try {
+                              const { error } = await supabase
+                                .from('tasks')
+                                .update({ assigned_coordinator_name: collaboratorName })
+                                .eq('id', task.id);
+
+                              if (error) throw error;
+
+                              toast({
+                                title: "Collaborator assigned",
+                                description: `${collaboratorName} has been assigned to this task.`,
+                              });
+
+                              setCardCollaboratorInput({ ...cardCollaboratorInput, [task.id]: "" });
+                              fetchTasks();
+                            } catch (error) {
+                              console.error('Error assigning collaborator:', error);
+                              toast({
+                                title: "Error",
+                                description: "Failed to assign collaborator.",
+                                variant: "destructive",
+                              });
+                            } finally {
+                              setIsSavingCardCollaborator({ ...isSavingCardCollaborator, [task.id]: false });
+                            }
+                          }}
+                        >
+                          {isSavingCardCollaborator[task.id] ? "Saving..." : "Save"}
+                        </Button>
+                        {task.assigned_coordinator_name && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 h-8 text-xs"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCardCollaboratorInput({ ...cardCollaboratorInput, [task.id]: "" });
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                                 {task.estimated_hours && (
