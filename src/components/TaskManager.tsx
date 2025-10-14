@@ -130,6 +130,8 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
   const [coordinatorName, setCoordinatorName] = useState(""); // For Create Task dialog
   const [editCoordinatorName, setEditCoordinatorName] = useState(""); // For Edit Task dialog
   const [isSavingCoordinatorName, setIsSavingCoordinatorName] = useState(false);
+  const [cardCollaboratorInput, setCardCollaboratorInput] = useState<{ [taskId: string]: string }>({});
+  const [isSavingCardCollaborator, setIsSavingCardCollaborator] = useState<{ [taskId: string]: boolean }>({});
   const { toast } = useToast();
   const { user } = useAuth();
   const { events, applyEventFilter } = useEventFilter();
@@ -1383,12 +1385,99 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                                   </div>
                                 )}
 
-                                {task.assigned_coordinator_name && (
-                                  <div className="flex items-center gap-1 text-sm text-blue-600 bg-blue-50 px-2 py-1 rounded">
-                                    <User className="h-3 w-3" />
-                                    <span>{task.assigned_coordinator_name}</span>
-                                  </div>
-                                )}
+                <div className="border-t pt-2 mt-2" onClick={(e) => e.stopPropagation()}>
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-muted-foreground">
+                      {task.assigned_coordinator_name ? "Assign Collaborator To" : "Assign Collaborator Task To"}
+                    </p>
+                    {task.assigned_coordinator_name && !cardCollaboratorInput[task.id] ? (
+                      <div className="flex items-center justify-between gap-2 bg-blue-50 dark:bg-blue-950/30 px-2 py-1.5 rounded">
+                        <div className="flex items-center gap-1 text-sm text-blue-600 dark:text-blue-400">
+                          <User className="h-3 w-3" />
+                          <span>{task.assigned_coordinator_name}</span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 text-xs"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCardCollaboratorInput({ ...cardCollaboratorInput, [task.id]: task.assigned_coordinator_name || "" });
+                          }}
+                        >
+                          Change
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Enter collaborator name"
+                          value={cardCollaboratorInput[task.id] || ""}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            setCardCollaboratorInput({ ...cardCollaboratorInput, [task.id]: e.target.value });
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                          className="h-8 text-xs"
+                        />
+                        <Button
+                          size="sm"
+                          className="h-8 text-xs"
+                          disabled={isSavingCardCollaborator[task.id] || !cardCollaboratorInput[task.id]?.trim()}
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            const collaboratorName = cardCollaboratorInput[task.id]?.trim();
+                            if (!collaboratorName) return;
+
+                            setIsSavingCardCollaborator({ ...isSavingCardCollaborator, [task.id]: true });
+
+                            try {
+                              const { error } = await supabase
+                                .from('tasks')
+                                .update({ assigned_coordinator_name: collaboratorName })
+                                .eq('id', task.id);
+
+                              if (error) throw error;
+
+                              toast({
+                                title: "Collaborator assigned",
+                                description: `${collaboratorName} has been assigned to this task.`,
+                              });
+
+                              // Clear input state and refresh
+                              setCardCollaboratorInput({ ...cardCollaboratorInput, [task.id]: "" });
+                              fetchTasks();
+                            } catch (error) {
+                              console.error('Error assigning collaborator:', error);
+                              toast({
+                                title: "Error",
+                                description: "Failed to assign collaborator.",
+                                variant: "destructive",
+                              });
+                            } finally {
+                              setIsSavingCardCollaborator({ ...isSavingCardCollaborator, [task.id]: false });
+                            }
+                          }}
+                        >
+                          {isSavingCardCollaborator[task.id] ? "Saving..." : "Save"}
+                        </Button>
+                        {task.assigned_coordinator_name && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 text-xs"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCardCollaboratorInput({ ...cardCollaboratorInput, [task.id]: "" });
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
 
                                 {task.estimated_hours && (
                                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
