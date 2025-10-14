@@ -66,7 +66,7 @@ export default function ProjectManagement() {
         </TabsContent>
 
         <TabsContent value="roles" className="space-y-4">
-          <RoleManager />
+          <RoleManager selectedEventFilter={selectedEventFilter} />
         </TabsContent>
       </Tabs>
     </div>

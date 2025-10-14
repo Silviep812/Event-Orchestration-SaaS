@@ -35,7 +35,7 @@ interface Event {
   created_at: string;
 }
 
-export function RoleManager() {
+export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilter?: string }) {
   const [userRoles, setUserRoles] = useState<UserRole[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [usersWithoutRoles, setUsersWithoutRoles] = useState<User[]>([]);
@@ -354,7 +354,11 @@ export function RoleManager() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Users</p>
-                <p className="text-2xl font-bold">{users.length}</p>
+                <p className="text-2xl font-bold">
+                  {selectedEventFilter === "all" 
+                    ? users.length 
+                    : userRoles.filter(r => r.event_id === selectedEventFilter).map(r => r.user_id).filter((v, i, a) => a.indexOf(v) === i).length}
+                </p>
               </div>
               <Users className="h-8 w-8 text-muted-foreground" />
             </div>
@@ -366,7 +370,11 @@ export function RoleManager() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Assigned Roles</p>
-                <p className="text-2xl font-bold">{userRoles.length}</p>
+                <p className="text-2xl font-bold">
+                  {selectedEventFilter === "all" 
+                    ? userRoles.length 
+                    : userRoles.filter(r => r.event_id === selectedEventFilter).length}
+                </p>
               </div>
               <UserCheck className="h-8 w-8 text-muted-foreground" />
             </div>
