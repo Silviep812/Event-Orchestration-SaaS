@@ -347,52 +347,6 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
         </CardContent>
       </Card>
 
-      {/* Role Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Users</p>
-                <p className="text-2xl font-bold">
-                  {selectedEventFilter === "all" 
-                    ? users.length 
-                    : userRoles.filter(r => r.event_id === selectedEventFilter).map(r => r.user_id).filter((v, i, a) => a.indexOf(v) === i).length}
-                </p>
-              </div>
-              <Users className="h-8 w-8 text-muted-foreground" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Assigned Roles</p>
-                <p className="text-2xl font-bold">
-                  {selectedEventFilter === "all" 
-                    ? userRoles.length 
-                    : userRoles.filter(r => r.event_id === selectedEventFilter).length}
-                </p>
-              </div>
-              <UserCheck className="h-8 w-8 text-muted-foreground" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Available Roles</p>
-                <p className="text-2xl font-bold">{roles.length}</p>
-              </div>
-              <Shield className="h-8 w-8 text-muted-foreground" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
 
       {/* Role Assignments */}
       <div className="space-y-4">
