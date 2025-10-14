@@ -49,19 +49,33 @@ export function TeamMemberTaskAssignments() {
     try {
       setLoading(true);
 
-      // Fetch all users
-      const { data: usersResponse, error: usersError } = await supabase.functions.invoke('get-users-for-roles');
+      // Fetch all tasks to extract unique collaborator names
+      const { data: allTasksForCollaborators, error: collaboratorsError } = await supabase
+        .from('tasks')
+        .select('assigned_coordinator_name')
+        .not('assigned_coordinator_name', 'is', null);
+
+      if (collaboratorsError) throw collaboratorsError;
+
+      // Extract unique collaborator names
+      const uniqueCollaborators = [...new Set(
+        allTasksForCollaborators?.map(t => t.assigned_coordinator_name) || []
+      )].sort();
+
+      // Convert to user-like objects for compatibility with existing UI
+      const allUsers = uniqueCollaborators.map(name => ({
+        id: name, // Use name as ID for simplicity
+        name: name,
+        email: '' // Not needed for this use case
+      }));
       
-      if (usersError) throw usersError;
-      
-      const allUsers = usersResponse?.users || [];
-      console.log('[TeamMemberTaskAssignments] Loaded users:', allUsers.length, allUsers);
+      console.log('[TeamMemberTaskAssignments] Loaded collaborators:', allUsers.length, allUsers);
       setAllUsers(allUsers);
 
       // Fetch all tasks with their categories
       const { data: tasks, error: tasksError } = await supabase
         .from('tasks')
-        .select('id, title, status, priority, due_date, assigned_to, event_id, category')
+        .select('id, title, status, priority, due_date, assigned_to, assigned_coordinator_name, event_id, category')
         .order('due_date', { ascending: true });
       
       if (tasksError) throw tasksError;
@@ -94,7 +108,7 @@ export function TeamMemberTaskAssignments() {
       const eventMap = new Map(events?.map(e => [e.id, e.title]) || []);
 
       // Count unassigned tasks and store them
-      const unassigned = filteredTasks?.filter(task => !task.assigned_to) || [];
+      const unassigned = filteredTasks?.filter(task => !task.assigned_coordinator_name) || [];
       setUnassignedTasksCount(unassigned.length);
       
       // Convert unassigned tasks to TaskAssignment format
@@ -117,14 +131,14 @@ export function TeamMemberTaskAssignments() {
       const userTasksMap = new Map<string, TaskAssignment[]>();
       
       filteredTasks?.forEach((task: any) => {
-        if (task.assigned_to) {
-          const user = allUsers.find((u: any) => u.id === task.assigned_to);
+        if (task.assigned_coordinator_name) {
+          const user = allUsers.find((u: any) => u.name === task.assigned_coordinator_name);
           if (user) {
             const assignment: TaskAssignment = {
               id: task.id,
-              user_id: user.id,
+              user_id: user.name, // Use name as ID
               userName: user.name,
-              userEmail: user.email,
+              userEmail: '', // Not needed
               taskId: task.id,
               taskTitle: task.title,
               taskStatus: task.status,
@@ -134,10 +148,10 @@ export function TeamMemberTaskAssignments() {
               taskCategory: task.category
             };
 
-            if (!userTasksMap.has(user.id)) {
-              userTasksMap.set(user.id, []);
+            if (!userTasksMap.has(user.name)) {
+              userTasksMap.set(user.name, []);
             }
-            userTasksMap.get(user.id)?.push(assignment);
+            userTasksMap.get(user.name)?.push(assignment);
           }
         }
       });
@@ -190,29 +204,18 @@ export function TeamMemberTaskAssignments() {
     }
   };
 
-  const assignTask = async (taskId: string, userId: string) => {
+  const assignTask = async (taskId: string, collaboratorName: string) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // Update the task's assigned_to field
+      // Update the task's assigned_coordinator_name field
       const { error: taskError } = await supabase
         .from('tasks')
-        .update({ assigned_to: userId })
+        .update({ assigned_coordinator_name: collaboratorName })
         .eq('id', taskId);
 
       if (taskError) throw taskError;
-
-      // Create task assignment record
-      const { error: assignmentError } = await supabase
-        .from('task_assignments')
-        .insert({
-          task_id: taskId,
-          user_id: userId,
-          created_by: user.id
-        });
-
-      if (assignmentError) throw assignmentError;
 
       toast.success('Task assigned successfully');
       fetchTaskAssignments();
@@ -222,35 +225,18 @@ export function TeamMemberTaskAssignments() {
     }
   };
 
-  const reassignTask = async (taskId: string, newUserId: string) => {
+  const reassignTask = async (taskId: string, newCollaboratorName: string) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // Update the task's assigned_to field
+      // Update the task's assigned_coordinator_name field
       const { error: taskError } = await supabase
         .from('tasks')
-        .update({ assigned_to: newUserId })
+        .update({ assigned_coordinator_name: newCollaboratorName })
         .eq('id', taskId);
 
       if (taskError) throw taskError;
-
-      // Delete old assignment
-      await supabase
-        .from('task_assignments')
-        .delete()
-        .eq('task_id', taskId);
-
-      // Create new assignment
-      const { error: assignmentError } = await supabase
-        .from('task_assignments')
-        .insert({
-          task_id: taskId,
-          user_id: newUserId,
-          created_by: user.id
-        });
-
-      if (assignmentError) throw assignmentError;
 
       toast.success('Task reassigned successfully');
       fetchTaskAssignments();
