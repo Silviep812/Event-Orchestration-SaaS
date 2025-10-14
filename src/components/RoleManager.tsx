@@ -517,23 +517,6 @@ export function RoleManager() {
 
       {/* Team Member Task Assignments */}
       <TeamMemberTaskAssignments />
-
-      {/* Role Descriptions */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold">Available Roles</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {roles.map((role) => (
-            <Card key={role.value} className="p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Badge className={roleColors[role.value as keyof typeof roleColors]}>
-                  {role.label}
-                </Badge>
-              </div>
-              <p className="text-sm text-muted-foreground">{role.description}</p>
-            </Card>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }
