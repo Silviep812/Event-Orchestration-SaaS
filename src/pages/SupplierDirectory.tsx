@@ -228,9 +228,14 @@ export default function SupplierDirectory() {
                           </p>
                         )}
                       </div>
-                      <Button className="w-full mt-3" size="sm">
-                        Place Order
-                      </Button>
+                      <div className="flex gap-2 mt-3">
+                        <Button className="flex-1" size="sm" onClick={() => supplier.email && window.open(`mailto:${supplier.email}`)} disabled={!supplier.email}>
+                          <Mail className="h-4 w-4" />
+                        </Button>
+                        <Button className="flex-1" size="sm" onClick={() => supplier.phone_number && window.open(`tel:${supplier.phone_number}`)} disabled={!supplier.phone_number}>
+                          <Phone className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
