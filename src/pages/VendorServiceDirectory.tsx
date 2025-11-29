@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Truck, Camera, Lightbulb, Music, Gamepad2, Flower, Home, Table } from "lucide-react";
+import { Truck, Camera, Lightbulb, Music, Gamepad2, Flower, Home, Table, Mail, Phone } from "lucide-react";
 
 const VendorServiceDirectory = () => {
   const [serviceTypes, setServiceTypes] = useState<any[]>([]);
@@ -270,9 +270,26 @@ const VendorServiceDirectory = () => {
                         <p className="text-sm text-muted-foreground">{profile.description}</p>
                       )}
                       
-                      <Button className="w-full mt-4">
-                        Place Order
-                      </Button>
+                      <div className="flex gap-2 mt-4">
+                        <Button 
+                          className="flex-1" 
+                          variant="outline"
+                          onClick={() => window.location.href = `mailto:${profile.email || ''}`}
+                          disabled={!profile.email}
+                        >
+                          <Mail className="h-4 w-4 mr-2" />
+                          Email
+                        </Button>
+                        <Button 
+                          className="flex-1" 
+                          variant="outline"
+                          onClick={() => window.location.href = `tel:${profile.phone_number || ''}`}
+                          disabled={!profile.phone_number}
+                        >
+                          <Phone className="h-4 w-4 mr-2" />
+                          Phone
+                        </Button>
+                      </div>
                     </CardContent>
                   </Card>
                 );
