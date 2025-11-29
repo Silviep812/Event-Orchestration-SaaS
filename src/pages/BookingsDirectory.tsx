@@ -257,7 +257,7 @@ const BookingsDirectory = () => {
             <div className="flex flex-col items-center p-4 bg-muted rounded-lg">
               <QrCode className="w-6 h-6 text-primary mb-2" />
               <span className="text-2xl font-bold">{submissionCounts.barcode}</span>
-              <span className="text-sm text-muted-foreground">Barcodes</span>
+              <span className="text-sm text-muted-foreground">QR Codes</span>
             </div>
           </div>
         </CardContent>
