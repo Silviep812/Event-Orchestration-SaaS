@@ -108,7 +108,7 @@ const BookingsDirectory = () => {
     { value: "confirmation", label: "Confirmation", icon: CheckCircle },
     { value: "rsvp", label: "RSVP", icon: Clock },
     { value: "registry", label: "Registry", icon: Calendar },
-    { value: "barcode", label: "BarCode", icon: QrCode }
+    { value: "barcode", label: "QR Code", icon: QrCode }
   ];
 
   return (

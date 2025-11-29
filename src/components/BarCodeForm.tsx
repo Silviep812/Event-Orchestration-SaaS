@@ -30,7 +30,7 @@ const BarCodeForm = () => {
 
     try {
       if (!formData.ticketNumber) {
-        throw new Error("Please generate a barcode number first");
+        throw new Error("Please generate a QR code number first");
       }
 
       const validatedData = barcodeSchema.parse({
@@ -71,8 +71,8 @@ const BarCodeForm = () => {
       }
 
       toast({
-        title: "Barcode Generated",
-        description: "Your event barcode has been generated successfully.",
+        title: "QR Code Generated",
+        description: "Your event QR code has been generated successfully.",
       });
 
       setFormData({
@@ -127,7 +127,7 @@ const BarCodeForm = () => {
       ticketNumber: barcodeNumber
     });
     toast({
-      title: "Barcode Number Generated",
+      title: "QR Code Number Generated",
       description: `Generated: ${barcodeNumber}`,
     });
   };
@@ -137,7 +137,7 @@ const BarCodeForm = () => {
       <CardHeader className="bg-gradient-to-r from-primary/10 to-primary/5">
         <CardTitle className="flex items-center gap-2">
           <QrCode className="h-5 w-5" />
-          BarCode Generator
+          QR Code Generator
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6 pt-6">
@@ -155,14 +155,14 @@ const BarCodeForm = () => {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="ticketNumber">Ticket/Barcode Number</Label>
+            <Label htmlFor="ticketNumber">Ticket/QR Code Number</Label>
             <div className="flex gap-2">
               <Input
                 id="ticketNumber"
                 name="ticketNumber"
                 value={formData.ticketNumber}
                 onChange={handleChange}
-                placeholder="Generated barcode number"
+                placeholder="Generated QR code number"
                 readOnly
               />
               <Button type="button" onClick={generateBarcode} variant="outline">
@@ -230,7 +230,7 @@ const BarCodeForm = () => {
               ) : (
                 <>
                   <QrCode className="mr-2 h-4 w-4" />
-                  Generate Barcode
+                  Generate QR Code
                 </>
               )}
             </Button>
@@ -255,11 +255,11 @@ const BarCodeForm = () => {
         </form>
 
         <div className="p-4 bg-muted rounded-lg text-sm text-muted-foreground">
-          <p className="font-medium mb-2">Barcode Information:</p>
+          <p className="font-medium mb-2">QR Code Information:</p>
           <ul className="space-y-1 list-disc list-inside">
-            <li>Generate a unique barcode for event entry tracking</li>
+            <li>Generate a unique QR code for event entry tracking</li>
             <li>Use the generated number for ticket validation</li>
-            <li>Keep your barcode safe for event check-in</li>
+            <li>Keep your QR code safe for event check-in</li>
           </ul>
         </div>
       </CardContent>

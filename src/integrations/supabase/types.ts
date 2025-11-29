@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "12.2.12 (cd3cf9e)"
+    PostgrestVersion: "13.0.5"
   }
   public: {
     Tables: {
@@ -227,6 +227,165 @@ export type Database = {
           id?: string
           new_value?: string | null
           old_value?: string | null
+        }
+        Relationships: []
+      }
+      cm_audit_events: {
+        Row: {
+          created_at: string
+          description: string | null
+          event_id: string | null
+          id: string
+          payload: Json | null
+          type: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          event_id?: string | null
+          id?: string
+          payload?: Json | null
+          type: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          event_id?: string | null
+          id?: string
+          payload?: Json | null
+          type?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      cm_change_requests: {
+        Row: {
+          created_at: string
+          description: string | null
+          event_id: string | null
+          id: string
+          priority_tag: string | null
+          requested_by: string | null
+          task_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          event_id?: string | null
+          id?: string
+          priority_tag?: string | null
+          requested_by?: string | null
+          task_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          event_id?: string | null
+          id?: string
+          priority_tag?: string | null
+          requested_by?: string | null
+          task_id?: string | null
+        }
+        Relationships: []
+      }
+      cm_event_members: {
+        Row: {
+          event_id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          event_id: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          event_id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      cm_locations: {
+        Row: {
+          address: string | null
+          event_id: string | null
+          id: string
+          name: string | null
+        }
+        Insert: {
+          address?: string | null
+          event_id?: string | null
+          id?: string
+          name?: string | null
+        }
+        Update: {
+          address?: string | null
+          event_id?: string | null
+          id?: string
+          name?: string | null
+        }
+        Relationships: []
+      }
+      cm_resources: {
+        Row: {
+          availability: Json | null
+          event_id: string | null
+          id: string
+          location_id: string | null
+          name: string | null
+          role: string | null
+        }
+        Insert: {
+          availability?: Json | null
+          event_id?: string | null
+          id?: string
+          location_id?: string | null
+          name?: string | null
+          role?: string | null
+        }
+        Update: {
+          availability?: Json | null
+          event_id?: string | null
+          id?: string
+          location_id?: string | null
+          name?: string | null
+          role?: string | null
+        }
+        Relationships: []
+      }
+      cm_tasks: {
+        Row: {
+          depends_on: string | null
+          end_date: string | null
+          event_id: string | null
+          id: string
+          locked: boolean | null
+          name: string | null
+          start_date: string | null
+          status: string | null
+        }
+        Insert: {
+          depends_on?: string | null
+          end_date?: string | null
+          event_id?: string | null
+          id?: string
+          locked?: boolean | null
+          name?: string | null
+          start_date?: string | null
+          status?: string | null
+        }
+        Update: {
+          depends_on?: string | null
+          end_date?: string | null
+          event_id?: string | null
+          id?: string
+          locked?: boolean | null
+          name?: string | null
+          start_date?: string | null
+          status?: string | null
         }
         Relationships: []
       }
@@ -3498,18 +3657,111 @@ export type Database = {
         }
         Relationships: []
       }
+      unified_audit_events: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          event_id: string | null
+          id: string | null
+          payload: Json | null
+          source: string | null
+          type: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          event_id?: string | null
+          id?: string | null
+          payload?: Json | null
+          source?: never
+          type?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          event_id?: string | null
+          id?: string | null
+          payload?: Json | null
+          source?: never
+          type?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      unified_locations: {
+        Row: {
+          address: string | null
+          event_id: string | null
+          id: string | null
+          name: string | null
+          source: string | null
+        }
+        Insert: {
+          address?: string | null
+          event_id?: string | null
+          id?: string | null
+          name?: string | null
+          source?: never
+        }
+        Update: {
+          address?: string | null
+          event_id?: string | null
+          id?: string | null
+          name?: string | null
+          source?: never
+        }
+        Relationships: []
+      }
+      unified_resources: {
+        Row: {
+          availability: Json | null
+          event_id: string | null
+          id: string | null
+          location_id: string | null
+          name: string | null
+          role: string | null
+          source: string | null
+        }
+        Relationships: []
+      }
+      unified_tasks: {
+        Row: {
+          depends_on: string | null
+          end_date: string | null
+          event_id: string | null
+          id: string | null
+          locked: boolean | null
+          name: string | null
+          source: string | null
+          start_date: string | null
+          status: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      apply_change_request_wr: {
+        Args: { change_request_id: string }
+        Returns: undefined
+      }
+      approve_change_request_wr: {
+        Args: { change_request_id: string }
+        Returns: undefined
+      }
       are_team_members: {
         Args: { _user_id_1: string; _user_id_2: string }
         Returns: boolean
       }
-      execute_raw_sql: {
-        Args: { query: string }
-        Returns: Json
+      assert_user_in_event: { Args: { p_event_id: string }; Returns: undefined }
+      cancel_change_request_wr: {
+        Args: { change_request_id: string }
+        Returns: undefined
       }
+      execute_raw_sql: { Args: { query: string }; Returns: Json }
       get_my_events_safe: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           booking_type: string[]
           created_at: string
@@ -3537,7 +3789,7 @@ export type Database = {
         }[]
       }
       get_user_directory_safe: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           contact_name: string
           user_name: string
@@ -3627,6 +3879,19 @@ export type Database = {
         | "hospitality"
         | "misc"
         | "vendors"
+      change_status:
+        | "pending"
+        | "approved"
+        | "rejected"
+        | "applied"
+        | "cancelled"
+      change_type:
+        | "task_update"
+        | "event_update"
+        | "resource_update"
+        | "vendor_update"
+        | "workflow_update"
+        | "note"
       event_status_enum: "pending" | "in_progress" | "completed" | "cancelled"
       permission_level: "admin" | "coordinator" | "viewer"
       task_priority: "low" | "medium" | "high" | "urgent"
@@ -3784,6 +4049,21 @@ export const Constants = {
         "hospitality",
         "misc",
         "vendors",
+      ],
+      change_status: [
+        "pending",
+        "approved",
+        "rejected",
+        "applied",
+        "cancelled",
+      ],
+      change_type: [
+        "task_update",
+        "event_update",
+        "resource_update",
+        "vendor_update",
+        "workflow_update",
+        "note",
       ],
       event_status_enum: ["pending", "in_progress", "completed", "cancelled"],
       permission_level: ["admin", "coordinator", "viewer"],
