@@ -11,7 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { Bell, Clock, Plus, Save, AlertCircle, History, Eye, Trash2, Calendar as CalendarIcon, Package, BarChart3 } from "lucide-react";
+import { usePermissions } from "@/lib/permissions";
+import { Bell, Clock, Plus, Save, AlertCircle, History, Eye, Trash2, Calendar as CalendarIcon, Package, BarChart3, MapPin, DollarSign, Tag, Sparkles, CheckCircle2, XCircle, Loader2, TrendingUp, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
 import TimelineView from "@/components/timeline/TimelineView";
 import ResourceManager from "@/components/ResourceManager";
@@ -61,12 +62,6 @@ interface ChangeLog {
   changed_by: string;
 }
 
-interface NewRequest {
-  title: string;
-  description: string;
-  priority: 'low' | 'medium' | 'high' | 'urgent';
-  type: 'change_request' | 'new_requirement' | 'issue';
-}
 
 const ManageEvent = () => {
   const [events, setEvents] = useState<ManageEventData[]>([]);
@@ -74,23 +69,15 @@ const ManageEvent = () => {
   const [changeLogs, setChangeLogs] = useState<ChangeLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [autoSave, setAutoSave] = useState(true);
-  const [pendingChanges, setPendingChanges] = useState<{[key: string]: {oldValue: any, newValue: any}}>({});
-  const [newRequestDialog, setNewRequestDialog] = useState(false);
-  const [newRequest, setNewRequest] = useState<NewRequest>({
-    title: '',
-    description: '',
-    priority: 'medium',
-    type: 'change_request'
-  });
+  const [pendingChanges, setPendingChanges] = useState<{ [key: string]: { oldValue: any, newValue: any } }>({});
   const [eventThemes, setEventThemes] = useState<EventTheme[]>([]);
   const [eventTypes, setEventTypes] = useState<EventType[]>([]);
   const { toast } = useToast();
   const { user } = useAuth();
+  const { isAdmin, isCoordinator, isViewer, hasMinPermission } = usePermissions();
 
-  // Auto-save debounce
-  const [saveTimeout, setSaveTimeout] = useState<NodeJS.Timeout | null>(null);
   const [budgetInput, setBudgetInput] = useState<string>('');
+  const [venueBookingCompleted, setVenueBookingCompleted] = useState(false);
 
   // Resource sync trigger
   const [resourceRefreshKey, setResourceRefreshKey] = useState(0);
@@ -109,12 +96,12 @@ const ManageEvent = () => {
       const { data: categories, error: catError } = await supabase
         .from('resource_categories')
         .select('id, name');
-      
+
       if (catError) {
         console.error('syncDetailsToResources: Error fetching categories', catError);
         throw catError;
       }
-      
+
       if (!categories) {
         console.log('syncDetailsToResources: No categories found');
         return;
@@ -199,7 +186,7 @@ const ManageEvent = () => {
       // Trigger resource refresh
       console.log('syncDetailsToResources: Triggering resource refresh');
       setResourceRefreshKey(prev => prev + 1);
-      
+
       console.log('syncDetailsToResources: Sync completed successfully');
     } catch (error) {
       console.error('syncDetailsToResources: Fatal error during sync', error);
@@ -248,7 +235,7 @@ const ManageEvent = () => {
         .from('event_themes')
         .select('id, name, premium')
         .order('name');
-      
+
       if (error) throw error;
       setEventThemes(data || []);
     } catch (error) {
@@ -262,13 +249,13 @@ const ManageEvent = () => {
         .from('event_types')
         .select('id, name, theme_id')
         .order('name');
-      
+
       if (themeId) {
         query = query.eq('theme_id', themeId);
       }
 
       const { data, error } = await query;
-      
+
       if (error) throw error;
       setEventTypes(data || []);
     } catch (error) {
@@ -278,15 +265,96 @@ const ManageEvent = () => {
 
   const fetchChangeLogs = async (entityId: string) => {
     try {
-      const { data, error } = await supabase
+      // Fetch event change logs
+      const { data: eventLogs, error: eventError } = await supabase
         .from('change_logs')
         .select('*')
         .eq('entity_id', entityId)
         .eq('entity_type', 'event')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setChangeLogs(data || []);
+      if (eventError) throw eventError;
+
+      // Also fetch change requests related to this event to show their status
+      const { data: changeRequests, error: crError } = await supabase
+        .from('change_requests')
+        .select('id, title, status, created_at, requested_by, approved_by, applied_by, field_changes')
+        .eq('event_id', entityId)
+        .order('created_at', { ascending: false });
+
+      if (crError) {
+        console.error('Error fetching change requests:', crError);
+      }
+
+      // Fetch user names for approvers/appliers
+      const userIds = new Set<string>();
+      if (changeRequests) {
+        changeRequests.forEach((cr: any) => {
+          if (cr.requested_by) userIds.add(cr.requested_by);
+          if (cr.approved_by) userIds.add(cr.approved_by);
+          if (cr.applied_by) userIds.add(cr.applied_by);
+        });
+      }
+      eventLogs?.forEach(log => {
+        if (log.changed_by) userIds.add(log.changed_by);
+      });
+
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('user_id, display_name')
+        .in('user_id', Array.from(userIds));
+
+      const userNames: Record<string, string> = {};
+      profiles?.forEach(profile => {
+        userNames[profile.user_id] = profile.display_name || 'Unknown User';
+      });
+
+      // Combine and format logs
+      const allLogs: ChangeLog[] = [];
+
+      // Add event logs (these include approval/rejection/application logs)
+      if (eventLogs) {
+        allLogs.push(...eventLogs);
+      }
+
+      // Add change request creation logs (only if not already logged in change_logs)
+      if (changeRequests) {
+        for (const cr of changeRequests as any[]) {
+          const fieldChanges = cr.field_changes as Record<string, { oldValue: any; newValue: any }> | null;
+          if (fieldChanges) {
+            // Check if this change request's creation is already logged
+            const alreadyLogged = eventLogs?.some(log =>
+              log.change_description?.includes(cr.title) ||
+              (log.field_name && Object.keys(fieldChanges).includes(log.field_name) &&
+                log.change_description?.includes('Change requested'))
+            );
+
+            if (!alreadyLogged) {
+              // Create log entries for change request creation
+              for (const [field, change] of Object.entries(fieldChanges)) {
+                const fieldLabel = field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                allLogs.push({
+                  id: `${cr.id}-${field}-request`,
+                  entity_type: 'event',
+                  entity_id: entityId,
+                  action: 'updated',
+                  field_name: field,
+                  old_value: change.oldValue?.toString() || null,
+                  new_value: change.newValue?.toString() || null,
+                  change_description: `Change requested: ${fieldLabel} from "${change.oldValue || 'empty'}" to "${change.newValue || 'empty'}" by ${userNames[cr.requested_by] || 'Unknown User'}`,
+                  changed_by: cr.requested_by || '',
+                  created_at: cr.created_at
+                } as ChangeLog);
+              }
+            }
+          }
+        }
+      }
+
+      // Sort by created_at descending
+      allLogs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+      setChangeLogs(allLogs);
     } catch (error) {
       console.error('Error fetching change logs:', error);
     }
@@ -356,7 +424,7 @@ const ManageEvent = () => {
           title: "Success",
           description: "Event saved successfully",
         });
-        
+
         // Log individual field changes when manually saving
         for (const [field, change] of Object.entries(pendingChanges)) {
           await supabase.rpc('log_change', {
@@ -369,11 +437,11 @@ const ManageEvent = () => {
             p_description: `Manual save: ${field} updated`
           });
         }
-        
+
         // Clear pending changes after manual save
         setPendingChanges({});
       }
-      
+
     } catch (error) {
       console.error('Error saving event:', error);
       toast({
@@ -386,7 +454,7 @@ const ManageEvent = () => {
     }
   };
 
-  const handleFieldChange = async (field: string, value: any) => {
+  const handleFieldChange = (field: string, value: any) => {
     if (!selectedEvent) return;
 
     // Trial version date restriction
@@ -403,136 +471,159 @@ const ManageEvent = () => {
       }
     }
 
-    // Capture old value for logging
-    const oldValue = selectedEvent[field as keyof ManageEventData];
-    
-    // Only proceed if value actually changed
-    if (oldValue === value) return;
+    // Capture old value from original event data (not from pending changes)
+    const originalEvent = events.find(e => e.id === selectedEvent.id);
+    const oldValue = originalEvent?.[field as keyof ManageEventData] ?? selectedEvent[field as keyof ManageEventData];
 
+    // Only proceed if value actually changed from original
+    if (oldValue === value) {
+      // If value matches original, remove from pending changes
+      setPendingChanges(prev => {
+        const updated = { ...prev };
+        delete updated[field];
+        return updated;
+      });
+      return;
+    }
+
+    // Update local state for preview (but don't save)
     const updatedEvent = { ...selectedEvent, [field]: value };
     setSelectedEvent(updatedEvent);
 
-    // Update in events list
-    setEvents(prev => prev.map(e => e.id === updatedEvent.id ? updatedEvent : e));
+    // Track pending change
+    setPendingChanges(prev => ({
+      ...prev,
+      [field]: {
+        oldValue: oldValue,
+        newValue: value
+      }
+    }));
+  };
 
-    // Immediate sync for location or venue changes
-    if ((field === 'location' || field === 'venue') && selectedEvent.id) {
-      console.log(`Field ${field} changed, syncing to resources immediately`);
-      
-      // Update all resources with new location
-      if (field === 'location' && value) {
-        const { error } = await supabase
-          .from('resources')
-          .update({ location: value })
-          .eq('event_id', selectedEvent.id);
-        
-        if (error) {
-          console.error('Error updating resources location:', error);
-        } else {
-          console.log('Resources location updated successfully');
-          setResourceRefreshKey(prev => prev + 1);
-        }
-      }
-      
-      // Update venue resource if venue changed
-      if (field === 'venue' && value) {
-        const { data: categories } = await supabase
-          .from('resource_categories')
-          .select('id, name');
-        
-        const venueCategory = categories?.find(c => c.name.toLowerCase().includes('venue'));
-        
-        if (venueCategory) {
-          const { data: existingVenue } = await supabase
-            .from('resources')
-            .select('id')
-            .eq('event_id', selectedEvent.id)
-            .eq('category_id', venueCategory.id)
-            .maybeSingle();
-          
-          if (existingVenue) {
-            await supabase
-              .from('resources')
-              .update({ 
-                name: value,
-                location: updatedEvent.location || ''
-              })
-              .eq('id', existingVenue.id);
-          }
-          setResourceRefreshKey(prev => prev + 1);
-        }
-      }
+  const submitChangeRequest = async () => {
+    if (!selectedEvent?.id || !user?.id) {
+      toast({
+        title: "Error",
+        description: "You must be logged in and have an event selected",
+        variant: "destructive",
+      });
+      return;
     }
 
-    // Log field change for audit trail
-    if (selectedEvent.id) {
-      if (autoSave) {
-        // For auto-save, log immediately
+    if (Object.keys(pendingChanges).length === 0) {
+      toast({
+        title: "No Changes",
+        description: "Please make some changes before requesting approval",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check if trying to change locked date fields
+    if (venueBookingCompleted && (pendingChanges.start_date || pendingChanges.end_date)) {
+      toast({
+        title: "Cannot Change Dates",
+        description: "Event dates are locked because venue booking is completed. Delete and recreate the event to change dates.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check permissions
+    if (!hasMinPermission('coordinator')) {
+      toast({
+        title: "Access Denied",
+        description: "Only coordinators and admins can request changes",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setSaving(true);
+
+      // Create a description listing all field changes
+      const changeDescriptions = Object.entries(pendingChanges).map(([field, change]) => {
+        const fieldLabel = field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        return `${fieldLabel}: "${change.oldValue || 'empty'}" → "${change.newValue || 'empty'}"`;
+      });
+
+      const title = `Event Update: ${Object.keys(pendingChanges).length} field${Object.keys(pendingChanges).length > 1 ? 's' : ''} changed`;
+      const description = `Requested changes:\n${changeDescriptions.join('\n')}`;
+
+      // Convert pendingChanges to JSONB format for structured storage
+      const fieldChangesJsonb: Record<string, { oldValue: any; newValue: any }> = {};
+      for (const [field, change] of Object.entries(pendingChanges)) {
+        fieldChangesJsonb[field] = {
+          oldValue: change.oldValue ?? null,
+          newValue: change.newValue ?? null
+        };
+      }
+
+      // Create change request in the database with field_changes JSONB
+      const { data, error } = await supabase
+        .from('change_requests')
+        .insert({
+          title: title,
+          description: description,
+          priority: 'medium',
+          status: 'pending',
+          event_id: selectedEvent.id,
+          requested_by: user.id,
+          change_type: 'event_update',
+          field_changes: fieldChangesJsonb as any
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Log each field change individually for the change request
+      for (const [field, change] of Object.entries(pendingChanges)) {
         try {
+          const fieldLabel = field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
           await supabase.rpc('log_change', {
             p_entity_type: 'event',
             p_entity_id: selectedEvent.id,
             p_action: 'updated',
             p_field_name: field,
-            p_old_value: oldValue?.toString() || null,
-            p_new_value: value?.toString() || null,
-            p_description: `Field "${field}" updated from "${oldValue || 'empty'}" to "${value || 'empty'}"`
+            p_old_value: change.oldValue?.toString() || null,
+            p_new_value: change.newValue?.toString() || null,
+            p_description: `Change requested: ${fieldLabel} from "${change.oldValue || 'empty'}" to "${change.newValue || 'empty'}" (pending approval)`
           });
-        } catch (error) {
-          console.error('Error logging field change:', error);
+        } catch (logError) {
+          console.error('Error logging field change:', logError);
         }
-      } else {
-        // For manual save, track pending changes
-        setPendingChanges(prev => ({
-          ...prev,
-          [field]: {
-            oldValue: oldValue,
-            newValue: value
-          }
-        }));
       }
-    }
 
-    // Auto-save logic
-    if (autoSave) {
-      if (saveTimeout) clearTimeout(saveTimeout);
-      const timeout = setTimeout(() => {
-        saveEvent(updatedEvent, false);
-      }, 1000); // 1 second debounce
-      setSaveTimeout(timeout);
-    }
-  };
-
-  const submitNewRequest = async () => {
-    try {
-      // Notify coordinators
-      await supabase.rpc('notify_coordinators', {
-        p_title: `New ${newRequest.type.replace('_', ' ')}: ${newRequest.title}`,
-        p_message: newRequest.description,
-        p_type: 'new_request',
-        p_entity_type: selectedEvent ? 'event' : null,
-        p_entity_id: selectedEvent?.id || null
-      });
+      // Refresh change logs to show the new entries
+      if (selectedEvent.id) {
+        await fetchChangeLogs(selectedEvent.id);
+      }
 
       toast({
-        title: "Request Submitted",
-        description: "Your request has been sent to coordinators",
+        title: "Change Request Submitted",
+        description: `Your request to change ${Object.keys(pendingChanges).length} field${Object.keys(pendingChanges).length > 1 ? 's' : ''} has been submitted for approval`,
       });
 
-      setNewRequestDialog(false);
-      setNewRequest({
-        title: '',
-        description: '',
-        priority: 'medium',
-        type: 'change_request'
-      });
-    } catch (error) {
-      console.error('Error submitting request:', error);
+      // Clear pending changes and reset to original values
+      const originalEvent = events.find(e => e.id === selectedEvent.id);
+      if (originalEvent) {
+        setSelectedEvent(originalEvent);
+      }
+      setPendingChanges({});
+
+      // Refresh events to ensure we have latest data
+      await fetchEvents();
+    } catch (error: any) {
+      console.error('Error submitting change request:', error);
       toast({
         title: "Error",
-        description: "Failed to submit request",
+        description: error.message || "Failed to submit change request",
         variant: "destructive",
       });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -543,33 +634,131 @@ const ManageEvent = () => {
     return status.replace('_', ' ');
   };
 
+  // Helper to get status badge variant
+  const getStatusBadge = (status: string | undefined) => {
+    switch (status) {
+      case 'pending':
+        return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">Pending</Badge>;
+      case 'in_progress':
+        return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">In Progress</Badge>;
+      case 'completed':
+        return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Completed</Badge>;
+      case 'cancelled':
+        return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">Cancelled</Badge>;
+      default:
+        return <Badge variant="outline">{getStatusDisplay(status)}</Badge>;
+    }
+  };
+
+  // Calculate event stats
+  const getEventStats = () => {
+    if (!selectedEvent) return null;
+    return {
+      hasDates: !!(selectedEvent.start_date && selectedEvent.end_date),
+      hasLocation: !!selectedEvent.location,
+      hasVenue: !!selectedEvent.venue,
+      hasBudget: !!selectedEvent.budget,
+      hasDescription: !!selectedEvent.description,
+    };
+  };
+
   // Real-time subscriptions
   useEffect(() => {
     const eventsChannel = supabase
       .channel('manage-events-changes')
-      .on('postgres_changes', { 
-        event: '*', 
-        schema: 'public', 
-        table: 'events' 
-      }, (payload) => {
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'events'
+      }, async (payload) => {
         console.log('Event change detected:', payload);
-        fetchEvents();
+        await fetchEvents();
         // Trigger resource refresh when event is updated
         if (payload.eventType === 'UPDATE' && selectedEvent?.id === payload.new?.id) {
           setResourceRefreshKey(prev => prev + 1);
+          // Update selectedEvent with latest data
+          const { data: updatedEvent } = await supabase
+            .from('events')
+            .select('*')
+            .eq('id', selectedEvent.id)
+            .single();
+
+          if (updatedEvent) {
+            const transformedEvent = {
+              ...updatedEvent,
+              theme_id: updatedEvent.theme_id ? Number(updatedEvent.theme_id) : undefined
+            };
+            setSelectedEvent(transformedEvent);
+          }
         }
       })
       .subscribe();
 
+    if (!selectedEvent?.id) {
+      return () => {
+        supabase.removeChannel(eventsChannel);
+      };
+    }
+
     const changeLogsChannel = supabase
-      .channel('change-logs-updates')
-      .on('postgres_changes', { 
-        event: '*', 
-        schema: 'public', 
-        table: 'change_logs' 
-      }, () => {
-        if (selectedEvent?.id) {
+      .channel(`change-logs-updates-${selectedEvent.id}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'change_logs'
+      }, (payload: any) => {
+        // Check if this log is for our event
+        const entityId = payload.new?.entity_id || payload.old?.entity_id;
+        const entityType = payload.new?.entity_type || payload.old?.entity_type;
+
+        if (entityId === selectedEvent.id && entityType === 'event') {
+          console.log('Change log update detected for event:', selectedEvent.id, payload);
           fetchChangeLogs(selectedEvent.id);
+        }
+      })
+      .subscribe();
+
+    const changeRequestsChannel = supabase
+      .channel(`change-requests-updates-${selectedEvent.id}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'change_requests'
+      }, async (payload: any) => {
+        // Check if this change request is for our event
+        const eventId = payload.new?.event_id || payload.old?.event_id;
+        const selectedEventId = selectedEvent.id;
+        const newStatus = payload.new?.status;
+
+        // Compare as strings to handle both UUID and TEXT event IDs
+        if (eventId && selectedEventId && String(eventId) === String(selectedEventId)) {
+          console.log('Change request update detected for event:', selectedEvent.id, payload);
+          fetchChangeLogs(selectedEvent.id);
+
+          // If change request was applied, refresh the event details
+          if (newStatus === 'applied' && payload.eventType === 'UPDATE') {
+            console.log('Change request applied, refreshing event details...');
+            // Refresh events list
+            await fetchEvents();
+            // Update selectedEvent with latest data if it's a UUID
+            if (selectedEvent.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(selectedEvent.id)) {
+              const { data: updatedEvent } = await supabase
+                .from('events')
+                .select('*')
+                .eq('id', selectedEvent.id)
+                .single();
+
+              if (updatedEvent) {
+                const transformedEvent = {
+                  ...updatedEvent,
+                  theme_id: updatedEvent.theme_id ? Number(updatedEvent.theme_id) : undefined
+                };
+                setSelectedEvent(transformedEvent);
+                // Also update in events array
+                setEvents(prev => prev.map(e => e.id === selectedEvent.id ? transformedEvent : e));
+              }
+            }
+          }
         }
       })
       .subscribe();
@@ -577,6 +766,7 @@ const ManageEvent = () => {
     return () => {
       supabase.removeChannel(eventsChannel);
       supabase.removeChannel(changeLogsChannel);
+      supabase.removeChannel(changeRequestsChannel);
     };
   }, [selectedEvent?.id]);
 
@@ -591,8 +781,42 @@ const ManageEvent = () => {
   useEffect(() => {
     if (selectedEvent?.id) {
       fetchChangeLogs(selectedEvent.id);
+      checkVenueBooking(selectedEvent.id);
     }
   }, [selectedEvent?.id]);
+
+  // Check if venue booking is completed for this event
+  const checkVenueBooking = async (eventId: string) => {
+    try {
+      // Check if event_id is UUID or TEXT
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventId);
+
+      if (isUUID) {
+        // For UUID events, check reservation_submissions
+        const { data: reservations } = await supabase
+          .from('reservation_submissions')
+          .select('*')
+          .eq('event_id', eventId)
+          .limit(1);
+
+        // If there's a reservation, consider booking as potentially completed
+        // You may need to add a status/confirmation field to reservation_submissions
+        setVenueBookingCompleted(!!reservations && reservations.length > 0);
+      } else {
+        // For TEXT event IDs (Create Event table), check reservation_submissions with event_id
+        const { data: reservations } = await supabase
+          .from('reservation_submissions')
+          .select('*')
+          .eq('event_id', eventId)
+          .limit(1);
+
+        setVenueBookingCompleted(!!reservations && reservations.length > 0);
+      }
+    } catch (error) {
+      console.error('Error checking venue booking:', error);
+      setVenueBookingCompleted(false);
+    }
+  };
 
   // Sync budget input with selectedEvent.budget
   useEffect(() => {
@@ -611,508 +835,823 @@ const ManageEvent = () => {
     );
   }
 
+  const eventStats = getEventStats();
+
   return (
-    <div className="container mx-auto p-4 lg:p-6 space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-            Manage Events
-          </h1>
-          <p className="text-muted-foreground">
-            Real-time event management with change tracking
+    <div className="container mx-auto p-4 lg:p-6 space-y-6 bg-gradient-to-br from-background via-background to-muted/20 min-h-screen">
+      {/* Header Section */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+        <div className="space-y-1">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-gradient-to-br from-primary/10 to-secondary/10">
+              <Sparkles className="h-6 w-6 text-primary" />
+            </div>
+            <h1 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-primary via-secondary to-primary bg-clip-text text-transparent bg-[length:200%_auto] animate-gradient">
+              Manage Events
+            </h1>
+          </div>
+          <p className="text-muted-foreground ml-14">
+            Real-time event management with comprehensive change tracking
           </p>
         </div>
-        
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-          <Button 
+
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <Button
             onClick={() => window.location.href = '/dashboard/create-event'}
-            className="bg-gradient-to-r from-primary to-secondary text-primary-foreground hover:opacity-90"
+            className="bg-gradient-to-r from-primary to-secondary text-primary-foreground hover:opacity-90 shadow-lg hover:shadow-xl transition-all duration-200"
+            size="lg"
           >
             <Plus className="w-4 h-4 mr-2" />
-            New Managed Event
+            New Event
           </Button>
-          
-          <div className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              id="autosave"
-              checked={autoSave}
-              onChange={(e) => setAutoSave(e.target.checked)}
-              className="rounded"
-            />
-            <label htmlFor="autosave">Auto-save</label>
-          </div>
-          
-          <Dialog open={newRequestDialog} onOpenChange={setNewRequestDialog}>
-            <DialogTrigger asChild>
-              <Button className="bg-gradient-primary hover:opacity-90 transition-opacity">
-                <Plus className="h-4 w-4 mr-2" />
-                New Request
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="w-full max-w-md mx-auto">
-              <DialogHeader>
-                <DialogTitle>Submit New Request</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="request-title">Title</Label>
-                  <Input
-                    id="request-title"
-                    value={newRequest.title}
-                    onChange={(e) => setNewRequest(prev => ({ ...prev, title: e.target.value }))}
-                    placeholder="Brief description of request"
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="request-type">Type</Label>
-                  <Select
-                    value={newRequest.type}
-                    onValueChange={(value: NewRequest['type']) => 
-                      setNewRequest(prev => ({ ...prev, type: value }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="change_request">Change Request</SelectItem>
-                      <SelectItem value="new_requirement">New Requirement</SelectItem>
-                      <SelectItem value="issue">Issue</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div>
-                  <Label htmlFor="request-priority">Priority</Label>
-                  <Select
-                    value={newRequest.priority}
-                    onValueChange={(value: NewRequest['priority']) => 
-                      setNewRequest(prev => ({ ...prev, priority: value }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="low">Low</SelectItem>
-                      <SelectItem value="medium">Medium</SelectItem>
-                      <SelectItem value="high">High</SelectItem>
-                      <SelectItem value="urgent">Urgent</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div>
-                  <Label htmlFor="request-description">Description</Label>
-                  <Textarea
-                    id="request-description"
-                    value={newRequest.description}
-                    onChange={(e) => setNewRequest(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="Detailed description of the request"
-                    rows={4}
-                  />
-                </div>
-                
-                <Button 
-                  onClick={submitNewRequest}
-                  className="w-full bg-gradient-primary hover:opacity-90"
-                  disabled={!newRequest.title || !newRequest.description}
-                >
-                  <Bell className="h-4 w-4 mr-2" />
-                  Submit & Notify Coordinators
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Events List */}
-        <Card className="lg:col-span-1 shadow-elegant border-0 bg-gradient-subtle">
-          <CardHeader className="border-b border-border/50">
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-primary" />
+        <Card className="lg:col-span-1 shadow-lg border-0 bg-card/50 backdrop-blur-sm">
+          <CardHeader className="border-b border-border/50 bg-gradient-to-r from-muted/50 to-transparent">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <div className="p-1.5 rounded-md bg-primary/10">
+                <Clock className="h-4 w-4 text-primary" />
+              </div>
               Events
+              <Badge variant="secondary" className="ml-auto text-xs">
+                {events.length}
+              </Badge>
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="max-h-96 overflow-y-auto">
-              {events.map((event, index) => (
-                <div
-                  key={event.id || index}
-                  className={`p-4 border-b border-border/30 cursor-pointer transition-all hover:bg-surface/50 ${
-                    selectedEvent?.id === event.id ? 'bg-primary/10 border-l-4 border-l-primary' : ''
-                  }`}
-                  onClick={() => setSelectedEvent(event)}
+            {events.length === 0 ? (
+              <div className="p-8 text-center">
+                <CalendarIcon className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
+                <p className="text-sm text-muted-foreground mb-4">No events found</p>
+                <Button
+                  onClick={() => window.location.href = '/dashboard/create-event'}
+                  variant="outline"
+                  size="sm"
                 >
-                  <div className="font-medium text-sm truncate">
-                    {event.title || 'Unnamed Event'}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {getStatusDisplay(event.status)}
-                  </div>
-                  {event.start_date && (
-                    <div className="text-xs text-muted-foreground">
-                      {format(new Date(event.start_date + 'T00:00:00'), 'MMM dd, yyyy')}
+                  <Plus className="h-3 w-3 mr-2" />
+                  Create Event
+                </Button>
+              </div>
+            ) : (
+              <div className="max-h-[600px] overflow-y-auto">
+                {events.map((event, index) => (
+                  <div
+                    key={event.id || index}
+                    className={`p-4 border-b border-border/30 cursor-pointer transition-all duration-200 group ${selectedEvent?.id === event.id
+                      ? 'bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-l-4 border-l-primary shadow-sm'
+                      : 'hover:bg-muted/30 hover:border-l-2 hover:border-l-primary/30'
+                      }`}
+                    onClick={() => setSelectedEvent(event)}
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="font-semibold text-sm truncate flex-1 group-hover:text-primary transition-colors">
+                        {event.title || 'Unnamed Event'}
+                      </div>
+                      {selectedEvent?.id === event.id && (
+                        <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0" />
+                      )}
                     </div>
-                  )}
-                </div>
-              ))}
-            </div>
+                    <div className="flex items-center gap-2 mb-2">
+                      {getStatusBadge(event.status)}
+                    </div>
+                    <div className="flex flex-col gap-1 text-xs text-muted-foreground">
+                      {event.start_date && (
+                        <div className="flex items-center gap-1.5">
+                          <CalendarIcon className="h-3 w-3" />
+                          {format(new Date(event.start_date + 'T00:00:00'), 'MMM dd, yyyy')}
+                        </div>
+                      )}
+                      {event.location && (
+                        <div className="flex items-center gap-1.5 truncate">
+                          <MapPin className="h-3 w-3 flex-shrink-0" />
+                          <span className="truncate">{event.location}</span>
+                        </div>
+                      )}
+                      {event.budget && (
+                        <div className="flex items-center gap-1.5">
+                          <DollarSign className="h-3 w-3" />
+                          ${Number(event.budget).toLocaleString()}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 
         {/* Event Details & Change Logs */}
         <div className="lg:col-span-2 space-y-6">
           {selectedEvent ? (
-            <Tabs defaultValue="details" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-5">
-                <TabsTrigger value="details" className="flex items-center gap-2">
-                  <Eye className="h-4 w-4" />
-                  Details
-                </TabsTrigger>
-                <TabsTrigger value="timeline" className="flex items-center gap-2">
-                  <CalendarIcon className="h-4 w-4" />
-                  Timeline
-                </TabsTrigger>
-                <TabsTrigger value="resources" className="flex items-center gap-2">
-                  <Package className="h-4 w-4" />
-                  Resources
-                </TabsTrigger>
-                <TabsTrigger value="analytics" className="flex items-center gap-2">
-                  <BarChart3 className="h-4 w-4" />
-                  Analytics
-                </TabsTrigger>
-                <TabsTrigger value="changelog" className="flex items-center gap-2">
-                  <History className="h-4 w-4" />
-                  Change Log ({changeLogs.length})
-                </TabsTrigger>
-              </TabsList>
+            <>
+              {/* Quick Stats Cards */}
+              {eventStats && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <Card className="p-3 bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950/30 dark:to-blue-900/20 border-blue-200 dark:border-blue-800">
+                    <div className="flex items-center gap-2">
+                      <CalendarIcon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                      <div className="text-xs font-medium text-blue-900 dark:text-blue-100">Dates</div>
+                    </div>
+                    <div className="mt-1 text-lg font-semibold text-blue-700 dark:text-blue-300">
+                      {eventStats.hasDates ? '✓ Set' : '—'}
+                    </div>
+                  </Card>
+                  <Card className="p-3 bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950/30 dark:to-green-900/20 border-green-200 dark:border-green-800">
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-green-600 dark:text-green-400" />
+                      <div className="text-xs font-medium text-green-900 dark:text-green-100">Location</div>
+                    </div>
+                    <div className="mt-1 text-lg font-semibold text-green-700 dark:text-green-300">
+                      {eventStats.hasLocation ? '✓ Set' : '—'}
+                    </div>
+                  </Card>
+                  <Card className="p-3 bg-gradient-to-br from-purple-50 to-purple-100/50 dark:from-purple-950/30 dark:to-purple-900/20 border-purple-200 dark:border-purple-800">
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                      <div className="text-xs font-medium text-purple-900 dark:text-purple-100">Budget</div>
+                    </div>
+                    <div className="mt-1 text-lg font-semibold text-purple-700 dark:text-purple-300">
+                      {eventStats.hasBudget ? '✓ Set' : '—'}
+                    </div>
+                  </Card>
+                  <Card className="p-3 bg-gradient-to-br from-orange-50 to-orange-100/50 dark:from-orange-950/30 dark:to-orange-900/20 border-orange-200 dark:border-orange-800">
+                    <div className="flex items-center gap-2">
+                      <Tag className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                      <div className="text-xs font-medium text-orange-900 dark:text-orange-100">Status</div>
+                    </div>
+                    <div className="mt-1">
+                      {getStatusBadge(selectedEvent.status)}
+                    </div>
+                  </Card>
+                </div>
+              )}
 
-              <TabsContent value="details">
-                <Card className="shadow-elegant border-0 bg-gradient-subtle">
-                  <CardHeader className="border-b border-border/50">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                      <CardTitle>Event Details</CardTitle>
-                      <div className="flex items-center gap-2">
-                        {saving && (
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                            Saving...
+              <Tabs defaultValue="details" className="space-y-4">
+                <TabsList className="grid w-full grid-cols-5 bg-muted/50 p-1 h-auto">
+                  <TabsTrigger
+                    value="details"
+                    className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
+                  >
+                    <Eye className="h-4 w-4" />
+                    <span className="hidden sm:inline">Details</span>
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="timeline"
+                    className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
+                  >
+                    <CalendarIcon className="h-4 w-4" />
+                    <span className="hidden sm:inline">Timeline</span>
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="resources"
+                    className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
+                  >
+                    <Package className="h-4 w-4" />
+                    <span className="hidden sm:inline">Resources</span>
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="analytics"
+                    className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
+                  >
+                    <BarChart3 className="h-4 w-4" />
+                    <span className="hidden sm:inline">Analytics</span>
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="changelog"
+                    className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
+                  >
+                    <History className="h-4 w-4" />
+                    <span className="hidden sm:inline">Log</span>
+                    {changeLogs.length > 0 && (
+                      <Badge variant="secondary" className="ml-1 h-5 min-w-5 px-1.5 text-xs">
+                        {changeLogs.length}
+                      </Badge>
+                    )}
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="details" className="space-y-4">
+                  <Card className="shadow-lg border-0 bg-card/50 backdrop-blur-sm">
+                    <CardHeader className="border-b border-border/50 bg-gradient-to-r from-muted/50 to-transparent">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-lg bg-primary/10">
+                            <Eye className="h-5 w-5 text-primary" />
+                          </div>
+                          <div>
+                            <CardTitle className="text-xl">Event Details</CardTitle>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              Manage your event information
+                            </p>
+                          </div>
+                        </div>
+                        {!isViewer() && (
+                          <div className="flex items-center gap-2">
+                            {Object.keys(pendingChanges).length > 0 && (
+                              <>
+                                <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                                  {Object.keys(pendingChanges).length} pending change{Object.keys(pendingChanges).length > 1 ? 's' : ''}
+                                </Badge>
+                                <Button
+                                  onClick={() => {
+                                    const originalEvent = events.find(e => e.id === selectedEvent?.id);
+                                    if (originalEvent) {
+                                      setSelectedEvent(originalEvent);
+                                    }
+                                    setPendingChanges({});
+                                    toast({
+                                      title: "Changes Discarded",
+                                      description: "All pending changes have been discarded",
+                                    });
+                                  }}
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={saving}
+                                >
+                                  <XCircle className="h-4 w-4 mr-2" />
+                                  Discard
+                                </Button>
+                              </>
+                            )}
+                            {saving && (
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground px-3 py-1.5 rounded-md bg-muted/50">
+                                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                                Submitting...
+                              </div>
+                            )}
+                            {hasMinPermission('coordinator') && (
+                              <Button
+                                onClick={submitChangeRequest}
+                                size="sm"
+                                disabled={saving || Object.keys(pendingChanges).length === 0}
+                                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md"
+                              >
+                                <Bell className="h-4 w-4 mr-2" />
+                                Request Change
+                              </Button>
+                            )}
                           </div>
                         )}
-                        {!autoSave && (
-                          <Button
-                            onClick={() => selectedEvent && saveEvent(selectedEvent, true)}
-                            size="sm"
-                            disabled={saving}
-                            className="hover:opacity-90"
-                          >
-                            <Save className="h-4 w-4 mr-2" />
-                            Save Changes
-                          </Button>
+                        {isViewer() && (
+                          <Badge variant="outline" className="bg-muted text-muted-foreground">
+                            Read-only access
+                          </Badge>
                         )}
                       </div>
-                    </div>
-                  </CardHeader>
-                  
-                  <CardContent className="space-y-6 p-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="title">Event Title</Label>
-                        <Input
-                          id="title"
-                          value={selectedEvent.title || ''}
-                          onChange={(e) => handleFieldChange('title', e.target.value)}
-                          placeholder="Enter event title"
-                        />
-                      </div>
-                      
-                      <div>
-                        <Label htmlFor="status">Event Status</Label>
-                        <Select
-                          value={selectedEvent.status || ''}
-                          onValueChange={(value) => handleFieldChange('status', value)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select status" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="pending">Pending</SelectItem>
-                            <SelectItem value="in_progress">In Progress</SelectItem>
-                            <SelectItem value="completed">Completed</SelectItem>
-                            <SelectItem value="cancelled">Cancelled</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      
-                      <div>
-                        <Label htmlFor="start-date">Start Date</Label>
-                        <Input
-                          id="start-date"
-                          type="date"
-                          value={selectedEvent.start_date || ''}
-                          onChange={(e) => handleFieldChange('start_date', e.target.value)}
-                        />
-                      </div>
-                      
-                      <div>
-                        <Label htmlFor="end-date">End Date</Label>
-                        <Input
-                          id="end-date"
-                          type="date"
-                          value={selectedEvent.end_date || ''}
-                          onChange={(e) => handleFieldChange('end_date', e.target.value)}
-                        />
-                      </div>
-                      
-                      <div>
-                        <Label htmlFor="start-time">Start Time</Label>
-                        <Input
-                          id="start-time"
-                          type="time"
-                          value={selectedEvent.start_time ? selectedEvent.start_time.slice(0, 5) : ''}
-                          onChange={(e) => handleFieldChange('start_time', e.target.value)}
-                        />
-                      </div>
-                      
-                      <div>
-                        <Label htmlFor="end-time">End Time</Label>
-                        <Input
-                          id="end-time"
-                          type="time"
-                          value={selectedEvent.end_time ? selectedEvent.end_time.slice(0, 5) : ''}
-                          onChange={(e) => handleFieldChange('end_time', e.target.value)}
-                        />
-                      </div>
+                    </CardHeader>
 
-                      <div>
-                        <Label htmlFor="theme">Event Theme</Label>
-                        <Select
-                          value={selectedEvent.theme_id?.toString() || ''}
-                          onValueChange={async (value) => {
-                            const themeId = parseInt(value);
-                            // Set theme and reset type immediately
-                            setSelectedEvent(prev => prev ? { ...prev, theme_id: themeId, type_id: undefined } : prev);
-                            // Fetch event types for the new theme and update eventTypes immediately
-                            try {
-                              let query = supabase
-                                .from('event_types')
-                                .select('id, name, theme_id')
-                                .order('name');
-                              query = query.eq('theme_id', themeId);
-                              const { data, error } = await query;
-                              if (!error && data) {
-                                setEventTypes(data);
-                              } else {
-                                setEventTypes([]);
-                              }
-                            } catch (err) {
-                              setEventTypes([]);
-                            }
-                          }}
-                        >
-                          <SelectTrigger className="bg-background border-border z-50">
-                            <SelectValue placeholder="Select theme" />
-                          </SelectTrigger>
-                          <SelectContent className="bg-background border-border shadow-lg z-50">
-                            {eventThemes.map((theme) => (
-                              <SelectItem key={theme.id} value={theme.id.toString()}>
-                                {theme.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      
-                      <div>
-                        <Label htmlFor="type">Event Type</Label>
-                        <Select
-                          value={selectedEvent.type_id?.toString() || ''}
-                          onValueChange={(value) => handleFieldChange('type_id', parseInt(value))}
-                          disabled={!selectedEvent.theme_id}
-                        >
-                          <SelectTrigger className="bg-background border-border z-50">
-                            <SelectValue 
-                              placeholder={
-                                selectedEvent.theme_id 
-                                  ? "Select event type" 
-                                  : "Select theme first"
-                              } 
-                            />
-                          </SelectTrigger>
-                          <SelectContent className="bg-background border-border shadow-lg z-50">
-                            {eventTypes
-                              .filter(type => type.theme_id === selectedEvent.theme_id)
-                              .map((type) => (
-                                <SelectItem key={type.id} value={type.id.toString()}>
-                                  {type.name}
-                                </SelectItem>
-                              ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div>
-                        <Label htmlFor="venue">Venue</Label>
-                        <Input
-                          id="venue"
-                          value={selectedEvent.venue || ''}
-                          onChange={(e) => handleFieldChange('venue', e.target.value)}
-                          placeholder="Enter venue name"
-                        />
-                      </div>
-                      
-                      <div>
-                        <Label htmlFor="location">Location</Label>
-                        <Input
-                          id="location"
-                          value={selectedEvent.location || ''}
-                          onChange={(e) => handleFieldChange('location', e.target.value)}
-                          placeholder="Enter event location"
-                        />
-                      </div>
-                      
-                      <div>
-                        <Label htmlFor="budget">Budget</Label>
-                        <Input
-                          id="budget"
-                          type="number"
-                          value={budgetInput}
-                          onChange={(e) => setBudgetInput(e.target.value)}
-                          onBlur={() => {
-                            if (budgetInput) {
-                              const formatted = parseFloat(budgetInput).toFixed(2);
-                              setBudgetInput(formatted);
-                              handleFieldChange('budget', parseFloat(formatted));
-                            } else {
-                              handleFieldChange('budget', undefined);
-                            }
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              (e.target as HTMLInputElement).blur();
-                            }
-                          }}
-                          placeholder="Enter budget"
-                        />
-                      </div>
-                      
-                      <div className="md:col-span-2">
-                        <Label htmlFor="description">Description</Label>
-                        <Textarea
-                          id="description"
-                          value={selectedEvent.description || ''}
-                          onChange={(e) => handleFieldChange('description', e.target.value)}
-                          placeholder="Enter event description"
-                          rows={3}
-                        />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="timeline">
-                <Card className="shadow-elegant border-0 bg-gradient-subtle">
-                  <CardHeader className="border-b border-border/50">
-                    <CardTitle>Timeline & Task Management</CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-6">
-                    <TimelineView eventId={selectedEvent.id} />
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="resources">
-                <Card className="shadow-elegant border-0 bg-gradient-subtle">
-                  <CardHeader className="border-b border-border/50">
-                    <CardTitle>Resource Management</CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-6">
-                    <ResourceManager 
-                      eventId={selectedEvent.id} 
-                      eventLocation={selectedEvent.location} 
-                      refreshKey={resourceRefreshKey}
-                    />
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="analytics">
-                <Analytics 
-                  onInteractionTrack={(interaction) => {
-                    console.log('User interaction tracked:', interaction);
-                  }}
-                />
-              </TabsContent>
-
-              <TabsContent value="changelog">
-                <Card className="shadow-elegant border-0 bg-gradient-subtle">
-                  <CardHeader className="border-b border-border/50">
-                    <CardTitle>Change History</CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                    <div className="max-h-96 overflow-y-auto">
-                      {changeLogs.length > 0 ? (
-                        changeLogs.map((log) => (
-                          <div key={log.id} className="p-4 border-b border-border/30">
-                            <div className="flex items-start justify-between gap-4">
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <Badge variant="outline" className="text-xs">
-                                    {log.action}
-                                  </Badge>
-                                  {log.field_name && (
-                                    <span className="text-xs text-muted-foreground">
-                                      {log.field_name}
-                                    </span>
-                                  )}
-                                </div>
-                                {log.change_description && (
-                                  <p className="text-sm text-foreground mb-2">
-                                    {log.change_description}
-                                  </p>
-                                )}
-                                {log.old_value && log.new_value && (
-                                  <div className="text-xs space-y-1">
-                                    <div className="text-red-600">
-                                      Old: {log.old_value}
-                                    </div>
-                                    <div className="text-green-600">
-                                      New: {log.new_value}
-                                    </div>
-                                  </div>
-                                )}
+                    <CardContent className="space-y-6 p-6">
+                      {isViewer() ? (
+                        // Read-only view for viewers
+                        <div className="space-y-6">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                              <div className="text-sm font-semibold flex items-center gap-2 text-muted-foreground">
+                                <Tag className="h-3.5 w-3.5" />
+                                Event Title
                               </div>
-                              <div className="text-xs text-muted-foreground text-right">
-                                {format(new Date(log.created_at), 'MMM dd, yyyy HH:mm')}
+                              <p className="text-base font-medium">{selectedEvent.title || '—'}</p>
+                            </div>
+
+                            <div className="space-y-2">
+                              <div className="text-sm font-semibold flex items-center gap-2 text-muted-foreground">
+                                <TrendingUp className="h-3.5 w-3.5" />
+                                Event Status
                               </div>
+                              <div>{getStatusBadge(selectedEvent.status)}</div>
+                            </div>
+
+                            <div className="space-y-2">
+                              <div className="text-sm font-semibold flex items-center gap-2 text-muted-foreground">
+                                <CalendarIcon className="h-3.5 w-3.5" />
+                                Start Date
+                              </div>
+                              <p className="text-base">{selectedEvent.start_date ? format(new Date(selectedEvent.start_date), 'PPP') : '—'}</p>
+                            </div>
+
+                            <div className="space-y-2">
+                              <div className="text-sm font-semibold flex items-center gap-2 text-muted-foreground">
+                                <CalendarIcon className="h-3.5 w-3.5" />
+                                End Date
+                              </div>
+                              <p className="text-base">{selectedEvent.end_date ? format(new Date(selectedEvent.end_date), 'PPP') : '—'}</p>
+                            </div>
+
+                            <div className="space-y-2">
+                              <div className="text-sm font-semibold flex items-center gap-2 text-muted-foreground">
+                                <Clock className="h-3.5 w-3.5" />
+                                Start Time
+                              </div>
+                              <p className="text-base">{selectedEvent.start_time ? selectedEvent.start_time.slice(0, 5) : '—'}</p>
+                            </div>
+
+                            <div className="space-y-2">
+                              <div className="text-sm font-semibold flex items-center gap-2 text-muted-foreground">
+                                <Clock className="h-3.5 w-3.5" />
+                                End Time
+                              </div>
+                              <p className="text-base">{selectedEvent.end_time ? selectedEvent.end_time.slice(0, 5) : '—'}</p>
+                            </div>
+
+                            <div className="space-y-2">
+                              <div className="text-sm font-semibold flex items-center gap-2 text-muted-foreground">
+                                <Sparkles className="h-3.5 w-3.5" />
+                                Event Theme
+                              </div>
+                              <p className="text-base">
+                                {selectedEvent.theme_id
+                                  ? eventThemes.find(t => t.id === selectedEvent.theme_id)?.name || '—'
+                                  : '—'}
+                              </p>
+                            </div>
+
+                            <div className="space-y-2">
+                              <div className="text-sm font-semibold flex items-center gap-2 text-muted-foreground">
+                                <Tag className="h-3.5 w-3.5" />
+                                Event Type
+                              </div>
+                              <p className="text-base">
+                                {selectedEvent.type_id
+                                  ? eventTypes.find(t => t.id === selectedEvent.type_id)?.name || '—'
+                                  : '—'}
+                              </p>
+                            </div>
+
+                            <div className="space-y-2">
+                              <div className="text-sm font-semibold flex items-center gap-2 text-muted-foreground">
+                                <MapPin className="h-3.5 w-3.5" />
+                                Venue
+                              </div>
+                              <p className="text-base">{selectedEvent.venue || '—'}</p>
+                            </div>
+
+                            <div className="space-y-2">
+                              <div className="text-sm font-semibold flex items-center gap-2 text-muted-foreground">
+                                <MapPin className="h-3.5 w-3.5" />
+                                Location
+                              </div>
+                              <p className="text-base">{selectedEvent.location || '—'}</p>
+                            </div>
+
+                            <div className="space-y-2">
+                              <div className="text-sm font-semibold flex items-center gap-2 text-muted-foreground">
+                                <DollarSign className="h-3.5 w-3.5" />
+                                Budget
+                              </div>
+                              <p className="text-base">
+                                {selectedEvent.budget
+                                  ? `$${selectedEvent.budget.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                  : '—'}
+                              </p>
                             </div>
                           </div>
-                        ))
+
+                          {selectedEvent.description && (
+                            <div className="space-y-2">
+                              <div className="text-sm font-semibold text-muted-foreground">Description</div>
+                              <p className="text-base whitespace-pre-wrap">{selectedEvent.description}</p>
+                            </div>
+                          )}
+                        </div>
                       ) : (
-                        <div className="p-8 text-center text-muted-foreground">
-                          <History className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                          <p>No changes recorded yet</p>
+                        // Editable form for coordinators and admins
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="space-y-2">
+                            <Label htmlFor="title" className="text-sm font-semibold flex items-center gap-2">
+                              <Tag className="h-3.5 w-3.5" />
+                              Event Title
+                              {pendingChanges.title && (
+                                <Badge variant="outline" className="ml-auto text-xs bg-yellow-50 text-yellow-700 border-yellow-200">
+                                  Changed
+                                </Badge>
+                              )}
+                            </Label>
+                            <Input
+                              id="title"
+                              value={selectedEvent.title || ''}
+                              onChange={(e) => handleFieldChange('title', e.target.value)}
+                              placeholder="Enter event title"
+                              disabled={saving}
+                              className={`h-10 ${pendingChanges.title ? 'border-yellow-300 bg-yellow-50/50' : ''}`}
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="status" className="text-sm font-semibold flex items-center gap-2">
+                              <TrendingUp className="h-3.5 w-3.5" />
+                              Event Status
+                            </Label>
+                            <Select
+                              value={selectedEvent.status || ''}
+                              onValueChange={(value) => handleFieldChange('status', value)}
+                              disabled={isViewer() || saving}
+                            >
+                              <SelectTrigger className="h-10">
+                                <SelectValue placeholder="Select status" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="pending">Pending</SelectItem>
+                                <SelectItem value="in_progress">In Progress</SelectItem>
+                                <SelectItem value="completed">Completed</SelectItem>
+                                <SelectItem value="cancelled">Cancelled</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="start-date" className="text-sm font-semibold flex items-center gap-2">
+                              <CalendarIcon className="h-3.5 w-3.5" />
+                              Start Date
+                            </Label>
+                            <Input
+                              id="start-date"
+                              type="date"
+                              value={selectedEvent.start_date || ''}
+                              onChange={(e) => handleFieldChange('start_date', e.target.value)}
+                              disabled={venueBookingCompleted || isViewer() || saving}
+                              className="h-10"
+                            />
+                            {venueBookingCompleted && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Event dates are locked because venue booking is completed
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="end-date" className="text-sm font-semibold flex items-center gap-2">
+                              <CalendarIcon className="h-3.5 w-3.5" />
+                              End Date
+                            </Label>
+                            <Input
+                              id="end-date"
+                              type="date"
+                              value={selectedEvent.end_date || ''}
+                              onChange={(e) => handleFieldChange('end_date', e.target.value)}
+                              disabled={venueBookingCompleted || isViewer() || saving}
+                              className="h-10"
+                            />
+                            {venueBookingCompleted && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Event dates are locked because venue booking is completed
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="start-time" className="text-sm font-semibold flex items-center gap-2">
+                              <Clock className="h-3.5 w-3.5" />
+                              Start Time
+                            </Label>
+                            <Input
+                              id="start-time"
+                              type="time"
+                              value={selectedEvent.start_time ? selectedEvent.start_time.slice(0, 5) : ''}
+                              onChange={(e) => handleFieldChange('start_time', e.target.value)}
+                              disabled={isViewer() || saving}
+                              className="h-10"
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="end-time" className="text-sm font-semibold flex items-center gap-2">
+                              <Clock className="h-3.5 w-3.5" />
+                              End Time
+                            </Label>
+                            <Input
+                              id="end-time"
+                              type="time"
+                              value={selectedEvent.end_time ? selectedEvent.end_time.slice(0, 5) : ''}
+                              onChange={(e) => handleFieldChange('end_time', e.target.value)}
+                              disabled={isViewer() || saving}
+                              className="h-10"
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="theme" className="text-sm font-semibold flex items-center gap-2">
+                              <Sparkles className="h-3.5 w-3.5" />
+                              Event Theme
+                            </Label>
+                            <Select
+                              value={selectedEvent.theme_id?.toString() || ''}
+                              disabled={isViewer() || saving}
+                              onValueChange={async (value) => {
+                                const themeId = parseInt(value);
+                                // Set theme and reset type immediately
+                                setSelectedEvent(prev => prev ? { ...prev, theme_id: themeId, type_id: undefined } : prev);
+                                // Fetch event types for the new theme and update eventTypes immediately
+                                try {
+                                  let query = supabase
+                                    .from('event_types')
+                                    .select('id, name, theme_id')
+                                    .order('name');
+                                  query = query.eq('theme_id', themeId);
+                                  const { data, error } = await query;
+                                  if (!error && data) {
+                                    setEventTypes(data);
+                                  } else {
+                                    setEventTypes([]);
+                                  }
+                                } catch (err) {
+                                  setEventTypes([]);
+                                }
+                              }}
+                            >
+                              <SelectTrigger className="bg-background border-border z-50 h-10">
+                                <SelectValue placeholder="Select theme" />
+                              </SelectTrigger>
+                              <SelectContent className="bg-background border-border shadow-lg z-50">
+                                {eventThemes.map((theme) => (
+                                  <SelectItem key={theme.id} value={theme.id.toString()}>
+                                    {theme.name}
+                                    {theme.premium && (
+                                      <Badge variant="secondary" className="ml-2 text-xs">Premium</Badge>
+                                    )}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="type" className="text-sm font-semibold flex items-center gap-2">
+                              <Tag className="h-3.5 w-3.5" />
+                              Event Type
+                            </Label>
+                            <Select
+                              value={selectedEvent.type_id?.toString() || ''}
+                              onValueChange={(value) => handleFieldChange('type_id', parseInt(value))}
+                              disabled={!selectedEvent.theme_id || isViewer() || saving}
+                            >
+                              <SelectTrigger className="bg-background border-border z-50 h-10">
+                                <SelectValue
+                                  placeholder={
+                                    selectedEvent.theme_id
+                                      ? "Select event type"
+                                      : "Select theme first"
+                                  }
+                                />
+                              </SelectTrigger>
+                              <SelectContent className="bg-background border-border shadow-lg z-50">
+                                {eventTypes
+                                  .filter(type => type.theme_id === selectedEvent.theme_id)
+                                  .map((type) => (
+                                    <SelectItem key={type.id} value={type.id.toString()}>
+                                      {type.name}
+                                    </SelectItem>
+                                  ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="venue" className="text-sm font-semibold flex items-center gap-2">
+                              <MapPin className="h-3.5 w-3.5" />
+                              Venue
+                            </Label>
+                            <Input
+                              id="venue"
+                              value={selectedEvent.venue || ''}
+                              onChange={(e) => handleFieldChange('venue', e.target.value)}
+                              placeholder="Enter venue name"
+                              disabled={isViewer() || saving}
+                              className="h-10"
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="location" className="text-sm font-semibold flex items-center gap-2">
+                              <MapPin className="h-3.5 w-3.5" />
+                              Location
+                            </Label>
+                            <Input
+                              id="location"
+                              value={selectedEvent.location || ''}
+                              onChange={(e) => handleFieldChange('location', e.target.value)}
+                              placeholder="Enter event location"
+                              disabled={isViewer() || saving}
+                              className="h-10"
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="budget" className="text-sm font-semibold flex items-center gap-2">
+                              <DollarSign className="h-3.5 w-3.5" />
+                              Budget
+                            </Label>
+                            <div className="relative">
+                              <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                              <Input
+                                id="budget"
+                                type="number"
+                                value={budgetInput}
+                                onChange={(e) => setBudgetInput(e.target.value)}
+                                onBlur={() => {
+                                  if (budgetInput) {
+                                    const formatted = parseFloat(budgetInput).toFixed(2);
+                                    setBudgetInput(formatted);
+                                    handleFieldChange('budget', parseFloat(formatted));
+                                  } else {
+                                    handleFieldChange('budget', undefined);
+                                  }
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    (e.target as HTMLInputElement).blur();
+                                  }
+                                }}
+                                placeholder="0.00"
+                                disabled={isViewer() || saving}
+                                className="h-10 pl-9"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="md:col-span-2 space-y-2">
+                            <Label htmlFor="description" className="text-sm font-semibold">Description</Label>
+                            <Textarea
+                              id="description"
+                              value={selectedEvent.description || ''}
+                              onChange={(e) => handleFieldChange('description', e.target.value)}
+                              placeholder="Enter event description"
+                              disabled={saving}
+                              rows={4}
+                              className="resize-none"
+                            />
+                          </div>
                         </div>
                       )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="timeline" className="space-y-4">
+                  <Card className="shadow-lg border-0 bg-card/50 backdrop-blur-sm">
+                    <CardContent className="p-6">
+                      <TimelineView eventId={selectedEvent.id} />
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="resources" className="space-y-4">
+                  <Card className="shadow-lg border-0 bg-card/50 backdrop-blur-sm">
+                    <CardContent className="p-6">
+                      <ResourceManager
+                        eventId={selectedEvent.id}
+                        eventLocation={selectedEvent.location}
+                        refreshKey={resourceRefreshKey}
+                      />
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="analytics">
+                  <Analytics
+                    onInteractionTrack={(interaction) => {
+                      console.log('User interaction tracked:', interaction);
+                    }}
+                  />
+                </TabsContent>
+
+                <TabsContent value="changelog" className="space-y-4">
+                  <Card className="shadow-lg border-0 bg-card/50 backdrop-blur-sm">
+                    <CardHeader className="border-b border-border/50 bg-gradient-to-r from-muted/50 to-transparent">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-lg bg-primary/10">
+                            <History className="h-5 w-5 text-primary" />
+                          </div>
+                          <div>
+                            <CardTitle className="text-xl">Change History</CardTitle>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              Track all changes made to this event
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            if (selectedEvent?.id) {
+                              fetchChangeLogs(selectedEvent.id);
+                            }
+                          }}
+                          className="gap-2"
+                        >
+                          <RefreshCw className="h-4 w-4" />
+                          Refresh
+                        </Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                      <div className="max-h-[600px] overflow-y-auto">
+                        {changeLogs.length > 0 ? (
+                          <div className="divide-y divide-border/30">
+                            {changeLogs.map((log) => (
+                              <div key={log.id} className="p-4 hover:bg-muted/30 transition-colors">
+                                <div className="flex items-start justify-between gap-4">
+                                  <div className="flex-1 space-y-2">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <Badge
+                                        variant="outline"
+                                        className={`text-xs ${log.action === 'created' ? 'bg-green-50 text-green-700 border-green-200' :
+                                          log.action === 'approved' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                            log.action === 'rejected' ? 'bg-red-50 text-red-700 border-red-200' :
+                                              log.action === 'applied' ? 'bg-green-50 text-green-700 border-green-200' :
+                                                log.action === 'cancelled' ? 'bg-orange-50 text-orange-700 border-orange-200' :
+                                                  log.action === 'updated' ?
+                                                    (log.change_description?.includes('Change requested') ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+                                                      log.change_description?.includes('Applied') || log.change_description?.includes('applied by') ? 'bg-green-50 text-green-700 border-green-200' :
+                                                        log.change_description?.includes('Approved') || log.change_description?.includes('approved by') ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                                          log.change_description?.includes('Rejected') || log.change_description?.includes('rejected by') ? 'bg-red-50 text-red-700 border-red-200' :
+                                                            log.change_description?.includes('Cancelled') || log.change_description?.includes('cancelled by') ? 'bg-orange-50 text-orange-700 border-orange-200' :
+                                                              'bg-blue-50 text-blue-700 border-blue-200') :
+                                                    'bg-red-50 text-red-700 border-red-200'
+                                          }`}
+                                      >
+                                        {log.action === 'approved' ? 'Approved' :
+                                          log.action === 'rejected' ? 'Rejected' :
+                                            log.action === 'applied' ? 'Applied' :
+                                              log.action === 'cancelled' ? 'Cancelled' :
+                                                log.change_description?.includes('Change requested') ? 'Change Requested' :
+                                                  log.change_description?.includes('Applied') || log.change_description?.includes('applied by') ? 'Applied' :
+                                                    log.change_description?.includes('Approved') || log.change_description?.includes('approved by') ? 'Approved' :
+                                                      log.change_description?.includes('Rejected') || log.change_description?.includes('rejected by') ? 'Rejected' :
+                                                        log.change_description?.includes('Cancelled') || log.change_description?.includes('cancelled by') ? 'Cancelled' :
+                                                          log.action}
+                                      </Badge>
+                                      {log.field_name && (
+                                        <span className="text-xs font-medium text-muted-foreground bg-muted/50 px-2 py-0.5 rounded">
+                                          {log.field_name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                        </span>
+                                      )}
+                                    </div>
+                                    {log.change_description && (
+                                      <p className="text-sm text-foreground">
+                                        {log.change_description}
+                                      </p>
+                                    )}
+                                    {log.old_value && log.new_value && (
+                                      <div className="grid grid-cols-2 gap-2 text-xs">
+                                        <div className="p-2 rounded-md bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800">
+                                          <div className="font-semibold text-red-700 dark:text-red-400 mb-1">Old Value</div>
+                                          <div className="text-red-600 dark:text-red-300 break-words">{log.old_value}</div>
+                                        </div>
+                                        <div className="p-2 rounded-md bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800">
+                                          <div className="font-semibold text-green-700 dark:text-green-400 mb-1">New Value</div>
+                                          <div className="text-green-600 dark:text-green-300 break-words">{log.new_value}</div>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground text-right whitespace-nowrap">
+                                    <div className="font-medium">{format(new Date(log.created_at), 'MMM dd, yyyy')}</div>
+                                    <div>{format(new Date(log.created_at), 'HH:mm')}</div>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="p-12 text-center">
+                            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted/50 mb-4">
+                              <History className="h-8 w-8 text-muted-foreground/50" />
+                            </div>
+                            <h3 className="text-sm font-medium mb-1">No changes recorded</h3>
+                            <p className="text-xs text-muted-foreground">
+                              Changes to this event will appear here
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
+            </>
           ) : (
-            <Card className="shadow-elegant border-0 bg-gradient-subtle">
-              <CardContent className="p-12 text-center">
-                <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-                <h3 className="text-lg font-medium mb-2">No Event Selected</h3>
-                <p className="text-muted-foreground">
-                  Select an event from the list to view and manage its details
+            <Card className="shadow-lg border-0 bg-card/50 backdrop-blur-sm border-dashed">
+              <CardContent className="p-16 text-center">
+                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-muted/50 mb-6">
+                  <AlertCircle className="h-10 w-10 text-muted-foreground/50" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">No Event Selected</h3>
+                <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                  Select an event from the list to view and manage its details, or create a new event to get started
                 </p>
+                <Button
+                  onClick={() => window.location.href = '/dashboard/create-event'}
+                  className="bg-gradient-to-r from-primary to-secondary text-primary-foreground hover:opacity-90"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create New Event
+                </Button>
               </CardContent>
             </Card>
           )}

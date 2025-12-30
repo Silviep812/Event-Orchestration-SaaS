@@ -33,6 +33,8 @@ import EntertainmentDirectory from "./pages/EntertainmentDirectory";
 import SupplierDirectory from "./pages/SupplierDirectory";
 import Profile from "./pages/Profile";
 import Contact from "./pages/Contact";
+import ChangeRequests from "./pages/ChangeRequests";
+import ChangeRequestDetail from "./pages/ChangeRequestDetail";
 
 const queryClient = new QueryClient();
 
@@ -61,6 +63,8 @@ const App = () => (
               <Route path="collaborate" element={<Collaborate />} />
               <Route path="track-progress" element={<TrackProgress />} />
               <Route path="reports" element={<Reports />} />
+              <Route path="change-requests" element={<ChangeRequests />} />
+              <Route path="change-requests/:id" element={<ChangeRequestDetail />} />
               <Route path="notification" element={<Notifications />} />
               <Route path="comments" element={<Comments />} />
               <Route path="bookings" element={<BookingsDirectory />} />

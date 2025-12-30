@@ -405,9 +405,12 @@ const TimelineView = ({ eventId }: TimelineViewProps) => {
       {/* Header Controls */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-semibold">Timeline View</h2>
-          <p className="text-sm text-muted-foreground">
-            Manage task schedules and identify conflicts
+          <h2 className="text-xl font-semibold flex items-center gap-2">
+            <CalendarIcon className="h-5 w-5 text-primary" />
+            Timeline & Task Management
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Manage your event timeline and tasks
           </p>
         </div>
         

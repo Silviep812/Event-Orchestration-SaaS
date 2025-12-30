@@ -7,10 +7,30 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "13.0.5"
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
@@ -230,6 +250,74 @@ export type Database = {
         }
         Relationships: []
       }
+      change_requests: {
+        Row: {
+          applied_at: string | null
+          applied_by: string | null
+          approved_at: string | null
+          approved_by: string | null
+          change_type: Database["public"]["Enums"]["change_type"] | null
+          created_at: string
+          description: string | null
+          event_id: string | null
+          field_changes: Json | null
+          id: string
+          priority: Database["public"]["Enums"]["task_priority"]
+          rejection_reason: string | null
+          requested_by: string | null
+          status: Database["public"]["Enums"]["change_status"]
+          task_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          applied_at?: string | null
+          applied_by?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          change_type?: Database["public"]["Enums"]["change_type"] | null
+          created_at?: string
+          description?: string | null
+          event_id?: string | null
+          field_changes?: Json | null
+          id?: string
+          priority?: Database["public"]["Enums"]["task_priority"]
+          rejection_reason?: string | null
+          requested_by?: string | null
+          status?: Database["public"]["Enums"]["change_status"]
+          task_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          applied_at?: string | null
+          applied_by?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          change_type?: Database["public"]["Enums"]["change_type"] | null
+          created_at?: string
+          description?: string | null
+          event_id?: string | null
+          field_changes?: Json | null
+          id?: string
+          priority?: Database["public"]["Enums"]["task_priority"]
+          rejection_reason?: string | null
+          requested_by?: string | null
+          status?: Database["public"]["Enums"]["change_status"]
+          task_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "change_requests_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cm_audit_events: {
         Row: {
           created_at: string
@@ -257,36 +345,6 @@ export type Database = {
           payload?: Json | null
           type?: string
           user_id?: string | null
-        }
-        Relationships: []
-      }
-      cm_change_requests: {
-        Row: {
-          created_at: string
-          description: string | null
-          event_id: string | null
-          id: string
-          priority_tag: string | null
-          requested_by: string | null
-          task_id: string | null
-        }
-        Insert: {
-          created_at?: string
-          description?: string | null
-          event_id?: string | null
-          id?: string
-          priority_tag?: string | null
-          requested_by?: string | null
-          task_id?: string | null
-        }
-        Update: {
-          created_at?: string
-          description?: string | null
-          event_id?: string | null
-          id?: string
-          priority_tag?: string | null
-          requested_by?: string | null
-          task_id?: string | null
         }
         Relationships: []
       }
@@ -438,29 +496,38 @@ export type Database = {
       }
       Collaborators: {
         Row: {
+          booking_assign_to: string | null
           collab_type: string
           created_at: string
+          entertainment_assign_to: string | null
           hospitality_assign_to: string | null
           services_assign_to: string | null
           suppliers_assign_to: string | null
+          transportation_assign_to: string | null
           vendors_assign_to: string | null
           venue_assign_to: string | null
         }
         Insert: {
+          booking_assign_to?: string | null
           collab_type: string
           created_at?: string
+          entertainment_assign_to?: string | null
           hospitality_assign_to?: string | null
           services_assign_to?: string | null
           suppliers_assign_to?: string | null
+          transportation_assign_to?: string | null
           vendors_assign_to?: string | null
           venue_assign_to?: string | null
         }
         Update: {
+          booking_assign_to?: string | null
           collab_type?: string
           created_at?: string
+          entertainment_assign_to?: string | null
           hospitality_assign_to?: string | null
           services_assign_to?: string | null
           suppliers_assign_to?: string | null
+          transportation_assign_to?: string | null
           vendors_assign_to?: string | null
           venue_assign_to?: string | null
         }
@@ -685,6 +752,7 @@ export type Database = {
           Contact_Ph_Nbr: number | null
           created_at: string
           Email: string | null
+          Genre: string | null
           id: number
           Price: number | null
           type_id: string | null
@@ -697,6 +765,7 @@ export type Database = {
           Contact_Ph_Nbr?: number | null
           created_at?: string
           Email?: string | null
+          Genre?: string | null
           id?: number
           Price?: number | null
           type_id?: string | null
@@ -709,6 +778,7 @@ export type Database = {
           Contact_Ph_Nbr?: number | null
           created_at?: string
           Email?: string | null
+          Genre?: string | null
           id?: number
           Price?: number | null
           type_id?: string | null
@@ -1182,6 +1252,7 @@ export type Database = {
           hosp_biz_name: string | null
           hosp_contact_name: string | null
           hosp_contact_nbr: number | null
+          hosp_email: string | null
           hosp_location: string[] | null
           hosp_price: number | null
           hosp_type_id: Database["public"]["Enums"]["budget_category"]
@@ -1194,6 +1265,7 @@ export type Database = {
           hosp_biz_name?: string | null
           hosp_contact_name?: string | null
           hosp_contact_nbr?: number | null
+          hosp_email?: string | null
           hosp_location?: string[] | null
           hosp_price?: number | null
           hosp_type_id: Database["public"]["Enums"]["budget_category"]
@@ -1206,6 +1278,7 @@ export type Database = {
           hosp_biz_name?: string | null
           hosp_contact_name?: string | null
           hosp_contact_nbr?: number | null
+          hosp_email?: string | null
           hosp_location?: string[] | null
           hosp_price?: number | null
           hosp_type_id?: Database["public"]["Enums"]["budget_category"]
@@ -2081,6 +2154,7 @@ export type Database = {
           id: number
           Location: string | null
           Price: number | null
+          service_provided_listing: string | null
           Service_Type: string | null
         }
         Insert: {
@@ -2092,6 +2166,7 @@ export type Database = {
           id?: number
           Location?: string | null
           Price?: number | null
+          service_provided_listing?: string | null
           Service_Type?: string | null
         }
         Update: {
@@ -2103,6 +2178,7 @@ export type Database = {
           id?: number
           Location?: string | null
           Price?: number | null
+          service_provided_listing?: string | null
           Service_Type?: string | null
         }
         Relationships: []
@@ -2201,6 +2277,7 @@ export type Database = {
           id: number
           Premium: number | null
           "Premium Plus": number | null
+          "Special Promo": string | null
           Standard_Plan: number | null
           Trial: string | null
         }
@@ -2210,6 +2287,7 @@ export type Database = {
           id?: number
           Premium?: number | null
           "Premium Plus"?: number | null
+          "Special Promo"?: string | null
           Standard_Plan?: number | null
           Trial?: string | null
         }
@@ -2219,6 +2297,7 @@ export type Database = {
           id?: number
           Premium?: number | null
           "Premium Plus"?: number | null
+          "Special Promo"?: string | null
           Standard_Plan?: number | null
           Trial?: string | null
         }
@@ -2302,6 +2381,7 @@ export type Database = {
       "Supplier Vendor Profile": {
         Row: {
           created_at: string
+          inventory_listing: string | null
           supp_biz_name: string | null
           supp_contact_name: string | null
           supp_contact_nbr: number | null
@@ -2314,6 +2394,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          inventory_listing?: string | null
           supp_biz_name?: string | null
           supp_contact_name?: string | null
           supp_contact_nbr?: number | null
@@ -2326,6 +2407,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          inventory_listing?: string | null
           supp_biz_name?: string | null
           supp_contact_name?: string | null
           supp_contact_nbr?: number | null
@@ -2384,6 +2466,7 @@ export type Database = {
           description: string | null
           email: string | null
           id: string
+          inventory_images: string | null
           phone_number: string | null
           price: number | null
           state: string | null
@@ -2400,6 +2483,7 @@ export type Database = {
           description?: string | null
           email?: string | null
           id?: string
+          inventory_images?: string | null
           phone_number?: string | null
           price?: number | null
           state?: string | null
@@ -2416,6 +2500,7 @@ export type Database = {
           description?: string | null
           email?: string | null
           id?: string
+          inventory_images?: string | null
           phone_number?: string | null
           price?: number | null
           state?: string | null
@@ -2436,38 +2521,6 @@ export type Database = {
             columns: ["type_id"]
             isOneToOne: false
             referencedRelation: "supplier_types"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      task_assignments: {
-        Row: {
-          created_at: string
-          created_by: string
-          id: string
-          task_id: string
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string
-          created_by: string
-          id?: string
-          task_id: string
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string
-          created_by?: string
-          id?: string
-          task_id?: string
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "task_assignments_task_id_fkey"
-            columns: ["task_id"]
-            isOneToOne: false
-            referencedRelation: "tasks"
             referencedColumns: ["id"]
           },
         ]
@@ -2553,6 +2606,57 @@ export type Database = {
         }
         Relationships: []
       }
+      tasks_assignments: {
+        Row: {
+          actual_hours: number | null
+          assigned_to: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          due_date: string | null
+          estimated_hours: number | null
+          event_id: string
+          event_theme: string
+          id: string
+          priority: Database["public"]["Enums"]["task_priority"]
+          status: Database["public"]["Enums"]["task_status"] | null
+          task_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          actual_hours?: number | null
+          assigned_to?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          due_date?: string | null
+          estimated_hours?: number | null
+          event_id: string
+          event_theme: string
+          id?: string
+          priority?: Database["public"]["Enums"]["task_priority"]
+          status?: Database["public"]["Enums"]["task_status"] | null
+          task_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          actual_hours?: number | null
+          assigned_to?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          due_date?: string | null
+          estimated_hours?: number | null
+          event_id?: string
+          event_theme?: string
+          id?: string
+          priority?: Database["public"]["Enums"]["task_priority"]
+          status?: Database["public"]["Enums"]["task_status"] | null
+          task_name?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       tasks_dependencies: {
         Row: {
           created_at: string
@@ -2588,66 +2692,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      tasks_old: {
-        Row: {
-          actual_hours: number | null
-          assigned_service_vendor_role: string | null
-          assigned_supplier_vendor_role: string | null
-          assigned_to: string | null
-          assigned_venue_role: string | null
-          assined_vendor_role: string | null
-          created_at: string
-          created_by: string
-          description: string | null
-          due_date: string | null
-          estimated_hours: number | null
-          event_id: string
-          id: string
-          priority: Database["public"]["Enums"]["task_priority"]
-          status: Database["public"]["Enums"]["task_status"] | null
-          title: string
-          updated_at: string
-        }
-        Insert: {
-          actual_hours?: number | null
-          assigned_service_vendor_role?: string | null
-          assigned_supplier_vendor_role?: string | null
-          assigned_to?: string | null
-          assigned_venue_role?: string | null
-          assined_vendor_role?: string | null
-          created_at?: string
-          created_by: string
-          description?: string | null
-          due_date?: string | null
-          estimated_hours?: number | null
-          event_id: string
-          id?: string
-          priority?: Database["public"]["Enums"]["task_priority"]
-          status?: Database["public"]["Enums"]["task_status"] | null
-          title: string
-          updated_at?: string
-        }
-        Update: {
-          actual_hours?: number | null
-          assigned_service_vendor_role?: string | null
-          assigned_supplier_vendor_role?: string | null
-          assigned_to?: string | null
-          assigned_venue_role?: string | null
-          assined_vendor_role?: string | null
-          created_at?: string
-          created_by?: string
-          description?: string | null
-          due_date?: string | null
-          estimated_hours?: number | null
-          event_id?: string
-          id?: string
-          priority?: Database["public"]["Enums"]["task_priority"]
-          status?: Database["public"]["Enums"]["task_status"] | null
-          title?: string
-          updated_at?: string
-        }
-        Relationships: []
       }
       team_assignments: {
         Row: {
@@ -2877,6 +2921,7 @@ export type Database = {
           hours_of_operation: string[] | null
           seating_capacity: number | null
           special_accommodations: string[] | null
+          trans_amenities: string | null
           trans_contact_name: string | null
           trans_contact_nbr: number | null
           trans_type: string | null
@@ -2899,6 +2944,7 @@ export type Database = {
           hours_of_operation?: string[] | null
           seating_capacity?: number | null
           special_accommodations?: string[] | null
+          trans_amenities?: string | null
           trans_contact_name?: string | null
           trans_contact_nbr?: number | null
           trans_type?: string | null
@@ -2921,6 +2967,7 @@ export type Database = {
           hours_of_operation?: string[] | null
           seating_capacity?: number | null
           special_accommodations?: string[] | null
+          trans_amenities?: string | null
           trans_contact_name?: string | null
           trans_contact_nbr?: number | null
           trans_type?: string | null
@@ -2928,6 +2975,74 @@ export type Database = {
           transpo_id?: string
         }
         Relationships: []
+      }
+      transportation_profiles: {
+        Row: {
+          business_name: string
+          capacity: number | null
+          city: string | null
+          contact_name: string | null
+          created_at: string
+          description: string | null
+          email: string | null
+          id: string
+          phone_number: string | null
+          price: number | null
+          seating_capacity: number | null
+          special_accommodations: string[] | null
+          state: string | null
+          transp_type_id: number | null
+          transpo_images: string | null
+          updated_at: string
+          zip: string | null
+        }
+        Insert: {
+          business_name: string
+          capacity?: number | null
+          city?: string | null
+          contact_name?: string | null
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          id?: string
+          phone_number?: string | null
+          price?: number | null
+          seating_capacity?: number | null
+          special_accommodations?: string[] | null
+          state?: string | null
+          transp_type_id?: number | null
+          transpo_images?: string | null
+          updated_at?: string
+          zip?: string | null
+        }
+        Update: {
+          business_name?: string
+          capacity?: number | null
+          city?: string | null
+          contact_name?: string | null
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          id?: string
+          phone_number?: string | null
+          price?: number | null
+          seating_capacity?: number | null
+          special_accommodations?: string[] | null
+          state?: string | null
+          transp_type_id?: number | null
+          transpo_images?: string | null
+          updated_at?: string
+          zip?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transportations_transp_type_id_fkey"
+            columns: ["transp_type_id"]
+            isOneToOne: false
+            referencedRelation: "transportation_types"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       transportation_types: {
         Row: {
@@ -2950,71 +3065,6 @@ export type Database = {
         }
         Relationships: []
       }
-      transportations: {
-        Row: {
-          business_name: string
-          capacity: number | null
-          city: string | null
-          contact_name: string | null
-          created_at: string
-          description: string | null
-          email: string | null
-          id: string
-          phone_number: string | null
-          price: number | null
-          seating_capacity: number | null
-          special_accommodations: string[] | null
-          state: string | null
-          transp_type_id: number | null
-          updated_at: string
-          zip: string | null
-        }
-        Insert: {
-          business_name: string
-          capacity?: number | null
-          city?: string | null
-          contact_name?: string | null
-          created_at?: string
-          description?: string | null
-          email?: string | null
-          id?: string
-          phone_number?: string | null
-          price?: number | null
-          seating_capacity?: number | null
-          special_accommodations?: string[] | null
-          state?: string | null
-          transp_type_id?: number | null
-          updated_at?: string
-          zip?: string | null
-        }
-        Update: {
-          business_name?: string
-          capacity?: number | null
-          city?: string | null
-          contact_name?: string | null
-          created_at?: string
-          description?: string | null
-          email?: string | null
-          id?: string
-          phone_number?: string | null
-          price?: number | null
-          seating_capacity?: number | null
-          special_accommodations?: string[] | null
-          state?: string | null
-          transp_type_id?: number | null
-          updated_at?: string
-          zip?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "transportations_transp_type_id_fkey"
-            columns: ["transp_type_id"]
-            isOneToOne: false
-            referencedRelation: "transportation_types"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       "User Profile": {
         Row: {
           Biz_Name: string | null
@@ -3033,8 +3083,8 @@ export type Database = {
           user_id: string | null
           User_Location: string | null
           User_Subscription_Freq: string | null
-          "User_Ty[e": string | null
           User_Type: string | null
+          user_upload_pics: string | null
         }
         Insert: {
           Biz_Name?: string | null
@@ -3053,8 +3103,8 @@ export type Database = {
           user_id?: string | null
           User_Location?: string | null
           User_Subscription_Freq?: string | null
-          "User_Ty[e"?: string | null
           User_Type?: string | null
+          user_upload_pics?: string | null
         }
         Update: {
           Biz_Name?: string | null
@@ -3073,8 +3123,8 @@ export type Database = {
           user_id?: string | null
           User_Location?: string | null
           User_Subscription_Freq?: string | null
-          "User_Ty[e"?: string | null
           User_Type?: string | null
+          user_upload_pics?: string | null
         }
         Relationships: []
       }
@@ -3337,6 +3387,7 @@ export type Database = {
           ven_price: number | null
           ven_reservation_date: string | null
           ven_reservation_time: string | null
+          venue_amenities: string | null
           venue_type_id: string
         }
         Insert: {
@@ -3349,6 +3400,7 @@ export type Database = {
           ven_price?: number | null
           ven_reservation_date?: string | null
           ven_reservation_time?: string | null
+          venue_amenities?: string | null
           venue_type_id: string
         }
         Update: {
@@ -3361,6 +3413,7 @@ export type Database = {
           ven_price?: number | null
           ven_reservation_date?: string | null
           ven_reservation_time?: string | null
+          venue_amenities?: string | null
           venue_type_id?: string
         }
         Relationships: []
@@ -3400,6 +3453,7 @@ export type Database = {
           state: string | null
           updated_at: string
           user_id: string | null
+          venue_images: string | null
           venue_type_id: number | null
           zip: string | null
         }
@@ -3416,6 +3470,7 @@ export type Database = {
           state?: string | null
           updated_at?: string
           user_id?: string | null
+          venue_images?: string | null
           venue_type_id?: number | null
           zip?: string | null
         }
@@ -3432,6 +3487,7 @@ export type Database = {
           state?: string | null
           updated_at?: string
           user_id?: string | null
+          venue_images?: string | null
           venue_type_id?: number | null
           zip?: string | null
         }
@@ -3742,24 +3798,28 @@ export type Database = {
       }
     }
     Functions: {
-      apply_change_request_wr: {
-        Args: { change_request_id: string }
-        Returns: undefined
+      apply_change_request: {
+        Args: { p_applied_by?: string; p_change_request_id: string }
+        Returns: Json
       }
-      approve_change_request_wr: {
-        Args: { change_request_id: string }
-        Returns: undefined
+      approve_change_request: {
+        Args: { p_approved_by?: string; p_change_request_id: string }
+        Returns: Json
       }
       are_team_members: {
         Args: { _user_id_1: string; _user_id_2: string }
         Returns: boolean
       }
       assert_user_in_event: { Args: { p_event_id: string }; Returns: undefined }
-      cancel_change_request_wr: {
-        Args: { change_request_id: string }
-        Returns: undefined
+      cancel_change_request: {
+        Args: { p_cancelled_by?: string; p_change_request_id: string }
+        Returns: Json
       }
       execute_raw_sql: { Args: { query: string }; Returns: Json }
+      get_coordinator_emails: {
+        Args: { p_event_id?: string }
+        Returns: string[]
+      }
       get_my_events_safe: {
         Args: never
         Returns: {
@@ -3839,6 +3899,10 @@ export type Database = {
         }
         Returns: string
       }
+      notify_change_request_email: {
+        Args: { p_change_request_id: string; p_status: string }
+        Returns: undefined
+      }
       notify_coordinators: {
         Args: {
           p_entity_id?: string
@@ -3856,6 +3920,14 @@ export type Database = {
           new_due_date: string
           task_id: string
         }[]
+      }
+      reject_change_request: {
+        Args: {
+          p_change_request_id: string
+          p_rejected_by?: string
+          p_rejection_reason: string
+        }
+        Returns: Json
       }
     }
     Enums: {
@@ -4026,6 +4098,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       app_role: [
@@ -4078,3 +4153,4 @@ export const Constants = {
     },
   },
 } as const
+

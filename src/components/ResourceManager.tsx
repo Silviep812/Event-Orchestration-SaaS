@@ -685,12 +685,15 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header Controls */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-semibold">Resource Management</h2>
-          <p className="text-sm text-muted-foreground">
-            Allocate and track resources across multiple event locations
+          <h2 className="text-xl font-semibold flex items-center gap-2">
+            <Package className="h-5 w-5 text-primary" />
+            Resource Management
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Manage event resources and allocations
           </p>
         </div>
         

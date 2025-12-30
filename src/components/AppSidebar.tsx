@@ -21,6 +21,8 @@ import {
   Truck,
   Car
 } from "lucide-react";
+import { usePermissions } from "@/lib/permissions";
+import { useAuth } from "@/hooks/useAuth";
 
 import {
   Sidebar,
@@ -107,6 +109,13 @@ const menuGroups = [
         title: "Track Progress",
         url: "/dashboard/track-progress",
         icon: TrendingUp,
+        color: "text-green-600",
+        hoverColor: "hover:bg-green-50"
+      },
+      {
+        title: "Change Requests",
+        url: "/dashboard/change-requests",
+        icon: FileText,
         color: "text-green-600",
         hoverColor: "hover:bg-green-50"
       }
@@ -231,6 +240,8 @@ export function AppSidebar() {
   const location = useLocation();
   const currentPath = location.pathname;
   const collapsed = state === "collapsed";
+  const { isAdmin, isCoordinator, permissionLevel } = usePermissions();
+  const { userRoles } = useAuth();
 
   const isActive = (path: string) => currentPath === path;
   
@@ -240,6 +251,27 @@ export function AppSidebar() {
       return `${baseClasses} ${item.color} bg-gradient-to-r from-primary/20 to-secondary/20 font-medium border-l-4 border-primary shadow-sm`;
     }
     return `${baseClasses} text-muted-foreground ${item.hoverColor} hover:text-foreground hover:shadow-sm hover:scale-[1.02]`;
+  };
+
+  // Check if user has host role with admin or coordinator permission level
+  const hasHostWithAdminOrCoordinator = () => {
+    const hasHostRole = userRoles.includes('host');
+    const hasRequiredPermission = permissionLevel === 'admin' || permissionLevel === 'coordinator';
+    return hasHostRole && hasRequiredPermission;
+  };
+
+  // Filter menu items based on permissions
+  const getFilteredMenuGroups = () => {
+    return menuGroups.map(group => ({
+      ...group,
+      items: group.items.filter(item => {
+        // Hide "Change Requests" unless user is admin or host with admin/coordinator permission
+        if (item.title === "Change Requests") {
+          return isAdmin() || hasHostWithAdminOrCoordinator();
+        }
+        return true;
+      })
+    })).filter(group => group.items.length > 0); // Remove empty groups
   };
 
   return (
@@ -259,7 +291,7 @@ export function AppSidebar() {
           </div>
         )}
         
-        {menuGroups.map((group) => (
+        {getFilteredMenuGroups().map((group) => (
           <SidebarGroup key={group.title} className="mb-4">
             {!collapsed && (
               <SidebarGroupLabel className={`text-xs font-semibold ${group.color} uppercase tracking-wider px-4 py-2 ${group.bgColor} rounded-lg mx-2 mb-2`}>
