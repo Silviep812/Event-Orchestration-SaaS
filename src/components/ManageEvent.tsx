@@ -459,12 +459,12 @@ const ManageEvent = () => {
 
     // Trial version date restriction
     if ((field === 'start_date' || field === 'end_date') && value) {
-      const trialEnd = new Date('2025-12-31T23:59:59');
+      const trialEnd = new Date('2026-06-30T23:59:59');
       const newDate = new Date(value);
       if (newDate > trialEnd) {
         toast({
           title: "Trial Limitation",
-          description: "The trial version doesn't allow events with dates after December 31st, 2025.",
+          description: "The trial version doesn't allow events with dates after June 30th, 2026.",
           variant: "destructive",
         });
         return;

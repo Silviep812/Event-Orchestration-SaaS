@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DatePickerWithRange } from "@/components/ui/date-picker";
-import { Plus, X, Calendar, MapPin, Users, DollarSign } from "lucide-react";
+import { Plus, X, Calendar, MapPin, Users, DollarSign, Clock } from "lucide-react";
 import { DateRange } from "react-day-picker";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,9 +19,13 @@ interface EventFormData {
   type: string;
   subType?: string;
   venue: string;
+  location?: string;
   budget: string;
   expectedAttendees: string;
   theme_id: number;
+  start_time?: string;
+  end_time?: string;
+  status?: 'pending' | 'in_progress' | 'completed' | 'cancelled';
 }
 
 export default function CreateEvent() {
@@ -30,7 +34,7 @@ export default function CreateEvent() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  
+
   const { register, handleSubmit, formState: { errors }, reset, control, watch, setValue } = useForm<EventFormData>();
 
   const [eventThemes, setEventThemes] = useState<{ id: number; name: string; premium: boolean }[]>([]);
@@ -77,7 +81,7 @@ export default function CreateEvent() {
         console.error('Error fetching venue types:', typesError);
         return;
       }
-      
+
       setVenueTypes(typesData || []);
 
       // Fetch venues with their types
@@ -91,14 +95,14 @@ export default function CreateEvent() {
         setVenueProfiles([]);
         return;
       }
-      
-      const profiles = venuesData?.map(v => ({ 
-        id: v.id, 
+
+      const profiles = venuesData?.map(v => ({
+        id: v.id,
         business_name: v.business_name,
         venue_type_id: v.venue_type_id,
         venue_type: v.venue_types?.name || 'Other'
       })) || [];
-      
+
       setVenueProfiles(profiles);
     };
     fetchVenueData();
@@ -113,7 +117,7 @@ export default function CreateEvent() {
       return;
     }
     const themeParam = searchParams.get('theme');
-    
+
     if (themeParam) {
       const themeId = parseInt(themeParam, 10);
       if (!isNaN(themeId)) {
@@ -137,13 +141,13 @@ export default function CreateEvent() {
         .eq('theme_id', selectedThemeId)
         .is('parent_id', null)
         .order('name');
-      
+
       if (error) {
         console.error('Error fetching event types:', error);
         setEventTypes([]);
         return;
       }
-      
+
       setEventTypes(data || []);
 
       // If we have a subType from URL, find and select the parent category
@@ -165,9 +169,9 @@ export default function CreateEvent() {
               .select('id, name, theme_id, parent_id')
               .eq('parent_id', parentType.id)
               .order('name');
-            
+
             setSubEventTypes(allSubTypes || []);
-            
+
             // Then set both values
             setValue("type", parentType.id.toString(), { shouldValidate: true });
             setValue("subType", subTypes[0].id.toString(), { shouldValidate: true });
@@ -176,7 +180,7 @@ export default function CreateEvent() {
         }
       }
     };
-    
+
     fetchEventTypes();
   }, [selectedThemeId, searchParams, setValue]);
 
@@ -205,16 +209,16 @@ export default function CreateEvent() {
         .select('id, name, theme_id, parent_id')
         .eq('parent_id', parentId)
         .order('name');
-      
+
       if (error) {
         console.error('Error fetching sub event types:', error);
         setSubEventTypes([]);
         return;
       }
-      
+
       setSubEventTypes(data || []);
     };
-    
+
     fetchSubEventTypes();
   }, [selectedEventType, searchParams, subEventTypes.length]);
 
@@ -249,11 +253,11 @@ export default function CreateEvent() {
     }
 
     // Trial version date restriction
-    const trialEnd = new Date('2025-12-31T23:59:59');
+    const trialEnd = new Date('2026-06-30T23:59:59');
     if (dateRange.from > trialEnd) {
       toast({
         title: "Trial Limitation",
-        description: "The trial version doesn't allow creating events after December 31st, 2025.",
+        description: "The trial version doesn't allow creating events after June 30th, 2026.",
         variant: "destructive",
       });
       return;
@@ -284,7 +288,7 @@ export default function CreateEvent() {
     try {
       // Get current user
       const { data: { user }, error: authError } = await supabase.auth.getUser();
-      
+
       if (authError || !user) {
         toast({
           title: "Authentication Error",
@@ -298,18 +302,22 @@ export default function CreateEvent() {
       // Prepare event data for the new events table
       // Use subType if available, otherwise use type
       const typeId = data.subType ? parseInt(data.subType) : parseInt(data.type);
-      
+
       const eventData = {
         user_id: user.id,
         title: data.title,
         description: data.description || null,
         type_id: typeId,
         venue: data.venue,
+        location: data.location || null,
         start_date: dateRange.from.toISOString().split('T')[0],
         end_date: dateRange.to ? dateRange.to.toISOString().split('T')[0] : null,
+        start_time: data.start_time || null,
+        end_time: data.end_time || null,
         budget: data.budget ? parseFloat(data.budget) : null,
         expected_attendees: data.expectedAttendees ? parseInt(data.expectedAttendees) : null,
         theme_id: data.theme_id,
+        status: data.status || 'pending',
       };
 
       // Save to the new events table
@@ -341,9 +349,13 @@ export default function CreateEvent() {
         type: "",
         subType: "",
         venue: "",
+        location: "",
         budget: "",
         expectedAttendees: "",
-        description: ""
+        description: "",
+        start_time: "",
+        end_time: "",
+        status: "pending"
       });
       setDateRange(undefined);
       setBudgetInput('');
@@ -434,27 +446,27 @@ export default function CreateEvent() {
                   control={control}
                   rules={{ required: subEventTypes.length > 0 ? false : "Event category is required" }}
                   render={({ field }) => (
-                    <Select 
-                      value={field.value} 
+                    <Select
+                      value={field.value}
                       onValueChange={field.onChange}
                       disabled={!selectedThemeId}
                     >
                       <SelectTrigger>
-                        <SelectValue 
+                        <SelectValue
                           placeholder={
-                            selectedThemeId 
-                              ? "Select event category" 
+                            selectedThemeId
+                              ? "Select event category"
                               : "Select theme first"
-                          } 
+                          }
                         />
                       </SelectTrigger>
-                       <SelectContent>
-                         {eventTypes.map((type) => (
-                           <SelectItem key={type.id} value={type.id.toString()}>
-                             {type.name}
-                           </SelectItem>
-                         ))}
-                       </SelectContent>
+                      <SelectContent>
+                        {eventTypes.map((type) => (
+                          <SelectItem key={type.id} value={type.id.toString()}>
+                            {type.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
                     </Select>
                   )}
                 />
@@ -476,8 +488,8 @@ export default function CreateEvent() {
                     control={control}
                     rules={{ required: "Event type is required" }}
                     render={({ field }) => (
-                      <Select 
-                        value={field.value} 
+                      <Select
+                        value={field.value}
                         onValueChange={field.onChange}
                       >
                         <SelectTrigger>
@@ -498,11 +510,37 @@ export default function CreateEvent() {
 
               <div>
                 <Label>Event Dates *</Label>
-                <DatePickerWithRange 
-                  date={dateRange} 
+                <DatePickerWithRange
+                  date={dateRange}
                   onDateChange={setDateRange}
                   className="w-full"
                 />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="start_time" className="flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    Start Time
+                  </Label>
+                  <Input
+                    id="start_time"
+                    type="time"
+                    {...register("start_time")}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="end_time" className="flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    End Time
+                  </Label>
+                  <Input
+                    id="end_time"
+                    type="time"
+                    {...register("end_time")}
+                  />
+                </div>
               </div>
 
               <div>
@@ -531,8 +569,8 @@ export default function CreateEvent() {
             <CardContent className="space-y-4">
               <div>
                 <Label htmlFor="venueType">Venue Type *</Label>
-                <Select 
-                  value={selectedVenueType?.toString() || ""} 
+                <Select
+                  value={selectedVenueType?.toString() || ""}
                   onValueChange={(value) => {
                     setSelectedVenueType(Number(value));
                     setValue("venue", ""); // Reset venue selection when type changes
@@ -558,8 +596,8 @@ export default function CreateEvent() {
                   control={control}
                   rules={{ required: "Venue is required" }}
                   render={({ field }) => (
-                    <Select 
-                      value={field.value} 
+                    <Select
+                      value={field.value}
                       onValueChange={field.onChange}
                       disabled={!selectedVenueType}
                     >
@@ -581,6 +619,18 @@ export default function CreateEvent() {
                 {errors.venue && (
                   <p className="text-sm text-destructive mt-1">{errors.venue.message}</p>
                 )}
+              </div>
+
+              <div>
+                <Label htmlFor="location" className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4" />
+                  Location
+                </Label>
+                <Input
+                  id="location"
+                  {...register("location")}
+                  placeholder="Enter event location/address"
+                />
               </div>
 
               <div>
@@ -632,7 +682,7 @@ export default function CreateEvent() {
           <Button type="button" variant="outline" onClick={() => {
             // Set flag to prevent URL params from repopulating the form
             setIsFormCleared(true);
-            
+
             // Reset all form fields
             reset({
               title: "",
@@ -640,16 +690,20 @@ export default function CreateEvent() {
               type: "",
               subType: "",
               venue: "",
+              location: "",
               budget: "",
               expectedAttendees: "",
-              description: ""
+              description: "",
+              start_time: "",
+              end_time: "",
+              status: "pending"
             });
             setDateRange(undefined);
             setBudgetInput('');
             setSubEventTypes([]);
             setEventTypes([]);
             setSelectedVenueType(null);
-            
+
             // Clear URL parameters to prevent form repopulation
             navigate('/dashboard/create-event', { replace: true });
           }}>
