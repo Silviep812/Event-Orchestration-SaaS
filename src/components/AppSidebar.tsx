@@ -211,7 +211,7 @@ const menuGroups = [
     bgColor: "bg-pink-50",
     items: [
       {
-        title: "Collaborate",
+        title: "Team Members",
         url: "/dashboard/collaborate",
         icon: Users,
         color: "text-pink-600",

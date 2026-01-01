@@ -72,6 +72,8 @@ const ManageEvent = () => {
   const [pendingChanges, setPendingChanges] = useState<{ [key: string]: { oldValue: any, newValue: any } }>({});
   const [eventThemes, setEventThemes] = useState<EventTheme[]>([]);
   const [eventTypes, setEventTypes] = useState<EventType[]>([]);
+  const [statusFilters, setStatusFilters] = useState<('pending' | 'in_progress' | 'completed' | 'cancelled' | 'all')[]>(['pending', 'in_progress']);
+  const [hasEventsInDb, setHasEventsInDb] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const { isAdmin, isCoordinator, isViewer, hasMinPermission } = usePermissions();
@@ -205,17 +207,98 @@ const ManageEvent = () => {
     }
 
     try {
-      const { data, error } = await supabase
+      // First, check if user has any events at all (for showing/hiding filters)
+      const { count: totalCount } = await supabase
+        .from('events')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+      
+      setHasEventsInDb((totalCount || 0) > 0);
+
+      // Build query with database-level filtering
+      let query = supabase
         .from('events')
         .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+        .eq('user_id', user.id);
+
+      // Filter by status at database level
+      if (!statusFilters.includes('all')) {
+        // Filter by selected statuses
+        const statusValues = statusFilters.filter(s => s !== 'all') as string[];
+        if (statusValues.length > 0) {
+          // Build filter conditions: include null status if 'pending' is selected
+          const hasPending = statusValues.includes('pending');
+          const otherStatuses = statusValues.filter(s => s !== 'pending');
+          
+          if (hasPending && otherStatuses.length > 0) {
+            // Include pending, null, and other statuses
+            query = query.or(`status.in.(${statusValues.join(',')}),status.is.null`);
+          } else if (hasPending) {
+            // Only pending: include null status
+            query = query.or('status.eq.pending,status.is.null');
+          } else {
+            // Other statuses only
+            query = query.in('status', otherStatuses);
+          }
+        }
+      }
+
+      // Order by created_at descending (status ordering will be done in frontend)
+      query = query.order('created_at', { ascending: false });
+
+      const { data, error } = await query;
 
       if (error) throw error;
-      const transformedData = data.map(event => ({
+      
+      let transformedData = data.map(event => ({
         ...event,
         theme_id: event.theme_id ? Number(event.theme_id) : undefined
       }));
+      
+      // If there's a selected event and it's not in the filtered results, fetch it separately
+      if (selectedEvent?.id) {
+        const selectedEventInResults = transformedData.some(e => e.id === selectedEvent.id);
+        if (!selectedEventInResults) {
+          try {
+            const { data: selectedEventData, error: selectedError } = await supabase
+              .from('events')
+              .select('*')
+              .eq('id', selectedEvent.id)
+              .eq('user_id', user.id)
+              .single();
+            
+            if (!selectedError && selectedEventData) {
+              const transformedSelectedEvent = {
+                ...selectedEventData,
+                theme_id: selectedEventData.theme_id ? Number(selectedEventData.theme_id) : undefined
+              };
+              // Add selected event at the beginning
+              transformedData = [transformedSelectedEvent, ...transformedData];
+            }
+          } catch (err) {
+            console.error('Error fetching selected event:', err);
+          }
+        }
+      }
+      
+      // Sort by status order, then by created_at within each status
+      const statusOrder = ['pending', 'in_progress', 'completed', 'cancelled'];
+      transformedData.sort((a, b) => {
+        const aStatus = a.status || 'pending';
+        const bStatus = b.status || 'pending';
+        const aIndex = statusOrder.indexOf(aStatus);
+        const bIndex = statusOrder.indexOf(bStatus);
+        
+        if (aIndex !== bIndex) {
+          return aIndex - bIndex;
+        }
+        
+        // Within same status, sort by created_at descending
+        const aDate = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const bDate = b.created_at ? new Date(b.created_at).getTime() : 0;
+        return bDate - aDate;
+      });
+      
       setEvents(transformedData);
     } catch (error) {
       console.error('Error fetching events:', error);
@@ -226,6 +309,29 @@ const ManageEvent = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Events are already filtered and sorted from fetchEvents
+  // The selected event is already included in the events array if it exists
+  const filteredEvents = events;
+
+  const handleStatusFilterToggle = (status: 'pending' | 'in_progress' | 'completed' | 'cancelled' | 'all') => {
+    if (status === 'all') {
+      setStatusFilters(['all']);
+    } else {
+      setStatusFilters(prev => {
+        const newFilters = prev.includes('all') ? [] : [...prev];
+        if (newFilters.includes(status)) {
+          // Remove if already selected
+          const filtered = newFilters.filter(s => s !== status);
+          // If no filters left, default to pending and in_progress
+          return filtered.length > 0 ? filtered : ['pending', 'in_progress'];
+        } else {
+          // Add to filters
+          return [...newFilters, status];
+        }
+      });
     }
   };
 
@@ -776,7 +882,7 @@ const ManageEvent = () => {
       fetchThemes();
       fetchEventTypes();
     }
-  }, [selectedEvent?.theme_id]);
+  }, [user, statusFilters, selectedEvent?.theme_id]);
 
   useEffect(() => {
     if (selectedEvent?.id) {
@@ -878,27 +984,88 @@ const ManageEvent = () => {
               </div>
               Events
               <Badge variant="secondary" className="ml-auto text-xs">
-                {events.length}
+                {filteredEvents.length}
               </Badge>
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            {events.length === 0 ? (
+            {/* Loading State */}
+            {loading && (
+              <div className="p-8 flex flex-col items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary mb-3" />
+                <p className="text-sm text-muted-foreground">Loading events...</p>
+              </div>
+            )}
+            
+            {/* Status Filter Pills - Only show when not loading and there are events in database */}
+            {!loading && hasEventsInDb && (
+              <div className="p-4 border-b border-border/30 bg-muted/20">
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant={statusFilters.includes('all') ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => handleStatusFilterToggle('all')}
+                    className="h-7 text-xs"
+                  >
+                    All
+                  </Button>
+                  <Button
+                    variant={statusFilters.includes('pending') ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => handleStatusFilterToggle('pending')}
+                    className="h-7 text-xs"
+                  >
+                    Pending
+                  </Button>
+                  <Button
+                    variant={statusFilters.includes('in_progress') ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => handleStatusFilterToggle('in_progress')}
+                    className="h-7 text-xs"
+                  >
+                    In Progress
+                  </Button>
+                  <Button
+                    variant={statusFilters.includes('completed') ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => handleStatusFilterToggle('completed')}
+                    className="h-7 text-xs"
+                  >
+                    Completed
+                  </Button>
+                  <Button
+                    variant={statusFilters.includes('cancelled') ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => handleStatusFilterToggle('cancelled')}
+                    className="h-7 text-xs"
+                  >
+                    Cancelled
+                  </Button>
+                </div>
+              </div>
+            )}
+            
+            {/* Events List or Empty State */}
+            {!loading && filteredEvents.length === 0 ? (
               <div className="p-8 text-center">
                 <CalendarIcon className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
-                <p className="text-sm text-muted-foreground mb-4">No events found</p>
-                <Button
-                  onClick={() => window.location.href = '/dashboard/create-event'}
-                  variant="outline"
-                  size="sm"
-                >
-                  <Plus className="h-3 w-3 mr-2" />
-                  Create Event
-                </Button>
+                <p className="text-sm text-muted-foreground mb-4">
+                  {events.length === 0 ? 'No events found' : 'No events match the selected filters'}
+                </p>
+                {events.length === 0 && (
+                  <Button
+                    onClick={() => window.location.href = '/dashboard/create-event'}
+                    variant="outline"
+                    size="sm"
+                  >
+                    <Plus className="h-3 w-3 mr-2" />
+                    Create Event
+                  </Button>
+                )}
               </div>
-            ) : (
+            ) : !loading && (
               <div className="max-h-[600px] overflow-y-auto">
-                {events.map((event, index) => (
+                {filteredEvents.map((event, index) => (
                   <div
                     key={event.id || index}
                     className={`p-4 border-b border-border/30 cursor-pointer transition-all duration-200 group ${selectedEvent?.id === event.id
