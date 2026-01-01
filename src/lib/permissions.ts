@@ -65,12 +65,16 @@ export function usePermissions(): PermissionsResult {
 
       try {
         // Query user_roles table to get permission_level directly
+        const userResult = await supabase.auth.getUser();
+        const userId = userResult.data.user?.id;
         const { data, error } = await supabase
           .from('user_roles')
           .select('permission_level')
-          .eq('user_id', (await supabase.auth.getUser()).data.user?.id);
+          .eq('user_id', userId);
 
-        if (error) throw error;
+        if (error) {
+          throw error;
+        }
 
         // Find highest permission level from user's roles
         let highestLevel: PermissionLevel | null = null;

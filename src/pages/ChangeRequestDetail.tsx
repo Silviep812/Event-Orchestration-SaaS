@@ -92,7 +92,7 @@ const ChangeRequestDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, userRoles } = useAuth();
+  const { user, userRoles, loading: authLoading } = useAuth();
   const { isAdmin, isCoordinator, permissionLevel, loading: permissionsLoading } = usePermissions();
   const [changeRequest, setChangeRequest] = useState<ChangeRequest | null>(null);
   const [changeLogs, setChangeLogs] = useState<ChangeLog[]>([]);
@@ -109,20 +109,86 @@ const ChangeRequestDetail = () => {
   }>({ open: false, action: null });
   const [rejectionReason, setRejectionReason] = useState("");
   const [userDisplayNames, setUserDisplayNames] = useState<Record<string, string>>({});
+  const [hostPermissionLevel, setHostPermissionLevel] = useState<'admin' | 'coordinator' | 'viewer' | null>(null);
+  const [hostPermissionLoading, setHostPermissionLoading] = useState(true);
+
+  // Fetch the permission level specifically for the host role
+  useEffect(() => {
+    const fetchHostPermissionLevel = async () => {
+      setHostPermissionLoading(true);
+      
+      if (!user) {
+        setHostPermissionLevel(null);
+        setHostPermissionLoading(false);
+        return;
+      }
+
+      if (!userRoles.includes('host')) {
+        // User doesn't have host role
+        setHostPermissionLevel(null);
+        setHostPermissionLoading(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('user_roles')
+          .select('permission_level')
+          .eq('user_id', user.id)
+          .eq('role', 'host')
+          .single();
+
+        if (error) {
+          console.error('Error fetching host permission level:', error);
+          setHostPermissionLevel(null);
+        } else {
+          setHostPermissionLevel(data?.permission_level as 'admin' | 'coordinator' | 'viewer' | null);
+        }
+      } catch (error) {
+        console.error('Error fetching host permission level:', error);
+        setHostPermissionLevel(null);
+      } finally {
+        setHostPermissionLoading(false);
+      }
+    };
+
+    if (user && userRoles.length > 0) {
+      fetchHostPermissionLevel();
+    } else if (user && userRoles.length === 0) {
+      // Roles loaded but user has no roles
+      setHostPermissionLevel(null);
+      setHostPermissionLoading(false);
+    }
+  }, [user, userRoles]);
 
   // Check if user has host role with admin or coordinator permission level
   const hasHostWithAdminOrCoordinator = useMemo(() => {
     const hasHostRole = userRoles.includes('host');
-    const hasRequiredPermission = permissionLevel === 'admin' || permissionLevel === 'coordinator';
+    const hasRequiredPermission = hostPermissionLevel === 'admin' || hostPermissionLevel === 'coordinator';
     return hasHostRole && hasRequiredPermission;
-  }, [userRoles, permissionLevel]);
+  }, [userRoles, hostPermissionLevel]);
 
   const hasAccess = useMemo(() => {
     return isAdmin() || hasHostWithAdminOrCoordinator;
   }, [isAdmin, hasHostWithAdminOrCoordinator]);
 
   useEffect(() => {
-    if (!permissionsLoading) {
+    // Wait for auth, permissions, and host permission to finish loading before checking access
+    // If we have a user, also wait for userRoles to be populated (not empty during initial load)
+    // The issue: authLoading can be false while userRoles is still being fetched (due to setTimeout in useAuth)
+    // Also: if user has host role, wait for hostPermissionLevel to be fetched (not null)
+    // Also: wait for permissionLevel to be set (not null) so isAdmin() works correctly
+    const allLoadingComplete = !authLoading && !permissionsLoading && !hostPermissionLoading;
+    // If user exists but userRoles is empty, we're still loading roles - wait
+    const rolesReady = !user || userRoles.length > 0;
+    // If user has host role, wait for hostPermissionLevel to be fetched
+    const hostPermissionReady = !userRoles.includes('host') || hostPermissionLevel !== null;
+    // Wait for permissionLevel to be set (needed for isAdmin() check)
+    const permissionLevelReady = !user || permissionLevel !== null;
+    // Additional safety: if we have a user but any critical data is missing, don't check yet
+    const dataComplete = !user || (userRoles.length > 0 && permissionLevel !== null && (!userRoles.includes('host') || hostPermissionLevel !== null));
+    
+    if (allLoadingComplete && rolesReady && hostPermissionReady && permissionLevelReady && dataComplete) {
       if (!hasAccess) {
         toast({
           title: "Access Denied",
@@ -134,7 +200,7 @@ const ChangeRequestDetail = () => {
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [permissionsLoading, hasAccess]);
+  }, [authLoading, permissionsLoading, hostPermissionLoading, hasAccess, user, userRoles, hostPermissionLevel]);
 
   // Real-time subscriptions for change request and logs
   useEffect(() => {

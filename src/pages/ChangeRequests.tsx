@@ -52,7 +52,7 @@ interface ChangeRequest {
 const ChangeRequests = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, userRoles } = useAuth();
+  const { user, userRoles, loading: authLoading } = useAuth();
   const { isAdmin, isCoordinator, permissionLevel, loading: permissionsLoading } = usePermissions();
   const [changeRequests, setChangeRequests] = useState<ChangeRequest[]>([]);
   const [filteredRequests, setFilteredRequests] = useState<ChangeRequest[]>([]);
@@ -64,17 +64,85 @@ const ChangeRequests = () => {
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [events, setEvents] = useState<Array<{ id: string; name: string }>>([]);
   const [userDisplayNames, setUserDisplayNames] = useState<Record<string, string>>({});
+  const [hostPermissionLevel, setHostPermissionLevel] = useState<'admin' | 'coordinator' | 'viewer' | null>(null);
+  const [hostPermissionLoading, setHostPermissionLoading] = useState(true);
+
+  // Fetch the permission level specifically for the host role
+  useEffect(() => {
+    const fetchHostPermissionLevel = async () => {
+      setHostPermissionLoading(true);
+
+      if (!user) {
+        setHostPermissionLevel(null);
+        setHostPermissionLoading(false);
+        return;
+      }
+
+      if (!userRoles.includes('host')) {
+        // User doesn't have host role
+        setHostPermissionLevel(null);
+        setHostPermissionLoading(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('user_roles')
+          .select('permission_level')
+          .eq('user_id', user.id)
+          .eq('role', 'host')
+          .single();
+
+        if (error) {
+          console.error('Error fetching host permission level:', error);
+          setHostPermissionLevel(null);
+        } else {
+          setHostPermissionLevel(data?.permission_level as 'admin' | 'coordinator' | 'viewer' | null);
+        }
+      } catch (error) {
+        console.error('Error fetching host permission level:', error);
+        setHostPermissionLevel(null);
+      } finally {
+        setHostPermissionLoading(false);
+      }
+    };
+
+    if (user && userRoles.length > 0) {
+      fetchHostPermissionLevel();
+    } else if (user && userRoles.length === 0) {
+      // Roles loaded but user has no roles
+      setHostPermissionLevel(null);
+      setHostPermissionLoading(false);
+    }
+  }, [user, userRoles]);
 
   // Check if user has host role with admin or coordinator permission level
   const hasHostWithAdminOrCoordinator = () => {
     const hasHostRole = userRoles.includes('host');
-    const hasRequiredPermission = permissionLevel === 'admin' || permissionLevel === 'coordinator';
+    const hasRequiredPermission = hostPermissionLevel === 'admin' || hostPermissionLevel === 'coordinator';
     return hasHostRole && hasRequiredPermission;
   };
 
   useEffect(() => {
-    if (!permissionsLoading) {
-      const hasAccess = isAdmin() || hasHostWithAdminOrCoordinator();
+    // Wait for auth, permissions, and host permission to finish loading before checking access
+    // If we have a user, also wait for userRoles to be populated (not empty during initial load)
+    // The issue: authLoading can be false while userRoles is still being fetched (due to setTimeout in useAuth)
+    // Also: if user has host role, wait for hostPermissionLevel to be fetched (not null)
+    // Also: wait for permissionLevel to be set (not null) so isAdmin() works correctly
+    const allLoadingComplete = !authLoading && !permissionsLoading && !hostPermissionLoading;
+    // If user exists but userRoles is empty, we're still loading roles - wait
+    const rolesReady = !user || userRoles.length > 0;
+    // If user has host role, wait for hostPermissionLevel to be fetched
+    const hostPermissionReady = !userRoles.includes('host') || hostPermissionLevel !== null;
+    // Wait for permissionLevel to be set (needed for isAdmin() check)
+    const permissionLevelReady = !user || permissionLevel !== null;
+    // Additional safety: if we have a user but any critical data is missing, don't check yet
+    const dataComplete = !user || (userRoles.length > 0 && permissionLevel !== null && (!userRoles.includes('host') || hostPermissionLevel !== null));
+
+    if (allLoadingComplete && rolesReady && hostPermissionReady && permissionLevelReady && dataComplete) {
+      const isAdminResult = isAdmin();
+      const hasHostResult = hasHostWithAdminOrCoordinator();
+      const hasAccess = isAdminResult || hasHostResult;
       if (!hasAccess) {
         toast({
           title: "Access Denied",
@@ -88,7 +156,7 @@ const ChangeRequests = () => {
       fetchEvents();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [permissionsLoading, permissionLevel, userRoles]);
+  }, [authLoading, permissionsLoading, hostPermissionLoading, permissionLevel, userRoles, hostPermissionLevel, user]);
 
   // Real-time subscription for change requests list
   useEffect(() => {
@@ -148,8 +216,8 @@ const ChangeRequests = () => {
 
       const eventList = (data || []).map((event, index) => ({
         id: event.userid,
-        name: Array.isArray(event.event_theme) 
-          ? event.event_theme.join(", ") 
+        name: Array.isArray(event.event_theme)
+          ? event.event_theme.join(", ")
           : event.event_theme || `Event ${index + 1}`,
       }));
 
@@ -162,7 +230,7 @@ const ChangeRequests = () => {
   const fetchChangeRequests = async () => {
     try {
       setLoading(true);
-      
+
       let query = supabase
         .from("change_requests")
         .select("*")
@@ -175,11 +243,11 @@ const ChangeRequests = () => {
       // Batch fetch events and tasks
       const eventIds = (data || []).map(cr => cr.event_id).filter(Boolean) as string[];
       const taskIds = (data || []).map(cr => cr.task_id).filter(Boolean) as string[];
-      
+
       // Separate UUIDs from TEXT IDs for events
       const uuidEventIds = eventIds.filter(id => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id));
       const textEventIds = eventIds.filter(id => !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id));
-      
+
       // Fetch events from events table (UUIDs)
       const eventsMap: Record<string, string> = {};
       if (uuidEventIds.length > 0) {
@@ -188,7 +256,7 @@ const ChangeRequests = () => {
             .from("events")
             .select("id, title")
             .in("id", uuidEventIds);
-          
+
           if (eventsData) {
             eventsData.forEach(event => {
               eventsMap[event.id] = event.title || "Unknown Event";
@@ -198,7 +266,7 @@ const ChangeRequests = () => {
           console.error("Error batch fetching events:", err);
         }
       }
-      
+
       // Fetch events from Create Event table (TEXT IDs) - only if we have text IDs
       const createEventsMap: Record<string, string> = {};
       if (textEventIds.length > 0) {
@@ -207,7 +275,7 @@ const ChangeRequests = () => {
             .from("Create Event")
             .select("userid, event_theme")
             .in("userid", textEventIds);
-          
+
           if (createEventsData) {
             createEventsData.forEach(event => {
               const theme = Array.isArray(event.event_theme)
@@ -221,7 +289,7 @@ const ChangeRequests = () => {
           // This prevents console spam from 406 errors
         }
       }
-      
+
       // Fetch tasks
       const tasksMap: Record<string, string> = {};
       if (taskIds.length > 0) {
@@ -230,7 +298,7 @@ const ChangeRequests = () => {
             .from("tasks")
             .select("id, title")
             .in("id", taskIds);
-          
+
           if (tasksData) {
             tasksData.forEach(task => {
               tasksMap[task.id] = task.title;
@@ -240,12 +308,12 @@ const ChangeRequests = () => {
           console.error("Error batch fetching tasks:", err);
         }
       }
-      
+
       // Enrich change requests with event and task names
       const enrichedRequests = (data || []).map((cr) => {
         let eventName: string | undefined;
         let taskTitle: string | undefined;
-        
+
         if (cr.event_id) {
           const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cr.event_id);
           if (isUUID) {
@@ -254,11 +322,11 @@ const ChangeRequests = () => {
             eventName = createEventsMap[cr.event_id];
           }
         }
-        
+
         if (cr.task_id) {
           taskTitle = tasksMap[cr.task_id];
         }
-        
+
         return {
           ...cr,
           event_name: eventName,
