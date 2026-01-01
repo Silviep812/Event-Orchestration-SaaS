@@ -561,6 +561,9 @@ const ManageEvent = () => {
   };
 
   const handleFieldChange = (field: string, value: any) => {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/7ba7f6db-4491-4548-a2a1-1710bced117d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ManageEvent.tsx:563',message:'handleFieldChange entry',data:{field,value,hasSelectedEvent:!!selectedEvent},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
     if (!selectedEvent) return;
 
     // Trial version date restriction
@@ -580,6 +583,9 @@ const ManageEvent = () => {
     // Capture old value from original event data (not from pending changes)
     const originalEvent = events.find(e => e.id === selectedEvent.id);
     const oldValue = originalEvent?.[field as keyof ManageEventData] ?? selectedEvent[field as keyof ManageEventData];
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/7ba7f6db-4491-4548-a2a1-1710bced117d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ManageEvent.tsx:582',message:'Value comparison',data:{field,oldValue,newValue:value,areEqual:oldValue===value,oldValueType:typeof oldValue,newValueType:typeof value},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
 
     // Only proceed if value actually changed from original
     if (oldValue === value) {
@@ -589,6 +595,9 @@ const ManageEvent = () => {
         delete updated[field];
         return updated;
       });
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/7ba7f6db-4491-4548-a2a1-1710bced117d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ManageEvent.tsx:592',message:'Value unchanged, removing from pending',data:{field},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
       return;
     }
 
@@ -597,13 +606,19 @@ const ManageEvent = () => {
     setSelectedEvent(updatedEvent);
 
     // Track pending change
-    setPendingChanges(prev => ({
-      ...prev,
-      [field]: {
-        oldValue: oldValue,
-        newValue: value
-      }
-    }));
+    setPendingChanges(prev => {
+      const updated = {
+        ...prev,
+        [field]: {
+          oldValue: oldValue,
+          newValue: value
+        }
+      };
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/7ba7f6db-4491-4548-a2a1-1710bced117d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ManageEvent.tsx:606',message:'Adding to pendingChanges',data:{field,oldValue,newValue:value,pendingFields:Object.keys(updated)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
+      return updated;
+    });
   };
 
   const submitChangeRequest = async () => {
@@ -1219,7 +1234,12 @@ const ManageEvent = () => {
                         </div>
                         {!isViewer() && (
                           <div className="flex items-center gap-2">
-                            {Object.keys(pendingChanges).length > 0 && (
+                            {(() => {
+                              // #region agent log
+                              fetch('http://127.0.0.1:7242/ingest/7ba7f6db-4491-4548-a2a1-1710bced117d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ManageEvent.tsx:1222',message:'Pending changes badge render',data:{pendingChangesCount:Object.keys(pendingChanges).length,pendingFields:Object.keys(pendingChanges),pendingChanges},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+                              // #endregion
+                              return Object.keys(pendingChanges).length > 0;
+                            })() && (
                               <>
                                 <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
                                   {Object.keys(pendingChanges).length} pending change{Object.keys(pendingChanges).length > 1 ? 's' : ''}
@@ -1509,9 +1529,15 @@ const ManageEvent = () => {
                               value={selectedEvent.theme_id?.toString() || ''}
                               disabled={isViewer() || saving}
                               onValueChange={async (value) => {
+                                // #region agent log
+                                fetch('http://127.0.0.1:7242/ingest/7ba7f6db-4491-4548-a2a1-1710bced117d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ManageEvent.tsx:1511',message:'Theme change handler entry',data:{value,selectedEventThemeId:selectedEvent?.theme_id,hasPendingChanges:Object.keys(pendingChanges).length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+                                // #endregion
                                 const themeId = parseInt(value);
                                 // Set theme and reset type immediately
                                 setSelectedEvent(prev => prev ? { ...prev, theme_id: themeId, type_id: undefined } : prev);
+                                // #region agent log
+                                fetch('http://127.0.0.1:7242/ingest/7ba7f6db-4491-4548-a2a1-1710bced117d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ManageEvent.tsx:1515',message:'After setSelectedEvent',data:{themeId,selectedEventThemeId:selectedEvent?.theme_id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+                                // #endregion
                                 // Fetch event types for the new theme and update eventTypes immediately
                                 try {
                                   let query = supabase
@@ -1528,6 +1554,11 @@ const ManageEvent = () => {
                                 } catch (err) {
                                   setEventTypes([]);
                                 }
+                                // #region agent log
+                                fetch('http://127.0.0.1:7242/ingest/7ba7f6db-4491-4548-a2a1-1710bced117d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ManageEvent.tsx:1531',message:'Theme change handler exit',data:{themeId,shouldCallHandleFieldChange:true},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+                                // #endregion
+                                // Call handleFieldChange to track the change
+                                handleFieldChange('theme_id', themeId);
                               }}
                             >
                               <SelectTrigger className="bg-background border-border z-50 h-10">
