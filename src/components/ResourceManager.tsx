@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,9 +22,12 @@ import {
   DragEndEvent,
   DragOverlay,
   DragStartEvent,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors,
+  closestCenter,
+  Modifier,
 } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -101,6 +104,8 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [dragOffset, setDragOffset] = useState<{ x: number; y: number } | null>(null);
+  const activeElementRef = useRef<HTMLElement | null>(null);
   const [groupBy, setGroupBy] = useState<'location' | 'category'>('location');
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -126,9 +131,15 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
   const { toast } = useToast();
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
+    useSensor(MouseSensor, {
       activationConstraint: {
         distance: 8,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 250,
+        tolerance: 5,
       },
     })
   );
@@ -281,6 +292,27 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(event.active.id as string);
+    
+    // Get the actual dragged element
+    const element = document.querySelector(`[data-id="${event.active.id}"]`) as HTMLElement;
+    activeElementRef.current = element;
+    
+    if (element) {
+      const rect = element.getBoundingClientRect();
+      const pointer = event.activatorEvent as PointerEvent;
+      
+      if (pointer) {
+        // Calculate offset from click position to element top-left
+        const offsetX = pointer.clientX - rect.left;
+        const offsetY = pointer.clientY - rect.top;
+        setDragOffset({ x: offsetX, y: offsetY });
+      } else {
+        // Default to center
+        setDragOffset({ x: rect.width / 2, y: rect.height / 2 });
+      }
+    } else {
+      setDragOffset({ x: 150, y: 100 });
+    }
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -301,6 +333,8 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
     }
 
     setActiveId(null);
+    setDragOffset(null);
+    activeElementRef.current = null;
   };
 
   const assignResource = async (resourceId: string, eventName: string) => {
@@ -510,7 +544,9 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
       transform,
       transition,
       isDragging,
-    } = useSortable({ id: resource.id });
+    } = useSortable({ 
+      id: resource.id,
+    });
 
     const style = {
       transform: CSS.Transform.toString(transform),
@@ -536,6 +572,7 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
         style={style}
         {...attributes}
         {...listeners}
+        data-id={resource.id}
         className="cursor-grab active:cursor-grabbing shadow-sm hover:shadow-md transition-shadow"
       >
         <CardHeader className="pb-3">
@@ -999,8 +1036,16 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
           <TabsContent value="drag-drop" className="space-y-6">
             <DndContext
               sensors={sensors}
+              collisionDetection={closestCenter}
               onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
+              modifiers={dragOffset ? [
+                ({ transform }) => ({
+                  ...transform,
+                  x: transform.x - dragOffset.x,
+                  y: transform.y - dragOffset.y,
+                })
+              ] : undefined}
             >
               {Object.entries(groupedResources()).map(([group, groupResources]) => (
                 groupResources.length > 0 && (
@@ -1024,9 +1069,23 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
                 )
               ))}
               
-              <DragOverlay>
+              <DragOverlay
+                adjustScale={false}
+                style={{
+                  cursor: 'grabbing',
+                }}
+              >
                 {activeId ? (
-                  <ResourceCard resource={resources.find(r => r.id === activeId)!} />
+                  <div 
+                    className="rotate-1 shadow-lg pointer-events-none"
+                    style={dragOffset ? {
+                      transform: `translate(-${dragOffset.x}px, -${dragOffset.y}px)`,
+                      marginLeft: 0,
+                      marginTop: 0,
+                    } : {}}
+                  >
+                    <ResourceCard resource={resources.find(r => r.id === activeId)!} />
+                  </div>
                 ) : null}
               </DragOverlay>
             </DndContext>
