@@ -826,6 +826,32 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         }
       }
 
+      // Recalculate downstream tasks if estimated_hours changed
+      if (updates.estimated_hours !== undefined && originalTask && updates.estimated_hours !== originalTask.estimated_hours) {
+        try {
+          const { data: recalcData, error: recalcError } = await supabase.rpc('recalculate_downstream_tasks', {
+            p_task_id: taskId,
+            p_event_id: originalTask.event_id || null
+          });
+          
+          if (recalcError) {
+            console.warn('Failed to recalculate downstream tasks:', recalcError);
+            // Don't fail the update if recalculation fails
+          } else if (recalcData && recalcData.length > 0) {
+            toast({
+              title: "Timeline updated",
+              description: `Recalculated ${recalcData.length} downstream task${recalcData.length > 1 ? 's' : ''}.`,
+            });
+            // Refresh tasks to show updated due dates
+            await fetchTasks();
+            return; // Early return since fetchTasks will update the UI
+          }
+        } catch (recalcErr) {
+          console.warn('Error recalculating downstream tasks:', recalcErr);
+          // Continue with normal update flow
+        }
+      }
+
       // Handle user assignment if provided
       if (assigned_user_id !== undefined) {
         await updateTaskAssignment(taskId, assigned_user_id, originalTask?.assigned_user_id);

@@ -81,50 +81,34 @@ export default function Analytics({ onInteractionTrack }: AnalyticsProps = {}) {
     localStorage.setItem('analytics_interactions', JSON.stringify(storedInteractions.slice(-1000))); // Keep last 1000
   };
 
-  // Fetch analytics data from database
+  // Fetch analytics data from database using KPI view
   const fetchAnalyticsData = async () => {
     try {
       setLoading(true);
       
-      // Fetch events data
-      const { data: events, error: eventsError } = await supabase
-        .from('events')
+      // Fetch KPI data from view
+      const { data: kpiData, error: kpiError } = await supabase
+        .from('event_kpi_view')
         .select('*')
         .gte('created_at', filters.dateRange.from.toISOString())
         .lte('created_at', filters.dateRange.to.toISOString());
 
-      if (eventsError) throw eventsError;
+      if (kpiError) throw kpiError;
 
-      // Fetch tasks data
-      const { data: tasks, error: tasksError } = await supabase
-        .from('tasks')
-        .select('*')
-        .gte('created_at', filters.dateRange.from.toISOString())
-        .lte('created_at', filters.dateRange.to.toISOString());
-
-      if (tasksError) throw tasksError;
-
-      // Fetch budget items
-      const { data: budgetItems, error: budgetError } = await supabase
-        .from('budget_items')
-        .select('*')
-        .gte('created_at', filters.dateRange.from.toISOString())
-        .lte('created_at', filters.dateRange.to.toISOString());
-
-      if (budgetError) throw budgetError;
-
-      // Calculate KPIs
-      const totalEvents = events?.length || 0;
-      const completedTasks = tasks?.filter(t => t.status === 'completed').length || 0;
-      const totalTasks = tasks?.length || 0;
-      const taskCompletionRate = totalTasks > 0 ? (completedTasks / totalTasks * 100).toFixed(1) : '0';
+      // Aggregate KPIs across all events
+      const totalEvents = kpiData?.length || 0;
+      const totalTasks = kpiData?.reduce((sum, e) => sum + (e.total_tasks || 0), 0) || 0;
+      const completedTasks = kpiData?.reduce((sum, e) => sum + (e.completed_tasks || 0), 0) || 0;
+      const totalTaskHours = kpiData?.reduce((sum, e) => sum + (e.total_task_hours || 0), 0) || 0;
+      const avgTaskDuration = totalEvents > 0 ? (totalTaskHours / totalEvents) : 0;
       
-      const avgTaskDuration = tasks?.reduce((acc, task) => {
-        return acc + (task.actual_hours || task.estimated_hours || 0);
-      }, 0) / (tasks?.length || 1);
-
-      // Calculate resource utilization (placeholder calculation)
-      const resourceUtilizationRate = '75.5'; // Replace with actual calculation
+      // Calculate overall task completion rate
+      const taskCompletionRate = totalTasks > 0 ? ((completedTasks / totalTasks) * 100).toFixed(1) : '0';
+      
+      // Calculate overall resource utilization
+      const totalAllocated = kpiData?.reduce((sum, e) => sum + (e.allocated_resources || 0), 0) || 0;
+      const totalResources = kpiData?.reduce((sum, e) => sum + (e.total_resources_count || 0), 0) || 0;
+      const resourceUtilizationRate = totalResources > 0 ? ((totalAllocated / totalResources) * 100).toFixed(1) : '0';
 
       const kpis: KPIData[] = [
         {
@@ -161,8 +145,8 @@ export default function Analytics({ onInteractionTrack }: AnalyticsProps = {}) {
         },
       ];
 
-      // Process event trends by month
-      const eventTrends = events?.reduce((acc: any[], event) => {
+      // Process event trends by month from KPI data
+      const eventTrends = kpiData?.reduce((acc: any[], event) => {
         const month = format(new Date(event.created_at), 'MMM');
         const existing = acc.find(item => item.month === month);
         if (existing) {
@@ -173,9 +157,9 @@ export default function Analytics({ onInteractionTrack }: AnalyticsProps = {}) {
         return acc;
       }, []) || [];
 
-      // Process events by location and theme
-      const eventsByLocation = events?.reduce((acc: any[], event) => {
-        const location = event.venue || 'Unknown';
+      // Process events by location from KPI data
+      const eventsByLocation = kpiData?.reduce((acc: any[], event) => {
+        const location = event.location || 'Unknown';
         const existing = acc.find(item => item.location === location);
         if (existing) {
           existing.count += 1;
@@ -185,19 +169,28 @@ export default function Analytics({ onInteractionTrack }: AnalyticsProps = {}) {
         return acc;
       }, []) || [];
 
-      // Task completion trends
+      // Task completion trends from aggregated KPI data
+      const inProgressTasks = kpiData?.reduce((sum, e) => sum + (e.in_progress_tasks || 0), 0) || 0;
+      const pendingTasks = kpiData?.reduce((sum, e) => sum + (e.pending_tasks || 0), 0) || 0;
       const taskCompletion = [
         { status: 'Completed', value: completedTasks, color: '#22c55e' },
-        { status: 'In Progress', value: tasks?.filter(t => t.status === 'in_progress').length || 0, color: '#f59e0b' },
-        { status: 'Pending', value: tasks?.filter(t => t.status === 'not_started').length || 0, color: '#ef4444' },
-        { status: 'On Hold', value: tasks?.filter(t => t.status === 'on_hold').length || 0, color: '#6b7280' },
+        { status: 'In Progress', value: inProgressTasks, color: '#f59e0b' },
+        { status: 'Pending', value: pendingTasks, color: '#ef4444' },
+        { status: 'On Hold', value: 0, color: '#6b7280' }, // Not tracked in view currently
       ];
+
+      // Resource utilization by location
+      const resourceUtilization = kpiData?.map((event) => ({
+        location: event.location || 'Unknown',
+        utilization: event.resource_utilization_rate || 0,
+        eventTitle: event.title
+      })) || [];
 
       setAnalyticsData({
         kpis,
         eventTrends,
         taskCompletion,
-        resourceUtilization: [], // Placeholder
+        resourceUtilization,
         conversionRates: [], // Placeholder
         eventsByLocation
       });

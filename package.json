@@ -9,7 +9,8 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
-    "gen:types": "supabase gen types typescript --local > src/integrations/supabase/types.ts"
+    "gen:types": "supabase gen types typescript --local > src/integrations/supabase/types.ts",
+    "explore:db": "node scripts/explore-database.js"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

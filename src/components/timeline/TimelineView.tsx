@@ -35,6 +35,10 @@ interface Task {
   dependencies?: string[];
   event_id?: string;
   due_date?: string;
+  is_overdue?: boolean;
+  is_misaligned?: boolean;
+  event_location?: string;
+  event_title?: string;
 }
 
 interface TimelineViewProps {
@@ -46,6 +50,7 @@ const TimelineView = ({ eventId }: TimelineViewProps) => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [viewMode, setViewMode] = useState<'all' | 'day' | 'week' | 'month'>('all');
+  const [showOnlyIssues, setShowOnlyIssues] = useState(false);
   const [conflicts, setConflicts] = useState<string[]>([]);
   const [overdueFlags, setOverdueFlags] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -111,7 +116,7 @@ const TimelineView = ({ eventId }: TimelineViewProps) => {
   //    }
 
 
-  // Fetch real tasks for the selected event
+  // Fetch real tasks for the selected event using the timeline view
   useEffect(() => {
     if (!eventId) {
       setTasks([]);
@@ -122,14 +127,19 @@ const TimelineView = ({ eventId }: TimelineViewProps) => {
     const fetchTasks = async () => {
       try {
         const { data, error } = await supabase
-          .from('tasks')
+          .from('event_task_timeline_view')
           .select('*')
           .eq('event_id', eventId)
           .order('due_date', { ascending: true });
-          console.log('Fetched tasks:', data, error);
+          console.log('Fetched tasks from timeline view:', data, error);
         if (error) throw error;
-        setTasks(data || []);
-        analyzeConstraints(data || []);
+        const tasksData = (data || []).map((task: any) => ({
+          ...task,
+          start_date: task.start_date || '',
+          end_date: task.end_date || '',
+        }));
+        setTasks(tasksData);
+        analyzeConstraints(tasksData);
       } catch (error) {
         toast({
           title: 'Error fetching tasks',
@@ -146,15 +156,17 @@ const TimelineView = ({ eventId }: TimelineViewProps) => {
   }, [eventId]);
 
   const analyzeConstraints = (taskList: Task[]) => {
-    const now = new Date();
     const conflictIds: string[] = [];
     const overdueIds: string[] = [];
 
-    // Check for overdue tasks (computed based on due_date vs current time)
+    // Use is_overdue flag from database view
     taskList.forEach(task => {
-      if (task.due_date) {
-        const dueDate = new Date(task.due_date);
-        if (isAfter(now, dueDate) && task.status !== 'completed') {
+      if (task.is_overdue) {
+        overdueIds.push(task.id);
+      }
+      if (task.is_misaligned) {
+        // Misaligned tasks are also considered issues
+        if (!overdueIds.includes(task.id)) {
           overdueIds.push(task.id);
         }
       }
@@ -196,12 +208,19 @@ const TimelineView = ({ eventId }: TimelineViewProps) => {
     setOverdueFlags(overdueIds);
   };
 
-  // Filter tasks by day, week, or month of selectedDate
+  // Filter tasks by day, week, or month of selectedDate, and by issues if enabled
   const getTasksForSelectedDate = (date: Date | undefined) => {
-    if (!date) return tasks;
+    let filteredTasks = tasks;
+    
+    // Filter by issues if enabled
+    if (showOnlyIssues) {
+      filteredTasks = filteredTasks.filter(task => task.is_overdue || task.is_misaligned);
+    }
+    
+    if (!date) return filteredTasks;
     const dateStr = format(date, 'yyyy-MM-dd');
     if (viewMode === 'day') {
-      return tasks.filter(task => {
+      return filteredTasks.filter(task => {
         if (!task.due_date) return false;
         return format(new Date(task.due_date), 'yyyy-MM-dd') === dateStr;
       });
@@ -212,7 +231,7 @@ const TimelineView = ({ eventId }: TimelineViewProps) => {
       startOfWeek.setDate(date.getDate() - date.getDay());
       const endOfWeek = new Date(startOfWeek);
       endOfWeek.setDate(startOfWeek.getDate() + 6);
-      return tasks.filter(task => {
+      return filteredTasks.filter(task => {
         if (!task.due_date) return false;
         const due = new Date(task.due_date);
         return due >= startOfWeek && due <= endOfWeek;
@@ -223,13 +242,13 @@ const TimelineView = ({ eventId }: TimelineViewProps) => {
       const month = date.getMonth();
       const startOfMonth = new Date(year, month, 1);
       const endOfMonth = new Date(year, month + 1, 0);
-      return tasks.filter(task => {
+      return filteredTasks.filter(task => {
         if (!task.due_date) return false;
         const due = new Date(task.due_date);
         return due >= startOfMonth && due <= endOfMonth;
       });
     }
-    return tasks;
+    return filteredTasks;
   };
 
   const getStatusColor = (status: Task['status'] | 'overdue') => {
@@ -427,6 +446,15 @@ const TimelineView = ({ eventId }: TimelineViewProps) => {
             </SelectContent>
           </Select>
           
+          <Button
+            variant={showOnlyIssues ? "default" : "outline"}
+            onClick={() => setShowOnlyIssues(!showOnlyIssues)}
+            className="flex items-center gap-2"
+          >
+            <AlertTriangle className="h-4 w-4" />
+            {showOnlyIssues ? "Show All" : "Show Only Issues"}
+          </Button>
+          
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="outline">
@@ -503,6 +531,12 @@ const TimelineView = ({ eventId }: TimelineViewProps) => {
                       <Badge variant="destructive" className="text-xs">
                         <Flag className="h-3 w-3 mr-1" />
                         Overdue
+                      </Badge>
+                    )}
+                    {task.is_misaligned && (
+                      <Badge variant="destructive" className="text-xs">
+                        <AlertTriangle className="h-3 w-3 mr-1" />
+                        Misaligned
                       </Badge>
                     )}
                   </div>

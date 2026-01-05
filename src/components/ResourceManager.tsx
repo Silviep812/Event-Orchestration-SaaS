@@ -74,6 +74,8 @@ interface Resource {
   allocated: number;
   total: number;
   event_id?: string;
+  utilization_percent?: number;
+  available_count?: number;
 }
 
 interface ResourceManagerProps {
@@ -332,13 +334,22 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
 
       if (updateError) throw updateError;
 
+      // Recalculate utilization
+      const { data: utilData, error: utilError } = await supabase.rpc('update_resource_utilization', {
+        p_resource_id: resourceId,
+        p_event_id: null
+      });
+
       // Then update the local state
       setResources(prev => prev.map(r => {
         if (r.id === resourceId) {
           const newAllocated = r.allocated + 1;
+          const util = utilData && utilData[0] ? utilData[0] : null;
           return {
             ...r,
             allocated: newAllocated,
+            utilization_percent: util?.utilization_percent || (r.total > 0 ? Math.round((newAllocated / r.total) * 100) : 0),
+            available_count: util?.available_count || Math.max(0, r.total - newAllocated),
           };
         }
         return r;
@@ -473,35 +484,19 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
         })
         .eq('id', editResource.id);
       if (error) throw error;
+      
+      // Recalculate utilization
+      const { data: utilData, error: utilError } = await supabase.rpc('update_resource_utilization', {
+        p_resource_id: editResource.id,
+        p_event_id: eventId || null
+      });
+      
       toast({ title: 'Resource Updated', description: 'Resource info updated successfully.' });
       setIsEditDialogOpen(false);
       setEditResource(null);
-      // Refresh resources
-      let resourcesQuery = supabase
-        .from('resources')
-        .select(`
-          *,
-          category:resource_categories!category_id(name),
-          status:resource_status!status_id(name)
-        `);
-      if (eventId) {
-        resourcesQuery = resourcesQuery.eq('event_id', eventId);
-      }
-      const { data: resourcesData, error: resourcesError } = await resourcesQuery.order('name');
-      if (resourcesError) throw resourcesError;
-      const mappedResources = (resourcesData || []).map((resource: any) => ({
-        id: resource.id,
-        name: resource.name,
-        category_id: resource.category_id,
-        category_name: resource.category?.name,
-        status_id: resource.status_id,
-        status_name: resource.status?.name,
-        location: resource.location || '',
-        allocated: resource.allocated || 0,
-        total: resource.total || 0,
-        event_id: resource.event_id,
-      }));
-      setResources(mappedResources);
+      
+      // Refresh resources with utilization data
+      await fetchData();
     } catch (error) {
       toast({ title: 'Error', description: 'Failed to update resource', variant: 'destructive' });
     }
@@ -523,7 +518,17 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
       opacity: isDragging ? 0.5 : 1,
     };
 
-    const utilizationPercent = (resource.allocated / resource.total) * 100;
+    const utilizationPercent = resource.utilization_percent ?? (resource.total > 0 ? Math.round((resource.allocated / resource.total) * 100) : 0);
+    const getPriorityBadge = () => {
+      if (utilizationPercent >= 90) {
+        return <Badge variant="destructive" className="text-xs">High Priority</Badge>;
+      } else if (utilizationPercent >= 70) {
+        return <Badge variant="default" className="bg-orange-500 text-xs">Medium Priority</Badge>;
+      } else if (utilizationPercent >= 50) {
+        return <Badge variant="secondary" className="text-xs">Normal</Badge>;
+      }
+      return null;
+    };
 
     return (
       <Card 
@@ -538,6 +543,7 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
             <div className="flex items-center gap-2">
               {getCategoryIcon(resource.category_name)}
               <h3 className="font-medium">{resource.name}</h3>
+              {getPriorityBadge()}
             </div>
             <Badge variant="outline" className={getStatusColor(resource.status_name)}>
               {getStatusIcon(resource.status_name)}
@@ -555,12 +561,12 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span>Utilization</span>
-              <span>{resource.allocated}/{resource.total}</span>
+              <span className="font-medium">{utilizationPercent}%</span>
             </div>
             <Progress value={utilizationPercent} className="h-2" />
           <div className="flex justify-between text-xs text-muted-foreground">
-            <span>Available: {resource.total - resource.allocated}</span>
-            <span>Allocated: {resource.allocated}</span>
+            <span>Available: {resource.available_count ?? (resource.total - resource.allocated)}</span>
+            <span>Allocated: {resource.allocated}/{resource.total}</span>
           </div>
         </div>
           
