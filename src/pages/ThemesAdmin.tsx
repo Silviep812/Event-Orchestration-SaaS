@@ -158,7 +158,7 @@ export default function ThemesAdmin() {
           
           <Button 
             variant="outline"
-            onClick={() => window.open('https://supabase.com/dashboard/project/mavbnybtyfewfsihmuri/editor', '_blank')}
+            onClick={() => window.open('https://supabase.com/dashboard/project/wyujrpuafpatkolwyspu/editor', '_blank')}
           >
             <ExternalLink className="h-4 w-4 mr-2" />
             Supabase Dashboard
