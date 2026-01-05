@@ -344,10 +344,10 @@ export function TeamMemberTaskAssignments() {
                             }
                           }}
                           disabled={!pendingAssignments[task.taskId]}
-                          className="h-9 w-20"
+                          className="h-9 gap-2"
                         >
-                          <Check className="h-4 w-4 mr-1" />
-                          Save
+                          <Check className="h-4 w-4" />
+                          <span>Save</span>
                         </Button>
                         <Button 
                           size="sm" 
@@ -356,10 +356,10 @@ export function TeamMemberTaskAssignments() {
                             setPendingAssignments({...pendingAssignments, [task.taskId]: undefined});
                           }}
                           disabled={!pendingAssignments[task.taskId]}
-                          className="h-9 w-20"
+                          className="h-9 gap-2"
                         >
-                          <X className="h-4 w-4 mr-1" />
-                          Cancel
+                          <X className="h-4 w-4" />
+                          <span>Cancel</span>
                         </Button>
                       </div>
                     </div>
@@ -462,10 +462,10 @@ export function TeamMemberTaskAssignments() {
                               }
                             }}
                             disabled={!pendingAssignments[`reassign-${task.taskId}`] || pendingAssignments[`reassign-${task.taskId}`] === member.userId}
-                            className="h-9 w-20"
+                            className="h-9 gap-2"
                           >
-                            <Check className="h-4 w-4 mr-1" />
-                            Change
+                            <Check className="h-4 w-4" />
+                            <span>Change</span>
                           </Button>
                           <Button 
                             size="sm" 
@@ -474,10 +474,10 @@ export function TeamMemberTaskAssignments() {
                               setPendingAssignments({...pendingAssignments, [`reassign-${task.taskId}`]: undefined});
                             }}
                             disabled={!pendingAssignments[`reassign-${task.taskId}`] || pendingAssignments[`reassign-${task.taskId}`] === member.userId}
-                            className="h-9 w-20"
+                            className="h-9 gap-2"
                           >
-                            <X className="h-4 w-4 mr-1" />
-                            Cancel
+                            <X className="h-4 w-4" />
+                            <span>Cancel</span>
                           </Button>
                         </div>
                       </div>

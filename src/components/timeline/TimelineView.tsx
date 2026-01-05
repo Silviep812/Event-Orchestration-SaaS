@@ -133,11 +133,15 @@ const TimelineView = ({ eventId }: TimelineViewProps) => {
           .order('due_date', { ascending: true });
           console.log('Fetched tasks from timeline view:', data, error);
         if (error) throw error;
-        const tasksData = (data || []).map((task: any) => ({
-          ...task,
-          start_date: task.start_date || '',
-          end_date: task.end_date || '',
-        }));
+        const tasksData = (data || []).map((task: any) => {
+          // Use due_date as fallback for start_date/end_date if they're null
+          const dueDate = task.due_date ? new Date(task.due_date).toISOString().split('T')[0] : null;
+          return {
+            ...task,
+            start_date: task.start_date || dueDate || '',
+            end_date: task.end_date || dueDate || '',
+          };
+        });
         setTasks(tasksData);
         analyzeConstraints(tasksData);
       } catch (error) {

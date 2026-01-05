@@ -31,6 +31,10 @@ interface Task {
   estimated_hours?: number;
   actual_hours?: number;
   due_date?: string;
+  start_date?: string;
+  end_date?: string;
+  start_time?: string;
+  end_time?: string;
   archived: boolean;
   created_at: string;
   updated_at: string;
@@ -101,24 +105,27 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
     isOpen: false,
     currentDate: "",
     suggestedDate: "",
-    onConfirm: () => {},
-    onCancel: () => {}
+    onConfirm: () => { },
+    onCancel: () => { }
   });
   const [dependentTasksConflictDialog, setDependentTasksConflictDialog] = useState({
     isOpen: false,
     currentDate: "",
     newDate: "",
-    affectedTasks: [] as Array<{id: string, title: string, currentDueDate: string, newDueDate: string}>,
-    onConfirm: () => {},
-    onCancel: () => {}
+    affectedTasks: [] as Array<{ id: string, title: string, currentDueDate: string, newDueDate: string }>,
+    onConfirm: () => { },
+    onCancel: () => { }
   });
   const [newTask, setNewTask] = useState({
     title: "",
     description: "",
-    assigned_user_id: "",
     priority: "medium" as const,
     estimated_hours: "",
     due_date: "",
+    start_date: "",
+    end_date: "",
+    start_time: "",
+    end_time: "",
     selected_event_id: "",
     dependencies: [] as string[],
     assigned_role: ""
@@ -127,51 +134,47 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
   const [dependencySearchTerm, setDependencySearchTerm] = useState<string>("");
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [clearFormAfterSave, setClearFormAfterSave] = useState(false);
-  const [coordinatorName, setCoordinatorName] = useState(""); // For Create Task dialog
-  const [editCoordinatorName, setEditCoordinatorName] = useState(""); // For Edit Task dialog
-  const [isSavingCoordinatorName, setIsSavingCoordinatorName] = useState(false);
-  const [cardCollaboratorInput, setCardCollaboratorInput] = useState<{ [taskId: string]: string }>({});
-  const [isSavingCardCollaborator, setIsSavingCardCollaborator] = useState<{ [taskId: string]: boolean }>({});
+  // Removed coordinatorName, editCoordinatorName, cardCollaboratorInput states - now using dropdowns
   const { toast } = useToast();
   const { user } = useAuth();
   const { events, applyEventFilter } = useEventFilter();
 
   useEffect(() => {
     let isMounted = true;
-    
+
     const fetchData = async () => {
       if (!isMounted) return;
       setLoading(true);
       await fetchTasks();
       if (!isMounted) return;
-      
+
       // Always fetch all users (not filtered by event)
       await fetchUsers();
-      
+
       // Check URL parameters for auto-opening modal
       const openModal = searchParams.get('openModal');
       const urlEventId = searchParams.get('eventId');
-      
+
       if (openModal === 'true' && isMounted) {
         setIsCreateDialogOpen(true);
-        
+
         // Auto-select the event if eventId is provided in URL or props
         const targetEventId = urlEventId || eventId;
         if (targetEventId) {
           setNewTask(prev => ({ ...prev, selected_event_id: targetEventId }));
         }
-        
+
         // Remove the openModal parameter from URL
         const newSearchParams = new URLSearchParams(searchParams);
         newSearchParams.delete('openModal');
         setSearchParams(newSearchParams, { replace: true });
       }
-      
+
       if (isMounted) setLoading(false);
     };
-    
+
     fetchData();
-    
+
     return () => {
       isMounted = false;
     };
@@ -183,22 +186,22 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
       const { data: userRoles, error: rolesError } = await supabase
         .from('user_roles')
         .select('user_id');
-      
+
       if (rolesError) throw rolesError;
-      
+
       let mappedUsers: User[] = [];
-      
+
       if (userRoles && userRoles.length > 0) {
         // Get unique user IDs
         const uniqueUserIds = [...new Set(userRoles.map(role => role.user_id))];
-        
+
         const { data: profilesData, error: profilesError } = await supabase
           .from('profiles')
           .select('user_id, display_name')
           .in('user_id', uniqueUserIds);
-        
+
         if (profilesError) throw profilesError;
-        
+
         mappedUsers = (profilesData || [])
           .filter(profile => profile.display_name !== 'IDA Event Partners')
           .map(profile => ({
@@ -207,14 +210,14 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
             contact_name: profile.display_name
           }));
       }
-      
+
       // Handle duplicate display names by appending identifier
       const displayNameCounts = new Map<string, number>();
       mappedUsers.forEach(user => {
         const count = displayNameCounts.get(user.user_name) || 0;
         displayNameCounts.set(user.user_name, count + 1);
       });
-      
+
       const displayNameIndices = new Map<string, number>();
       const uniqueUsers = mappedUsers.map(user => {
         if (displayNameCounts.get(user.user_name)! > 1) {
@@ -228,7 +231,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         }
         return user;
       });
-      
+
       setUsers(uniqueUsers);
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -244,13 +247,13 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
       } else if (selectedEventFilter && selectedEventFilter !== "all") {
         query = query.eq('event_id', selectedEventFilter);
       }
-      
+
       // Filter by archived status
       query = query.eq('archived', showArchived);
-      
+
       const { data, error } = await query;
       if (error) throw error;
-      
+
       const tasksWithDependenciesAndAssignments = await Promise.all(
         (data || []).map(async (task) => {
           // Fetch dependencies
@@ -258,17 +261,11 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
             .from('tasks_dependencies')
             .select('depends_on_task_id')
             .eq('task_id', task.id);
-          
-          // Fetch user assignment
-          const { data: assignments } = await supabase
-            .from('task_assignments')
-            .select('user_id')
-            .eq('task_id', task.id)
-            .limit(1);
-          
+
+          // Fetch user assignment from assigned_to field directly
           let assigned_user_name: string | undefined;
-          const assigned_user_id = assignments?.[0]?.user_id || undefined;
-          
+          const assigned_user_id = task.assigned_to || undefined;
+
           if (assigned_user_id) {
             const { data: profileData } = await supabase
               .from('profiles')
@@ -277,26 +274,27 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
               .single();
             assigned_user_name = profileData?.display_name || undefined;
           }
-          
+
           // Get role assignment from task columns
-          const roleAssignment = task.assigned_venue_role || 
-                                 task.assigned_supplier_vendor_role || 
-                                 task.assigned_service_vendor_role || 
-                                 task.assined_vendor_role;
-          
+          const roleAssignment = task.assigned_venue_role ||
+            task.assigned_supplier_vendor_role ||
+            task.assigned_service_vendor_role ||
+            task.assined_vendor_role;
+
           return {
             ...task,
             dependencies: deps?.map(d => d.depends_on_task_id) || [],
-            assigned_user_id,
+            assigned_to: task.assigned_to, // Keep original assigned_to from task
+            assigned_user_id, // Computed from assigned_to
             assigned_user_name,
             assigned_role: roleAssignment,
             assigned_coordinator_name: task.assigned_coordinator_name
           };
         })
       );
-      
+
       setTasks(tasksWithDependenciesAndAssignments);
-      
+
       // Fetch available tasks for dependency selection
       await fetchAvailableTasks();
     } catch (error) {
@@ -316,24 +314,18 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         .from('tasks')
         .select('id, title, status, category')
         .eq('archived', false);
-      
+
       if (error) throw error;
-      
+
       // Fetch assigned user names
       const tasksWithAssignments = await Promise.all(
         (data || []).map(async (task) => {
           let assigned_user_name: string | undefined;
           let assigned_user_id: string | undefined;
-          
-          // Fetch user assignment from task_assignments table
-          const { data: assignments } = await supabase
-            .from('task_assignments')
-            .select('user_id')
-            .eq('task_id', task.id)
-            .limit(1);
-          
-          assigned_user_id = assignments?.[0]?.user_id || undefined;
-          
+
+          // Fetch user assignment from assigned_to field directly
+          assigned_user_id = task.assigned_to || undefined;
+
           if (assigned_user_id) {
             const { data: profileData } = await supabase
               .from('profiles')
@@ -342,7 +334,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
               .single();
             assigned_user_name = profileData?.display_name || undefined;
           }
-          
+
           return {
             id: task.id,
             title: task.title,
@@ -353,7 +345,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
           };
         })
       );
-      
+
       setAvailableTasks(tasksWithAssignments);
     } catch (error) {
       console.error('Error fetching available tasks:', error);
@@ -458,7 +450,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
     }
   };
 
-  const checkDueDateConflict = async (taskDueDate: string | undefined, dependencyIds: string[]): Promise<{hasConflict: boolean, suggestedDate?: string}> => {
+  const checkDueDateConflict = async (taskDueDate: string | undefined, dependencyIds: string[]): Promise<{ hasConflict: boolean, suggestedDate?: string }> => {
     if (!taskDueDate || dependencyIds.length === 0) {
       return { hasConflict: false };
     }
@@ -488,13 +480,13 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
       }
 
       const currentTaskDate = new Date(taskDueDate);
-      
+
       // If task due date is before or same as dependency due date, there's a conflict
       if (currentTaskDate <= latestDependencyDate) {
         // Suggest a date 1 day after the latest dependency
         const suggestedDate = new Date(latestDependencyDate);
         suggestedDate.setDate(suggestedDate.getDate() + 1);
-        
+
         return {
           hasConflict: true,
           suggestedDate: suggestedDate.toISOString().split('T')[0]
@@ -537,10 +529,10 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
     }
   };
 
-  const checkDependentTasksConflict = async (taskId: string, newDueDate: string): Promise<{hasConflict: boolean, affectedTasks?: Array<{id: string, title: string, currentDueDate: string, newDueDate: string}>}> => {
+  const checkDependentTasksConflict = async (taskId: string, newDueDate: string): Promise<{ hasConflict: boolean, affectedTasks?: Array<{ id: string, title: string, currentDueDate: string, newDueDate: string }> }> => {
     try {
       const dependentTasks = await findDependentTasks(taskId);
-      
+
       if (dependentTasks.length === 0) {
         return { hasConflict: false };
       }
@@ -555,7 +547,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
           if (taskDueDate <= newDate) {
             const suggestedDate = new Date(newDate);
             suggestedDate.setDate(suggestedDate.getDate() + 1);
-            
+
             affectedTasks.push({
               id: task.id,
               title: task.title,
@@ -579,7 +571,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
   const handleDependentTasksConflictConfirmation = (
     currentDate: string,
     newDate: string,
-    affectedTasks: Array<{id: string, title: string, currentDueDate: string, newDueDate: string}>,
+    affectedTasks: Array<{ id: string, title: string, currentDueDate: string, newDueDate: string }>,
     onConfirm: () => void,
     onCancel: () => void
   ) => {
@@ -621,8 +613,8 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
   };
 
   const createTask = async () => {
-    const validationResult = createTaskSchema.safeParse({...newTask, dependencies: []});
-    
+    const validationResult = createTaskSchema.safeParse({ ...newTask, dependencies: [] });
+
     if (!validationResult.success) {
       const errors: Record<string, string> = {};
       validationResult.error.issues.forEach((issue) => {
@@ -638,7 +630,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
       });
       return;
     }
-    
+
     setValidationErrors({});
     executeCreateTask();
   };
@@ -648,15 +640,32 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
+      // Derive start_date and end_date from due_date if not provided
+      let startDate = newTask.start_date || null;
+      let endDate = newTask.end_date || null;
+      const dueDateValue = overrideDueDate || newTask.due_date || null;
+      
+      // If due_date is provided but start_date/end_date are not, use due_date
+      if (dueDateValue && !startDate && !endDate) {
+        const dueDateOnly = dueDateValue.split('T')[0]; // Extract date part
+        startDate = dueDateOnly;
+        endDate = dueDateOnly;
+      }
+
       const taskData = {
         title: newTask.title.trim(),
         description: newTask.description?.trim() || null,
         priority: newTask.priority as any,
         estimated_hours: newTask.estimated_hours ? parseFloat(newTask.estimated_hours) : null,
-        due_date: overrideDueDate || newTask.due_date || null,
+        due_date: dueDateValue,
+        start_date: startDate,
+        end_date: endDate,
+        start_time: newTask.start_time || null,
+        end_time: newTask.end_time || null,
         event_id: eventId || newTask.selected_event_id || null,
         created_by: user.id,
         category: selectedCollaboratorTypes.length > 0 ? selectedCollaboratorTypes.join(', ') : null,
+        assigned_to: null, // Removed user assignment dropdown, only using coordinator assignment
         assigned_coordinator_name: (newTask as any).assigned_coordinator_name || null
       };
 
@@ -676,27 +685,15 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         p_description: `Created task: ${taskData.title}`
       });
 
-      // Save user assignment if provided
-      if (newTask.assigned_user_id) {
-        const { error: assignmentError } = await supabase
-          .from('task_assignments')
-          .insert({
-            task_id: createdTask.id,
-            user_id: newTask.assigned_user_id,
-            created_by: user.id
-          });
-
-        if (assignmentError) throw assignmentError;
-
-        // Log assignment
-        const assignedUser = users.find(u => u.userid === newTask.assigned_user_id);
+      // Log coordinator assignment if assigned
+      if ((newTask as any).assigned_coordinator_name) {
         await supabase.rpc('log_change', {
           p_entity_type: 'task',
           p_entity_id: createdTask.id,
-          p_action: 'assigned',
-          p_field_name: 'assigned_to',
-          p_new_value: assignedUser?.user_name || newTask.assigned_user_id,
-          p_description: `Task assigned to ${assignedUser?.user_name || 'user'}`
+          p_action: 'updated',
+          p_field_name: 'assigned_coordinator_name',
+          p_new_value: (newTask as any).assigned_coordinator_name,
+          p_description: `Task assigned to coordinator: ${(newTask as any).assigned_coordinator_name}`
         });
       }
 
@@ -704,12 +701,12 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
       setIsCreateDialogOpen(false);
       await fetchTasks();
       await fetchAvailableTasks();
-      
+
       // Open dependency dialog with the new task
       setTaskForDependencies({ id: createdTask.id, title: newTask.title });
       setShouldPreserveForm(true);
       setShowDependencyDialog(true);
-      
+
       toast({
         title: "Task Created",
         description: "Now add dependencies (optional)",
@@ -717,7 +714,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to create task. Please try again.";
       const isCircularDependency = errorMessage.includes("Circular dependency detected");
-      
+
       toast({
         title: "Error creating task",
         description: isCircularDependency ? errorMessage : "Failed to create task. Please try again.",
@@ -735,24 +732,13 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
       const oldUser = oldAssignedUserId ? users.find(u => u.userid === oldAssignedUserId) : null;
       const newUser = assignedUserId ? users.find(u => u.userid === assignedUserId) : null;
 
-      // First, remove existing assignments
-      await supabase
-        .from('task_assignments')
-        .delete()
-        .eq('task_id', taskId);
+      // Update assigned_to field directly in tasks table
+      const { error } = await supabase
+        .from('tasks')
+        .update({ assigned_to: assignedUserId || null })
+        .eq('id', taskId);
 
-      // Then add new assignment if provided
-      if (assignedUserId) {
-        const { error } = await supabase
-          .from('task_assignments')
-          .insert({
-            task_id: taskId,
-            user_id: assignedUserId,
-            created_by: user.id
-          });
-
-        if (error) throw error;
-      }
+      if (error) throw error;
 
       // Log assignment change
       if (oldAssignedUserId !== assignedUserId) {
@@ -763,7 +749,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
           p_field_name: 'assigned_to',
           p_old_value: oldUser?.user_name || (oldAssignedUserId ? 'Unknown User' : 'Unassigned'),
           p_new_value: newUser?.user_name || (assignedUserId ? 'Unknown User' : 'Unassigned'),
-          p_description: assignedUserId 
+          p_description: assignedUserId
             ? `Task reassigned from ${oldUser?.user_name || 'Unassigned'} to ${newUser?.user_name || 'user'}`
             : `Task unassigned from ${oldUser?.user_name || 'user'}`
         });
@@ -778,10 +764,10 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
     try {
       // Get the original task for comparison
       const originalTask = tasks.find(t => t.id === taskId);
-      
+
       // Remove assigned_user_id and assigned_user_name from updates as they're handled separately
       const { assigned_user_id, assigned_user_name, ...taskUpdates } = updates;
-      
+
       const { error } = await supabase
         .from('tasks')
         .update(taskUpdates)
@@ -791,8 +777,8 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
 
       // Log field changes
       if (originalTask) {
-        const changes: Array<{field: string, oldValue: any, newValue: any}> = [];
-        
+        const changes: Array<{ field: string, oldValue: any, newValue: any }> = [];
+
         if (updates.title && updates.title !== originalTask.title) {
           changes.push({ field: 'title', oldValue: originalTask.title, newValue: updates.title });
         }
@@ -810,6 +796,18 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         }
         if (updates.due_date !== undefined && updates.due_date !== originalTask.due_date) {
           changes.push({ field: 'due_date', oldValue: originalTask.due_date || 'None', newValue: updates.due_date || 'None' });
+        }
+        if (updates.start_date !== undefined && updates.start_date !== originalTask.start_date) {
+          changes.push({ field: 'start_date', oldValue: originalTask.start_date || 'None', newValue: updates.start_date || 'None' });
+        }
+        if (updates.end_date !== undefined && updates.end_date !== originalTask.end_date) {
+          changes.push({ field: 'end_date', oldValue: originalTask.end_date || 'None', newValue: updates.end_date || 'None' });
+        }
+        if (updates.start_time !== undefined && updates.start_time !== originalTask.start_time) {
+          changes.push({ field: 'start_time', oldValue: originalTask.start_time || 'None', newValue: updates.start_time || 'None' });
+        }
+        if (updates.end_time !== undefined && updates.end_time !== originalTask.end_time) {
+          changes.push({ field: 'end_time', oldValue: originalTask.end_time || 'None', newValue: updates.end_time || 'None' });
         }
 
         // Log each change
@@ -833,7 +831,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
             p_task_id: taskId,
             p_event_id: originalTask.event_id || null
           });
-          
+
           if (recalcError) {
             console.warn('Failed to recalculate downstream tasks:', recalcError);
             // Don't fail the update if recalculation fails
@@ -852,12 +850,12 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         }
       }
 
-      // Handle user assignment if provided
+      // Handle user assignment if provided - use assigned_to field directly
       if (assigned_user_id !== undefined) {
-        await updateTaskAssignment(taskId, assigned_user_id, originalTask?.assigned_user_id);
+        await updateTaskAssignment(taskId, assigned_user_id, originalTask?.assigned_to);
       }
 
-      setTasks(tasks.map(task => 
+      setTasks(tasks.map(task =>
         task.id === taskId ? { ...task, ...updates } : task
       ));
 
@@ -877,7 +875,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
 
   const handleUpdateTask = async () => {
     if (!selectedTask) return;
-    
+
     // Check for due date conflicts with dependencies first
     if (selectedTask.due_date && selectedDependencies.length > 0) {
       const conflict = await checkDueDateConflict(selectedTask.due_date, selectedDependencies);
@@ -925,19 +923,29 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
   };
 
   const executeUpdateTaskWithDependents = async (
-    taskToUpdate: Task, 
-    affectedTasks: Array<{id: string, title: string, currentDueDate: string, newDueDate: string}>
+    taskToUpdate: Task,
+    affectedTasks: Array<{ id: string, title: string, currentDueDate: string, newDueDate: string }>
   ) => {
     try {
       // Update the main task first
-      await updateTask(taskToUpdate.id, {
+      const updates: Partial<Task> = {
         title: taskToUpdate.title,
         description: taskToUpdate.description,
         priority: taskToUpdate.priority,
-        assigned_user_id: taskToUpdate.assigned_user_id,
         estimated_hours: taskToUpdate.estimated_hours,
         due_date: taskToUpdate.due_date,
-      });
+        start_date: taskToUpdate.start_date,
+        end_date: taskToUpdate.end_date,
+        start_time: taskToUpdate.start_time,
+        end_time: taskToUpdate.end_time,
+      };
+
+      // Handle assigned_to separately if assigned_user_id is provided
+      if (taskToUpdate.assigned_user_id !== undefined) {
+        await updateTaskAssignment(taskToUpdate.id, taskToUpdate.assigned_user_id, taskToUpdate.assigned_to);
+      }
+
+      await updateTask(taskToUpdate.id, updates);
 
       // Update dependent tasks' due dates
       for (const affectedTask of affectedTasks) {
@@ -947,8 +955,8 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
       }
 
       // Save dependencies
-      if (selectedDependencies.length !== (taskToUpdate.dependencies?.length || 0) || 
-          !selectedDependencies.every(dep => taskToUpdate.dependencies?.includes(dep))) {
+      if (selectedDependencies.length !== (taskToUpdate.dependencies?.length || 0) ||
+        !selectedDependencies.every(dep => taskToUpdate.dependencies?.includes(dep))) {
         await saveDependencies(taskToUpdate.id, selectedDependencies);
       }
 
@@ -964,7 +972,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to update tasks. Please try again.";
       const isCircularDependency = errorMessage.includes("Circular dependency detected");
-      
+
       toast({
         title: "Error updating tasks",
         description: isCircularDependency ? errorMessage : "Failed to update tasks. Please try again.",
@@ -975,18 +983,27 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
 
   const executeUpdateTask = async (taskToUpdate: Task, overrideDueDate?: string) => {
     try {
+      // Handle assigned_to separately if assigned_user_id is provided
+      if (taskToUpdate.assigned_user_id !== undefined) {
+        await updateTaskAssignment(taskToUpdate.id, taskToUpdate.assigned_user_id, taskToUpdate.assigned_to);
+      }
+
+      // Update other task fields
       await updateTask(taskToUpdate.id, {
         title: taskToUpdate.title,
         description: taskToUpdate.description,
         priority: taskToUpdate.priority,
-        assigned_user_id: taskToUpdate.assigned_user_id,
         estimated_hours: taskToUpdate.estimated_hours,
         due_date: overrideDueDate || taskToUpdate.due_date,
+        start_date: taskToUpdate.start_date,
+        end_date: taskToUpdate.end_date,
+        start_time: taskToUpdate.start_time,
+        end_time: taskToUpdate.end_time,
       });
 
       // Save dependencies
-      if (selectedDependencies.length !== (taskToUpdate.dependencies?.length || 0) || 
-          !selectedDependencies.every(dep => taskToUpdate.dependencies?.includes(dep))) {
+      if (selectedDependencies.length !== (taskToUpdate.dependencies?.length || 0) ||
+        !selectedDependencies.every(dep => taskToUpdate.dependencies?.includes(dep))) {
         await saveDependencies(taskToUpdate.id, selectedDependencies);
       }
 
@@ -997,7 +1014,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to update task. Please try again.";
       const isCircularDependency = errorMessage.includes("Circular dependency detected");
-      
+
       toast({
         title: "Error updating task",
         description: isCircularDependency ? errorMessage : "Failed to update task. Please try again.",
@@ -1009,7 +1026,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
   const archiveTask = async (taskId: string, archived: boolean) => {
     try {
       const task = tasks.find(t => t.id === taskId);
-      
+
       const { error } = await supabase
         .from('tasks')
         .update({ archived })
@@ -1022,7 +1039,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         p_entity_type: 'task',
         p_entity_id: taskId,
         p_action: archived ? 'archived' : 'restored',
-        p_description: archived 
+        p_description: archived
           ? `Archived task: ${task?.title || 'Unknown'}`
           : `Restored task: ${task?.title || 'Unknown'}`
       });
@@ -1069,7 +1086,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                   .update({ description: 'Enter task collaborator name' })
                   .in('description', [
                     'Assign task responsibilities',
-                    'Assign coordinator responsibility', 
+                    'Assign coordinator responsibility',
                     'Assign tasks to team members'
                   ]);
 
@@ -1109,20 +1126,20 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
               Create Task
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto w-[95vw] sm:w-full">
             <DialogHeader>
               <DialogTitle>Create New Task</DialogTitle>
             </DialogHeader>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
               {/* Left column */}
               <div className="space-y-4">
                 {!eventId && events.length > 0 && (
                   <div className="space-y-2">
                     <Label htmlFor="event">Select Project/Event *</Label>
-                    <Select 
-                      value={newTask.selected_event_id} 
+                    <Select
+                      value={newTask.selected_event_id}
                       onValueChange={(value) => {
-                        setNewTask({ ...newTask, selected_event_id: value, assigned_user_id: "" });
+                        setNewTask({ ...newTask, selected_event_id: value });
                         setValidationErrors({ ...validationErrors, selected_event_id: "" });
                       }}
                     >
@@ -1161,7 +1178,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                   )}
                   <p className="text-xs text-muted-foreground">{newTask.title.length}/200 characters</p>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="description">Description</Label>
                   <Textarea
@@ -1222,7 +1239,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                               setSelectedCollaboratorTypes(selectedCollaboratorTypes.filter(t => t !== type));
                             }
                             // Clear assignment when collaborator types change
-                            setNewTask({ ...newTask, assigned_user_id: "" });
+                            // Coordinator assignment cleared via dropdown
                           }}
                         />
                         <label htmlFor={`collab-${type}`} className="text-sm font-medium leading-none cursor-pointer">
@@ -1245,42 +1262,45 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
 
               {/* Right column */}
               <div className="space-y-4">
+                {/* Coordinator Assignment Dropdown */}
                 <div className="space-y-2 p-3 border border-blue-200 rounded-lg bg-blue-50">
                   <Label htmlFor="coordinator-name" className="text-base font-semibold">
                     Assign Collaborator Task To
                   </Label>
                   <p className="text-xs text-muted-foreground">
-                    Enter task collaborator's name
+                    Select a collaborator from the dropdown
                   </p>
-                  <div className="flex gap-2">
-                    <Input
-                      id="coordinator-name"
-                      placeholder="Enter task collaborator's name"
-                      value={coordinatorName}
-                      onChange={(e) => setCoordinatorName(e.target.value)}
-                      maxLength={100}
-                    />
-                    <Button
-                      type="button"
-                      onClick={() => {
-                        if (coordinatorName.trim()) {
-                          setNewTask({ 
-                            ...newTask, 
-                            assigned_coordinator_name: coordinatorName.trim() 
-                          } as any);
-                          toast({
-                            title: "Coordinator assigned",
-                            description: `${coordinatorName.trim()} assigned to this task`,
-                          });
-                          setCoordinatorName("");
-                        }
-                      }}
-                      disabled={!coordinatorName.trim()}
-                    >
-                      <Save className="h-4 w-4 mr-1" />
-                      Save
-                    </Button>
-                  </div>
+                  <Select
+                    value={(newTask as any).assigned_coordinator_name || "none"}
+                    onValueChange={(value) => {
+                      setNewTask({
+                        ...newTask,
+                        assigned_coordinator_name: value === "none" ? undefined : value
+                      } as any);
+                      if (value && value !== "none") {
+                        toast({
+                          title: "Coordinator assigned",
+                          description: `${value} assigned to this task`,
+                        });
+                      }
+                    }}
+                  >
+                    <SelectTrigger id="coordinator-name">
+                      <SelectValue placeholder="Select a collaborator (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None (Unassigned)</SelectItem>
+                      {users.length > 0 ? (
+                        users.map((user) => (
+                          <SelectItem key={user.userid} value={user.user_name || user.contact_name || user.userid}>
+                            {user.user_name || user.contact_name || user.userid}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="no-users" disabled>No users available</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
                   {(newTask as any).assigned_coordinator_name && (
                     <div className="flex items-center justify-between p-2 bg-white rounded border border-blue-300">
                       <div className="flex items-center gap-2">
@@ -1331,23 +1351,76 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     id="due_date"
                     type="datetime-local"
                     value={newTask.due_date}
-                    onChange={(e) => setNewTask({ ...newTask, due_date: e.target.value })}
+                    onChange={(e) => {
+                      const dueDate = e.target.value;
+                      setNewTask({ 
+                        ...newTask, 
+                        due_date: dueDate,
+                        // Auto-populate start_date and end_date from due_date if not set
+                        start_date: newTask.start_date || (dueDate ? dueDate.split('T')[0] : ""),
+                        end_date: newTask.end_date || (dueDate ? dueDate.split('T')[0] : "")
+                      });
+                    }}
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="start_date">Start Date</Label>
+                  <Input
+                    id="start_date"
+                    type="date"
+                    value={newTask.start_date}
+                    onChange={(e) => setNewTask({ ...newTask, start_date: e.target.value })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="end_date">End Date</Label>
+                  <Input
+                    id="end_date"
+                    type="date"
+                    value={newTask.end_date}
+                    onChange={(e) => setNewTask({ ...newTask, end_date: e.target.value })}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="start_time">Start Time</Label>
+                    <Input
+                      id="start_time"
+                      type="time"
+                      value={newTask.start_time}
+                      onChange={(e) => setNewTask({ ...newTask, start_time: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="end_time">End Time</Label>
+                    <Input
+                      id="end_time"
+                      type="time"
+                      value={newTask.end_time}
+                      onChange={(e) => setNewTask({ ...newTask, end_time: e.target.value })}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
-            
+
             <div className="mt-6 flex gap-3">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => {
                   setNewTask({
                     title: "",
                     description: "",
-                    assigned_user_id: "",
                     priority: "medium" as const,
                     estimated_hours: "",
                     due_date: "",
+                    start_date: "",
+                    end_date: "",
+                    start_time: "",
+                    end_time: "",
                     selected_event_id: "",
                     dependencies: [] as string[],
                     assigned_role: ""
@@ -1397,9 +1470,9 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                   <div className="flex items-start justify-between">
                     <CardTitle className="text-base">{task.title}</CardTitle>
                     <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                      <Select 
-                        value={task.priority} 
-                        onValueChange={(value: 'low' | 'medium' | 'high' | 'urgent') => 
+                      <Select
+                        value={task.priority}
+                        onValueChange={(value: 'low' | 'medium' | 'high' | 'urgent') =>
                           updateTask(task.id, { priority: value })
                         }
                       >
@@ -1430,128 +1503,87 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                       <SelectContent>
                         <SelectItem value="not_started">Not Started</SelectItem>
                         <SelectItem value="in_progress">In Progress</SelectItem>
-                                      <SelectItem value="completed">Completed</SelectItem>
-                                      <SelectItem value="on_hold">On Hold</SelectItem>
-                                      <SelectItem value="cancelled">Cancelled</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                </div>
+                        <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="on_hold">On Hold</SelectItem>
+                        <SelectItem value="cancelled">Cancelled</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                                {(task.assigned_user_name || task.assigned_role) && (
-                                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                    <User className="h-3 w-3" />
-                                    <span>
-                                      {task.assigned_user_name || task.assigned_role?.replace('_', ' ')}
-                                    </span>
-                                  </div>
-                                )}
-
-                <div className="border-t pt-3 mt-3 space-y-2" onClick={(e) => e.stopPropagation()}>
-                  <p className="text-xs font-semibold text-foreground">
-                    {task.assigned_coordinator_name ? "Assign Collaborator to" : "Assign Collaborator task to"}
-                  </p>
-                  {task.assigned_coordinator_name && !cardCollaboratorInput[task.id] ? (
-                    <div className="flex items-center justify-between gap-2 bg-blue-50 dark:bg-blue-950/30 px-3 py-2 rounded border border-blue-200 dark:border-blue-800">
-                      <div className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400">
-                        <User className="h-4 w-4" />
-                        <span className="font-medium">{task.assigned_coordinator_name}</span>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-7 text-xs px-3"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setCardCollaboratorInput({ ...cardCollaboratorInput, [task.id]: task.assigned_coordinator_name || "" });
-                        }}
-                      >
-                        Change
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col gap-2">
-                      <Input
-                        placeholder="Enter task collaborator name"
-                        value={cardCollaboratorInput[task.id] || ""}
-                        onChange={(e) => {
-                          e.stopPropagation();
-                          setCardCollaboratorInput({ ...cardCollaboratorInput, [task.id]: e.target.value });
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                        className="h-9 text-sm"
-                      />
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          className="flex-1 h-8 text-xs"
-                          disabled={isSavingCardCollaborator[task.id] || !cardCollaboratorInput[task.id]?.trim()}
-                          onClick={async (e) => {
-                            e.stopPropagation();
-                            const collaboratorName = cardCollaboratorInput[task.id]?.trim();
-                            if (!collaboratorName) return;
-
-                            setIsSavingCardCollaborator({ ...isSavingCardCollaborator, [task.id]: true });
-
-                            try {
-                              const { error } = await supabase
-                                .from('tasks')
-                                .update({ assigned_coordinator_name: collaboratorName })
-                                .eq('id', task.id);
-
-                              if (error) throw error;
-
-                              toast({
-                                title: "Collaborator assigned",
-                                description: `${collaboratorName} has been assigned to this task.`,
-                              });
-
-                              setCardCollaboratorInput({ ...cardCollaboratorInput, [task.id]: "" });
-                              fetchTasks();
-                            } catch (error) {
-                              console.error('Error assigning collaborator:', error);
-                              toast({
-                                title: "Error",
-                                description: "Failed to assign collaborator.",
-                                variant: "destructive",
-                              });
-                            } finally {
-                              setIsSavingCardCollaborator({ ...isSavingCardCollaborator, [task.id]: false });
-                            }
-                          }}
-                        >
-                          {isSavingCardCollaborator[task.id] ? "Saving..." : "Save"}
-                        </Button>
-                        {task.assigned_coordinator_name && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex-1 h-8 text-xs"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setCardCollaboratorInput({ ...cardCollaboratorInput, [task.id]: "" });
-                            }}
-                          >
-                            Cancel
-                          </Button>
-                        )}
-                      </div>
+                  {(task.assigned_user_name || task.assigned_role) && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <User className="h-3 w-3" />
+                      <span>
+                        {task.assigned_user_name || task.assigned_role?.replace('_', ' ')}
+                      </span>
                     </div>
                   )}
-                </div>
 
-                                {task.estimated_hours && (
-                                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                    <Clock className="h-3 w-3" />
-                                    <span>{task.estimated_hours}h</span>
-                                  </div>
-                                )}
+                  <div className="border-t pt-3 mt-3 space-y-2" onClick={(e) => e.stopPropagation()}>
+                    <p className="text-xs font-semibold text-foreground">
+                      Assign Collaborator Task To
+                    </p>
+                    <Select
+                      value={task.assigned_coordinator_name || "none"}
+                      onValueChange={async (value) => {
+                        try {
+                          const coordinatorValue = value === "none" ? null : value;
+                          const { error } = await supabase
+                            .from('tasks')
+                            .update({ assigned_coordinator_name: coordinatorValue })
+                            .eq('id', task.id);
 
-                                {task.due_date && (
-                                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                    <Calendar className="h-3 w-3" />
-                                    <span>{format(new Date(task.due_date), 'MMM d')}</span>
-                                  </div>
-                                )}
+                          if (error) throw error;
+
+                          toast({
+                            title: value !== "none" ? "Collaborator assigned" : "Collaborator removed",
+                            description: value !== "none"
+                              ? `${value} has been assigned to this task.`
+                              : "Collaborator assignment cleared.",
+                          });
+
+                          fetchTasks();
+                        } catch (error) {
+                          console.error('Error assigning collaborator:', error);
+                          toast({
+                            title: "Error",
+                            description: "Failed to assign collaborator.",
+                            variant: "destructive",
+                          });
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="h-9 text-sm" onClick={(e) => e.stopPropagation()}>
+                        <SelectValue placeholder="Select a collaborator (optional)" />
+                      </SelectTrigger>
+                      <SelectContent onClick={(e) => e.stopPropagation()}>
+                        <SelectItem value="none">None (Unassigned)</SelectItem>
+                        {users.length > 0 ? (
+                          users.map((user) => (
+                            <SelectItem key={user.userid} value={user.user_name || user.contact_name || user.userid}>
+                              {user.user_name || user.contact_name || user.userid}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="no-users" disabled>No users available</SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {task.estimated_hours && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Clock className="h-3 w-3" />
+                      <span>{task.estimated_hours}h</span>
+                    </div>
+                  )}
+
+                  {task.due_date && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Calendar className="h-3 w-3" />
+                      <span>{format(new Date(task.due_date), 'MMM d')}</span>
+                    </div>
+                  )}
 
                   {task.dependencies && task.dependencies.length > 0 && (
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -1598,11 +1630,11 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
           }
           setIsEditDialogOpen(open);
         }}>
-          <DialogContent className="max-w-4xl">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto w-[95vw] sm:w-full">
             <DialogHeader>
               <DialogTitle>Edit Task</DialogTitle>
             </DialogHeader>
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
               {/* Left column */}
               <div className="space-y-4">
                 <div className="space-y-2">
@@ -1613,7 +1645,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     onChange={(e) => setSelectedTask({ ...selectedTask, title: e.target.value })}
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="edit-description">Description</Label>
                   <Textarea
@@ -1648,88 +1680,60 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
               <div className="space-y-4">
                 <div className="space-y-2 p-3 border border-blue-200 rounded-lg bg-blue-50">
                   <Label htmlFor="edit-coordinator-name" className="text-base font-semibold">
-                    Assign Collaborator To
+                    Assign Collaborator Task To
                   </Label>
                   <p className="text-xs text-muted-foreground">
-                    Enter task collaborator's name
+                    Select a collaborator from the dropdown
                   </p>
-                  <div className="flex gap-2">
-                    <Input
-                      id="edit-coordinator-name"
-                      placeholder="Enter task collaborator's name"
-                      value={editCoordinatorName || selectedTask.assigned_coordinator_name || ""}
-                      onChange={(e) => setEditCoordinatorName(e.target.value)}
-                      maxLength={100}
-                    />
-                    <Button
-                      type="button"
-                      onClick={async () => {
-                        if (editCoordinatorName.trim()) {
-                          setIsSavingCoordinatorName(true);
-                          try {
-                            await updateTask(selectedTask.id, {
-                              assigned_coordinator_name: editCoordinatorName.trim()
-                            });
-                            setSelectedTask({
-                              ...selectedTask,
-                              assigned_coordinator_name: editCoordinatorName.trim()
-                            });
-                            toast({
-                              title: "Coordinator updated",
-                              description: `${editCoordinatorName.trim()} assigned to this task`,
-                            });
-                            setEditCoordinatorName("");
-                          } catch (error) {
-                            toast({
-                              title: "Error",
-                              description: "Failed to update coordinator",
-                              variant: "destructive",
-                            });
-                          } finally {
-                            setIsSavingCoordinatorName(false);
-                          }
-                        }
-                      }}
-                      disabled={!editCoordinatorName.trim() || isSavingCoordinatorName}
-                    >
-                      <Save className="h-4 w-4 mr-1" />
-                      {isSavingCoordinatorName ? "Saving..." : "Change"}
-                    </Button>
-                  </div>
+                  <Select
+                    value={selectedTask.assigned_coordinator_name || "none"}
+                    onValueChange={async (value) => {
+                      try {
+                        const coordinatorValue = value === "none" ? null : value;
+                        await updateTask(selectedTask.id, {
+                          assigned_coordinator_name: coordinatorValue
+                        });
+                        setSelectedTask({
+                          ...selectedTask,
+                          assigned_coordinator_name: value === "none" ? undefined : value
+                        });
+                        toast({
+                          title: value !== "none" ? "Coordinator assigned" : "Coordinator removed",
+                          description: value !== "none"
+                            ? `${value} assigned to this task`
+                            : "Coordinator assignment cleared",
+                        });
+                      } catch (error) {
+                        toast({
+                          title: "Error",
+                          description: "Failed to update coordinator",
+                          variant: "destructive",
+                        });
+                      }
+                    }}
+                  >
+                    <SelectTrigger id="edit-coordinator-name">
+                      <SelectValue placeholder="Select a collaborator (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None (Unassigned)</SelectItem>
+                      {users.length > 0 ? (
+                        users.map((user) => (
+                          <SelectItem key={user.userid} value={user.user_name || user.contact_name || user.userid}>
+                            {user.user_name || user.contact_name || user.userid}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="no-users" disabled>No users available</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
                   {selectedTask.assigned_coordinator_name && (
                     <div className="flex items-center justify-between p-2 bg-white rounded border border-blue-300">
                       <div className="flex items-center gap-2">
                         <User className="h-4 w-4 text-blue-600" />
                         <span className="text-sm font-medium">{selectedTask.assigned_coordinator_name}</span>
                       </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={async () => {
-                          try {
-                            await updateTask(selectedTask.id, {
-                              assigned_coordinator_name: null
-                            });
-                            setSelectedTask({
-                              ...selectedTask,
-                              assigned_coordinator_name: undefined
-                            });
-                            toast({
-                              title: "Coordinator removed",
-                              description: "Manual coordinator assignment cleared",
-                            });
-                          } catch (error) {
-                            toast({
-                              title: "Error",
-                              description: "Failed to remove coordinator",
-                              variant: "destructive",
-                            });
-                          }
-                        }}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
                     </div>
                   )}
                 </div>
@@ -1751,8 +1755,58 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     id="edit-due_date"
                     type="datetime-local"
                     value={selectedTask.due_date ? format(new Date(selectedTask.due_date), "yyyy-MM-dd'T'HH:mm") : ''}
-                    onChange={(e) => setSelectedTask({ ...selectedTask, due_date: e.target.value || undefined })}
+                    onChange={(e) => {
+                      const dueDate = e.target.value;
+                      setSelectedTask({ 
+                        ...selectedTask, 
+                        due_date: dueDate || undefined,
+                        // Auto-populate start_date and end_date from due_date if not set
+                        start_date: selectedTask.start_date || (dueDate ? dueDate.split('T')[0] : undefined),
+                        end_date: selectedTask.end_date || (dueDate ? dueDate.split('T')[0] : undefined)
+                      });
+                    }}
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-start_date">Start Date</Label>
+                  <Input
+                    id="edit-start_date"
+                    type="date"
+                    value={selectedTask.start_date || ''}
+                    onChange={(e) => setSelectedTask({ ...selectedTask, start_date: e.target.value || undefined })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-end_date">End Date</Label>
+                  <Input
+                    id="edit-end_date"
+                    type="date"
+                    value={selectedTask.end_date || ''}
+                    onChange={(e) => setSelectedTask({ ...selectedTask, end_date: e.target.value || undefined })}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-start_time">Start Time</Label>
+                    <Input
+                      id="edit-start_time"
+                      type="time"
+                      value={selectedTask.start_time || ''}
+                      onChange={(e) => setSelectedTask({ ...selectedTask, start_time: e.target.value || undefined })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-end_time">End Time</Label>
+                    <Input
+                      id="edit-end_time"
+                      type="time"
+                      value={selectedTask.end_time || ''}
+                      onChange={(e) => setSelectedTask({ ...selectedTask, end_time: e.target.value || undefined })}
+                    />
+                  </div>
                 </div>
 
                 {/* Dependencies selection for editing */}
@@ -1777,7 +1831,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          const filteredTasks = availableTasks.filter(task => 
+                          const filteredTasks = availableTasks.filter(task =>
                             task.id !== selectedTask.id && (
                               task.title.toLowerCase().includes(dependencySearchTerm.toLowerCase()) ||
                               (task.assigned_user_name || '').toLowerCase().includes(dependencySearchTerm.toLowerCase())
@@ -1799,59 +1853,59 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     </div>
                     <div className="max-h-48 overflow-y-auto space-y-2 border rounded-md p-2">
                       {availableTasks
-                        .filter(task => 
+                        .filter(task =>
                           task.id !== selectedTask.id && (
                             task.title.toLowerCase().includes(dependencySearchTerm.toLowerCase()) ||
                             (task.assigned_user_name || '').toLowerCase().includes(dependencySearchTerm.toLowerCase())
                           )
                         )
                         .map((task) => (
-                        <div key={task.id} className="flex items-start space-x-2 p-2 rounded hover:bg-accent/50 transition-colors">
-                          <Checkbox
-                            id={`edit-dep-${task.id}`}
-                            checked={selectedDependencies.includes(task.id)}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                setSelectedDependencies([...selectedDependencies, task.id]);
-                              } else {
-                                setSelectedDependencies(selectedDependencies.filter(id => id !== task.id));
-                              }
-                            }}
-                            className="mt-0.5"
-                          />
-                          <label htmlFor={`edit-dep-${task.id}`} className="flex-1 cursor-pointer">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-sm font-medium">{task.title}</span>
-                              <Badge variant="outline" className={statusColors[task.status]}>
-                                {task.status.replace('_', ' ')}
-                              </Badge>
-                            </div>
-                            {task.assigned_user_name && (
-                              <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
-                                <User className="h-3 w-3" />
-                                {task.assigned_user_name}
+                          <div key={task.id} className="flex items-start space-x-2 p-2 rounded hover:bg-accent/50 transition-colors">
+                            <Checkbox
+                              id={`edit-dep-${task.id}`}
+                              checked={selectedDependencies.includes(task.id)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setSelectedDependencies([...selectedDependencies, task.id]);
+                                } else {
+                                  setSelectedDependencies(selectedDependencies.filter(id => id !== task.id));
+                                }
+                              }}
+                              className="mt-0.5"
+                            />
+                            <label htmlFor={`edit-dep-${task.id}`} className="flex-1 cursor-pointer">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-sm font-medium">{task.title}</span>
+                                <Badge variant="outline" className={statusColors[task.status]}>
+                                  {task.status.replace('_', ' ')}
+                                </Badge>
                               </div>
-                            )}
-                          </label>
-                        </div>
-                      ))}
-                      {availableTasks.filter(task => 
+                              {task.assigned_user_name && (
+                                <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
+                                  <User className="h-3 w-3" />
+                                  {task.assigned_user_name}
+                                </div>
+                              )}
+                            </label>
+                          </div>
+                        ))}
+                      {availableTasks.filter(task =>
                         task.id !== selectedTask.id && (
                           task.title.toLowerCase().includes(dependencySearchTerm.toLowerCase()) ||
                           (task.assigned_user_name || '').toLowerCase().includes(dependencySearchTerm.toLowerCase())
                         )
                       ).length === 0 && (
-                        <p className="text-sm text-muted-foreground text-center py-4">No tasks found</p>
-                      )}
+                          <p className="text-sm text-muted-foreground text-center py-4">No tasks found</p>
+                        )}
                     </div>
                   </div>
                 )}
               </div>
             </div>
-            
+
             <div className="mt-6 flex gap-3">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => {
                   setIsEditDialogOpen(false);
                   setSelectedTask(null);
@@ -1878,7 +1932,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
               Task "{taskForDependencies?.title}" has been created! Now you can add dependencies if needed.
             </p>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             {availableTasks.filter(task => task.id !== taskForDependencies?.id).length > 0 ? (
               <>
@@ -1889,7 +1943,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                       {selectedDependencies.length} of {availableTasks.filter(t => t.id !== taskForDependencies?.id).length} selected
                     </span>
                   </div>
-                  
+
                   <Input
                     placeholder="Search by title, description, assignee, or category (e.g., Bookings)..."
                     value={dependencySearchTerm}
@@ -1898,14 +1952,14 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                   <p className="text-xs text-muted-foreground">
                     💡 Tip: Category search only works for tasks created with collaborator types selected
                   </p>
-                  
+
                   <div className="flex gap-2">
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        const filteredTasks = availableTasks.filter(task => 
+                        const filteredTasks = availableTasks.filter(task =>
                           task.id !== taskForDependencies?.id && (
                             task.title.toLowerCase().includes(dependencySearchTerm.toLowerCase()) ||
                             (task.assigned_user_name || '').toLowerCase().includes(dependencySearchTerm.toLowerCase()) ||
@@ -1930,7 +1984,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
 
                 <div className="max-h-96 overflow-y-auto space-y-2 border rounded-md p-3">
                   {availableTasks
-                    .filter(task => 
+                    .filter(task =>
                       task.id !== taskForDependencies?.id && (
                         task.title.toLowerCase().includes(dependencySearchTerm.toLowerCase()) ||
                         (task.assigned_user_name || '').toLowerCase().includes(dependencySearchTerm.toLowerCase()) ||
@@ -1973,14 +2027,14 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                       </div>
                     ))}
                   {(() => {
-                    const filteredTasks = availableTasks.filter(task => 
+                    const filteredTasks = availableTasks.filter(task =>
                       task.id !== taskForDependencies?.id && (
                         task.title.toLowerCase().includes(dependencySearchTerm.toLowerCase()) ||
                         (task.assigned_user_name || '').toLowerCase().includes(dependencySearchTerm.toLowerCase()) ||
                         (task.category || '').toLowerCase().includes(dependencySearchTerm.toLowerCase())
                       )
                     );
-                    
+
                     if (filteredTasks.length === 0 && dependencySearchTerm) {
                       const tasksWithoutCategory = availableTasks.filter(t => t.id !== taskForDependencies?.id && !t.category).length;
                       return (
@@ -1988,18 +2042,18 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                           <p className="text-sm text-muted-foreground">No tasks found matching "{dependencySearchTerm}"</p>
                           {tasksWithoutCategory > 0 && (
                             <p className="text-xs text-yellow-600">
-                              💡 {tasksWithoutCategory} task(s) don't have categories. 
+                              💡 {tasksWithoutCategory} task(s) don't have categories.
                               Tip: Select collaborator types when creating tasks to enable category search.
                             </p>
                           )}
                         </div>
                       );
                     }
-                    
+
                     if (filteredTasks.length === 0) {
                       return <p className="text-sm text-muted-foreground text-center py-4">No tasks available</p>;
                     }
-                    
+
                     return null;
                   })()}
                 </div>
@@ -2037,7 +2091,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                 setDependencySearchTerm("");
                 setShouldPreserveForm(false);
                 setIsCreateDialogOpen(false);
-                
+
                 if (clearFormAfterSave) {
                   setNewTask({
                     title: "",
@@ -2046,6 +2100,10 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     priority: "medium",
                     estimated_hours: "",
                     due_date: "",
+                    start_date: "",
+                    end_date: "",
+                    start_time: "",
+                    end_time: "",
                     selected_event_id: "",
                     dependencies: [],
                     assigned_role: ""
@@ -2053,7 +2111,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                   setSelectedCollaboratorTypes([]);
                   setClearFormAfterSave(false);
                 }
-                
+
                 toast({
                   title: "Task Created",
                   description: "Task created successfully without dependencies.",
@@ -2066,24 +2124,23 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
             <Button
               onClick={async () => {
                 if (!taskForDependencies?.id) return;
-                
+
                 try {
                   if (selectedDependencies.length > 0) {
                     await saveDependencies(taskForDependencies.id, selectedDependencies);
                   }
-                  
+
                   setShowDependencyDialog(false);
                   setTaskForDependencies(null);
                   setSelectedDependencies([]);
                   setDependencySearchTerm("");
                   setShouldPreserveForm(false);
                   setIsCreateDialogOpen(false);
-                  
+
                   if (clearFormAfterSave) {
                     setNewTask({
                       title: "",
                       description: "",
-                      assigned_user_id: "",
                       priority: "medium",
                       estimated_hours: "",
                       due_date: "",
@@ -2094,12 +2151,12 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     setSelectedCollaboratorTypes([]);
                     setClearFormAfterSave(false);
                   }
-                  
+
                   await fetchTasks();
-                  
+
                   toast({
                     title: "Dependencies Added",
-                    description: selectedDependencies.length > 0 
+                    description: selectedDependencies.length > 0
                       ? `${selectedDependencies.length} dependenc${selectedDependencies.length === 1 ? 'y' : 'ies'} added successfully.`
                       : "Task created successfully.",
                   });
@@ -2157,8 +2214,8 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
       </Dialog>
 
       {/* Dependent Tasks Conflict Dialog */}
-      <Dialog 
-        open={dependentTasksConflictDialog.isOpen} 
+      <Dialog
+        open={dependentTasksConflictDialog.isOpen}
         onOpenChange={(open) => {
           if (!open) {
             dependentTasksConflictDialog.onCancel();
@@ -2173,7 +2230,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
             <p className="text-sm text-muted-foreground">
               Updating this task's due date will affect {dependentTasksConflictDialog.affectedTasks.length} dependent task{dependentTasksConflictDialog.affectedTasks.length > 1 ? 's' : ''} that currently have earlier due dates. These tasks will be automatically updated to maintain proper dependency order.
             </p>
-            
+
             <div className="space-y-3">
               <h4 className="font-medium">Tasks that will be updated:</h4>
               {dependentTasksConflictDialog.affectedTasks.map((task) => (
