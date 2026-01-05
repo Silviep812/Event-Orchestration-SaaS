@@ -1,0 +1,1009 @@
+assign-user-role:
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+
+const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false,
+  },
+});
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+};
+
+interface AssignRoleRequest {
+  userId: string;
+  role: string;
+}
+
+serve(async (req) => {
+  // Handle CORS preflight
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Missing Authorization header" }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } },
+      );
+    }
+
+    // Verify caller
+    const token = authHeader.replace("Bearer ", "");
+    const { data: userData, error: userError } = await supabase.auth.getUser(token);
+    if (userError || !userData?.user) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Unauthorized" }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } },
+      );
+    }
+
+    const actorId = userData.user.id;
+
+    // Optionally, enforce that only certain roles can assign roles.
+    // For now, allow any authenticated user. If you want restrictions, uncomment below and adapt:
+    // const { data: actorRoles } = await supabase
+    //   .from('user_roles')
+    //   .select('role')
+    //   .eq('user_id', actorId);
+    // const allowed = actorRoles?.some(r => ['admin','event_manager'].includes(r.role));
+    // if (!allowed) { return new Response(JSON.stringify({ success:false, error:'Forbidden' }), { status: 403, headers: { 'Content-Type': 'application/json', ...corsHeaders } }) }
+
+    const body = (await req.json()) as AssignRoleRequest;
+    if (!body?.userId || !body?.role) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Missing userId or role" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } },
+      );
+    }
+
+    // Upsert role using service role to bypass RLS safely
+    const { error: upsertError } = await supabase
+      .from("user_roles")
+      .upsert({ user_id: body.userId, role: body.role as any }, { onConflict: "user_id,role" });
+
+    if (upsertError) {
+      console.error("assign-user-role upsert error", upsertError);
+      return new Response(
+        JSON.stringify({ success: false, error: upsertError.message }),
+        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } },
+      );
+    }
+
+    return new Response(
+      JSON.stringify({ success: true }),
+      { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } },
+    );
+  } catch (e: any) {
+    console.error("assign-user-role error", e);
+    return new Response(
+      JSON.stringify({ success: false, error: e?.message || "Unknown error" }),
+      { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } },
+    );
+  }
+});
+
+
+create-bulk-users:
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.53.0';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    console.log('Starting bulk user creation...');
+    
+    // Create Supabase admin client
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    );
+
+    const results = [];
+    const errors = [];
+
+    // Create users 3 through 8
+    for (let i = 3; i <= 8; i++) {
+      const email = `user${i}@test.com`;
+      const password = 'TestPassword123!'; // Default password for testing
+      
+      console.log(`Creating user: ${email}`);
+      
+      const { data, error } = await supabaseAdmin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true, // Auto-confirm the user
+        user_metadata: {
+          display_name: 'User'
+        }
+      });
+
+      if (error) {
+        console.error(`Error creating ${email}:`, error);
+        errors.push({ email, error: error.message });
+      } else {
+        console.log(`Successfully created ${email}`, data);
+        results.push({ email, user_id: data.user?.id });
+      }
+    }
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        created: results.length,
+        failed: errors.length,
+        results,
+        errors
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200
+      }
+    );
+
+  } catch (error) {
+    console.error('Error in create-bulk-users function:', error);
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        error: error.message 
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
+  }
+});
+
+
+
+database-schema-export
+Deno.serve(async (req) => {
+  const schemaQuery = `
+    WITH table_details AS (
+        SELECT 
+            table_name, 
+            json_agg(
+                json_build_object(
+                    'column_name', column_name,
+                    'data_type', data_type,
+                    'is_nullable', is_nullable = 'YES',
+                    'default_value', column_default
+                )
+            ) AS columns
+        FROM 
+            information_schema.columns
+        WHERE 
+            table_schema = 'public'
+        GROUP BY 
+            table_name
+    )
+    SELECT string_agg(
+        '## ' || table_name || E'\\n\\n' ||
+        'Columns:\\n' ||
+        json_table.column_details, 
+        E'\\n\\n'
+    ) AS markdown_content
+    FROM (
+        SELECT 
+            table_name,
+            string_agg('- **' || 
+                (col ->> 'column_name') || '**: ' || 
+                (col ->> 'data_type') || 
+                CASE WHEN (col ->> 'is_nullable')::boolean THEN ' (Nullable)' ELSE ' (Required)' END ||
+                COALESCE(' (Default: ' || (col ->> 'default_value') || ')', ''),
+                E'\\n'
+            ) AS column_details
+        FROM 
+            table_details,
+            jsonb_array_elements(columns::jsonb) AS col
+        GROUP BY 
+            table_name
+    ) AS json_table;`;
+
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  );
+
+  const { data, error } = await supabase.rpc('database_schema_export', {});
+
+  if (error) {
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+
+  return new Response(data, {
+    status: 200,
+    headers: {
+      'Content-Type': 'text/markdown',
+      'Content-Disposition': 'attachment; filename=database_schema.md'
+    }
+  });
+});
+
+
+
+download-schema
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+
+serve(async (req) => {
+  try {
+    // Attempt to read the file from /tmp
+    const filePath = "/tmp/IEP Schema (Start).txt";
+    const file = await Deno.readTextFile(filePath);
+
+    // Create a response with the file content
+    return new Response(file, {
+      status: 200,
+      headers: {
+        'Content-Disposition': 'attachment; filename="IEP Schema (Start).txt"',
+        'Content-Type': 'text/plain',
+      },
+    });
+  } catch (error) {
+    // Handle potential file not found or read errors
+    return new Response(`Error reading file: ${error.message}`, { 
+      status: 404 
+    });
+  }
+});
+
+
+get-invited-users
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+
+const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false
+  }
+});
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+};
+
+const handler = async (req: Request): Promise<Response> => {
+  console.log("Get invited users function called");
+
+  // Handle CORS preflight requests
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    // Get the inviter's user ID from the request
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('No authorization header');
+    }
+
+    // Verify the user is authenticated
+    const { data: { user }, error: authError } = await supabase.auth.getUser(
+      authHeader.replace('Bearer ', '')
+    );
+
+    if (authError || !user) {
+      throw new Error('Unauthorized');
+    }
+
+    console.log("Fetching invited users for inviter:", user.id);
+
+    // Fetch users that were invited by this user
+    const { data: users, error: usersError } = await supabase.auth.admin.listUsers();
+
+    if (usersError) {
+      throw usersError;
+    }
+
+    // Filter users that were invited by the current user and format the data
+    const invitedUsers = users.users
+      .filter(u => 
+        u.user_metadata?.inviter_email === user.email && 
+        u.invited_at && 
+        !u.email_confirmed_at // Only show pending invitations
+      )
+      .map(u => ({
+        id: u.id,
+        name: u.user_metadata?.full_name || u.email?.split('@')[0] || 'Unknown User',
+        email: u.email,
+        status: 'invited' as const,
+        joinedAt: u.invited_at,
+        avatar: u.user_metadata?.avatar_url
+      }));
+
+    // Also get confirmed users that were invited by this user
+    const confirmedUsers = users.users
+      .filter(u => 
+        u.user_metadata?.inviter_email === user.email && 
+        u.email_confirmed_at // Confirmed invitations
+      )
+      .map(u => ({
+        id: u.id,
+        name: u.user_metadata?.full_name || u.email?.split('@')[0] || 'Unknown User',
+        email: u.email,
+        status: 'online' as const, // Default to online for confirmed users
+        joinedAt: u.created_at,
+        avatar: u.user_metadata?.avatar_url
+      }));
+
+    const allTeamMembers = [...invitedUsers, ...confirmedUsers];
+
+    console.log("Found team members:", allTeamMembers.length);
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        teamMembers: allTeamMembers,
+      }),
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          ...corsHeaders,
+        },
+      }
+    );
+  } catch (error: any) {
+    console.error("Error in get-invited-users function:", error);
+    return new Response(
+      JSON.stringify({ 
+        success: false,
+        error: error.message 
+      }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      }
+    );
+  }
+};
+
+serve(handler);
+
+
+get-users-for-roles
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+
+  try {
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    );
+
+    // Get all users from auth
+    const { data: { users }, error: authError } = await supabaseAdmin.auth.admin.listUsers();
+    if (authError) throw authError;
+
+    // Get all profiles
+    const { data: profiles, error: profilesError } = await supabaseAdmin
+      .from('profiles')
+      .select('user_id, display_name, created_at');
+    
+    if (profilesError) throw profilesError;
+
+    // Combine user data
+    const usersWithData = profiles?.map((profile: any) => {
+      const authUser = users.find((u: any) => u.id === profile.user_id);
+      return {
+        id: profile.user_id,
+        name: profile.display_name || 'Unknown User',
+        email: authUser?.email || '',
+        avatar: authUser?.user_metadata?.avatar_url,
+        created_at: profile.created_at
+      };
+    }) || [];
+
+    return new Response(
+      JSON.stringify({ users: usersWithData }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200 
+      }
+    );
+  } catch (error) {
+    console.error('Error:', error);
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400 
+      }
+    );
+  }
+});
+
+
+
+
+schema-export
+import { createClient } from 'npm:@supabase/supabase-js@2.39.7';
+
+Deno.serve(async (req: Request) => {
+  try {
+    // Validate environment variables
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+    if (!supabaseUrl || !supabaseServiceRoleKey) {
+      throw new Error('Missing Supabase configuration');
+    }
+
+    // Initialize Supabase client
+    const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
+      auth: { persistSession: false }
+    });
+
+    // Fetch detailed schema report
+    const schemaQuery = `
+      WITH table_details AS (
+        SELECT 
+          table_name, 
+          json_agg(
+            json_build_object(
+              'column_name', column_name,
+              'data_type', data_type,
+              'character_maximum_length', character_maximum_length,
+              'is_nullable', is_nullable = 'YES',
+              'column_default', column_default
+            )
+          ) AS columns,
+          obj_description((table_schema || '.' || table_name)::regclass, 'pg_class') AS table_description
+        FROM 
+          information_schema.columns
+        WHERE 
+          table_schema = 'public'
+        GROUP BY 
+          table_name
+      )
+      SELECT 
+        json_agg(
+          json_build_object(
+            'table_name', table_name,
+            'table_description', table_description,
+            'columns', columns
+          )
+        ) AS schema_report
+      FROM 
+        table_details;
+    `;
+
+    // Execute the query
+    const { data, error } = await supabase.rpc('execute_raw_sql', { 
+      query: schemaQuery 
+    });
+
+    if (error) throw error;
+
+    // Generate human-readable markdown report
+    const generateMarkdownReport = (schemaData: any[]) => {
+      let reportContent = `# Supabase Database Schema Report\n\n`;
+      reportContent += `**Generated at**: ${new Date().toISOString()}\n\n`;
+
+      schemaData.forEach(table => {
+        reportContent += `## Table: ${table.table_name}\n`;
+        
+        // Add table description if exists
+        if (table.table_description) {
+          reportContent += `*${table.table_description}*\n\n`;
+        }
+
+        reportContent += `### Columns:\n`;
+        
+        table.columns.forEach((column: any) => {
+          let columnDetails = `- **${column.column_name}**:`;
+          columnDetails += ` \`${column.data_type}${column.character_maximum_length ? `(${column.character_maximum_length})` : ''}\``;
+          columnDetails += column.is_nullable ? ` *(Nullable)*` : ` *(Required)*`;
+          
+          if (column.column_default) {
+            columnDetails += ` - Default: \`${column.column_default}\``;
+          }
+          
+          reportContent += columnDetails + `\n`;
+        });
+        
+        reportContent += `\n`;
+      });
+
+      return reportContent;
+    };
+
+    // Create markdown report
+    const markdownReport = generateMarkdownReport(data[0].schema_report);
+
+    // Return as downloadable markdown file
+    return new Response(markdownReport, {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/markdown',
+        'Content-Disposition': `attachment; filename=supabase_schema_report_${new Date().toISOString().split('T')[0]}.md`
+      }
+    });
+
+  } catch (error) {
+    console.error('Schema Export Error:', error);
+    return new Response(JSON.stringify({ 
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    }), { 
+      status: 500,
+      headers: { 
+        'Content-Type': 'application/json'
+      }
+    });
+  }
+});
+
+// First, create the helper RPC function to execute raw SQL
+// This should be run in your Supabase SQL Editor
+const createExecuteRawSqlFunction = `
+CREATE OR REPLACE FUNCTION execute_raw_sql(query text)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    result JSONB;
+BEGIN
+    EXECUTE query INTO result;
+    RETURN result;
+END;
+$$;
+`;
+
+
+
+send-task-notification
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { Resend } from "https://esm.sh/resend@2.0.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.53.0";
+
+const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+};
+
+interface TaskNotificationRequest {
+  taskId: string;
+  taskTitle: string;
+  oldEstimate?: number;
+  newEstimate?: number;
+  eventId?: string;
+  coordinatorEmails: string[];
+  changeDescription: string;
+}
+
+const handler = async (req: Request): Promise<Response> => {
+  console.log("Task notification function called");
+
+  // Handle CORS preflight requests
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const {
+      taskTitle,
+      oldEstimate,
+      newEstimate,
+      coordinatorEmails,
+      changeDescription,
+    }: TaskNotificationRequest = await req.json();
+
+    console.log("Sending notification for task:", taskTitle);
+    console.log("Recipients:", coordinatorEmails);
+
+    const subject = `Task Estimate Updated: ${taskTitle}`;
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333; border-bottom: 2px solid #4f46e5; padding-bottom: 10px;">
+          Task Estimate Change Notification
+        </h2>
+        
+        <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <h3 style="color: #1e293b; margin-top: 0;">Task: ${taskTitle}</h3>
+          
+          <div style="margin: 15px 0;">
+            <strong>Estimate Change:</strong>
+            <div style="margin: 5px 0;">
+              <span style="color: #ef4444;">Previous: ${oldEstimate ? `${oldEstimate} hours` : 'Not set'}</span>
+            </div>
+            <div style="margin: 5px 0;">
+              <span style="color: #22c55e;">New: ${newEstimate ? `${newEstimate} hours` : 'Not set'}</span>
+            </div>
+          </div>
+          
+          <div style="margin: 15px 0;">
+            <strong>Description:</strong>
+            <p style="margin: 5px 0; color: #64748b;">${changeDescription}</p>
+          </div>
+        </div>
+        
+        <div style="background-color: #dbeafe; padding: 15px; border-radius: 8px; border-left: 4px solid #3b82f6;">
+          <p style="margin: 0; color: #1e40af;">
+            <strong>Note:</strong> Dependent tasks may have been automatically adjusted. 
+            Please review your project timeline to ensure everything aligns with your schedule.
+          </p>
+        </div>
+        
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e2e8f0; color: #64748b; font-size: 14px;">
+          <p>This is an automated notification from your Event Planning System.</p>
+        </div>
+      </div>
+    `;
+
+    // Send email to all coordinators
+    const emailPromises = coordinatorEmails.map(email =>
+      resend.emails.send({
+        from: "Event Planning System <onboarding@resend.dev>",
+        to: [email],
+        subject,
+        html: htmlContent,
+      })
+    );
+
+    const results = await Promise.allSettled(emailPromises);
+    
+    // Log results
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        console.log(`Email sent successfully to ${coordinatorEmails[index]}`);
+      } else {
+        console.error(`Failed to send email to ${coordinatorEmails[index]}:`, result.reason);
+      }
+    });
+
+    const successCount = results.filter(r => r.status === 'fulfilled').length;
+    const failureCount = results.length - successCount;
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message: `Notifications sent: ${successCount} successful, ${failureCount} failed`,
+        results,
+      }),
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          ...corsHeaders,
+        },
+      }
+    );
+  } catch (error: any) {
+    console.error("Error in send-task-notification function:", error);
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      }
+    );
+  }
+};
+
+serve(handler);
+
+
+
+
+send-team-invitation
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+
+const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false
+  }
+});
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+};
+
+interface TeamInvitationRequest {
+  email: string;
+  role: string;
+  inviterName: string;
+  inviterEmail: string;
+  teamId?: string;
+  isCoordinator?: boolean;
+  isViewer?: boolean;
+}
+
+const handler = async (req: Request): Promise<Response> => {
+  console.log("Team invitation function called");
+
+  // Handle CORS preflight requests
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const {
+      email,
+      role,
+      inviterName,
+      inviterEmail,
+      teamId,
+      isCoordinator,
+      isViewer,
+    }: TeamInvitationRequest = await req.json();
+
+    console.log("Sending team invitation to:", email);
+    console.log("Role:", role);
+    console.log("Inviter:", inviterName);
+
+    // First, check if user already exists by email
+    const { data: existingUsers, error: checkError } = await supabase.auth.admin.listUsers();
+    
+    if (checkError) {
+      console.error("Error checking existing users:", checkError);
+      throw checkError;
+    }
+
+    const existingUser = existingUsers.users.find(u => u.email?.toLowerCase() === email.toLowerCase());
+
+    if (existingUser) {
+      // User already exists, add them directly to the team
+      console.log("User already exists, adding to team directly:", existingUser.id);
+      
+      // Store the role in user_roles table
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .upsert({
+          user_id: existingUser.id,
+          role: role
+        }, {
+          onConflict: 'user_id,role'
+        });
+
+      if (roleError) {
+        console.error("Error storing role in database:", roleError);
+      } else {
+        console.log("Role stored in database for existing user:", existingUser.id);
+      }
+
+      // Create team_assignments record if teamId provided
+      if (teamId) {
+        const { error: teamError } = await supabase
+          .from('team_assignments')
+          .upsert({
+            user_id: existingUser.id,
+            team_id: teamId,
+            team_admin: false,
+            is_coordinator: isCoordinator || false,
+            is_viewer: isViewer || false,
+          }, {
+            onConflict: 'user_id,team_id'
+          });
+
+        if (teamError) {
+          console.error("Error creating team assignment:", teamError);
+        } else {
+          console.log("Team assignment created for existing user:", existingUser.id);
+        }
+      }
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: `User ${email} added to team successfully`,
+          isExistingUser: true,
+        }),
+        {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+            ...corsHeaders,
+          },
+        }
+      );
+    }
+
+    // User doesn't exist, send invitation
+    const { data, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(email, {
+      data: {
+        role: role,
+        inviter_name: inviterName,
+        inviter_email: inviterEmail
+      },
+      redirectTo: `${supabaseUrl.replace('//', '//').split('/')[0]}//${supabaseUrl.split('//')[1].split('.')[0]}.supabase.co/auth/v1/verify?type=invite&redirect_to=${encodeURIComponent(Deno.env.get('SITE_URL') || 'http://localhost:5173')}/dashboard`
+    });
+
+    if (inviteError) {
+      throw inviteError;
+    }
+
+    // Store the role in user_roles table for the invited user
+    if (data.user && data.user.id) {
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .upsert({
+          user_id: data.user.id,
+          role: role
+        }, {
+          onConflict: 'user_id,role'
+        });
+
+      if (roleError) {
+        console.error("Error storing role in database:", roleError);
+      } else {
+        console.log("Role stored in database for user:", data.user.id);
+      }
+
+      // Create team_assignments record with attributes if teamId provided
+      if (teamId) {
+        const { error: teamError } = await supabase
+          .from('team_assignments')
+          .insert({
+            user_id: data.user.id,
+            team_id: teamId,
+            team_admin: false,
+            is_coordinator: isCoordinator || false,
+            is_viewer: isViewer || false,
+          });
+
+        if (teamError) {
+          console.error("Error creating team assignment:", teamError);
+        } else {
+          console.log("Team assignment created for user:", data.user.id);
+        }
+      }
+    }
+
+    console.log("Invitation sent successfully:", data);
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message: `Team invitation sent successfully to ${email}`,
+        isExistingUser: false,
+        data,
+      }),
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          ...corsHeaders,
+        },
+      }
+    );
+  } catch (error: any) {
+    console.error("Error in send-team-invitation function:", error);
+    return new Response(
+      JSON.stringify({ 
+        success: false,
+        error: error.message 
+      }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      }
+    );
+  }
+};
+
+serve(handler);
+
+
+smooth-responder
+// Setup type definitions for built-in Supabase Runtime APIs
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+interface reqPayload {
+  name: string;
+}
+
+console.info('server started');
+
+Deno.serve(async (req: Request) => {
+  const { name }: reqPayload = await req.json();
+  const data = {
+    message: `Hello ${name}!`,
+  };
+
+  return new Response(
+    JSON.stringify(data),
+    { headers: { 'Content-Type': 'application/json', 'Connection': 'keep-alive' }}
+  );
+});
+
+
+
+verify-tmp-file
+Deno.serve(async (req) => {
+  const fileName = "IEP Schema (Start).txt";
+  const filePath = `/tmp/${fileName}`;
+
+  try {
+    // Try to get file information
+    const fileInfo = await Deno.stat(filePath);
+
+    // Prepare response with file details
+    const responseBody = JSON.stringify({
+      exists: true,
+      fileName: fileName,
+      size: fileInfo.size,
+      isFile: fileInfo.isFile,
+      path: filePath
+    });
+
+    return new Response(responseBody, {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  } catch (error) {
+    // Handle file not found or other errors
+    const responseBody = JSON.stringify({
+      exists: false,
+      error: error.message,
+      fileName: fileName,
+      path: filePath
+    });
+
+    return new Response(responseBody, {
+      status: 404,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+});

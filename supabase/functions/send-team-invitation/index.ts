@@ -25,6 +25,7 @@ interface TeamInvitationRequest {
   teamId?: string;
   isCoordinator?: boolean;
   isViewer?: boolean;
+  collaboratorTypes?: string[];
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -44,6 +45,7 @@ const handler = async (req: Request): Promise<Response> => {
       teamId,
       isCoordinator,
       isViewer,
+      collaboratorTypes,
     }: TeamInvitationRequest = await req.json();
 
     console.log("Sending team invitation to:", email);
@@ -124,7 +126,7 @@ const handler = async (req: Request): Promise<Response> => {
         inviter_name: inviterName,
         inviter_email: inviterEmail
       },
-      redirectTo: `${supabaseUrl.replace('//', '//').split('/')[0]}//${supabaseUrl.split('//')[1].split('.')[0]}.supabase.co/auth/v1/verify?type=invite&redirect_to=${encodeURIComponent(Deno.env.get('SITE_URL') || 'http://localhost:5173')}/dashboard`
+      redirectTo: `${Deno.env.get('SITE_URL') || Deno.env.get('APP_URL') || 'http://localhost:5173'}/dashboard`
     });
 
     if (inviteError) {

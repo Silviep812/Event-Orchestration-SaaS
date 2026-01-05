@@ -5,6 +5,20 @@ DROP FUNCTION IF EXISTS notify_change_request_status(UUID, TEXT);
 DROP FUNCTION IF EXISTS get_coordinator_emails(UUID);
 DROP TABLE IF EXISTS public.cm_change_requests CASCADE;
 
+-- Ensure tasks table has a primary key constraint (required for foreign key)
+DO $$
+BEGIN
+  -- Check if primary key constraint exists, if not add it
+  IF NOT EXISTS (
+    SELECT 1 
+    FROM pg_constraint 
+    WHERE conrelid = 'public.tasks'::regclass 
+    AND contype = 'p'
+  ) THEN
+    ALTER TABLE public.tasks ADD PRIMARY KEY (id);
+  END IF;
+END $$;
+
 -- Create new change_requests table with proper schema
 CREATE TABLE public.change_requests (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

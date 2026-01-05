@@ -5,3 +5,18 @@ verify_jwt = false
 
 [functions.create-bulk-users]
 verify_jwt = false
+
+[functions.get-users-for-roles]
+verify_jwt = false
+
+[functions.get-invited-users]
+verify_jwt = false
+
+[functions.send-team-invitation]
+verify_jwt = false
+
+[functions.send-change-request-notification]
+verify_jwt = false
+
+[functions.assign-user-role]
+verify_jwt = false

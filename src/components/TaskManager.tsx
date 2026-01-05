@@ -182,7 +182,18 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
 
   const fetchUsers = async () => {
     try {
-      // Fetch all users who have any role assigned (not filtered by event)
+      // First, get all valid profiles (only users that actually exist)
+      const { data: allProfiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('user_id, display_name')
+        .not('display_name', 'eq', 'IDA Event Partners');
+
+      if (profilesError) throw profilesError;
+
+      // Get unique user IDs from profiles
+      const validUserIds = new Set((allProfiles || []).map(p => p.user_id));
+
+      // Fetch users who have roles assigned AND exist in profiles
       const { data: userRoles, error: rolesError } = await supabase
         .from('user_roles')
         .select('user_id');
@@ -192,23 +203,41 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
       let mappedUsers: User[] = [];
 
       if (userRoles && userRoles.length > 0) {
-        // Get unique user IDs
-        const uniqueUserIds = [...new Set(userRoles.map(role => role.user_id))];
+        // Get unique user IDs that have roles AND exist in profiles
+        const uniqueUserIds = [...new Set(
+          userRoles
+            .map(role => role.user_id)
+            .filter(userId => validUserIds.has(userId))
+        )];
 
-        const { data: profilesData, error: profilesError } = await supabase
-          .from('profiles')
-          .select('user_id, display_name')
-          .in('user_id', uniqueUserIds);
+        if (uniqueUserIds.length > 0) {
+          const { data: profilesData, error: profilesError2 } = await supabase
+            .from('profiles')
+            .select('user_id, display_name')
+            .in('user_id', uniqueUserIds);
 
-        if (profilesError) throw profilesError;
+          if (profilesError2) throw profilesError2;
 
-        mappedUsers = (profilesData || [])
-          .filter(profile => profile.display_name !== 'IDA Event Partners')
-          .map(profile => ({
-            userid: profile.user_id,
-            user_name: profile.display_name,
-            contact_name: profile.display_name
-          }));
+          mappedUsers = (profilesData || [])
+            .map(profile => ({
+              userid: profile.user_id,
+              user_name: profile.display_name || 'Unknown User',
+              contact_name: profile.display_name || 'Unknown User'
+            }));
+        }
+      }
+
+      // Also include current user if they have a profile (even without roles)
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user && validUserIds.has(user.id)) {
+        const currentUserProfile = allProfiles?.find(p => p.user_id === user.id);
+        if (currentUserProfile && !mappedUsers.find(u => u.userid === user.id)) {
+          mappedUsers.push({
+            userid: user.id,
+            user_name: currentUserProfile.display_name || 'You',
+            contact_name: currentUserProfile.display_name || 'You'
+          });
+        }
       }
 
       // Handle duplicate display names by appending identifier
