@@ -79,7 +79,8 @@ export default function CreateEvent() {
   const prevSelectedVenueNameRef = useRef<string | undefined>();
 
   const [themesLoaded, setThemesLoaded] = useState(false);
-  const [budgetInput, setBudgetInput] = useState('');
+  const [budgetInput, setBudgetInput] = useState('1,000.00');
+
 
   useEffect(() => {
     if (!selectedVenueName) {
@@ -715,25 +716,24 @@ export default function CreateEvent() {
                 <Input
                   id="budget"
                   value={budgetInput}
-                  onChange={e => {
-                    setBudgetInput(e.target.value);
-                    setValue('budget', e.target.value);
+                  onChange={(e) => {
+                    const rawValue = e.target.value.replace(/[^0-9.]/g, '');
+                    setBudgetInput(rawValue);
+                    setValue('budget', rawValue || '1000');
                   }}
                   onBlur={() => {
-                    if (budgetInput) {
-                      const formatted = parseFloat(budgetInput).toFixed(2);
-                      setBudgetInput(formatted);
-                      setValue('budget', formatted);
-                    }
+                    const numeric = parseFloat(budgetInput) || 1000; // default 1000 if changes need 
+                    const formatted = numeric.toLocaleString('en-US', {
+                      style: 'currency',
+                      currency: 'USD',
+                    });
+                    setBudgetInput(formatted);
+                    setValue('budget', numeric.toString());
                   }}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') {
-                      (e.target as HTMLInputElement).blur();
-                    }
-                  }}
-                  placeholder="Enter budget amount"
+                  placeholder="$1,000.00"
                 />
               </div>
+
             </CardContent>
           </Card>
         </div>
