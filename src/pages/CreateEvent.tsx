@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,6 +28,35 @@ interface EventFormData {
   status?: 'pending' | 'in_progress' | 'completed' | 'cancelled';
 }
 
+interface VenueProfile {
+  id: string;
+  business_name: string;
+  venue_type: string;
+  venue_type_id: number;
+  city?: string | null;
+  state?: string | null;
+  zip?: string | null;
+}
+
+const formatVenueLocation = (venue: VenueProfile) => {
+  const locationPieces = [venue.city, venue.state].filter(
+    (piece): piece is string => Boolean(piece && piece.trim())
+  );
+
+  const baseLocation = locationPieces.join(", ");
+  const trimmedZip = venue.zip?.trim();
+
+  if (baseLocation && trimmedZip) {
+    return `${baseLocation} ${trimmedZip}`;
+  }
+
+  if (baseLocation) {
+    return baseLocation;
+  }
+
+  return trimmedZip ?? "";
+};
+
 export default function CreateEvent() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -40,15 +69,44 @@ export default function CreateEvent() {
   const [eventThemes, setEventThemes] = useState<{ id: number; name: string; premium: boolean }[]>([]);
   const [eventTypes, setEventTypes] = useState<{ id: number; name: string; theme_id: number; parent_id: number | null }[]>([]);
   const [subEventTypes, setSubEventTypes] = useState<{ id: number; name: string; theme_id: number; parent_id: number | null }[]>([]);
-  const [venueProfiles, setVenueProfiles] = useState<{ id: string; business_name: string; venue_type: string; venue_type_id: number }[]>([]);
+  const [venueProfiles, setVenueProfiles] = useState<VenueProfile[]>([]);
   const [venueTypes, setVenueTypes] = useState<{ id: number; name: string }[]>([]);
   const [selectedVenueType, setSelectedVenueType] = useState<number | null>(null);
   const selectedThemeId = watch("theme_id");
   const selectedEventType = watch("type");
   const selectedSubType = watch("subType");
+  const selectedVenueName = watch("venue");
+  const prevSelectedVenueNameRef = useRef<string | undefined>();
 
   const [themesLoaded, setThemesLoaded] = useState(false);
   const [budgetInput, setBudgetInput] = useState('');
+
+  useEffect(() => {
+    if (!selectedVenueName) {
+      prevSelectedVenueNameRef.current = undefined;
+      return;
+    }
+
+    if (prevSelectedVenueNameRef.current === selectedVenueName) {
+      return;
+    }
+
+    const selectedProfile = venueProfiles.find(
+      (profile) => profile.business_name === selectedVenueName
+    );
+
+    if (!selectedProfile) {
+      return;
+    }
+
+    const locationValue = formatVenueLocation(selectedProfile);
+    if (!locationValue) {
+      return;
+    }
+
+    setValue("location", locationValue);
+    prevSelectedVenueNameRef.current = selectedVenueName;
+  }, [selectedVenueName, setValue, venueProfiles]);
 
   useEffect(() => {
     const fetchThemes = async () => {
@@ -87,7 +145,7 @@ export default function CreateEvent() {
       // Fetch venues with their types
       const { data: venuesData, error: venuesError } = await supabase
         .from('venues')
-        .select('id, business_name, venue_type_id, venue_types(name)')
+        .select('id, business_name, venue_type_id, city, state, zip, venue_types(name)')
         .order('business_name');
 
       if (venuesError) {
@@ -100,7 +158,10 @@ export default function CreateEvent() {
         id: v.id,
         business_name: v.business_name,
         venue_type_id: v.venue_type_id,
-        venue_type: v.venue_types?.name || 'Other'
+        venue_type: v.venue_types?.name || 'Other',
+        city: v.city,
+        state: v.state,
+        zip: v.zip
       })) || [];
 
       setVenueProfiles(profiles);
