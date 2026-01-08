@@ -292,15 +292,15 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(event.active.id as string);
-    
+
     // Get the actual dragged element
     const element = document.querySelector(`[data-id="${event.active.id}"]`) as HTMLElement;
     activeElementRef.current = element;
-    
+
     if (element) {
       const rect = element.getBoundingClientRect();
       const pointer = event.activatorEvent as PointerEvent;
-      
+
       if (pointer) {
         // Calculate offset from click position to element top-left
         const offsetX = pointer.clientX - rect.left;
@@ -321,10 +321,10 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
     if (active.id !== over?.id) {
       const oldIndex = resources.findIndex(item => item.id === active.id);
       const newIndex = resources.findIndex(item => item.id === over?.id);
-      
+
       const newResources = arrayMove(resources, oldIndex, newIndex);
       setResources(newResources);
-      
+
       // Simulate resource reallocation
       toast({
         title: "Resource Reassigned",
@@ -349,7 +349,7 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
       if (fetchError) throw fetchError;
 
       const available = resource.total - resource.allocated;
-      
+
       if (available <= 0) {
         toast({
           title: "Resource Unavailable",
@@ -361,7 +361,7 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
 
       const { error: updateError } = await supabase
         .from('resources')
-        .update({ 
+        .update({
           allocated: resource.allocated + 1,
         })
         .eq('id', resourceId);
@@ -415,7 +415,7 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
 
     try {
       console.log('Manual sync: Updating all resources to location:', eventLocation);
-      
+
       const { data, error } = await supabase
         .from('resources')
         .update({ location: eventLocation })
@@ -425,7 +425,7 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
       if (error) throw error;
 
       console.log('Manual sync: Updated', data?.length || 0, 'resources');
-      
+
       toast({
         title: "Location Synced",
         description: `Updated ${data?.length || 0} resource(s) to ${eventLocation}`,
@@ -518,17 +518,17 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
         })
         .eq('id', editResource.id);
       if (error) throw error;
-      
+
       // Recalculate utilization
       const { data: utilData, error: utilError } = await supabase.rpc('update_resource_utilization', {
         p_resource_id: editResource.id,
         p_event_id: eventId || null
       });
-      
+
       toast({ title: 'Resource Updated', description: 'Resource info updated successfully.' });
       setIsEditDialogOpen(false);
       setEditResource(null);
-      
+
       // Refresh resources with utilization data
       await fetchData();
     } catch (error) {
@@ -544,7 +544,7 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
       transform,
       transition,
       isDragging,
-    } = useSortable({ 
+    } = useSortable({
       id: resource.id,
     });
 
@@ -567,7 +567,7 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
     };
 
     return (
-      <Card 
+      <Card
         ref={setNodeRef}
         style={style}
         {...attributes}
@@ -588,25 +588,25 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
             </Badge>
           </div>
         </CardHeader>
-        
+
         <CardContent className="space-y-3">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <MapPin className="h-4 w-4" />
             {resource.location}
           </div>
-          
+
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span>Utilization</span>
               <span className="font-medium">{utilizationPercent}%</span>
             </div>
             <Progress value={utilizationPercent} className="h-2" />
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>Available: {resource.available_count ?? (resource.total - resource.allocated)}</span>
-            <span>Allocated: {resource.allocated}/{resource.total}</span>
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>Available: {resource.available_count ?? (resource.total - resource.allocated)}</span>
+              <span>Allocated: {resource.allocated}/{resource.total}</span>
+            </div>
           </div>
-        </div>
-          
+
           <div className="flex gap-2">
             <Button
               size="sm"
@@ -650,25 +650,25 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
             </Badge>
           </div>
         </CardHeader>
-        
+
         <CardContent className="space-y-3">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <MapPin className="h-4 w-4" />
             {resource.location}
           </div>
-          
+
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span>Utilization</span>
               <span>{resource.allocated}/{resource.total}</span>
             </div>
             <Progress value={utilizationPercent} className="h-2" />
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>Available: {resource.total - resource.allocated}</span>
-            <span>Allocated: {resource.allocated}</span>
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>Available: {resource.total - resource.allocated}</span>
+              <span>Allocated: {resource.allocated}</span>
+            </div>
           </div>
-        </div>
-          
+
           <div className="flex gap-2">
             <Button
               size="sm"
@@ -739,12 +739,12 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
             Manage event resources and allocations
           </p>
         </div>
-        
+
         <div className="flex items-center gap-2">
           {eventLocation && (
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               onClick={syncLocationFromEvent}
               className="gap-2"
             >
@@ -969,7 +969,7 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            
+
             <div>
               <Label htmlFor="location">Location</Label>
               <Select value={selectedLocation} onValueChange={setSelectedLocation}>
@@ -986,7 +986,7 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div>
               <Label htmlFor="category">Category</Label>
               <Select value={selectedCategory} onValueChange={setSelectedCategory}>
@@ -1003,10 +1003,10 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="flex items-end">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => {
                   setSearchQuery('');
                   setSelectedLocation('all');
@@ -1032,7 +1032,7 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
             <TabsTrigger value="drag-drop">Drag & Drop View</TabsTrigger>
             <TabsTrigger value="standard">Standard View</TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="drag-drop" className="space-y-6">
             <DndContext
               sensors={sensors}
@@ -1054,7 +1054,7 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
                       <h3 className="text-lg font-medium capitalize">{group}</h3>
                       <Badge variant="secondary">{groupResources.length} resources</Badge>
                     </div>
-                    
+
                     <SortableContext
                       items={groupResources.map(r => r.id)}
                       strategy={verticalListSortingStrategy}
@@ -1068,7 +1068,7 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
                   </div>
                 )
               ))}
-              
+
               <DragOverlay
                 adjustScale={false}
                 style={{
@@ -1076,7 +1076,7 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
                 }}
               >
                 {activeId ? (
-                  <div 
+                  <div
                     className="rotate-1 shadow-lg pointer-events-none"
                     style={dragOffset ? {
                       transform: `translate(-${dragOffset.x}px, -${dragOffset.y}px)`,
@@ -1090,7 +1090,7 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
               </DragOverlay>
             </DndContext>
           </TabsContent>
-          
+
           <TabsContent value="standard" className="space-y-6">
             {Object.entries(groupedResources()).map(([group, groupResources]) => (
               groupResources.length > 0 && (
@@ -1099,7 +1099,7 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
                     <h3 className="text-lg font-medium capitalize">{group}</h3>
                     <Badge variant="secondary">{groupResources.length} resources</Badge>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
                     {groupResources.map((resource) => (
                       <ResourceCard key={resource.id} resource={resource} />
