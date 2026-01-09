@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions } from "@/lib/permissions";
-import { Bell, Clock, Plus, Save, AlertCircle, History, Eye, Trash2, Calendar as CalendarIcon, Package, BarChart3, MapPin, DollarSign, Tag, Sparkles, CheckCircle2, XCircle, Loader2, TrendingUp, RefreshCw } from "lucide-react";
+import { Bell, Clock, Plus, Save, AlertCircle, History, Eye, Trash2, Calendar as CalendarIcon, Package, BarChart3, MapPin, DollarSign, Tag, Sparkles, CheckCircle2, XCircle, Loader2, TrendingUp, RefreshCw, Edit } from "lucide-react";
 import { format } from "date-fns";
 import TimelineView from "@/components/timeline/TimelineView";
 import ResourceManager from "@/components/ResourceManager";
@@ -80,6 +80,7 @@ const ManageEvent = () => {
 
   const [budgetInput, setBudgetInput] = useState<string>('');
   const [venueBookingCompleted, setVenueBookingCompleted] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
 
   // Resource sync trigger
   const [resourceRefreshKey, setResourceRefreshKey] = useState(0);
@@ -212,7 +213,7 @@ const ManageEvent = () => {
         .from('events')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id);
-      
+
       setHasEventsInDb((totalCount || 0) > 0);
 
       // Build query with database-level filtering
@@ -229,7 +230,7 @@ const ManageEvent = () => {
           // Build filter conditions: include null status if 'pending' is selected
           const hasPending = statusValues.includes('pending');
           const otherStatuses = statusValues.filter(s => s !== 'pending');
-          
+
           if (hasPending && otherStatuses.length > 0) {
             // Include pending, null, and other statuses
             query = query.or(`status.in.(${statusValues.join(',')}),status.is.null`);
@@ -249,12 +250,12 @@ const ManageEvent = () => {
       const { data, error } = await query;
 
       if (error) throw error;
-      
+
       let transformedData = data.map(event => ({
         ...event,
         theme_id: event.theme_id ? Number(event.theme_id) : undefined
       }));
-      
+
       // If there's a selected event and it's not in the filtered results, fetch it separately
       if (selectedEvent?.id) {
         const selectedEventInResults = transformedData.some(e => e.id === selectedEvent.id);
@@ -266,7 +267,7 @@ const ManageEvent = () => {
               .eq('id', selectedEvent.id)
               .eq('user_id', user.id)
               .single();
-            
+
             if (!selectedError && selectedEventData) {
               const transformedSelectedEvent = {
                 ...selectedEventData,
@@ -280,7 +281,7 @@ const ManageEvent = () => {
           }
         }
       }
-      
+
       // Sort by status order, then by created_at within each status
       const statusOrder = ['pending', 'in_progress', 'completed', 'cancelled'];
       transformedData.sort((a, b) => {
@@ -288,17 +289,17 @@ const ManageEvent = () => {
         const bStatus = b.status || 'pending';
         const aIndex = statusOrder.indexOf(aStatus);
         const bIndex = statusOrder.indexOf(bStatus);
-        
+
         if (aIndex !== bIndex) {
           return aIndex - bIndex;
         }
-        
+
         // Within same status, sort by created_at descending
         const aDate = a.created_at ? new Date(a.created_at).getTime() : 0;
         const bDate = b.created_at ? new Date(b.created_at).getTime() : 0;
         return bDate - aDate;
       });
-      
+
       setEvents(transformedData);
     } catch (error) {
       console.error('Error fetching events:', error);
@@ -562,7 +563,7 @@ const ManageEvent = () => {
 
   const handleFieldChange = (field: string, value: any) => {
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/7ba7f6db-4491-4548-a2a1-1710bced117d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ManageEvent.tsx:563',message:'handleFieldChange entry',data:{field,value,hasSelectedEvent:!!selectedEvent},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    fetch('http://127.0.0.1:7242/ingest/7ba7f6db-4491-4548-a2a1-1710bced117d', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'ManageEvent.tsx:563', message: 'handleFieldChange entry', data: { field, value, hasSelectedEvent: !!selectedEvent }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'A' }) }).catch(() => { });
     // #endregion
     if (!selectedEvent) return;
 
@@ -584,7 +585,7 @@ const ManageEvent = () => {
     const originalEvent = events.find(e => e.id === selectedEvent.id);
     const oldValue = originalEvent?.[field as keyof ManageEventData] ?? selectedEvent[field as keyof ManageEventData];
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/7ba7f6db-4491-4548-a2a1-1710bced117d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ManageEvent.tsx:582',message:'Value comparison',data:{field,oldValue,newValue:value,areEqual:oldValue===value,oldValueType:typeof oldValue,newValueType:typeof value},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    fetch('http://127.0.0.1:7242/ingest/7ba7f6db-4491-4548-a2a1-1710bced117d', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'ManageEvent.tsx:582', message: 'Value comparison', data: { field, oldValue, newValue: value, areEqual: oldValue === value, oldValueType: typeof oldValue, newValueType: typeof value }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'A' }) }).catch(() => { });
     // #endregion
 
     // Only proceed if value actually changed from original
@@ -596,7 +597,7 @@ const ManageEvent = () => {
         return updated;
       });
       // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/7ba7f6db-4491-4548-a2a1-1710bced117d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ManageEvent.tsx:592',message:'Value unchanged, removing from pending',data:{field},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      fetch('http://127.0.0.1:7242/ingest/7ba7f6db-4491-4548-a2a1-1710bced117d', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'ManageEvent.tsx:592', message: 'Value unchanged, removing from pending', data: { field }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'A' }) }).catch(() => { });
       // #endregion
       return;
     }
@@ -615,7 +616,7 @@ const ManageEvent = () => {
         }
       };
       // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/7ba7f6db-4491-4548-a2a1-1710bced117d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ManageEvent.tsx:606',message:'Adding to pendingChanges',data:{field,oldValue,newValue:value,pendingFields:Object.keys(updated)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      fetch('http://127.0.0.1:7242/ingest/7ba7f6db-4491-4548-a2a1-1710bced117d', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'ManageEvent.tsx:606', message: 'Adding to pendingChanges', data: { field, oldValue, newValue: value, pendingFields: Object.keys(updated) }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'A' }) }).catch(() => { });
       // #endregion
       return updated;
     });
@@ -682,31 +683,120 @@ const ManageEvent = () => {
       }
 
       // Create change request in the database with field_changes JSONB
-      const { data, error } = await supabase
-        .from('change_requests')
-        .insert({
-          title: title,
-          description: description,
-          priority: 'medium',
-          status: 'pending',
-          event_id: selectedEvent.id,
-          requested_by: user.id,
-          change_type: 'event_update',
-          field_changes: fieldChangesJsonb as any
-        })
-        .select()
-        .single();
+      // Build base insert data with required fields
+      const baseInsertData: any = {
+        title: title,
+        priority: 'medium',
+        status: 'pending',
+        event_id: selectedEvent.id,
+        requested_by: user.id,
+        field_changes: fieldChangesJsonb as any
+      };
 
-      if (error) throw error;
+      // Helper function to check if error is about a missing column
+      const isColumnError = (error: any, columnName: string): boolean => {
+        return error.message?.includes(columnName) ||
+          error.code === '42703' ||
+          (error.message?.includes('column') && error.message?.includes(columnName));
+      };
+
+      // Try to insert with all optional columns, retry without them if they don't exist
+      let createdTask: any;
+      let insertData = { ...baseInsertData };
+
+      // Add optional columns
+      insertData.description = description;
+      insertData.change_type = 'event_update';
+
+      try {
+        const { data, error } = await supabase
+          .from('change_requests')
+          .insert(insertData)
+          .select()
+          .single();
+
+        if (error) {
+          // Check if error is about missing columns
+          const isDescriptionError = isColumnError(error, 'description');
+          const isChangeTypeError = isColumnError(error, 'change_type');
+
+          if (isDescriptionError || isChangeTypeError) {
+            // Retry without the problematic columns
+            const retryData = { ...baseInsertData };
+            if (!isDescriptionError) retryData.description = description;
+            if (!isChangeTypeError) retryData.change_type = 'event_update';
+
+            const { data: retryDataResult, error: retryError } = await supabase
+              .from('change_requests')
+              .insert(retryData)
+              .select()
+              .single();
+
+            if (retryError) {
+              // If still failing, try with only required fields
+              const { data: minimalData, error: minimalError } = await supabase
+                .from('change_requests')
+                .insert(baseInsertData)
+                .select()
+                .single();
+
+              if (minimalError) throw minimalError;
+              createdTask = minimalData;
+            } else {
+              createdTask = retryDataResult;
+            }
+          } else {
+            throw error;
+          }
+        } else {
+          createdTask = data;
+        }
+      } catch (err: any) {
+        // If it's a column error, try with minimal fields
+        const isDescriptionError = isColumnError(err, 'description');
+        const isChangeTypeError = isColumnError(err, 'change_type');
+
+        if (isDescriptionError || isChangeTypeError) {
+          const minimalData = { ...baseInsertData };
+          if (!isDescriptionError && description) minimalData.description = description;
+          if (!isChangeTypeError) minimalData.change_type = 'event_update';
+
+          const { data, error } = await supabase
+            .from('change_requests')
+            .insert(minimalData)
+            .select()
+            .single();
+
+          if (error) {
+            // Last resort: only required fields
+            const { data: finalData, error: finalError } = await supabase
+              .from('change_requests')
+              .insert(baseInsertData)
+              .select()
+              .single();
+
+            if (finalError) throw finalError;
+            createdTask = finalData;
+          } else {
+            createdTask = data;
+          }
+        } else {
+          throw err;
+        }
+      }
+
+      if (!createdTask) {
+        throw new Error('Failed to create change request');
+      }
 
       // Log each field change individually for the change request
       for (const [field, change] of Object.entries(pendingChanges)) {
         try {
           const fieldLabel = field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
           await supabase.rpc('log_change', {
-            p_entity_type: 'event',
-            p_entity_id: selectedEvent.id,
-            p_action: 'updated',
+            p_entity_type: 'change_request',
+            p_entity_id: createdTask.id,
+            p_action: 'created',
             p_field_name: field,
             p_old_value: change.oldValue?.toString() || null,
             p_new_value: change.newValue?.toString() || null,
@@ -733,6 +823,7 @@ const ManageEvent = () => {
         setSelectedEvent(originalEvent);
       }
       setPendingChanges({});
+      setIsEditMode(false); // Switch back to read-only mode
 
       // Refresh events to ensure we have latest data
       await fetchEvents();
@@ -1011,7 +1102,7 @@ const ManageEvent = () => {
                 <p className="text-sm text-muted-foreground">Loading events...</p>
               </div>
             )}
-            
+
             {/* Status Filter Pills - Only show when not loading and there are events in database */}
             {!loading && hasEventsInDb && (
               <div className="p-4 border-b border-border/30 bg-muted/20">
@@ -1059,7 +1150,7 @@ const ManageEvent = () => {
                 </div>
               </div>
             )}
-            
+
             {/* Events List or Empty State */}
             {!loading && filteredEvents.length === 0 ? (
               <div className="p-8 text-center">
@@ -1234,12 +1325,57 @@ const ManageEvent = () => {
                         </div>
                         {!isViewer() && (
                           <div className="flex items-center gap-2">
-                            {(() => {
-                              // #region agent log
-                              fetch('http://127.0.0.1:7242/ingest/7ba7f6db-4491-4548-a2a1-1710bced117d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ManageEvent.tsx:1222',message:'Pending changes badge render',data:{pendingChangesCount:Object.keys(pendingChanges).length,pendingFields:Object.keys(pendingChanges),pendingChanges},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-                              // #endregion
-                              return Object.keys(pendingChanges).length > 0;
-                            })() && (
+                            {!isEditMode && Object.keys(pendingChanges).length === 0 && (
+                              <Button
+                                onClick={() => setIsEditMode(true)}
+                                size="sm"
+                                variant="outline"
+                                disabled={saving}
+                              >
+                                <Edit className="h-4 w-4 mr-2" />
+                                Edit
+                              </Button>
+                            )}
+                            {isEditMode && (
+                              <>
+                                <Button
+                                  onClick={() => {
+                                    const originalEvent = events.find(e => e.id === selectedEvent?.id);
+                                    if (originalEvent) {
+                                      setSelectedEvent(originalEvent);
+                                    }
+                                    setPendingChanges({});
+                                    setIsEditMode(false);
+                                    toast({
+                                      title: "Edit Cancelled",
+                                      description: "All changes have been discarded",
+                                    });
+                                  }}
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={saving}
+                                >
+                                  <XCircle className="h-4 w-4 mr-2" />
+                                  Cancel
+                                </Button>
+                                <Button
+                                  onClick={() => {
+                                    setIsEditMode(false);
+                                    toast({
+                                      title: "Edit Mode Exited",
+                                      description: "Fields are now read-only. Click 'Request Change' to submit your changes.",
+                                    });
+                                  }}
+                                  size="sm"
+                                  variant="default"
+                                  disabled={saving}
+                                >
+                                  <Save className="h-4 w-4 mr-2" />
+                                  Done Editing
+                                </Button>
+                              </>
+                            )}
+                            {!isEditMode && Object.keys(pendingChanges).length > 0 && (
                               <>
                                 <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
                                   {Object.keys(pendingChanges).length} pending change{Object.keys(pendingChanges).length > 1 ? 's' : ''}
@@ -1263,6 +1399,17 @@ const ManageEvent = () => {
                                   <XCircle className="h-4 w-4 mr-2" />
                                   Discard
                                 </Button>
+                                {hasMinPermission('coordinator') && (
+                                  <Button
+                                    onClick={submitChangeRequest}
+                                    size="sm"
+                                    disabled={saving || Object.keys(pendingChanges).length === 0}
+                                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md"
+                                  >
+                                    <Bell className="h-4 w-4 mr-2" />
+                                    Request Change
+                                  </Button>
+                                )}
                               </>
                             )}
                             {saving && (
@@ -1270,17 +1417,6 @@ const ManageEvent = () => {
                                 <Loader2 className="h-4 w-4 animate-spin text-primary" />
                                 Submitting...
                               </div>
-                            )}
-                            {hasMinPermission('coordinator') && (
-                              <Button
-                                onClick={submitChangeRequest}
-                                size="sm"
-                                disabled={saving || Object.keys(pendingChanges).length === 0}
-                                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md"
-                              >
-                                <Bell className="h-4 w-4 mr-2" />
-                                Request Change
-                              </Button>
                             )}
                           </div>
                         )}
@@ -1418,14 +1554,18 @@ const ManageEvent = () => {
                                 </Badge>
                               )}
                             </Label>
-                            <Input
-                              id="title"
-                              value={selectedEvent.title || ''}
-                              onChange={(e) => handleFieldChange('title', e.target.value)}
-                              placeholder="Enter event title"
-                              disabled={saving}
-                              className={`h-10 ${pendingChanges.title ? 'border-yellow-300 bg-yellow-50/50' : ''}`}
-                            />
+                            {isEditMode ? (
+                              <Input
+                                id="title"
+                                value={selectedEvent.title || ''}
+                                onChange={(e) => handleFieldChange('title', e.target.value)}
+                                placeholder="Enter event title"
+                                disabled={saving}
+                                className={`h-10 ${pendingChanges.title ? 'border-yellow-300 bg-yellow-50/50' : ''}`}
+                              />
+                            ) : (
+                              <p className="text-base font-medium py-2">{selectedEvent.title || '—'}</p>
+                            )}
                           </div>
 
                           <div className="space-y-2">
@@ -1433,21 +1573,25 @@ const ManageEvent = () => {
                               <TrendingUp className="h-3.5 w-3.5" />
                               Event Status
                             </Label>
-                            <Select
-                              value={selectedEvent.status || ''}
-                              onValueChange={(value) => handleFieldChange('status', value)}
-                              disabled={isViewer() || saving}
-                            >
-                              <SelectTrigger className="h-10">
-                                <SelectValue placeholder="Select status" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="pending">Pending</SelectItem>
-                                <SelectItem value="in_progress">In Progress</SelectItem>
-                                <SelectItem value="completed">Completed</SelectItem>
-                                <SelectItem value="cancelled">Cancelled</SelectItem>
-                              </SelectContent>
-                            </Select>
+                            {isEditMode ? (
+                              <Select
+                                value={selectedEvent.status || ''}
+                                onValueChange={(value) => handleFieldChange('status', value)}
+                                disabled={isViewer() || saving || !isEditMode}
+                              >
+                                <SelectTrigger className="h-10">
+                                  <SelectValue placeholder="Select status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="pending">Pending</SelectItem>
+                                  <SelectItem value="in_progress">In Progress</SelectItem>
+                                  <SelectItem value="completed">Completed</SelectItem>
+                                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            ) : (
+                              <div>{getStatusBadge(selectedEvent.status)}</div>
+                            )}
                           </div>
 
                           <div className="space-y-2">
@@ -1455,14 +1599,18 @@ const ManageEvent = () => {
                               <CalendarIcon className="h-3.5 w-3.5" />
                               Start Date
                             </Label>
-                            <Input
-                              id="start-date"
-                              type="date"
-                              value={selectedEvent.start_date || ''}
-                              onChange={(e) => handleFieldChange('start_date', e.target.value)}
-                              disabled={venueBookingCompleted || isViewer() || saving}
-                              className="h-10"
-                            />
+                            {isEditMode ? (
+                              <Input
+                                id="start-date"
+                                type="date"
+                                value={selectedEvent.start_date || ''}
+                                onChange={(e) => handleFieldChange('start_date', e.target.value)}
+                                disabled={venueBookingCompleted || isViewer() || saving || !isEditMode}
+                                className="h-10"
+                              />
+                            ) : (
+                              <p className="text-base py-2">{selectedEvent.start_date ? format(new Date(selectedEvent.start_date), 'PPP') : '—'}</p>
+                            )}
                             {venueBookingCompleted && (
                               <p className="text-xs text-muted-foreground mt-1">
                                 Event dates are locked because venue booking is completed
@@ -1475,14 +1623,18 @@ const ManageEvent = () => {
                               <CalendarIcon className="h-3.5 w-3.5" />
                               End Date
                             </Label>
-                            <Input
-                              id="end-date"
-                              type="date"
-                              value={selectedEvent.end_date || ''}
-                              onChange={(e) => handleFieldChange('end_date', e.target.value)}
-                              disabled={venueBookingCompleted || isViewer() || saving}
-                              className="h-10"
-                            />
+                            {isEditMode ? (
+                              <Input
+                                id="end-date"
+                                type="date"
+                                value={selectedEvent.end_date || ''}
+                                onChange={(e) => handleFieldChange('end_date', e.target.value)}
+                                disabled={venueBookingCompleted || isViewer() || saving || !isEditMode}
+                                className="h-10"
+                              />
+                            ) : (
+                              <p className="text-base py-2">{selectedEvent.end_date ? format(new Date(selectedEvent.end_date), 'PPP') : '—'}</p>
+                            )}
                             {venueBookingCompleted && (
                               <p className="text-xs text-muted-foreground mt-1">
                                 Event dates are locked because venue booking is completed
@@ -1495,14 +1647,18 @@ const ManageEvent = () => {
                               <Clock className="h-3.5 w-3.5" />
                               Start Time
                             </Label>
-                            <Input
-                              id="start-time"
-                              type="time"
-                              value={selectedEvent.start_time ? selectedEvent.start_time.slice(0, 5) : ''}
-                              onChange={(e) => handleFieldChange('start_time', e.target.value)}
-                              disabled={isViewer() || saving}
-                              className="h-10"
-                            />
+                            {isEditMode ? (
+                              <Input
+                                id="start-time"
+                                type="time"
+                                value={selectedEvent.start_time ? selectedEvent.start_time.slice(0, 5) : ''}
+                                onChange={(e) => handleFieldChange('start_time', e.target.value)}
+                                disabled={isViewer() || saving || !isEditMode}
+                                className="h-10"
+                              />
+                            ) : (
+                              <p className="text-base py-2">{selectedEvent.start_time ? selectedEvent.start_time.slice(0, 5) : '—'}</p>
+                            )}
                           </div>
 
                           <div className="space-y-2">
@@ -1510,14 +1666,18 @@ const ManageEvent = () => {
                               <Clock className="h-3.5 w-3.5" />
                               End Time
                             </Label>
-                            <Input
-                              id="end-time"
-                              type="time"
-                              value={selectedEvent.end_time ? selectedEvent.end_time.slice(0, 5) : ''}
-                              onChange={(e) => handleFieldChange('end_time', e.target.value)}
-                              disabled={isViewer() || saving}
-                              className="h-10"
-                            />
+                            {isEditMode ? (
+                              <Input
+                                id="end-time"
+                                type="time"
+                                value={selectedEvent.end_time ? selectedEvent.end_time.slice(0, 5) : ''}
+                                onChange={(e) => handleFieldChange('end_time', e.target.value)}
+                                disabled={isViewer() || saving || !isEditMode}
+                                className="h-10"
+                              />
+                            ) : (
+                              <p className="text-base py-2">{selectedEvent.end_time ? selectedEvent.end_time.slice(0, 5) : '—'}</p>
+                            )}
                           </div>
 
                           <div className="space-y-2">
@@ -1525,56 +1685,64 @@ const ManageEvent = () => {
                               <Sparkles className="h-3.5 w-3.5" />
                               Event Theme
                             </Label>
-                            <Select
-                              value={selectedEvent.theme_id?.toString() || ''}
-                              disabled={isViewer() || saving}
-                              onValueChange={async (value) => {
-                                // #region agent log
-                                fetch('http://127.0.0.1:7242/ingest/7ba7f6db-4491-4548-a2a1-1710bced117d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ManageEvent.tsx:1511',message:'Theme change handler entry',data:{value,selectedEventThemeId:selectedEvent?.theme_id,hasPendingChanges:Object.keys(pendingChanges).length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-                                // #endregion
-                                const themeId = parseInt(value);
-                                // Set theme and reset type immediately
-                                setSelectedEvent(prev => prev ? { ...prev, theme_id: themeId, type_id: undefined } : prev);
-                                // #region agent log
-                                fetch('http://127.0.0.1:7242/ingest/7ba7f6db-4491-4548-a2a1-1710bced117d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ManageEvent.tsx:1515',message:'After setSelectedEvent',data:{themeId,selectedEventThemeId:selectedEvent?.theme_id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-                                // #endregion
-                                // Fetch event types for the new theme and update eventTypes immediately
-                                try {
-                                  let query = supabase
-                                    .from('event_types')
-                                    .select('id, name, theme_id')
-                                    .order('name');
-                                  query = query.eq('theme_id', themeId);
-                                  const { data, error } = await query;
-                                  if (!error && data) {
-                                    setEventTypes(data);
-                                  } else {
+                            {isEditMode ? (
+                              <Select
+                                value={selectedEvent.theme_id?.toString() || ''}
+                                disabled={isViewer() || saving || !isEditMode}
+                                onValueChange={async (value) => {
+                                  // #region agent log
+                                  fetch('http://127.0.0.1:7242/ingest/7ba7f6db-4491-4548-a2a1-1710bced117d', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'ManageEvent.tsx:1511', message: 'Theme change handler entry', data: { value, selectedEventThemeId: selectedEvent?.theme_id, hasPendingChanges: Object.keys(pendingChanges).length }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'A' }) }).catch(() => { });
+                                  // #endregion
+                                  const themeId = parseInt(value);
+                                  // Set theme and reset type immediately
+                                  setSelectedEvent(prev => prev ? { ...prev, theme_id: themeId, type_id: undefined } : prev);
+                                  // #region agent log
+                                  fetch('http://127.0.0.1:7242/ingest/7ba7f6db-4491-4548-a2a1-1710bced117d', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'ManageEvent.tsx:1515', message: 'After setSelectedEvent', data: { themeId, selectedEventThemeId: selectedEvent?.theme_id }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'A' }) }).catch(() => { });
+                                  // #endregion
+                                  // Fetch event types for the new theme and update eventTypes immediately
+                                  try {
+                                    let query = supabase
+                                      .from('event_types')
+                                      .select('id, name, theme_id')
+                                      .order('name');
+                                    query = query.eq('theme_id', themeId);
+                                    const { data, error } = await query;
+                                    if (!error && data) {
+                                      setEventTypes(data);
+                                    } else {
+                                      setEventTypes([]);
+                                    }
+                                  } catch (err) {
                                     setEventTypes([]);
                                   }
-                                } catch (err) {
-                                  setEventTypes([]);
-                                }
-                                // #region agent log
-                                fetch('http://127.0.0.1:7242/ingest/7ba7f6db-4491-4548-a2a1-1710bced117d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ManageEvent.tsx:1531',message:'Theme change handler exit',data:{themeId,shouldCallHandleFieldChange:true},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-                                // #endregion
-                                // Call handleFieldChange to track the change
-                                handleFieldChange('theme_id', themeId);
-                              }}
-                            >
-                              <SelectTrigger className="bg-background border-border z-50 h-10">
-                                <SelectValue placeholder="Select theme" />
-                              </SelectTrigger>
-                              <SelectContent className="bg-background border-border shadow-lg z-50">
-                                {eventThemes.map((theme) => (
-                                  <SelectItem key={theme.id} value={theme.id.toString()}>
-                                    {theme.name}
-                                    {theme.premium && (
-                                      <Badge variant="secondary" className="ml-2 text-xs">Premium</Badge>
-                                    )}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                                  // #region agent log
+                                  fetch('http://127.0.0.1:7242/ingest/7ba7f6db-4491-4548-a2a1-1710bced117d', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'ManageEvent.tsx:1531', message: 'Theme change handler exit', data: { themeId, shouldCallHandleFieldChange: true }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'A' }) }).catch(() => { });
+                                  // #endregion
+                                  // Call handleFieldChange to track the change
+                                  handleFieldChange('theme_id', themeId);
+                                }}
+                              >
+                                <SelectTrigger className="bg-background border-border z-50 h-10">
+                                  <SelectValue placeholder="Select theme" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-background border-border shadow-lg z-50">
+                                  {eventThemes.map((theme) => (
+                                    <SelectItem key={theme.id} value={theme.id.toString()}>
+                                      {theme.name}
+                                      {theme.premium && (
+                                        <Badge variant="secondary" className="ml-2 text-xs">Premium</Badge>
+                                      )}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            ) : (
+                              <p className="text-base py-2">
+                                {selectedEvent.theme_id
+                                  ? eventThemes.find(t => t.id === selectedEvent.theme_id)?.name || '—'
+                                  : '—'}
+                              </p>
+                            )}
                           </div>
 
                           <div className="space-y-2">
@@ -1582,30 +1750,38 @@ const ManageEvent = () => {
                               <Tag className="h-3.5 w-3.5" />
                               Event Type
                             </Label>
-                            <Select
-                              value={selectedEvent.type_id?.toString() || ''}
-                              onValueChange={(value) => handleFieldChange('type_id', parseInt(value))}
-                              disabled={!selectedEvent.theme_id || isViewer() || saving}
-                            >
-                              <SelectTrigger className="bg-background border-border z-50 h-10">
-                                <SelectValue
-                                  placeholder={
-                                    selectedEvent.theme_id
-                                      ? "Select event type"
-                                      : "Select theme first"
-                                  }
-                                />
-                              </SelectTrigger>
-                              <SelectContent className="bg-background border-border shadow-lg z-50">
-                                {eventTypes
-                                  .filter(type => type.theme_id === selectedEvent.theme_id)
-                                  .map((type) => (
-                                    <SelectItem key={type.id} value={type.id.toString()}>
-                                      {type.name}
-                                    </SelectItem>
-                                  ))}
-                              </SelectContent>
-                            </Select>
+                            {isEditMode ? (
+                              <Select
+                                value={selectedEvent.type_id?.toString() || ''}
+                                onValueChange={(value) => handleFieldChange('type_id', parseInt(value))}
+                                disabled={!selectedEvent.theme_id || isViewer() || saving || !isEditMode}
+                              >
+                                <SelectTrigger className="bg-background border-border z-50 h-10">
+                                  <SelectValue
+                                    placeholder={
+                                      selectedEvent.theme_id
+                                        ? "Select event type"
+                                        : "Select theme first"
+                                    }
+                                  />
+                                </SelectTrigger>
+                                <SelectContent className="bg-background border-border shadow-lg z-50">
+                                  {eventTypes
+                                    .filter(type => type.theme_id === selectedEvent.theme_id)
+                                    .map((type) => (
+                                      <SelectItem key={type.id} value={type.id.toString()}>
+                                        {type.name}
+                                      </SelectItem>
+                                    ))}
+                                </SelectContent>
+                              </Select>
+                            ) : (
+                              <p className="text-base py-2">
+                                {selectedEvent.type_id
+                                  ? eventTypes.find(t => t.id === selectedEvent.type_id)?.name || '—'
+                                  : '—'}
+                              </p>
+                            )}
                           </div>
 
                           <div className="space-y-2">
@@ -1613,14 +1789,18 @@ const ManageEvent = () => {
                               <MapPin className="h-3.5 w-3.5" />
                               Venue
                             </Label>
-                            <Input
-                              id="venue"
-                              value={selectedEvent.venue || ''}
-                              onChange={(e) => handleFieldChange('venue', e.target.value)}
-                              placeholder="Enter venue name"
-                              disabled={isViewer() || saving}
-                              className="h-10"
-                            />
+                            {isEditMode ? (
+                              <Input
+                                id="venue"
+                                value={selectedEvent.venue || ''}
+                                onChange={(e) => handleFieldChange('venue', e.target.value)}
+                                placeholder="Enter venue name"
+                                disabled={isViewer() || saving || !isEditMode}
+                                className="h-10"
+                              />
+                            ) : (
+                              <p className="text-base py-2">{selectedEvent.venue || '—'}</p>
+                            )}
                           </div>
 
                           <div className="space-y-2">
@@ -1628,14 +1808,18 @@ const ManageEvent = () => {
                               <MapPin className="h-3.5 w-3.5" />
                               Location
                             </Label>
-                            <Input
-                              id="location"
-                              value={selectedEvent.location || ''}
-                              onChange={(e) => handleFieldChange('location', e.target.value)}
-                              placeholder="Enter event location"
-                              disabled={isViewer() || saving}
-                              className="h-10"
-                            />
+                            {isEditMode ? (
+                              <Input
+                                id="location"
+                                value={selectedEvent.location || ''}
+                                onChange={(e) => handleFieldChange('location', e.target.value)}
+                                placeholder="Enter event location"
+                                disabled={isViewer() || saving || !isEditMode}
+                                className="h-10"
+                              />
+                            ) : (
+                              <p className="text-base py-2">{selectedEvent.location || '—'}</p>
+                            )}
                           </div>
 
                           <div className="space-y-2">
@@ -1643,45 +1827,57 @@ const ManageEvent = () => {
                               <DollarSign className="h-3.5 w-3.5" />
                               Budget
                             </Label>
-                            <div className="relative">
-                              <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                              <Input
-                                id="budget"
-                                type="number"
-                                value={budgetInput}
-                                onChange={(e) => setBudgetInput(e.target.value)}
-                                onBlur={() => {
-                                  if (budgetInput) {
-                                    const formatted = parseFloat(budgetInput).toFixed(2);
-                                    setBudgetInput(formatted);
-                                    handleFieldChange('budget', parseFloat(formatted));
-                                  } else {
-                                    handleFieldChange('budget', undefined);
-                                  }
-                                }}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    (e.target as HTMLInputElement).blur();
-                                  }
-                                }}
-                                placeholder="0.00"
-                                disabled={isViewer() || saving}
-                                className="h-10 pl-9"
-                              />
-                            </div>
+                            {isEditMode ? (
+                              <div className="relative">
+                                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                  id="budget"
+                                  type="number"
+                                  value={budgetInput}
+                                  onChange={(e) => setBudgetInput(e.target.value)}
+                                  onBlur={() => {
+                                    if (budgetInput) {
+                                      const formatted = parseFloat(budgetInput).toFixed(2);
+                                      setBudgetInput(formatted);
+                                      handleFieldChange('budget', parseFloat(formatted));
+                                    } else {
+                                      handleFieldChange('budget', undefined);
+                                    }
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      (e.target as HTMLInputElement).blur();
+                                    }
+                                  }}
+                                  placeholder="0.00"
+                                  disabled={isViewer() || saving || !isEditMode}
+                                  className="h-10 pl-9"
+                                />
+                              </div>
+                            ) : (
+                              <p className="text-base py-2">
+                                {selectedEvent.budget
+                                  ? `$${selectedEvent.budget.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                  : '—'}
+                              </p>
+                            )}
                           </div>
 
                           <div className="md:col-span-2 space-y-2">
                             <Label htmlFor="description" className="text-sm font-semibold">Description</Label>
-                            <Textarea
-                              id="description"
-                              value={selectedEvent.description || ''}
-                              onChange={(e) => handleFieldChange('description', e.target.value)}
-                              placeholder="Enter event description"
-                              disabled={saving}
-                              rows={4}
-                              className="resize-none"
-                            />
+                            {isEditMode ? (
+                              <Textarea
+                                id="description"
+                                value={selectedEvent.description || ''}
+                                onChange={(e) => handleFieldChange('description', e.target.value)}
+                                placeholder="Enter event description"
+                                disabled={saving || !isEditMode}
+                                rows={4}
+                                className="resize-none"
+                              />
+                            ) : (
+                              <p className="text-base whitespace-pre-wrap py-2">{selectedEvent.description || '—'}</p>
+                            )}
                           </div>
                         </div>
                       )}
