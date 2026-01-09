@@ -73,7 +73,7 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
   useEffect(() => {
     let isMounted = true;
     console.log('[RoleManager] Component mounted, fetching data...');
-    
+
     const fetchData = async () => {
       if (!isMounted) return;
       await fetchPermissionMappings();
@@ -82,7 +82,7 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
       if (!isMounted) return;
       await fetchEvents();
     };
-    
+
     fetchData();
 
     // Set up real-time subscriptions for automatic updates
@@ -139,14 +139,14 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
         }
       )
       .subscribe();
-    
+
     return () => {
       isMounted = false;
       supabase.removeChannel(eventsChannel);
       supabase.removeChannel(rolesChannel);
       supabase.removeChannel(profilesChannel);
     };
-  }, []);
+  }, [selectedEventFilter]);
 
   const fetchEvents = async () => {
     try {
@@ -161,7 +161,7 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
       // Fetch profiles for organizer names only if we have events
       if (eventsData && eventsData.length > 0) {
         const userIds = eventsData.map(e => e.user_id).filter(Boolean);
-        
+
         if (userIds.length > 0) {
           const { data: profilesData, error: profilesError } = await supabase
             .from('profiles')
@@ -191,7 +191,7 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
           return;
         }
       }
-      
+
       // If no events or no user IDs, just set empty
       setEvents([]);
       console.log('[RoleManager] No events found');
@@ -226,22 +226,29 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      
-      // Get all role assignments from user_roles table
-      const { data: userRolesData, error: rolesError } = await supabase
+
+      // Get role assignments from user_roles table, filtered by event if selected
+      let query = supabase
         .from('user_roles')
         .select('id, user_id, role, permission_level, event_id, created_at');
+
+      // Filter by event_id if a specific event is selected
+      if (selectedEventFilter && selectedEventFilter !== "all") {
+        query = query.or(`event_id.eq.${selectedEventFilter},event_id.is.null`);
+      }
+
+      const { data: userRolesData, error: rolesError } = await query;
 
       if (rolesError) throw rolesError;
 
       // Call edge function to get users with emails (admin access required)
       const { data: usersResponse, error: usersError } = await supabase.functions.invoke('get-users-for-roles');
-      
+
       if (usersError) {
         console.error('Error fetching users from edge function:', usersError);
         throw usersError;
       }
-      
+
       const allUsers = usersResponse?.users?.map((user: any) => ({
         id: user.id,
         name: user.name,
@@ -250,7 +257,7 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
         joinedAt: user.created_at || new Date().toISOString(),
         avatar: user.avatar
       })) || [];
-      
+
       // Create users list with role information
       const usersWithRoles = allUsers.map((user: any) => {
         const userRole = userRolesData?.find(role => role.user_id === user.id);
@@ -261,16 +268,16 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
       });
 
       setUsers(usersWithRoles);
-      
+
       // Separate users without roles
-      const unassignedUsers = allUsers.filter((user: any) => 
+      const unassignedUsers = allUsers.filter((user: any) =>
         !userRolesData?.find(role => role.user_id === user.id)
       ).map((user: any) => ({
         ...user,
         role: 'Member'
       }));
       setUsersWithoutRoles(unassignedUsers);
-      
+
       // Set all role assignments for display (including those not in invited users)
       const roleAssignments = userRolesData?.map((role: any) => ({
         id: role.id, // Use the actual row ID, not user_id
@@ -280,14 +287,14 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
         event_id: role.event_id,
         created_at: role.created_at
       })) || [];
-      
+
       setUserRoles(roleAssignments);
       console.log('[RoleManager] Users loaded:', allUsers.length, 'Role assignments:', roleAssignments.length);
       console.log('[RoleManager] Users without roles:', unassignedUsers.length);
-      
+
       // Update timestamp to force Select component re-renders
       setDataTimestamp(Date.now());
-      
+
       // If no roles exist and current user exists, offer to set up admin
       if (roleAssignments.length === 0 && allUsers.length > 0) {
         console.log('[RoleManager] No roles exist yet. Consider assigning initial admin role.');
@@ -306,18 +313,18 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
 
   const changeRole = async (
     roleAssignmentId: string,
-    userId: string, 
+    userId: string,
     newRole: 'host' | 'organizer' | 'event_planner' | 'venue_owner' | 'hospitality_provider' | 'manager',
     permissionLevel: PermissionLevel,
     eventId: string | null = null
   ) => {
     try {
       console.log('Updating role assignment:', { roleAssignmentId, userId, newRole, permissionLevel, eventId });
-      
+
       // Update the specific role assignment by ID
       const { data, error } = await supabase
         .from('user_roles')
-        .update({ 
+        .update({
           role: newRole,
           permission_level: permissionLevel,
           event_id: eventId
@@ -331,7 +338,7 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
 
       // Refresh the data
       await fetchUsers();
-      
+
       toast({
         title: "Role updated",
         description: "User role and permission level have been updated successfully.",
@@ -349,7 +356,7 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
   const getUserInfo = (userId: string) => {
     const user = users.find(user => user.id === userId);
     if (user) return user;
-    
+
     // For users not in the invited list, return basic info
     return {
       id: userId,
@@ -398,128 +405,138 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
       {/* Role Assignments */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold">Current Role Assignments</h3>
-        
+
         {userRoles.length === 0 && usersWithoutRoles.length > 0 ? (
           <Card className="p-6 text-center">
             <p className="text-muted-foreground">No role assignments yet. Assign roles to users below.</p>
           </Card>
         ) : null}
-        
-        {userRoles.map((userRole) => {
-          const user = getUserInfo(userRole.user_id);
-          const roleInfo = roles.find(r => r.value === userRole.role);
-          // Use the actual database value, with 'viewer' as fallback only if null
-          const currentPermission = userRole.permission_level ?? 'viewer';
-          const permissionInfo = permissionLevels[currentPermission];
-          const PermissionIcon = permissionInfo?.icon;
-          const assignedEvent = events.find(e => e.id === userRole.event_id);
-          
-          return (
-            <Card key={userRole.id}>
-              <CardContent className="p-4">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div>
-                        <h4 className="font-semibold">
-                          {user?.name || 'Unknown User'}
-                        </h4>
-                        {user?.email && (
-                          <p className="text-sm text-muted-foreground">{user.email}</p>
-                        )}
-                        {userRole.event_id && assignedEvent && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Event: {assignedEvent.title || 'Unnamed Event'}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge className={roleColors[userRole.role as keyof typeof roleColors]}>
-                          {roleInfo?.label || userRole.role}
-                        </Badge>
-                        {permissionInfo && PermissionIcon && (
-                          <Badge variant="outline" className={permissionInfo.color}>
-                            <PermissionIcon className="h-3 w-3 mr-1" />
-                            {permissionInfo.label}
+
+        {userRoles
+          .filter((userRole) => {
+            // Filter roles based on selectedEventFilter
+            if (selectedEventFilter && selectedEventFilter !== "all") {
+              // Show roles for the selected event OR global roles (event_id is null)
+              return userRole.event_id === selectedEventFilter || userRole.event_id === null;
+            }
+            // Show all roles when "all" is selected
+            return true;
+          })
+          .map((userRole) => {
+            const user = getUserInfo(userRole.user_id);
+            const roleInfo = roles.find(r => r.value === userRole.role);
+            // Use the actual database value, with 'viewer' as fallback only if null
+            const currentPermission = userRole.permission_level ?? 'viewer';
+            const permissionInfo = permissionLevels[currentPermission];
+            const PermissionIcon = permissionInfo?.icon;
+            const assignedEvent = events.find(e => e.id === userRole.event_id);
+
+            return (
+              <Card key={userRole.id}>
+                <CardContent className="p-4">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div>
+                          <h4 className="font-semibold">
+                            {user?.name || 'Unknown User'}
+                          </h4>
+                          {user?.email && (
+                            <p className="text-sm text-muted-foreground">{user.email}</p>
+                          )}
+                          {userRole.event_id && assignedEvent && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Event: {assignedEvent.title || 'Unnamed Event'}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge className={roleColors[userRole.role as keyof typeof roleColors]}>
+                            {roleInfo?.label || userRole.role}
                           </Badge>
-                        )}
+                          {permissionInfo && PermissionIcon && (
+                            <Badge variant="outline" className={permissionInfo.color}>
+                              <PermissionIcon className="h-3 w-3 mr-1" />
+                              {permissionInfo.label}
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                     </div>
+
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1">
+                        <label className="text-xs text-muted-foreground mb-1 block">Event Organizer</label>
+                        <p className="text-sm font-medium">
+                          {assignedEvent?.organizer_name || 'Not specified'}
+                        </p>
+                      </div>
+
+                      <div className="flex-1">
+                        <label className="text-xs text-muted-foreground mb-1 block">Role</label>
+                        <Select
+                          key={`${userRole.id}-role-${dataTimestamp}-${userRole.role}`}
+                          value={userRole.role}
+                          onValueChange={(newRole) => {
+                            console.log('[RoleManager] Role changed to:', newRole, 'for user:', userRole.user_id);
+                            // Only change role, keep current permission
+                            changeRole(userRole.id, userRole.user_id, newRole as any, currentPermission, userRole.event_id);
+                          }}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select role..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {roles.map((role) => (
+                              <SelectItem key={role.value} value={role.value}>
+                                {role.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="flex-1">
+                        <label className="text-xs text-muted-foreground mb-1 block">
+                          Permission Level
+                          {permissionMappings.get(userRole.role) && currentPermission === permissionMappings.get(userRole.role) && (
+                            <span className="text-xs text-muted-foreground ml-1">(suggested)</span>
+                          )}
+                        </label>
+                        <Select
+                          key={`${userRole.id}-permission-${dataTimestamp}-${currentPermission}`}
+                          value={currentPermission}
+                          onValueChange={(newPermission) => changeRole(userRole.id, userRole.user_id, userRole.role as any, newPermission as PermissionLevel, userRole.event_id)}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select permission..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Object.entries(permissionLevels).map(([key, level]) => (
+                              <SelectItem key={key} value={key}>
+                                {level.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    {roleInfo?.description && (
+                      <p className="text-sm text-muted-foreground">{roleInfo.description}</p>
+                    )}
                   </div>
-                  
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1">
-                      <label className="text-xs text-muted-foreground mb-1 block">Event Organizer</label>
-                      <p className="text-sm font-medium">
-                        {assignedEvent?.organizer_name || 'Not specified'}
-                      </p>
-                    </div>
-                    
-                    <div className="flex-1">
-                      <label className="text-xs text-muted-foreground mb-1 block">Role</label>
-                      <Select
-                        key={`${userRole.id}-role-${dataTimestamp}-${userRole.role}`}
-                        value={userRole.role}
-                        onValueChange={(newRole) => {
-                          console.log('[RoleManager] Role changed to:', newRole, 'for user:', userRole.user_id);
-                          // Only change role, keep current permission
-                          changeRole(userRole.id, userRole.user_id, newRole as any, currentPermission, userRole.event_id);
-                        }}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select role..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {roles.map((role) => (
-                            <SelectItem key={role.value} value={role.value}>
-                              {role.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div className="flex-1">
-                      <label className="text-xs text-muted-foreground mb-1 block">
-                        Permission Level
-                        {permissionMappings.get(userRole.role) && currentPermission === permissionMappings.get(userRole.role) && (
-                          <span className="text-xs text-muted-foreground ml-1">(suggested)</span>
-                        )}
-                      </label>
-                      <Select
-                        key={`${userRole.id}-permission-${dataTimestamp}-${currentPermission}`}
-                        value={currentPermission}
-                        onValueChange={(newPermission) => changeRole(userRole.id, userRole.user_id, userRole.role as any, newPermission as PermissionLevel, userRole.event_id)}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select permission..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Object.entries(permissionLevels).map(([key, level]) => (
-                            <SelectItem key={key} value={key}>
-                              {level.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  
-                  {roleInfo?.description && (
-                    <p className="text-sm text-muted-foreground">{roleInfo.description}</p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
+                </CardContent>
+              </Card>
+            );
+          })}
       </div>
 
       {/* Users Without Roles Section */}
       {usersWithoutRoles.length > 0 && (
         <div className="space-y-4">
           <h3 className="text-lg font-semibold">Users Without Roles</h3>
-          
+
           {usersWithoutRoles.map((user) => (
             <UnassignedUserCard
               key={user.id}
@@ -528,17 +545,18 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
               events={events}
               permissionLevels={permissionLevels}
               permissionMappings={permissionMappings}
+              selectedEventFilter={selectedEventFilter}
               onAssign={async (userId, role, permissionLevel, eventId) => {
                 // For new assignments, create a new role
                 const { error } = await supabase
                   .from('user_roles')
-                  .insert({ 
-                    user_id: userId, 
+                  .insert({
+                    user_id: userId,
                     role: role as any,
                     permission_level: permissionLevel,
                     event_id: eventId
                   });
-                
+
                 if (error) {
                   toast({
                     title: "Error assigning role",

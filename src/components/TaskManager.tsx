@@ -461,11 +461,16 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         throw new Error('Circular dependency detected! This would create a dependency loop between tasks.');
       }
 
-      // First, remove existing dependencies
-      await supabase
+      // First, remove existing dependencies (check for errors)
+      const { error: deleteError } = await supabase
         .from('tasks_dependencies')
         .delete()
         .eq('task_id', taskId);
+
+      if (deleteError) {
+        console.error('Error deleting existing dependencies:', deleteError);
+        throw new Error(`Failed to remove existing dependencies: ${deleteError.message}`);
+      }
 
       // Then add new dependencies
       if (dependencyIds.length > 0) {
@@ -474,15 +479,32 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
           depends_on_task_id: depId
         }));
 
-        const { error } = await supabase
+        const { error: insertError } = await supabase
           .from('tasks_dependencies')
           .insert(dependencies);
 
-        if (error) throw error;
+        if (insertError) {
+          console.error('Error inserting dependencies:', insertError);
+          // Provide more specific error message
+          if (insertError.code === '42501' || insertError.message.includes('permission') || insertError.message.includes('policy')) {
+            throw new Error('Permission denied: You can only add dependencies to tasks you created. Please check task ownership.');
+          } else if (insertError.code === '23503' || insertError.message.includes('foreign key')) {
+            throw new Error('Invalid task dependency: One or more selected tasks no longer exist.');
+          } else if (insertError.code === '23505' || insertError.message.includes('unique')) {
+            throw new Error('Duplicate dependency: This dependency relationship already exists.');
+          } else {
+            throw new Error(`Failed to save dependencies: ${insertError.message}`);
+          }
+        }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving dependencies:', error);
-      throw error;
+      // Re-throw with a user-friendly message if it's not already an Error object
+      if (error instanceof Error) {
+        throw error;
+      } else {
+        throw new Error(`Failed to save dependencies: ${error?.message || 'Unknown error'}`);
+      }
     }
   };
 
@@ -1005,13 +1027,14 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
       setSelectedTask(null);
       setSelectedDependencies([]);
       fetchTasks();
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to update tasks. Please try again.";
+    } catch (error: any) {
+      const errorMessage = error instanceof Error ? error.message : (error?.message || "Failed to update tasks. Please try again.");
       const isCircularDependency = errorMessage.includes("Circular dependency detected");
+      const isPermissionError = errorMessage.includes("Permission denied") || errorMessage.includes("permission");
 
       toast({
         title: "Error updating tasks",
-        description: isCircularDependency ? errorMessage : "Failed to update tasks. Please try again.",
+        description: isCircularDependency || isPermissionError ? errorMessage : errorMessage,
         variant: "destructive",
       });
     }
@@ -1047,8 +1070,8 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
       setSelectedTask(null);
       setSelectedDependencies([]);
       fetchTasks();
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to update task. Please try again.";
+    } catch (error: any) {
+      const errorMessage = error instanceof Error ? error.message : (error?.message || "Failed to update task. Please try again.");
       const isCircularDependency = errorMessage.includes("Circular dependency detected");
 
       toast({
@@ -2307,11 +2330,11 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                       ? `${selectedDependencies.length} dependenc${selectedDependencies.length === 1 ? 'y' : 'ies'} added successfully.`
                       : "Task created successfully.",
                   });
-                } catch (error) {
+                } catch (error: any) {
                   console.error('Error saving dependencies:', error);
                   toast({
-                    title: "Error",
-                    description: "Failed to save dependencies. Please try again.",
+                    title: "Error Saving Dependencies",
+                    description: error?.message || "Failed to save dependencies. Please try again.",
                     variant: "destructive",
                   });
                 }

@@ -57,18 +57,32 @@ export function TeamMemberTaskAssignments() {
 
       if (collaboratorsError) throw collaboratorsError;
 
-      // Extract unique collaborator names
+      // Extract unique collaborator names from existing task assignments
       const uniqueCollaborators = [...new Set(
         allTasksForCollaborators?.map(t => t.assigned_coordinator_name) || []
       )].sort();
 
+      // Also fetch users from profiles to enable creating new assignments
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('display_name, user_id')
+        .not('display_name', 'is', null);
+
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+      }
+
+      // Combine existing collaborators with all users from profiles
+      const profileNames = profiles?.map(p => p.display_name) || [];
+      const allUniqueNames = [...new Set([...uniqueCollaborators, ...profileNames])].sort();
+
       // Convert to user-like objects for compatibility with existing UI
-      const allUsers = uniqueCollaborators.map(name => ({
+      const allUsers = allUniqueNames.map(name => ({
         id: name, // Use name as ID for simplicity
         name: name,
         email: '' // Not needed for this use case
       }));
-      
+
       console.log('[TeamMemberTaskAssignments] Loaded collaborators:', allUsers.length, allUsers);
       setAllUsers(allUsers);
 
@@ -77,13 +91,13 @@ export function TeamMemberTaskAssignments() {
         .from('tasks')
         .select('id, title, status, priority, due_date, assigned_to, assigned_coordinator_name, event_id, category')
         .order('due_date', { ascending: true });
-      
+
       if (tasksError) throw tasksError;
 
       // Define valid resource type categories
       const resourceCategories = [
         'Venue',
-        'Transportation', 
+        'Transportation',
         'Service Vendor',
         'Vendor Service Rental/Buy',
         'Hospitality',
@@ -93,8 +107,8 @@ export function TeamMemberTaskAssignments() {
       ];
 
       // Filter tasks to only show resource-type tasks
-      const filteredTasks = tasks?.filter(task => 
-        resourceCategories.includes(task.category) || 
+      const filteredTasks = tasks?.filter(task =>
+        resourceCategories.includes(task.category) ||
         task.title === 'Lee Task Team'
       ) || [];
 
@@ -104,13 +118,13 @@ export function TeamMemberTaskAssignments() {
         .from('events')
         .select('id, title')
         .in('id', eventIds);
-      
+
       const eventMap = new Map(events?.map(e => [e.id, e.title]) || []);
 
       // Count unassigned tasks and store them
       const unassigned = filteredTasks?.filter(task => !task.assigned_coordinator_name) || [];
       setUnassignedTasksCount(unassigned.length);
-      
+
       // Convert unassigned tasks to TaskAssignment format
       const unassignedTasksList = unassigned.map((task: any) => ({
         id: task.id,
@@ -129,7 +143,7 @@ export function TeamMemberTaskAssignments() {
 
       // Group tasks by user
       const userTasksMap = new Map<string, TaskAssignment[]>();
-      
+
       filteredTasks?.forEach((task: any) => {
         if (task.assigned_coordinator_name) {
           const user = allUsers.find((u: any) => u.name === task.assigned_coordinator_name);
@@ -179,7 +193,7 @@ export function TeamMemberTaskAssignments() {
 
       // Sort by total tasks (descending)
       teamMembersData.sort((a, b) => b.totalTasks - a.totalTasks);
-      
+
       setTeamMembers(teamMembersData);
     } catch (error) {
       console.error('Error fetching task assignments:', error);
@@ -301,7 +315,7 @@ export function TeamMemberTaskAssignments() {
             <CardContent className="p-6">
               <div className="space-y-2">
                 {unassignedTasks.map((task) => (
-                <div key={task.taskId} className="p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
+                  <div key={task.taskId} className="p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
@@ -320,9 +334,9 @@ export function TeamMemberTaskAssignments() {
                         )}
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
-                        <Select 
-                          value={pendingAssignments[task.taskId] || ""} 
-                          onValueChange={(userId) => setPendingAssignments({...pendingAssignments, [task.taskId]: userId})}
+                        <Select
+                          value={pendingAssignments[task.taskId] || ""}
+                          onValueChange={(userId) => setPendingAssignments({ ...pendingAssignments, [task.taskId]: userId })}
                         >
                           <SelectTrigger className="w-[180px]">
                             <SelectValue placeholder="Select user..." />
@@ -335,12 +349,12 @@ export function TeamMemberTaskAssignments() {
                             ))}
                           </SelectContent>
                         </Select>
-                        <Button 
-                          size="sm" 
+                        <Button
+                          size="sm"
                           onClick={() => {
                             if (pendingAssignments[task.taskId]) {
                               assignTask(task.taskId, pendingAssignments[task.taskId]);
-                              setPendingAssignments({...pendingAssignments, [task.taskId]: undefined});
+                              setPendingAssignments({ ...pendingAssignments, [task.taskId]: undefined });
                             }
                           }}
                           disabled={!pendingAssignments[task.taskId]}
@@ -349,11 +363,11 @@ export function TeamMemberTaskAssignments() {
                           <Check className="h-4 w-4" />
                           <span>Save</span>
                         </Button>
-                        <Button 
-                          size="sm" 
+                        <Button
+                          size="sm"
                           variant="outline"
                           onClick={() => {
-                            setPendingAssignments({...pendingAssignments, [task.taskId]: undefined});
+                            setPendingAssignments({ ...pendingAssignments, [task.taskId]: undefined });
                           }}
                           disabled={!pendingAssignments[task.taskId]}
                           className="h-9 gap-2"
@@ -374,7 +388,7 @@ export function TeamMemberTaskAssignments() {
       {/* Team Member Task Assignments */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold">Team Member Task Assignments</h3>
-        
+
         {teamMembers.length === 0 ? (
           <Card className="p-6 text-center">
             <p className="text-muted-foreground">No task assignments yet. Assign tasks to team members in the Tasks tab.</p>
@@ -438,9 +452,9 @@ export function TeamMemberTaskAssignments() {
                           )}
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
-                          <Select 
-                            value={pendingAssignments[`reassign-${task.taskId}`] || member.userId} 
-                            onValueChange={(userId) => setPendingAssignments({...pendingAssignments, [`reassign-${task.taskId}`]: userId})}
+                          <Select
+                            value={pendingAssignments[`reassign-${task.taskId}`] || member.userId}
+                            onValueChange={(userId) => setPendingAssignments({ ...pendingAssignments, [`reassign-${task.taskId}`]: userId })}
                           >
                             <SelectTrigger className="w-[140px]">
                               <SelectValue />
@@ -453,12 +467,12 @@ export function TeamMemberTaskAssignments() {
                               ))}
                             </SelectContent>
                           </Select>
-                          <Button 
-                            size="sm" 
+                          <Button
+                            size="sm"
                             onClick={() => {
                               if (pendingAssignments[`reassign-${task.taskId}`] && pendingAssignments[`reassign-${task.taskId}`] !== member.userId) {
                                 reassignTask(task.taskId, pendingAssignments[`reassign-${task.taskId}`]);
-                                setPendingAssignments({...pendingAssignments, [`reassign-${task.taskId}`]: undefined});
+                                setPendingAssignments({ ...pendingAssignments, [`reassign-${task.taskId}`]: undefined });
                               }
                             }}
                             disabled={!pendingAssignments[`reassign-${task.taskId}`] || pendingAssignments[`reassign-${task.taskId}`] === member.userId}
@@ -467,11 +481,11 @@ export function TeamMemberTaskAssignments() {
                             <Check className="h-4 w-4" />
                             <span>Change</span>
                           </Button>
-                          <Button 
-                            size="sm" 
+                          <Button
+                            size="sm"
                             variant="outline"
                             onClick={() => {
-                              setPendingAssignments({...pendingAssignments, [`reassign-${task.taskId}`]: undefined});
+                              setPendingAssignments({ ...pendingAssignments, [`reassign-${task.taskId}`]: undefined });
                             }}
                             disabled={!pendingAssignments[`reassign-${task.taskId}`] || pendingAssignments[`reassign-${task.taskId}`] === member.userId}
                             className="h-9 gap-2"

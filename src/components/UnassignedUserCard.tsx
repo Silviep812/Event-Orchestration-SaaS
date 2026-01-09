@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -20,6 +20,7 @@ interface UnassignedUserCardProps {
   events: Event[];
   permissionLevels: Record<string, { label: string; description: string }>;
   permissionMappings: Map<string, PermissionLevel>;
+  selectedEventFilter?: string;
   onAssign: (userId: string, role: string, permissionLevel: PermissionLevel, eventId: string | null) => void;
 }
 
@@ -28,12 +29,25 @@ export function UnassignedUserCard({
   roles, 
   events,
   permissionLevels, 
-  permissionMappings, 
+  permissionMappings,
+  selectedEventFilter,
   onAssign 
 }: UnassignedUserCardProps) {
   const [selectedRole, setSelectedRole] = useState('');
   const [selectedPermission, setSelectedPermission] = useState<PermissionLevel>('viewer');
-  const [selectedEvent, setSelectedEvent] = useState<string>('global');
+  // Auto-select the event if selectedEventFilter is provided and not "all"
+  const [selectedEvent, setSelectedEvent] = useState<string>(
+    selectedEventFilter && selectedEventFilter !== "all" ? selectedEventFilter : 'global'
+  );
+
+  // Update selectedEvent when selectedEventFilter changes
+  useEffect(() => {
+    if (selectedEventFilter && selectedEventFilter !== "all") {
+      setSelectedEvent(selectedEventFilter);
+    } else if (selectedEventFilter === "all") {
+      setSelectedEvent('global');
+    }
+  }, [selectedEventFilter]);
 
   return (
     <Card className="border-dashed">
