@@ -30,9 +30,9 @@ const TransportationDirectory = () => {
 
         // Fetch transportation profiles with their types
         const { data: profilesData, error: profilesError } = await supabase
-          .from('transportations')
+          .from('transportation_profiles')
           .select(`
-            *,
+*,
             transportation_types(*)
           `);
 
@@ -53,14 +53,14 @@ const TransportationDirectory = () => {
 
   // Filter profiles based on selected transportation types and location
   const filteredProfiles = transportationProfiles.filter(profile => {
-    const matchesType = selectedTransportationTypes.length === 0 || 
+    const matchesType = selectedTransportationTypes.length === 0 ||
       selectedTransportationTypes.includes(profile.transp_type_id?.toString());
-    
-    const matchesLocation = !locationFilter || 
+
+    const matchesLocation = !locationFilter ||
       profile.city?.toLowerCase().includes(locationFilter.toLowerCase()) ||
       profile.state?.toLowerCase().includes(locationFilter.toLowerCase()) ||
       profile.zip?.toString().includes(locationFilter);
-    
+
     return matchesType && matchesLocation;
   });
 
@@ -115,7 +115,7 @@ const TransportationDirectory = () => {
                   className="max-w-md"
                 />
               </div>
-              
+
               <div className="space-y-3">
                 <label className="text-sm font-medium">Transportation Types (select all that apply)</label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -145,7 +145,7 @@ const TransportationDirectory = () => {
                   })}
                 </div>
               </div>
-              
+
               {selectedTransportationTypes.length > 0 && (
                 <div className="p-4 bg-muted rounded-lg">
                   <h3 className="font-medium mb-2">Selected Transportation Types:</h3>
@@ -164,11 +164,11 @@ const TransportationDirectory = () => {
             </>
           )}
 
-          <Button 
+          <Button
             onClick={() => {
               setSelectedTransportationTypes([]);
               setLocationFilter("");
-            }} 
+            }}
             variant="outline"
             disabled={selectedTransportationTypes.length === 0 && !locationFilter}
           >
@@ -205,7 +205,7 @@ const TransportationDirectory = () => {
               {filteredProfiles.map((profile) => {
                 const transportationType = profile.transportation_types?.name || 'Transportation';
                 const IconComponent = getTransportationIcon(transportationType);
-                
+
                 return (
                   <Card key={profile.id} className="hover:shadow-lg transition-shadow">
                     <CardHeader className="pb-3">
@@ -225,7 +225,7 @@ const TransportationDirectory = () => {
                           {profile.phone_number ? profile.phone_number : 'No phone provided'}
                         </p>
                       </div>
-                      
+
                       <div className="space-y-2 text-sm">
                         {profile.seating_capacity && (
                           <p><strong>Capacity:</strong> {profile.seating_capacity} seats</p>
@@ -235,11 +235,11 @@ const TransportationDirectory = () => {
                         )}
                         <p><strong>Location:</strong> {[profile.city, profile.state, profile.zip].filter(Boolean).join(', ') || 'Location not specified'}</p>
                       </div>
-                      
+
                       {profile.description && (
                         <p className="text-sm text-muted-foreground">{profile.description}</p>
                       )}
-                      
+
                       {profile.special_accommodations && profile.special_accommodations.length > 0 && (
                         <div>
                           <p className="text-sm font-medium mb-1">Accommodations:</p>
@@ -252,7 +252,7 @@ const TransportationDirectory = () => {
                           </div>
                         </div>
                       )}
-                      
+
                       <Button className="w-full mt-4">
                         Make Reservation
                       </Button>

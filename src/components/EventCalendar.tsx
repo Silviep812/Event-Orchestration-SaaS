@@ -33,7 +33,7 @@ const EventCalendar = () => {
   // Fetch user's events from the database
   const fetchUserEvents = async () => {
     if (!user) return;
-    
+
     try {
       setLoading(true);
       const { data, error } = await supabase
@@ -181,7 +181,7 @@ const EventCalendar = () => {
                 {selectedDate ? format(selectedDate, "MMM dd, yyyy") : "Select a Date"}
               </CardTitle>
               <CardDescription>
-                {eventsForSelectedDate.length > 0 
+                {eventsForSelectedDate.length > 0
                   ? `${eventsForSelectedDate.length} event(s) scheduled`
                   : "No events scheduled"
                 }
