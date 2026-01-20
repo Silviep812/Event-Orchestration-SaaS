@@ -882,29 +882,53 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         }
       }
 
-      // Recalculate project timeline if estimated_hours changed
-      if (updates.estimated_hours !== undefined && originalTask && updates.estimated_hours !== originalTask.estimated_hours) {
+      // Recalculate downstream tasks if due_date changed
+      if (updates.due_date !== undefined && originalTask && updates.due_date !== originalTask.due_date) {
         try {
-          // Use the existing recalculate_project_timeline function
-          const { data: recalcData, error: recalcError } = await supabase.rpc('recalculate_project_timeline', {
-            p_event_id: originalTask.event_id || null
+          // Use the new recalculate_downstream_tasks function for due date changes
+          const { data: recalcData, error: recalcError } = await supabase.rpc('recalculate_downstream_tasks', {
+            p_task_id: taskId,
+            p_new_due_date: updates.due_date
           });
 
           if (recalcError) {
-            console.warn('Failed to recalculate project timeline:', recalcError);
+            console.warn('Failed to recalculate downstream tasks:', recalcError);
             // Don't fail the update if recalculation fails
           } else if (recalcData && Array.isArray(recalcData) && recalcData.length > 0) {
             toast({
               title: "Timeline updated",
-              description: `Recalculated ${recalcData.length} task${recalcData.length > 1 ? 's' : ''}.`,
+              description: `Adjusted ${recalcData.length} downstream task${recalcData.length > 1 ? 's' : ''}.`,
             });
             // Refresh tasks to show updated due dates
             await fetchTasks();
             return; // Early return since fetchTasks will update the UI
           }
         } catch (recalcErr) {
-          console.warn('Error recalculating project timeline:', recalcErr);
+          console.warn('Error recalculating downstream tasks:', recalcErr);
           // Continue with normal update flow
+        }
+      }
+
+      // Recalculate project timeline if estimated_hours changed
+      if (updates.estimated_hours !== undefined && originalTask && updates.estimated_hours !== originalTask.estimated_hours) {
+        try {
+          // Use the existing recalculate_project_timeline function for estimated hours
+          const { data: recalcData, error: recalcError } = await supabase.rpc('recalculate_project_timeline', {
+            p_event_id: originalTask.event_id || null
+          });
+
+          if (recalcError) {
+            console.warn('Failed to recalculate project timeline:', recalcError);
+          } else if (recalcData && Array.isArray(recalcData) && recalcData.length > 0) {
+            toast({
+              title: "Timeline updated",
+              description: `Recalculated ${recalcData.length} task${recalcData.length > 1 ? 's' : ''}.`,
+            });
+            await fetchTasks();
+            return;
+          }
+        } catch (recalcErr) {
+          console.warn('Error recalculating project timeline:', recalcErr);
         }
       }
 

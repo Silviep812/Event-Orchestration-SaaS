@@ -359,25 +359,24 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
         return;
       }
 
-      const { error: updateError } = await supabase
-        .from('resources')
-        .update({
-          allocated: resource.allocated + 1,
-        })
-        .eq('id', resourceId);
+      // Use the new RPC function for atomic update with utilization calculation
+      const { data: rpcResult, error: rpcError } = await supabase.rpc('update_resource_utilization', {
+        p_resource_id: resourceId,
+        p_allocated: resource.allocated + 1,
+        p_total: resource.total,
+      });
 
-      if (updateError) throw updateError;
+      if (rpcError) throw rpcError;
 
-      // Calculate utilization locally (RPC not available)
-      // Then update the local state
+      // Update local state with RPC result
+      const result = rpcResult as { success: boolean; allocated: number; total: number; utilization_percent: number };
       setResources(prev => prev.map(r => {
         if (r.id === resourceId) {
-          const newAllocated = r.allocated + 1;
           return {
             ...r,
-            allocated: newAllocated,
-            utilization_percent: r.total > 0 ? Math.round((newAllocated / r.total) * 100) : 0,
-            available_count: Math.max(0, r.total - newAllocated),
+            allocated: result.allocated,
+            utilization_percent: result.utilization_percent,
+            available_count: Math.max(0, result.total - result.allocated),
           };
         }
         return r;
@@ -394,7 +393,7 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
         description: "Failed to assign resource",
         variant: "destructive",
       });
-    };
+    }
   };
 
   const syncLocationFromEvent = async () => {
@@ -500,20 +499,28 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
       return;
     }
     try {
-      const { error } = await supabase
+      // Use RPC to update allocation with utilization calculation
+      const { error: rpcError } = await supabase.rpc('update_resource_utilization', {
+        p_resource_id: editResource.id,
+        p_allocated: editResource.allocated,
+        p_total: editResource.total,
+      });
+
+      if (rpcError) throw rpcError;
+
+      // Update other fields via direct update
+      const { error: updateError } = await supabase
         .from('resources')
         .update({
           name: editResource.name,
           category_id: editResource.category_id,
           status_id: editResource.status_id,
           location: editResource.location,
-          allocated: editResource.allocated,
-          total: editResource.total,
         })
         .eq('id', editResource.id);
-      if (error) throw error;
 
-      // Utilization will be calculated locally after refresh
+      if (updateError) throw updateError;
+
       toast({ title: 'Resource Updated', description: 'Resource info updated successfully.' });
       setIsEditDialogOpen(false);
       setEditResource(null);
