@@ -95,15 +95,9 @@ export default function TrackProgress() {
       // Fetch assigned users for each task
       const tasksWithUsers = await Promise.all(
         (tasksData || []).map(async (task) => {
-          const { data: assignmentData } = await supabase
-            .from('task_assignments')
-            .select('user_id')
-            .eq('task_id', task.id)
-            .limit(1)
-            .maybeSingle();
-
+          // Get assigned user from task's assigned_to field
           let assigned_user_name: string | null = null;
-          const assigned_user_id = assignmentData?.user_id || null;
+          const assigned_user_id = (task as any).assigned_to || null;
           
           if (assigned_user_id) {
             const { data: profileData } = await supabase

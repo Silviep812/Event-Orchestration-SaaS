@@ -30,8 +30,7 @@ export default function ProjectManagement() {
 
     setIsRecalculating(true);
     try {
-      const { data, error } = await supabase.rpc('recalculate_downstream_tasks', {
-        p_task_id: null,
+      const { data, error } = await supabase.rpc('recalculate_project_timeline', {
         p_event_id: selectedEventFilter
       });
 
@@ -39,7 +38,7 @@ export default function ProjectManagement() {
 
       toast({
         title: "Timeline recalculated",
-        description: data && data.length > 0 
+        description: data && Array.isArray(data) && data.length > 0 
           ? `Updated ${data.length} task${data.length > 1 ? 's' : ''} in the timeline.`
           : "Timeline recalculated successfully.",
       });

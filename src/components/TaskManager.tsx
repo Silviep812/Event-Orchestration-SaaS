@@ -348,7 +348,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
       // This allows users to create dependencies across different events
       const { data, error } = await supabase
         .from('tasks')
-        .select('id, title, status, category')
+        .select('id, title, status, category, assigned_to')
         .eq('archived', false);
 
       if (error) throw error;
@@ -882,28 +882,28 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         }
       }
 
-      // Recalculate downstream tasks if estimated_hours changed
+      // Recalculate project timeline if estimated_hours changed
       if (updates.estimated_hours !== undefined && originalTask && updates.estimated_hours !== originalTask.estimated_hours) {
         try {
-          const { data: recalcData, error: recalcError } = await supabase.rpc('recalculate_downstream_tasks', {
-            p_task_id: taskId,
+          // Use the existing recalculate_project_timeline function
+          const { data: recalcData, error: recalcError } = await supabase.rpc('recalculate_project_timeline', {
             p_event_id: originalTask.event_id || null
           });
 
           if (recalcError) {
-            console.warn('Failed to recalculate downstream tasks:', recalcError);
+            console.warn('Failed to recalculate project timeline:', recalcError);
             // Don't fail the update if recalculation fails
-          } else if (recalcData && recalcData.length > 0) {
+          } else if (recalcData && Array.isArray(recalcData) && recalcData.length > 0) {
             toast({
               title: "Timeline updated",
-              description: `Recalculated ${recalcData.length} downstream task${recalcData.length > 1 ? 's' : ''}.`,
+              description: `Recalculated ${recalcData.length} task${recalcData.length > 1 ? 's' : ''}.`,
             });
             // Refresh tasks to show updated due dates
             await fetchTasks();
             return; // Early return since fetchTasks will update the UI
           }
         } catch (recalcErr) {
-          console.warn('Error recalculating downstream tasks:', recalcErr);
+          console.warn('Error recalculating project timeline:', recalcErr);
           // Continue with normal update flow
         }
       }
@@ -2266,7 +2266,6 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                   setNewTask({
                     title: "",
                     description: "",
-                    assigned_user_id: "",
                     priority: "medium",
                     estimated_hours: "",
                     due_date: "",
@@ -2314,6 +2313,10 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                       priority: "medium",
                       estimated_hours: "",
                       due_date: "",
+                      start_date: "",
+                      end_date: "",
+                      start_time: "",
+                      end_time: "",
                       selected_event_id: "",
                       dependencies: [],
                       assigned_role: ""
