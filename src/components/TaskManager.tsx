@@ -888,6 +888,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
           // Use the new recalculate_downstream_tasks function for due date changes
           const { data: recalcData, error: recalcError } = await supabase.rpc('recalculate_downstream_tasks', {
             p_task_id: taskId,
+            p_original_due_date: originalTask.due_date,
             p_new_due_date: updates.due_date
           });
 

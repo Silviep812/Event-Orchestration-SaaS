@@ -4036,14 +4036,27 @@ export type Database = {
         }
         Returns: undefined
       }
-      recalculate_downstream_tasks: {
-        Args: { p_new_due_date?: string; p_task_id: string }
-        Returns: {
-          new_due_date: string
-          old_due_date: string
-          task_id: string
-        }[]
-      }
+      recalculate_downstream_tasks:
+        | {
+            Args: { p_new_due_date?: string; p_task_id: string }
+            Returns: {
+              new_due_date: string
+              old_due_date: string
+              task_id: string
+            }[]
+          }
+        | {
+            Args: {
+              p_new_due_date: string
+              p_original_due_date: string
+              p_task_id: string
+            }
+            Returns: {
+              new_due_date: string
+              old_due_date: string
+              task_id: string
+            }[]
+          }
       recalculate_project_timeline: {
         Args: { p_event_id: string }
         Returns: {
