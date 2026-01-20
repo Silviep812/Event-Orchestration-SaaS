@@ -4036,6 +4036,14 @@ export type Database = {
         }
         Returns: undefined
       }
+      recalculate_downstream_tasks: {
+        Args: { p_new_due_date?: string; p_task_id: string }
+        Returns: {
+          new_due_date: string
+          old_due_date: string
+          task_id: string
+        }[]
+      }
       recalculate_project_timeline: {
         Args: { p_event_id: string }
         Returns: {
@@ -4050,6 +4058,10 @@ export type Database = {
           p_rejected_by?: string
           p_rejection_reason: string
         }
+        Returns: Json
+      }
+      update_resource_utilization: {
+        Args: { p_allocated: number; p_resource_id: string; p_total: number }
         Returns: Json
       }
     }
