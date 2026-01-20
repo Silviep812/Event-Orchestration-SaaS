@@ -42,6 +42,33 @@ interface AnalyticsProps {
   onInteractionTrack?: (interaction: UserInteraction) => void;
 }
 
+// Define the expected structure of event_kpi_view data
+interface EventKPIData {
+  event_id: string;
+  title: string;
+  status: string;
+  start_date: string;
+  end_date: string;
+  location: string;
+  theme_id: number | null;
+  type_id: number | null;
+  created_at: string;
+  total_tasks: number;
+  completed_tasks: number;
+  in_progress_tasks: number;
+  pending_tasks: number;
+  task_completion_rate: number;
+  avg_task_duration: number;
+  total_task_hours: number;
+  total_resources: number;
+  allocated_resources: number;
+  total_resources_count: number;
+  resource_utilization_rate: number;
+  total_budget: number;
+  total_spent: number;
+  budget_utilization_rate: number;
+}
+
 export default function Analytics({ onInteractionTrack }: AnalyticsProps = {}) {
   const [filters, setFilters] = useState<AnalyticsFilters>({
     dateRange: {
@@ -86,12 +113,12 @@ export default function Analytics({ onInteractionTrack }: AnalyticsProps = {}) {
     try {
       setLoading(true);
       
-      // Fetch KPI data from view
+      // Fetch KPI data from view - use type assertion since view may not be in generated types
       const { data: kpiData, error: kpiError } = await supabase
-        .from('event_kpi_view')
+        .from('event_kpi_view' as any)
         .select('*')
         .gte('created_at', filters.dateRange.from.toISOString())
-        .lte('created_at', filters.dateRange.to.toISOString());
+        .lte('created_at', filters.dateRange.to.toISOString()) as { data: EventKPIData[] | null; error: any };
 
       if (kpiError) throw kpiError;
 

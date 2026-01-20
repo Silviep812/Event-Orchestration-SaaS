@@ -224,8 +224,8 @@ const ManageEvent = () => {
 
       // Filter by status at database level
       if (!statusFilters.includes('all')) {
-        // Filter by selected statuses
-        const statusValues = statusFilters.filter(s => s !== 'all') as string[];
+        // Filter by selected statuses - cast to the expected type
+        const statusValues = statusFilters.filter(s => s !== 'all') as ("cancelled" | "completed" | "in_progress" | "pending")[];
         if (statusValues.length > 0) {
           // Build filter conditions: include null status if 'pending' is selected
           const hasPending = statusValues.includes('pending');

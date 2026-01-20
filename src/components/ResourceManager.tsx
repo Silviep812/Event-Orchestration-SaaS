@@ -368,22 +368,16 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
 
       if (updateError) throw updateError;
 
-      // Recalculate utilization
-      const { data: utilData, error: utilError } = await supabase.rpc('update_resource_utilization', {
-        p_resource_id: resourceId,
-        p_event_id: null
-      });
-
+      // Calculate utilization locally (RPC not available)
       // Then update the local state
       setResources(prev => prev.map(r => {
         if (r.id === resourceId) {
           const newAllocated = r.allocated + 1;
-          const util = utilData && utilData[0] ? utilData[0] : null;
           return {
             ...r,
             allocated: newAllocated,
-            utilization_percent: util?.utilization_percent || (r.total > 0 ? Math.round((newAllocated / r.total) * 100) : 0),
-            available_count: util?.available_count || Math.max(0, r.total - newAllocated),
+            utilization_percent: r.total > 0 ? Math.round((newAllocated / r.total) * 100) : 0,
+            available_count: Math.max(0, r.total - newAllocated),
           };
         }
         return r;
@@ -519,12 +513,7 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
         .eq('id', editResource.id);
       if (error) throw error;
 
-      // Recalculate utilization
-      const { data: utilData, error: utilError } = await supabase.rpc('update_resource_utilization', {
-        p_resource_id: editResource.id,
-        p_event_id: eventId || null
-      });
-
+      // Utilization will be calculated locally after refresh
       toast({ title: 'Resource Updated', description: 'Resource info updated successfully.' });
       setIsEditDialogOpen(false);
       setEditResource(null);

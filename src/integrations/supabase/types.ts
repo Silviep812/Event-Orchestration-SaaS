@@ -7,30 +7,10 @@ export type Json =
   | Json[]
 
 export type Database = {
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "13.0.5"
   }
   public: {
     Tables: {
@@ -313,6 +293,13 @@ export type Database = {
             foreignKeyName: "change_requests_task_id_fkey"
             columns: ["task_id"]
             isOneToOne: false
+            referencedRelation: "event_task_timeline_view"
+            referencedColumns: ["task_id"]
+          },
+          {
+            foreignKeyName: "change_requests_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
             referencedRelation: "tasks"
             referencedColumns: ["id"]
           },
@@ -345,6 +332,36 @@ export type Database = {
           payload?: Json | null
           type?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      cm_change_requests: {
+        Row: {
+          created_at: string
+          description: string | null
+          event_id: string | null
+          id: string
+          priority_tag: string | null
+          requested_by: string | null
+          task_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          event_id?: string | null
+          id?: string
+          priority_tag?: string | null
+          requested_by?: string | null
+          task_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          event_id?: string | null
+          id?: string
+          priority_tag?: string | null
+          requested_by?: string | null
+          task_id?: string | null
         }
         Relationships: []
       }
@@ -1920,6 +1937,13 @@ export type Database = {
             foreignKeyName: "resources_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: false
+            referencedRelation: "event_kpi_view"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "resources_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
             referencedRelation: "events"
             referencedColumns: ["id"]
           },
@@ -2681,8 +2705,22 @@ export type Database = {
             foreignKeyName: "tasks_dependencies_depends_on_task_id_fkey"
             columns: ["depends_on_task_id"]
             isOneToOne: false
+            referencedRelation: "event_task_timeline_view"
+            referencedColumns: ["task_id"]
+          },
+          {
+            foreignKeyName: "tasks_dependencies_depends_on_task_id_fkey"
+            columns: ["depends_on_task_id"]
+            isOneToOne: false
             referencedRelation: "tasks"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_dependencies_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "event_task_timeline_view"
+            referencedColumns: ["task_id"]
           },
           {
             foreignKeyName: "tasks_dependencies_task_id_fkey"
@@ -3164,6 +3202,13 @@ export type Database = {
             foreignKeyName: "user_roles_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: false
+            referencedRelation: "event_kpi_view"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "user_roles_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
             referencedRelation: "events"
             referencedColumns: ["id"]
           },
@@ -3576,6 +3621,13 @@ export type Database = {
             foreignKeyName: "workflows_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: true
+            referencedRelation: "event_kpi_view"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "workflows_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: true
             referencedRelation: "events"
             referencedColumns: ["id"]
           },
@@ -3713,6 +3765,69 @@ export type Database = {
         }
         Relationships: []
       }
+      event_kpi_view: {
+        Row: {
+          allocated_resources: number | null
+          avg_task_duration: number | null
+          budget_utilization_rate: number | null
+          completed_tasks: number | null
+          created_at: string | null
+          end_date: string | null
+          event_id: string | null
+          in_progress_tasks: number | null
+          location: string | null
+          pending_tasks: number | null
+          resource_utilization_rate: number | null
+          start_date: string | null
+          status: Database["public"]["Enums"]["event_status_enum"] | null
+          task_completion_rate: number | null
+          theme_id: number | null
+          title: string | null
+          total_budget: number | null
+          total_resources: number | null
+          total_resources_count: number | null
+          total_spent: number | null
+          total_task_hours: number | null
+          total_tasks: number | null
+          type_id: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_type_id_fkey"
+            columns: ["type_id"]
+            isOneToOne: false
+            referencedRelation: "event_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_task_timeline_view: {
+        Row: {
+          actual_hours: number | null
+          assigned_to: string | null
+          created_at: string | null
+          description: string | null
+          due_date: string | null
+          end_date: string | null
+          end_time: string | null
+          estimated_hours: number | null
+          event_end_date: string | null
+          event_id: string | null
+          event_location: string | null
+          event_start_date: string | null
+          event_title: string | null
+          is_misaligned: boolean | null
+          is_overdue: boolean | null
+          priority: Database["public"]["Enums"]["task_priority"] | null
+          start_date: string | null
+          start_time: string | null
+          status: Database["public"]["Enums"]["task_status"] | null
+          task_id: string | null
+          title: string | null
+          updated_at: string | null
+        }
+        Relationships: []
+      }
       unified_audit_events: {
         Row: {
           created_at: string | null
@@ -3802,9 +3917,17 @@ export type Database = {
         Args: { p_applied_by?: string; p_change_request_id: string }
         Returns: Json
       }
+      apply_change_request_wr: {
+        Args: { change_request_id: string }
+        Returns: undefined
+      }
       approve_change_request: {
         Args: { p_approved_by?: string; p_change_request_id: string }
         Returns: Json
+      }
+      approve_change_request_wr: {
+        Args: { change_request_id: string }
+        Returns: undefined
       }
       are_team_members: {
         Args: { _user_id_1: string; _user_id_2: string }
@@ -3815,11 +3938,11 @@ export type Database = {
         Args: { p_cancelled_by?: string; p_change_request_id: string }
         Returns: Json
       }
-      execute_raw_sql: { Args: { query: string }; Returns: Json }
-      get_coordinator_emails: {
-        Args: { p_event_id?: string }
-        Returns: string[]
+      cancel_change_request_wr: {
+        Args: { change_request_id: string }
+        Returns: undefined
       }
+      execute_raw_sql: { Args: { query: string }; Returns: Json }
       get_my_events_safe: {
         Args: never
         Returns: {
@@ -3887,6 +4010,10 @@ export type Database = {
         Args: { _team_id: string; _user_id: string }
         Returns: boolean
       }
+      is_venue_booking_completed: {
+        Args: { p_event_id: string }
+        Returns: boolean
+      }
       log_change: {
         Args: {
           p_action: string
@@ -3898,10 +4025,6 @@ export type Database = {
           p_old_value?: string
         }
         Returns: string
-      }
-      notify_change_request_email: {
-        Args: { p_change_request_id: string; p_status: string }
-        Returns: undefined
       }
       notify_coordinators: {
         Args: {
@@ -4098,9 +4221,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       app_role: [
@@ -4153,4 +4273,3 @@ export const Constants = {
     },
   },
 } as const
-

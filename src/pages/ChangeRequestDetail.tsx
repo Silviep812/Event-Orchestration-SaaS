@@ -475,13 +475,18 @@ const ChangeRequestDetail = () => {
         
         if (data) {
           // Transform Create Event data to match events structure
+          // Handle event_location which may be string or string[]
+          const locationValue = Array.isArray(data.event_location) 
+            ? data.event_location.join(", ") 
+            : data.event_location || undefined;
+          
           setEventData({
             id: data.userid,
             title: Array.isArray(data.event_theme) ? data.event_theme.join(", ") : data.event_theme || "Event",
             description: data.event_description,
             start_date: data.event_start_date,
             end_date: data.event_end_date,
-            location: data.event_location,
+            location: locationValue,
             theme_id: undefined,
             type_id: undefined,
             status: undefined,
@@ -863,7 +868,7 @@ const ChangeRequestDetail = () => {
 
     try {
       setSaving(true);
-      let rpcFunction: string;
+      let rpcFunction: "approve_change_request" | "reject_change_request" | "apply_change_request" | "cancel_change_request";
       let successMessage: string;
       let rpcParams: any = {};
 
