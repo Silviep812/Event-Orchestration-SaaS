@@ -79,7 +79,7 @@ export default function CreateEvent() {
   const prevSelectedVenueNameRef = useRef<string | undefined>();
 
   const [themesLoaded, setThemesLoaded] = useState(false);
-  const [budgetInput, setBudgetInput] = useState('1,000.00');
+  const [budgetInput, setBudgetInput] = useState('');
 
 
   useEffect(() => {
@@ -713,25 +713,53 @@ export default function CreateEvent() {
                   <DollarSign className="h-4 w-4" />
                   Budget
                 </Label>
-                <Input
-                  id="budget"
-                  value={budgetInput}
-                  onChange={(e) => {
-                    const rawValue = e.target.value.replace(/[^0-9.]/g, '');
-                    setBudgetInput(rawValue);
-                    setValue('budget', rawValue || '1000');
-                  }}
-                  onBlur={() => {
-                    const numeric = parseFloat(budgetInput) || 1000; // default 1000 if changes need 
-                    const formatted = numeric.toLocaleString('en-US', {
-                      style: 'currency',
-                      currency: 'USD',
-                    });
-                    setBudgetInput(formatted);
-                    setValue('budget', numeric.toString());
-                  }}
-                  placeholder="$1,000.00"
-                />
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                  <Input
+                    id="budget"
+                    className="pl-7"
+                    value={budgetInput}
+                    onChange={(e) => {
+                      const rawValue = e.target.value.replace(/[^0-9.]/g, '');
+                      const parts = rawValue.split('.');
+                      const sanitized = parts.length > 2 
+                        ? parts[0] + '.' + parts.slice(1).join('') 
+                        : rawValue;
+                      
+                      if (sanitized === '' || sanitized === '.') {
+                        setBudgetInput('');
+                        setValue('budget', '');
+                      } else if (sanitized.endsWith('.')) {
+                        const intPart = parseInt(sanitized) || 0;
+                        setBudgetInput(intPart.toLocaleString('en-US') + '.');
+                        setValue('budget', sanitized);
+                      } else if (sanitized.includes('.')) {
+                        const [intPart, decPart] = sanitized.split('.');
+                        const formattedInt = parseInt(intPart || '0').toLocaleString('en-US');
+                        setBudgetInput(`${formattedInt}.${decPart.slice(0, 2)}`);
+                        setValue('budget', sanitized);
+                      } else {
+                        const numericValue = parseInt(sanitized) || 0;
+                        setBudgetInput(numericValue.toLocaleString('en-US'));
+                        setValue('budget', sanitized);
+                      }
+                    }}
+                    onBlur={() => {
+                      const numeric = parseFloat(budgetInput.replace(/,/g, '')) || 0;
+                      if (numeric > 0) {
+                        setBudgetInput(numeric.toLocaleString('en-US', {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2
+                        }));
+                        setValue('budget', numeric.toString());
+                      } else {
+                        setBudgetInput('');
+                        setValue('budget', '');
+                      }
+                    }}
+                    placeholder="0.00"
+                  />
+                </div>
               </div>
 
             </CardContent>
