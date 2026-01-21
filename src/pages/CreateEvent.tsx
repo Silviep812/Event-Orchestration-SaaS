@@ -587,38 +587,69 @@ export default function CreateEvent() {
                   </Label>
                   <div className="flex gap-2 items-center">
                     <Select
-                      value={watch("start_time")?.split(":")[0] || ""}
-                      onValueChange={(hour) => {
-                        const currentTime = watch("start_time") || "00:00";
+                      value={(() => {
+                        const hour24 = parseInt(watch("start_time")?.split(":")[0] || "12");
+                        const hour12 = hour24 === 0 ? 12 : hour24 > 12 ? hour24 - 12 : hour24;
+                        return hour12.toString().padStart(2, "0");
+                      })()}
+                      onValueChange={(hour12) => {
+                        const currentTime = watch("start_time") || "12:00";
+                        const [currentHour24] = currentTime.split(":");
                         const minutes = currentTime.split(":")[1] || "00";
-                        setValue("start_time", `${hour}:${minutes}`);
+                        const isPM = parseInt(currentHour24) >= 12;
+                        let hour24 = parseInt(hour12);
+                        if (isPM && hour24 !== 12) hour24 += 12;
+                        if (!isPM && hour24 === 12) hour24 = 0;
+                        setValue("start_time", `${hour24.toString().padStart(2, "0")}:${minutes}`);
                       }}
                     >
-                      <SelectTrigger className="w-[80px]">
+                      <SelectTrigger className="w-[70px]">
                         <SelectValue placeholder="HH" />
                       </SelectTrigger>
                       <SelectContent>
-                        {Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, "0")).map((hour) => (
+                        {Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, "0")).map((hour) => (
                           <SelectItem key={hour} value={hour}>{hour}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                     <span className="text-muted-foreground font-medium">:</span>
                     <Select
-                      value={watch("start_time")?.split(":")[1] || ""}
+                      value={watch("start_time")?.split(":")[1] || "00"}
                       onValueChange={(minute) => {
-                        const currentTime = watch("start_time") || "00:00";
-                        const hour = currentTime.split(":")[0] || "00";
+                        const currentTime = watch("start_time") || "12:00";
+                        const hour = currentTime.split(":")[0] || "12";
                         setValue("start_time", `${hour}:${minute}`);
                       }}
                     >
-                      <SelectTrigger className="w-[80px]">
+                      <SelectTrigger className="w-[70px]">
                         <SelectValue placeholder="MM" />
                       </SelectTrigger>
                       <SelectContent>
                         {["00", "15", "30", "45"].map((minute) => (
                           <SelectItem key={minute} value={minute}>{minute}</SelectItem>
                         ))}
+                      </SelectContent>
+                    </Select>
+                    <Select
+                      value={parseInt(watch("start_time")?.split(":")[0] || "0") >= 12 ? "PM" : "AM"}
+                      onValueChange={(period) => {
+                        const currentTime = watch("start_time") || "12:00";
+                        let hour24 = parseInt(currentTime.split(":")[0] || "12");
+                        const minutes = currentTime.split(":")[1] || "00";
+                        if (period === "AM" && hour24 >= 12) {
+                          hour24 = hour24 === 12 ? 0 : hour24 - 12;
+                        } else if (period === "PM" && hour24 < 12) {
+                          hour24 = hour24 === 0 ? 12 : hour24 + 12;
+                        }
+                        setValue("start_time", `${hour24.toString().padStart(2, "0")}:${minutes}`);
+                      }}
+                    >
+                      <SelectTrigger className="w-[70px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="AM">AM</SelectItem>
+                        <SelectItem value="PM">PM</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -631,38 +662,69 @@ export default function CreateEvent() {
                   </Label>
                   <div className="flex gap-2 items-center">
                     <Select
-                      value={watch("end_time")?.split(":")[0] || ""}
-                      onValueChange={(hour) => {
-                        const currentTime = watch("end_time") || "00:00";
+                      value={(() => {
+                        const hour24 = parseInt(watch("end_time")?.split(":")[0] || "12");
+                        const hour12 = hour24 === 0 ? 12 : hour24 > 12 ? hour24 - 12 : hour24;
+                        return hour12.toString().padStart(2, "0");
+                      })()}
+                      onValueChange={(hour12) => {
+                        const currentTime = watch("end_time") || "12:00";
+                        const [currentHour24] = currentTime.split(":");
                         const minutes = currentTime.split(":")[1] || "00";
-                        setValue("end_time", `${hour}:${minutes}`);
+                        const isPM = parseInt(currentHour24) >= 12;
+                        let hour24 = parseInt(hour12);
+                        if (isPM && hour24 !== 12) hour24 += 12;
+                        if (!isPM && hour24 === 12) hour24 = 0;
+                        setValue("end_time", `${hour24.toString().padStart(2, "0")}:${minutes}`);
                       }}
                     >
-                      <SelectTrigger className="w-[80px]">
+                      <SelectTrigger className="w-[70px]">
                         <SelectValue placeholder="HH" />
                       </SelectTrigger>
                       <SelectContent>
-                        {Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, "0")).map((hour) => (
+                        {Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, "0")).map((hour) => (
                           <SelectItem key={hour} value={hour}>{hour}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                     <span className="text-muted-foreground font-medium">:</span>
                     <Select
-                      value={watch("end_time")?.split(":")[1] || ""}
+                      value={watch("end_time")?.split(":")[1] || "00"}
                       onValueChange={(minute) => {
-                        const currentTime = watch("end_time") || "00:00";
-                        const hour = currentTime.split(":")[0] || "00";
+                        const currentTime = watch("end_time") || "12:00";
+                        const hour = currentTime.split(":")[0] || "12";
                         setValue("end_time", `${hour}:${minute}`);
                       }}
                     >
-                      <SelectTrigger className="w-[80px]">
+                      <SelectTrigger className="w-[70px]">
                         <SelectValue placeholder="MM" />
                       </SelectTrigger>
                       <SelectContent>
                         {["00", "15", "30", "45"].map((minute) => (
                           <SelectItem key={minute} value={minute}>{minute}</SelectItem>
                         ))}
+                      </SelectContent>
+                    </Select>
+                    <Select
+                      value={parseInt(watch("end_time")?.split(":")[0] || "0") >= 12 ? "PM" : "AM"}
+                      onValueChange={(period) => {
+                        const currentTime = watch("end_time") || "12:00";
+                        let hour24 = parseInt(currentTime.split(":")[0] || "12");
+                        const minutes = currentTime.split(":")[1] || "00";
+                        if (period === "AM" && hour24 >= 12) {
+                          hour24 = hour24 === 12 ? 0 : hour24 - 12;
+                        } else if (period === "PM" && hour24 < 12) {
+                          hour24 = hour24 === 0 ? 12 : hour24 + 12;
+                        }
+                        setValue("end_time", `${hour24.toString().padStart(2, "0")}:${minutes}`);
+                      }}
+                    >
+                      <SelectTrigger className="w-[70px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="AM">AM</SelectItem>
+                        <SelectItem value="PM">PM</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
