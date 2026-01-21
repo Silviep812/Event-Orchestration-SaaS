@@ -585,11 +585,43 @@ export default function CreateEvent() {
                     <Clock className="h-4 w-4" />
                     Start Time
                   </Label>
-                  <Input
-                    id="start_time"
-                    type="time"
-                    {...register("start_time")}
-                  />
+                  <div className="flex gap-2 items-center">
+                    <Select
+                      value={watch("start_time")?.split(":")[0] || ""}
+                      onValueChange={(hour) => {
+                        const currentTime = watch("start_time") || "00:00";
+                        const minutes = currentTime.split(":")[1] || "00";
+                        setValue("start_time", `${hour}:${minutes}`);
+                      }}
+                    >
+                      <SelectTrigger className="w-[80px]">
+                        <SelectValue placeholder="HH" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, "0")).map((hour) => (
+                          <SelectItem key={hour} value={hour}>{hour}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <span className="text-muted-foreground font-medium">:</span>
+                    <Select
+                      value={watch("start_time")?.split(":")[1] || ""}
+                      onValueChange={(minute) => {
+                        const currentTime = watch("start_time") || "00:00";
+                        const hour = currentTime.split(":")[0] || "00";
+                        setValue("start_time", `${hour}:${minute}`);
+                      }}
+                    >
+                      <SelectTrigger className="w-[80px]">
+                        <SelectValue placeholder="MM" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {["00", "15", "30", "45"].map((minute) => (
+                          <SelectItem key={minute} value={minute}>{minute}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
                 <div>
@@ -597,11 +629,43 @@ export default function CreateEvent() {
                     <Clock className="h-4 w-4" />
                     End Time
                   </Label>
-                  <Input
-                    id="end_time"
-                    type="time"
-                    {...register("end_time")}
-                  />
+                  <div className="flex gap-2 items-center">
+                    <Select
+                      value={watch("end_time")?.split(":")[0] || ""}
+                      onValueChange={(hour) => {
+                        const currentTime = watch("end_time") || "00:00";
+                        const minutes = currentTime.split(":")[1] || "00";
+                        setValue("end_time", `${hour}:${minutes}`);
+                      }}
+                    >
+                      <SelectTrigger className="w-[80px]">
+                        <SelectValue placeholder="HH" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, "0")).map((hour) => (
+                          <SelectItem key={hour} value={hour}>{hour}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <span className="text-muted-foreground font-medium">:</span>
+                    <Select
+                      value={watch("end_time")?.split(":")[1] || ""}
+                      onValueChange={(minute) => {
+                        const currentTime = watch("end_time") || "00:00";
+                        const hour = currentTime.split(":")[0] || "00";
+                        setValue("end_time", `${hour}:${minute}`);
+                      }}
+                    >
+                      <SelectTrigger className="w-[80px]">
+                        <SelectValue placeholder="MM" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {["00", "15", "30", "45"].map((minute) => (
+                          <SelectItem key={minute} value={minute}>{minute}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
 
