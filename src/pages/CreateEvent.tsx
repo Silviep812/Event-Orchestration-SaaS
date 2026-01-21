@@ -579,13 +579,13 @@ export default function CreateEvent() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="start_time" className="flex items-center gap-2">
                     <Clock className="h-4 w-4" />
                     Start Time
                   </Label>
-                  <div className="flex gap-2 items-center">
+                  <div className="flex gap-1 items-center">
                     <Select
                       value={(() => {
                         const hour24 = parseInt(watch("start_time")?.split(":")[0] || "12");
@@ -603,7 +603,7 @@ export default function CreateEvent() {
                         setValue("start_time", `${hour24.toString().padStart(2, "0")}:${minutes}`);
                       }}
                     >
-                      <SelectTrigger className="w-[70px]">
+                      <SelectTrigger className="w-[65px]">
                         <SelectValue placeholder="HH" />
                       </SelectTrigger>
                       <SelectContent>
@@ -621,7 +621,7 @@ export default function CreateEvent() {
                         setValue("start_time", `${hour}:${minute}`);
                       }}
                     >
-                      <SelectTrigger className="w-[70px]">
+                      <SelectTrigger className="w-[65px]">
                         <SelectValue placeholder="MM" />
                       </SelectTrigger>
                       <SelectContent>
@@ -644,7 +644,7 @@ export default function CreateEvent() {
                         setValue("start_time", `${hour24.toString().padStart(2, "0")}:${minutes}`);
                       }}
                     >
-                      <SelectTrigger className="w-[70px]">
+                      <SelectTrigger className="w-[60px]">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -660,7 +660,7 @@ export default function CreateEvent() {
                     <Clock className="h-4 w-4" />
                     End Time
                   </Label>
-                  <div className="flex gap-2 items-center">
+                  <div className="flex gap-1 items-center">
                     <Select
                       value={(() => {
                         const hour24 = parseInt(watch("end_time")?.split(":")[0] || "12");
@@ -678,7 +678,7 @@ export default function CreateEvent() {
                         setValue("end_time", `${hour24.toString().padStart(2, "0")}:${minutes}`);
                       }}
                     >
-                      <SelectTrigger className="w-[70px]">
+                      <SelectTrigger className="w-[65px]">
                         <SelectValue placeholder="HH" />
                       </SelectTrigger>
                       <SelectContent>
@@ -696,7 +696,7 @@ export default function CreateEvent() {
                         setValue("end_time", `${hour}:${minute}`);
                       }}
                     >
-                      <SelectTrigger className="w-[70px]">
+                      <SelectTrigger className="w-[65px]">
                         <SelectValue placeholder="MM" />
                       </SelectTrigger>
                       <SelectContent>
@@ -719,7 +719,7 @@ export default function CreateEvent() {
                         setValue("end_time", `${hour24.toString().padStart(2, "0")}:${minutes}`);
                       }}
                     >
-                      <SelectTrigger className="w-[70px]">
+                      <SelectTrigger className="w-[60px]">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
