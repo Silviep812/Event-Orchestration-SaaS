@@ -19,7 +19,8 @@ import {
   Coffee,
   ShoppingCart,
   Truck,
-  Car
+  Car,
+  GitPullRequest
 } from "lucide-react";
 import { usePermissions } from "@/lib/permissions";
 import { useAuth } from "@/hooks/useAuth";
@@ -111,13 +112,20 @@ const menuGroups = [
         icon: TrendingUp,
         color: "text-green-600",
         hoverColor: "hover:bg-green-50"
-      },
+      }
+    ]
+  },
+  {
+    title: "Change Management",
+    color: "text-teal-600",
+    bgColor: "bg-teal-50",
+    items: [
       {
         title: "Change Requests",
         url: "/dashboard/change-requests",
-        icon: FileText,
-        color: "text-green-600",
-        hoverColor: "hover:bg-green-50"
+        icon: GitPullRequest,
+        color: "text-teal-600",
+        hoverColor: "hover:bg-teal-50"
       }
     ]
   },
