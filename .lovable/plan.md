@@ -1,118 +1,104 @@
 
+# Updated Plan: Add Inline-Editable Resource Assignments to Task Cards
 
-# Add Status Dropdown and Confirmation to Resource Category Assignments
+## Current State
 
-## Overview
+The implementation already has:
 
-Transform the Task Assignments section from simple checkboxes to an enhanced resource tracking system where each resource category includes a status dropdown and confirmation checkbox, matching the Bookings page pattern.
+1. **Resource Category Assignments section** in Create/Edit dialogs - working correctly with checkbox + status dropdown + confirmation for all 10 categories
+2. **Manual Collaborator name entry** - present in all three locations (Task Cards, Create Dialog, Edit Dialog) - **will be kept**
+3. **Resource badges on Task Cards** - currently showing as read-only badges
 
-## Complete Resource Categories List
+## What Needs to Change
 
-The following resource categories will be available (keeping Bookings and adding Vendors and Marketing):
+The Task Cards currently show resource assignments as **read-only badges**. The user wants them to be **inline-editable** directly on the cards, matching the Booking-style pattern (checkbox + status dropdown + confirmation).
 
-| # | Resource Category |
-|---|------------------|
-| 1 | Bookings |
-| 2 | Vendors |
-| 3 | Venues |
-| 4 | Hospitality |
-| 5 | Vendor Service Rental/Buy |
-| 6 | Service Vendor |
-| 7 | Transportation |
-| 8 | Entertainment |
-| 9 | Suppliers |
-| 10 | Marketing |
+## Locations and Changes
 
-## Changes Required
+### 1. Task Card Display (Lines 1621-1634)
 
-### File: `src/components/TaskManager.tsx`
+**Current behavior**: Shows read-only `ResourceAssignmentBadge` components
 
-#### 1. Update State Structure
-
-Replace the simple string array with a structured object to track status and confirmation:
+**New behavior**: Replace with editable `ResourceAssignmentRow` components that allow:
+- Toggle selection on/off
+- Change status via dropdown
+- Toggle confirmation checkbox
+- Auto-save changes to database on each change
 
 ```text
-Current: selectedCollaboratorTypes: string[]
+Current Task Card:
+┌──────────────────────────────────────────┐
+│ Task Title                               │
+│ Status dropdown                          │
+│ [Bookings: Pending] [Venues: Confirmed]  │  <-- Read-only badges
+│ ─────────────────────────────────        │
+│ Assign Collaborator Task To              │
+│ [Enter name____________] [Save]          │
+│ Hours | Due Date | Dependencies          │
+└──────────────────────────────────────────┘
 
-New: resourceAssignments: Record<string, {
-  selected: boolean;
-  status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
-  confirmed: boolean;
-}>
+New Task Card:
+┌──────────────────────────────────────────┐
+│ Task Title                               │
+│ Status dropdown                          │
+│                                          │
+│ Resource Category Assignments            │
+│ ☑ Bookings    [Pending ▼]   ☑ Confirmed  │  <-- Editable rows
+│ ☑ Venues      [Confirmed ▼] ☐ Confirmed  │
+│ ☐ Hospitality [Pending ▼]   ☐ Confirmed  │
+│ ... (all 10 categories)                  │
+│ ─────────────────────────────────        │
+│ Assign Collaborator Task To              │
+│ [Enter name____________] [Save]          │
+│ Hours | Due Date | Dependencies          │
+└──────────────────────────────────────────┘
 ```
 
-#### 2. New UI Layout for Task Assignments
+### 2. Auto-Save Logic for Card Resource Changes
 
-Replace the current checkbox list with an enhanced layout:
+Add a function to save resource assignment changes directly from the Task Card:
 
 ```text
-┌────────────────────────────────────────────────────────────────┐
-│ Task Assignments                                                │
-├────────────────────────────────────────────────────────────────┤
-│ ☑ Bookings       │ Status: [Pending ▼]    │ ☑ Confirmed       │
-│ ☐ Vendors        │ Status: [Pending ▼]    │ ☐ Confirmed       │
-│ ☐ Venues         │ Status: [Pending ▼]    │ ☐ Confirmed       │
-│ ☐ Hospitality    │ Status: [Pending ▼]    │ ☐ Confirmed       │
-│ ... (remaining categories)                                      │
-└────────────────────────────────────────────────────────────────┘
+When user changes any resource assignment on a card:
+1. Update local task state immediately (optimistic update)
+2. Save to database via Supabase
+3. Show success/error toast
 ```
 
-Each row contains:
-- Checkbox to select the resource category
-- Status dropdown (Pending, Confirmed, Completed, Cancelled) - enabled when selected
-- Confirmation checkbox - enabled when selected
+## Technical Details
 
-#### 3. Status Options
+### Files to Modify
 
-| Status | Color Badge |
-|--------|-------------|
-| Pending | Yellow |
-| Confirmed | Blue |
-| Completed | Green |
-| Cancelled | Red |
+| File | Change |
+|------|--------|
+| `src/components/TaskManager.tsx` | Replace read-only badges with editable ResourceAssignmentRow components on Task Cards |
+| `src/components/TaskManager.tsx` | Add inline save function for resource assignment changes on cards |
 
-#### 4. Task Card Display
+### Resource Categories (All 10)
 
-Show assigned resources with status badges:
+The existing `RESOURCE_CATEGORIES` constant already includes:
+1. Bookings
+2. Vendors
+3. Venues
+4. Hospitality
+5. Vendor Service Rental/Buy
+6. Service Vendor
+7. Transportation
+8. Entertainment
+9. Suppliers
+10. Marketing
 
-```text
-Bookings: Confirmed ✓ | Venues: Pending | Transportation: Completed ✓
-```
+### What Stays the Same
 
-#### 5. Locations to Update
+- "Assign Collaborator Task To" section with manual name entry - **kept in all locations**
+- Resource Category Assignments in Create Dialog - **already working**
+- Resource Category Assignments in Edit Dialog - **already working**
+- Toast messages - remain as-is
+- Database schema - no changes needed (`resource_assignments` JSONB column already exists)
 
-| Location | Lines (approx) | Change |
-|----------|----------------|--------|
-| Create Task Dialog | 1294-1337 | Replace checkbox list with enhanced resource rows |
-| Task Card Display | 1546-1680 | Show resource assignments with status badges |
-| Edit Task Dialog | 1687-1920 | Mirror the enhanced resource assignment UI |
+## Implementation Steps
 
-### Sidebar Addition
-
-**File: `src/components/AppSidebar.tsx`**
-- Add "Marketing" to the Resources section
-
-**File: `src/pages/Marketing.tsx`** (New file)
-- Create placeholder Marketing page
-
-**File: `src/App.tsx`**
-- Add route for `/dashboard/marketing`
-
-### Database Consideration
-
-Add a `resource_assignments` JSONB column to the tasks table to persist the structured data:
-
-```json
-{
-  "Bookings": { "status": "confirmed", "confirmed": true },
-  "Venues": { "status": "pending", "confirmed": false }
-}
-```
-
-## Files Modified
-
-1. `src/components/TaskManager.tsx` - Main changes to Task Assignments UI
-2. `src/components/AppSidebar.tsx` - Add Marketing menu item
-3. `src/pages/Marketing.tsx` - New placeholder page
-4. `src/App.tsx` - Add Marketing route
-
+1. Add a local state or handler function to manage resource assignment changes on individual Task Cards
+2. Replace the read-only `ResourceAssignmentBadge` section with a collapsible/expandable section containing `ResourceAssignmentRow` components for all 10 categories
+3. Add auto-save logic that updates the database when any resource assignment is changed on a card
+4. Ensure changes persist and the task list refreshes appropriately
