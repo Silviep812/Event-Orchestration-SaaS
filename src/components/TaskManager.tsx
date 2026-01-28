@@ -16,6 +16,14 @@ import { useEventFilter } from "@/hooks/useEventFilter";
 import { CheckCircle2, Clock, AlertCircle, Plus, Calendar, User, Archive, ArchiveRestore, Eye, EyeOff, Link, Save, X } from "lucide-react";
 import { format } from "date-fns";
 import { createTaskSchema } from "@/lib/validation/taskValidation";
+import { 
+  ResourceAssignment, 
+  ResourceAssignmentRow, 
+  ResourceAssignmentBadge,
+  RESOURCE_CATEGORIES,
+  getEmptyResourceAssignments,
+  getSelectedCategories
+} from "@/components/ResourceAssignmentRow";
 
 interface Task {
   id: string;
@@ -41,6 +49,7 @@ interface Task {
   event_id?: string;
   dependencies?: string[]; // Array of task IDs this task depends on
   category?: string; // Task category based on collaborator type (Bookings, Venue, etc.)
+  resource_assignments?: Record<string, ResourceAssignment>; // Enhanced resource tracking
 }
 
 interface AvailableTask {
@@ -131,6 +140,8 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
     assigned_role: ""
   });
   const [selectedCollaboratorTypes, setSelectedCollaboratorTypes] = useState<string[]>([]);
+  const [resourceAssignments, setResourceAssignments] = useState<Record<string, ResourceAssignment>>(getEmptyResourceAssignments());
+  const [editResourceAssignments, setEditResourceAssignments] = useState<Record<string, ResourceAssignment>>(getEmptyResourceAssignments());
   const [dependencySearchTerm, setDependencySearchTerm] = useState<string>("");
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [clearFormAfterSave, setClearFormAfterSave] = useState(false);
@@ -310,15 +321,38 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
             task.assigned_service_vendor_role ||
             task.assined_vendor_role;
 
+          // Parse resource_assignments from JSON
+          let parsedResourceAssignments: Record<string, ResourceAssignment> | undefined;
+          if (task.resource_assignments && typeof task.resource_assignments === 'object' && !Array.isArray(task.resource_assignments)) {
+            parsedResourceAssignments = task.resource_assignments as unknown as Record<string, ResourceAssignment>;
+          }
+
           return {
-            ...task,
+            id: task.id,
+            title: task.title,
+            description: task.description,
+            status: task.status,
+            priority: task.priority,
+            estimated_hours: task.estimated_hours,
+            actual_hours: task.actual_hours,
+            due_date: task.due_date,
+            start_date: task.start_date,
+            end_date: task.end_date,
+            start_time: task.start_time,
+            end_time: task.end_time,
+            archived: task.archived,
+            created_at: task.created_at,
+            updated_at: task.updated_at,
+            event_id: task.event_id,
+            category: task.category,
             dependencies: deps?.map(d => d.depends_on_task_id) || [],
-            assigned_to: task.assigned_to, // Keep original assigned_to from task
-            assigned_user_id, // Computed from assigned_to
+            assigned_to: task.assigned_to,
+            assigned_user_id,
             assigned_user_name,
             assigned_role: roleAssignment,
-            assigned_coordinator_name: task.assigned_coordinator_name
-          };
+            assigned_coordinator_name: task.assigned_coordinator_name,
+            resource_assignments: parsedResourceAssignments
+          } as Task;
         })
       );
 
@@ -551,7 +585,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
     }
   };
 
-  const findDependentTasks = async (taskId: string): Promise<Task[]> => {
+  const findDependentTasks = async (taskId: string): Promise<Array<{ id: string; title: string; due_date?: string }>> => {
     try {
       // Find all task IDs that depend on this task
       const { data: dependentTaskIds, error: depsError } = await supabase
@@ -568,12 +602,16 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
       // Get the actual task details
       const { data: dependentTasks, error: tasksError } = await supabase
         .from('tasks')
-        .select('*')
+        .select('id, title, due_date')
         .in('id', dependentTaskIds.map(dep => dep.task_id));
 
       if (tasksError) throw tasksError;
 
-      return dependentTasks || [];
+      return (dependentTasks || []).map(task => ({
+        id: task.id,
+        title: task.title,
+        due_date: task.due_date ?? undefined
+      }));
     } catch (error) {
       console.error('Error finding dependent tasks:', error);
       return [];
@@ -715,14 +753,15 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         end_time: newTask.end_time || null,
         event_id: eventId || newTask.selected_event_id || null,
         created_by: user.id,
-        category: selectedCollaboratorTypes.length > 0 ? selectedCollaboratorTypes.join(', ') : null,
+        category: getSelectedCategories(resourceAssignments).join(', ') || null,
         assigned_to: null, // Removed user assignment dropdown, only using coordinator assignment
-        assigned_coordinator_name: (newTask as any).assigned_coordinator_name || null
+        assigned_coordinator_name: (newTask as any).assigned_coordinator_name || null,
+        resource_assignments: resourceAssignments as unknown as Record<string, unknown>
       };
 
       const { data: createdTask, error } = await supabase
         .from('tasks')
-        .insert(taskData)
+        .insert(taskData as any)
         .select('id')
         .single();
 
@@ -816,12 +855,19 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
       // Get the original task for comparison
       const originalTask = tasks.find(t => t.id === taskId);
 
-      // Remove assigned_user_id and assigned_user_name from updates as they're handled separately
-      const { assigned_user_id, assigned_user_name, ...taskUpdates } = updates;
+      // Remove assigned_user_id, assigned_user_name, and resource_assignments from updates 
+      // as they're handled separately or need special handling
+      const { assigned_user_id, assigned_user_name, resource_assignments, ...taskUpdates } = updates;
+
+      // Prepare updates for database - convert resource_assignments to JSON if present
+      const dbUpdates: Record<string, any> = { ...taskUpdates };
+      if (resource_assignments !== undefined) {
+        dbUpdates.resource_assignments = resource_assignments as unknown as Record<string, unknown>;
+      }
 
       const { error } = await supabase
         .from('tasks')
-        .update(taskUpdates)
+        .update(dbUpdates)
         .eq('id', taskId);
 
       if (error) throw error;
@@ -1291,47 +1337,46 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                   </Select>
                 </div>
 
-                {/* Task Assignments selection */}
+                {/* Task Assignments selection with status and confirmation */}
                 <div className="space-y-2">
-                  <Label>Task Assignments</Label>
-                  <div className="max-h-48 overflow-y-auto space-y-2 border rounded-md p-2">
-                    {[
-                      'Bookings',
-                      'Venue',
-                      'Vendor Service Rental/Buy',
-                      'Hospitality',
-                      'Service Vendor',
-                      'Transportation',
-                      'Entertainment',
-                      'Suppliers'
-                    ].map((type) => (
-                      <div key={type} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`collab-${type}`}
-                          checked={selectedCollaboratorTypes.includes(type)}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setSelectedCollaboratorTypes([...selectedCollaboratorTypes, type]);
-                            } else {
-                              setSelectedCollaboratorTypes(selectedCollaboratorTypes.filter(t => t !== type));
+                  <Label>Resource Category Assignments</Label>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Select resource categories, set their status, and mark as confirmed
+                  </p>
+                  <div className="max-h-64 overflow-y-auto space-y-1 border rounded-md p-2">
+                    {RESOURCE_CATEGORIES.map((category) => (
+                      <ResourceAssignmentRow
+                        key={category}
+                        category={category}
+                        assignment={resourceAssignments[category] || { selected: false, status: 'pending', confirmed: false }}
+                        onAssignmentChange={(newAssignment) => {
+                          setResourceAssignments(prev => ({
+                            ...prev,
+                            [category]: newAssignment
+                          }));
+                          // Also update selectedCollaboratorTypes for backward compatibility
+                          if (newAssignment.selected) {
+                            if (!selectedCollaboratorTypes.includes(category)) {
+                              setSelectedCollaboratorTypes([...selectedCollaboratorTypes, category]);
                             }
-                            // Clear assignment when collaborator types change
-                            // Coordinator assignment cleared via dropdown
-                          }}
-                        />
-                        <label htmlFor={`collab-${type}`} className="text-sm font-medium leading-none cursor-pointer">
-                          {type}
-                        </label>
-                      </div>
+                          } else {
+                            setSelectedCollaboratorTypes(selectedCollaboratorTypes.filter(t => t !== category));
+                          }
+                        }}
+                      />
                     ))}
                   </div>
-                  {selectedCollaboratorTypes.length > 0 && (
+                  {Object.entries(resourceAssignments).filter(([_, a]) => a.selected).length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-2">
-                      {selectedCollaboratorTypes.map(type => (
-                        <Badge key={type} variant="secondary" className="text-xs">
-                          {type}
-                        </Badge>
-                      ))}
+                      {Object.entries(resourceAssignments)
+                        .filter(([_, assignment]) => assignment.selected)
+                        .map(([category, assignment]) => (
+                          <ResourceAssignmentBadge 
+                            key={category} 
+                            category={category} 
+                            assignment={assignment} 
+                          />
+                        ))}
                     </div>
                   )}
                 </div>
@@ -1340,7 +1385,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
               {/* Right column */}
               <div className="space-y-4">
                 {/* Coordinator Assignment Manual Entry */}
-                <div className="space-y-2 p-3 border border-blue-200 rounded-lg bg-blue-50">
+                <div className="space-y-2 p-3 border border-primary/20 rounded-lg bg-primary/5">
                   <Label htmlFor="coordinator-name" className="text-base font-semibold">
                     Assign Collaborator Task To
                   </Label>
@@ -1573,6 +1618,21 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     </div>
                   )}
 
+                  {/* Resource Assignments Display */}
+                  {task.resource_assignments && Object.entries(task.resource_assignments).some(([_, a]) => a.selected) && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {Object.entries(task.resource_assignments)
+                        .filter(([_, assignment]) => assignment.selected)
+                        .map(([category, assignment]) => (
+                          <ResourceAssignmentBadge 
+                            key={category} 
+                            category={category} 
+                            assignment={assignment} 
+                          />
+                        ))}
+                    </div>
+                  )}
+
                   <div className="border-t pt-3 mt-3 space-y-2" onClick={(e) => e.stopPropagation()}>
                     <p className="text-xs font-semibold text-foreground">
                       Assign Collaborator Task To
@@ -1690,8 +1750,15 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
           if (!open) {
             setSelectedDependencies([]);
             setDependencySearchTerm(""); // Reset search term
+            setEditResourceAssignments(getEmptyResourceAssignments());
           } else {
             setDependencySearchTerm(""); // Reset search term when opening
+            // Initialize editResourceAssignments from selectedTask
+            if (selectedTask?.resource_assignments) {
+              setEditResourceAssignments(selectedTask.resource_assignments);
+            } else {
+              setEditResourceAssignments(getEmptyResourceAssignments());
+            }
           }
           setIsEditDialogOpen(open);
         }}>
@@ -1739,11 +1806,52 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                   </Select>
                 </div>
 
+                {/* Resource Category Assignments for Edit */}
+                <div className="space-y-2">
+                  <Label>Resource Category Assignments</Label>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Select resource categories, set their status, and mark as confirmed
+                  </p>
+                  <div className="max-h-64 overflow-y-auto space-y-1 border rounded-md p-2">
+                    {RESOURCE_CATEGORIES.map((category) => {
+                      const currentAssignment = editResourceAssignments[category] || 
+                        selectedTask.resource_assignments?.[category] || 
+                        { selected: false, status: 'pending' as const, confirmed: false };
+                      return (
+                        <ResourceAssignmentRow
+                          key={category}
+                          category={category}
+                          assignment={currentAssignment}
+                          onAssignmentChange={(newAssignment) => {
+                            setEditResourceAssignments(prev => ({
+                              ...prev,
+                              [category]: newAssignment
+                            }));
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
+                  {Object.entries(editResourceAssignments).filter(([_, a]) => a.selected).length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {Object.entries(editResourceAssignments)
+                        .filter(([_, assignment]) => assignment.selected)
+                        .map(([category, assignment]) => (
+                          <ResourceAssignmentBadge 
+                            key={category} 
+                            category={category} 
+                            assignment={assignment} 
+                          />
+                        ))}
+                    </div>
+                  )}
+                </div>
+
               </div>
 
               {/* Right column */}
               <div className="space-y-4">
-                <div className="space-y-2 p-3 border border-blue-200 rounded-lg bg-blue-50">
+                <div className="space-y-2 p-3 border border-primary/20 rounded-lg bg-primary/5">
                   <Label htmlFor="edit-coordinator-name" className="text-base font-semibold">
                     Assign Collaborator Task To
                   </Label>
@@ -2059,7 +2167,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                               {task.status.replace('_', ' ')}
                             </Badge>
                             {task.category && task.category.split(', ').map((cat, idx) => (
-                              <Badge key={idx} variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                              <Badge key={idx} variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">
                                 {cat}
                               </Badge>
                             ))}
@@ -2088,9 +2196,9 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                         <div className="text-center py-4 space-y-2">
                           <p className="text-sm text-muted-foreground">No tasks found matching "{dependencySearchTerm}"</p>
                           {tasksWithoutCategory > 0 && (
-                            <p className="text-xs text-yellow-600">
+                            <p className="text-xs text-muted-foreground">
                               💡 {tasksWithoutCategory} task(s) don't have categories.
-                              Tip: Select collaborator types when creating tasks to enable category search.
+                              Tip: Select resource categories when creating tasks to enable category search.
                             </p>
                           )}
                         </div>
@@ -2248,7 +2356,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
               </div>
               <div className="flex justify-between">
                 <span className="font-medium">Suggested due date:</span>
-                <span className="text-blue-600 font-medium">{dueDateConflictDialog.suggestedDate ? format(new Date(dueDateConflictDialog.suggestedDate), 'MMM dd, yyyy') : 'Not set'}</span>
+                <span className="text-primary font-medium">{dueDateConflictDialog.suggestedDate ? format(new Date(dueDateConflictDialog.suggestedDate), 'MMM dd, yyyy') : 'Not set'}</span>
               </div>
             </div>
             <div className="flex gap-2 justify-end">
