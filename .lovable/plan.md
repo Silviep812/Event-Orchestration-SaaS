@@ -1,104 +1,192 @@
 
-# Updated Plan: Add Inline-Editable Resource Assignments to Task Cards
+# Corrected Plan: Booking-Style Grid Layout for Resources on Task Cards
 
-## Current State
+## Problem Analysis
 
-The implementation already has:
+The current implementation is wrong because:
+1. **Resources displayed vertically** in a scrollable list instead of a horizontal grid
+2. **ResourceAssignmentRow component** uses a row-based layout not the tile/card-based pattern from Bookings
+3. **No per-resource collaborator field** - the user confirmed each resource needs its own collaborator name entry
 
-1. **Resource Category Assignments section** in Create/Edit dialogs - working correctly with checkbox + status dropdown + confirmation for all 10 categories
-2. **Manual Collaborator name entry** - present in all three locations (Task Cards, Create Dialog, Edit Dialog) - **will be kept**
-3. **Resource badges on Task Cards** - currently showing as read-only badges
+## Reference Pattern: BookingsDirectory.tsx (Lines 142-165)
 
-## What Needs to Change
-
-The Task Cards currently show resource assignments as **read-only badges**. The user wants them to be **inline-editable** directly on the cards, matching the Booking-style pattern (checkbox + status dropdown + confirmation).
-
-## Locations and Changes
-
-### 1. Task Card Display (Lines 1621-1634)
-
-**Current behavior**: Shows read-only `ResourceAssignmentBadge` components
-
-**New behavior**: Replace with editable `ResourceAssignmentRow` components that allow:
-- Toggle selection on/off
-- Change status via dropdown
-- Toggle confirmation checkbox
-- Auto-save changes to database on each change
-
-```text
-Current Task Card:
-┌──────────────────────────────────────────┐
-│ Task Title                               │
-│ Status dropdown                          │
-│ [Bookings: Pending] [Venues: Confirmed]  │  <-- Read-only badges
-│ ─────────────────────────────────        │
-│ Assign Collaborator Task To              │
-│ [Enter name____________] [Save]          │
-│ Hours | Due Date | Dependencies          │
-└──────────────────────────────────────────┘
-
-New Task Card:
-┌──────────────────────────────────────────┐
-│ Task Title                               │
-│ Status dropdown                          │
-│                                          │
-│ Resource Category Assignments            │
-│ ☑ Bookings    [Pending ▼]   ☑ Confirmed  │  <-- Editable rows
-│ ☑ Venues      [Confirmed ▼] ☐ Confirmed  │
-│ ☐ Hospitality [Pending ▼]   ☐ Confirmed  │
-│ ... (all 10 categories)                  │
-│ ─────────────────────────────────        │
-│ Assign Collaborator Task To              │
-│ [Enter name____________] [Save]          │
-│ Hours | Due Date | Dependencies          │
-└──────────────────────────────────────────┘
+The correct pattern uses:
+```tsx
+<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+  {options.map((option) => (
+    <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50">
+      <Checkbox checked={...} onCheckedChange={...} />
+      <label className="flex items-center gap-2 cursor-pointer text-sm font-medium">
+        <Icon />
+        {label}
+      </label>
+    </div>
+  ))}
+</div>
 ```
 
-### 2. Auto-Save Logic for Card Resource Changes
-
-Add a function to save resource assignment changes directly from the Task Card:
+## New Layout Structure for Task Cards
 
 ```text
-When user changes any resource assignment on a card:
-1. Update local task state immediately (optimistic update)
-2. Save to database via Supabase
-3. Show success/error toast
++------------------------------------------------------------------+
+| Task Title                                          [Priority]   |
+| Description                                                      |
+| [Task Status Dropdown]                                           |
+|                                                                  |
+| Resource Category Assignments (grid, 2 columns)                  |
+| ┌─────────────────────────┐ ┌─────────────────────────┐          |
+| │ ☑ Bookings              │ │ ☐ Vendors               │          |
+| │ Status: [Pending ▼]     │ │ Status: [Pending ▼]     │          |
+| │ ☑ Confirmed             │ │ ☐ Confirmed             │          |
+| │ [Collaborator____][Save]│ │ [Collaborator____][Save]│          |
+| └─────────────────────────┘ └─────────────────────────┘          |
+| ┌─────────────────────────┐ ┌─────────────────────────┐          |
+| │ ☐ Venues                │ │ ☐ Hospitality           │          |
+| │ Status: [Pending ▼]     │ │ Status: [Pending ▼]     │          |
+| │ ☐ Confirmed             │ │ ☐ Confirmed             │          |
+| │ [Collaborator____][Save]│ │ [Collaborator____][Save]│          |
+| └─────────────────────────┘ └─────────────────────────┘          |
+| ... (remaining 6 resources in grid)                              |
+|                                                                  |
+|------------------------------------------------------------------|
+| Assign Collaborator Task To (task-level, kept)                   |
+| [Name__________________________] [Save]                          |
+|------------------------------------------------------------------|
+| Hours | Due Date | Dependencies                                  |
++------------------------------------------------------------------+
 ```
 
-## Technical Details
+## Data Structure Update
 
-### Files to Modify
+Current `resource_assignments` structure:
+```json
+{
+  "Bookings": { "selected": true, "status": "pending", "confirmed": false }
+}
+```
 
-| File | Change |
-|------|--------|
-| `src/components/TaskManager.tsx` | Replace read-only badges with editable ResourceAssignmentRow components on Task Cards |
-| `src/components/TaskManager.tsx` | Add inline save function for resource assignment changes on cards |
+New structure (add collaborator_name per resource):
+```json
+{
+  "Bookings": { 
+    "selected": true, 
+    "status": "pending", 
+    "confirmed": false,
+    "collaborator_name": "John Smith"
+  }
+}
+```
 
-### Resource Categories (All 10)
+## Files to Modify
 
-The existing `RESOURCE_CATEGORIES` constant already includes:
-1. Bookings
-2. Vendors
-3. Venues
-4. Hospitality
-5. Vendor Service Rental/Buy
-6. Service Vendor
-7. Transportation
-8. Entertainment
-9. Suppliers
-10. Marketing
+### 1. src/components/ResourceAssignmentRow.tsx
 
-### What Stays the Same
+Transform from row layout to tile/card layout:
 
-- "Assign Collaborator Task To" section with manual name entry - **kept in all locations**
-- Resource Category Assignments in Create Dialog - **already working**
-- Resource Category Assignments in Edit Dialog - **already working**
-- Toast messages - remain as-is
-- Database schema - no changes needed (`resource_assignments` JSONB column already exists)
+| Current | New |
+|---------|-----|
+| Single horizontal row | Card-style tile with stacked content |
+| No collaborator field | Add collaborator name input + Save button |
+| Inline checkbox + dropdown + checkbox | Stacked: checkbox+label at top, status dropdown, confirmation checkbox, collaborator field at bottom |
 
-## Implementation Steps
+Update ResourceAssignment interface:
+```typescript
+export interface ResourceAssignment {
+  selected: boolean;
+  status: ResourceStatus;
+  confirmed: boolean;
+  collaborator_name?: string;  // NEW
+}
+```
 
-1. Add a local state or handler function to manage resource assignment changes on individual Task Cards
-2. Replace the read-only `ResourceAssignmentBadge` section with a collapsible/expandable section containing `ResourceAssignmentRow` components for all 10 categories
-3. Add auto-save logic that updates the database when any resource assignment is changed on a card
-4. Ensure changes persist and the task list refreshes appropriately
+### 2. src/components/TaskManager.tsx
+
+**Task Card Section (lines 1621-1679)**:
+- Replace the vertical list layout with a 2-column grid
+- Wrap `ResourceAssignmentRow` components in `grid grid-cols-1 md:grid-cols-2 gap-3`
+- Remove the `max-h-48 overflow-y-auto` scrolling container
+
+**Create/Edit Dialogs**:
+- Apply same grid layout change
+- Add per-resource collaborator field
+
+### 3. Database Migration
+
+No schema change needed - the `resource_assignments` JSONB column already accepts any structure. The new `collaborator_name` field will be stored as part of each resource object.
+
+## Implementation Details
+
+### ResourceAssignmentRow New Layout
+
+```tsx
+<div className="p-3 border rounded-lg hover:bg-muted/50 space-y-2">
+  {/* Top row: checkbox + category name */}
+  <div className="flex items-center gap-2">
+    <Checkbox checked={selected} onCheckedChange={...} />
+    <label className="text-sm font-medium cursor-pointer">{category}</label>
+  </div>
+  
+  {/* Status dropdown (enabled when selected) */}
+  <Select value={status} disabled={!selected}>
+    <SelectTrigger className="h-8 text-xs">...</SelectTrigger>
+  </Select>
+  
+  {/* Confirmation checkbox */}
+  <div className="flex items-center gap-2">
+    <Checkbox checked={confirmed} disabled={!selected} />
+    <label className="text-xs">Confirmed</label>
+  </div>
+  
+  {/* Collaborator name input + Save */}
+  <div className="flex gap-1">
+    <Input 
+      placeholder="Collaborator name" 
+      value={collaborator_name}
+      disabled={!selected}
+      className="h-8 text-xs"
+    />
+    <Button size="sm" variant="outline" disabled={!selected}>
+      <Save className="h-3 w-3" />
+    </Button>
+  </div>
+</div>
+```
+
+### Grid Container in TaskManager.tsx
+
+```tsx
+{/* Resource Category Assignments - Grid Layout */}
+<div className="border-t pt-3 mt-3 space-y-2">
+  <p className="text-xs font-semibold">Resource Category Assignments</p>
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+    {RESOURCE_CATEGORIES.map((category) => (
+      <ResourceAssignmentTile
+        key={category}
+        category={category}
+        assignment={task.resource_assignments?.[category] || defaultAssignment}
+        onAssignmentChange={(newAssignment) => {...}}
+      />
+    ))}
+  </div>
+</div>
+```
+
+## Summary of Changes
+
+| Component | Change |
+|-----------|--------|
+| ResourceAssignmentRow.tsx | Convert to tile layout, add collaborator_name field |
+| TaskManager.tsx (Task Cards) | Replace vertical list with 2-column grid |
+| TaskManager.tsx (Create Dialog) | Apply same grid layout |
+| TaskManager.tsx (Edit Dialog) | Apply same grid layout |
+| ResourceAssignment interface | Add collaborator_name?: string |
+| getEmptyResourceAssignments() | Add collaborator_name: '' default |
+
+## What Stays the Same
+
+- Task-level "Assign Collaborator Task To" field at bottom of card (kept as requested)
+- Database schema (JSONB handles new field automatically)
+- All 10 resource categories
+- Status dropdown options (Pending, Confirmed, Completed, Cancelled)
+- Confirmed checkbox behavior
+- Auto-save on change
