@@ -1618,21 +1618,67 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     </div>
                   )}
 
-                  {/* Resource Assignments Display */}
-                  {task.resource_assignments && Object.entries(task.resource_assignments).some(([_, a]) => a.selected) && (
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {Object.entries(task.resource_assignments)
-                        .filter(([_, assignment]) => assignment.selected)
-                        .map(([category, assignment]) => (
-                          <ResourceAssignmentBadge 
-                            key={category} 
-                            category={category} 
-                            assignment={assignment} 
+                  {/* Resource Category Assignments - Inline Editable */}
+                  <div className="border-t pt-3 mt-3 space-y-2" onClick={(e) => e.stopPropagation()}>
+                    <p className="text-xs font-semibold text-foreground">
+                      Resource Category Assignments
+                    </p>
+                    <div className="max-h-48 overflow-y-auto space-y-0.5 border rounded-md p-1.5 bg-background">
+                      {RESOURCE_CATEGORIES.map((category) => {
+                        const currentAssignment = task.resource_assignments?.[category] || 
+                          { selected: false, status: 'pending' as const, confirmed: false };
+                        return (
+                          <ResourceAssignmentRow
+                            key={category}
+                            category={category}
+                            assignment={currentAssignment}
+                            onAssignmentChange={async (newAssignment) => {
+                              // Optimistic update
+                              const updatedAssignments = {
+                                ...(task.resource_assignments || getEmptyResourceAssignments()),
+                                [category]: newAssignment
+                              };
+                              
+                              // Update local state immediately
+                              setTasks(prevTasks => 
+                                prevTasks.map(t => 
+                                  t.id === task.id 
+                                    ? { ...t, resource_assignments: updatedAssignments }
+                                    : t
+                                )
+                              );
+                              
+                              // Save to database
+                              try {
+                                const { error } = await supabase
+                                  .from('tasks')
+                                  .update({ resource_assignments: JSON.parse(JSON.stringify(updatedAssignments)) })
+                                  .eq('id', task.id);
+                                
+                                if (error) throw error;
+                                
+                                toast({
+                                  title: "Resource updated",
+                                  description: `${category} assignment updated successfully.`,
+                                });
+                              } catch (error) {
+                                console.error('Error updating resource assignment:', error);
+                                toast({
+                                  title: "Error",
+                                  description: "Failed to update resource assignment.",
+                                  variant: "destructive",
+                                });
+                                // Revert on error
+                                fetchTasks();
+                              }
+                            }}
                           />
-                        ))}
+                        );
+                      })}
                     </div>
-                  )}
+                  </div>
 
+                  {/* Assign Collaborator Task To - Manual Name Entry */}
                   <div className="border-t pt-3 mt-3 space-y-2" onClick={(e) => e.stopPropagation()}>
                     <p className="text-xs font-semibold text-foreground">
                       Assign Collaborator Task To
