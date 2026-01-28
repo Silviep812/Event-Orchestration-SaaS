@@ -20,7 +20,8 @@ import {
   ShoppingCart,
   Truck,
   Car,
-  GitPullRequest
+  GitPullRequest,
+  Store
 } from "lucide-react";
 import { usePermissions } from "@/lib/permissions";
 import { useAuth } from "@/hooks/useAuth";
@@ -138,6 +139,13 @@ const menuGroups = [
         title: "Planning Assets",
         url: "/dashboard/planning-assets",
         icon: Package,
+        color: "text-orange-600",
+        hoverColor: "hover:bg-orange-50"
+      },
+      {
+        title: "Vendors",
+        url: "/dashboard/vendors",
+        icon: Store,
         color: "text-orange-600",
         hoverColor: "hover:bg-orange-50"
       },
