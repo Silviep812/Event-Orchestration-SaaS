@@ -31,6 +31,7 @@ import ServiceVendorDirectory from "./pages/ServiceVendorDirectory";
 import TransportationDirectory from "./pages/TransportationDirectory";
 import EntertainmentDirectory from "./pages/EntertainmentDirectory";
 import SupplierDirectory from "./pages/SupplierDirectory";
+import VendorsDirectory from "./pages/VendorsDirectory";
 import Profile from "./pages/Profile";
 import Contact from "./pages/Contact";
 import ChangeRequests from "./pages/ChangeRequests";
@@ -75,6 +76,7 @@ const App = () => (
               <Route path="transportation" element={<TransportationDirectory />} />
               <Route path="entertainment" element={<EntertainmentDirectory />} />
               <Route path="supplier" element={<SupplierDirectory />} />
+              <Route path="vendors" element={<VendorsDirectory />} />
               <Route path="profile" element={<Profile />} />
             </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
