@@ -13,12 +13,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useEventFilter } from "@/hooks/useEventFilter";
-import { CheckCircle2, Clock, AlertCircle, Plus, Calendar, User, Archive, ArchiveRestore, Eye, EyeOff, Link, Save, X, ChevronsUpDown, Check } from "lucide-react";
+import { CheckCircle2, Clock, AlertCircle, Plus, Calendar, User, Archive, ArchiveRestore, Eye, EyeOff, Link, Save, X } from "lucide-react";
 import { format } from "date-fns";
 import { createTaskSchema } from "@/lib/validation/taskValidation";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { cn } from "@/lib/utils";
 
 interface Task {
   id: string;
@@ -137,11 +134,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
   const [dependencySearchTerm, setDependencySearchTerm] = useState<string>("");
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [clearFormAfterSave, setClearFormAfterSave] = useState(false);
-  const [coordinatorSearchOpen, setCoordinatorSearchOpen] = useState(false);
-  const [coordinatorSearchTerm, setCoordinatorSearchTerm] = useState("");
-  const [editCoordinatorSearchOpen, setEditCoordinatorSearchOpen] = useState(false);
-  const [editCoordinatorSearchTerm, setEditCoordinatorSearchTerm] = useState("");
-  // Removed coordinatorName, editCoordinatorName, cardCollaboratorInput states - now using dropdowns
+  const [cardCollaboratorInput, setCardCollaboratorInput] = useState<Record<string, string>>({});
   const { toast } = useToast();
   const { user } = useAuth();
   const { events, applyEventFilter } = useEventFilter();
@@ -1201,8 +1194,6 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
             // Only clear validation errors and search term when closing
             setDependencySearchTerm("");
             setValidationErrors({});
-            setCoordinatorSearchTerm("");
-            setCoordinatorSearchOpen(false);
           }
           setIsCreateDialogOpen(open);
         }}>
@@ -1348,113 +1339,44 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
 
               {/* Right column */}
               <div className="space-y-4">
-                {/* Coordinator Assignment Dropdown */}
+                {/* Coordinator Assignment Manual Entry */}
                 <div className="space-y-2 p-3 border border-blue-200 rounded-lg bg-blue-50">
                   <Label htmlFor="coordinator-name" className="text-base font-semibold">
                     Assign Collaborator Task To
                   </Label>
                   <p className="text-xs text-muted-foreground">
-                    Type to search for a collaborator
+                    Enter collaborator name
                   </p>
-                  <Popover open={coordinatorSearchOpen} onOpenChange={setCoordinatorSearchOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={coordinatorSearchOpen}
-                        className="w-full justify-between"
-                        id="coordinator-name"
-                      >
-                        {(newTask as any).assigned_coordinator_name || "Select a collaborator (optional)"}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[380px]  p-0" align="start">
-                      <Command>
-                        <CommandInput
-                          placeholder="Search collaborator by name..."
-                          value={coordinatorSearchTerm}
-                          onValueChange={setCoordinatorSearchTerm}
-                        />
-                        <CommandList>
-                          <CommandEmpty>No collaborator found.</CommandEmpty>
-                          <CommandGroup>
-                            <CommandItem
-                              value="none"
-                              onSelect={() => {
-                                setNewTask({
-                                  ...newTask,
-                                  assigned_coordinator_name: undefined
-                                } as any);
-                                setCoordinatorSearchOpen(false);
-                                setCoordinatorSearchTerm("");
-                              }}
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  !(newTask as any).assigned_coordinator_name ? "opacity-100" : "opacity-0"
-                                )}
-                              />
-                              None (Unassigned)
-                            </CommandItem>
-                            {users.map((user) => {
-                              const userName = user.user_name || user.contact_name || user.userid;
-                              const isSelected = (newTask as any).assigned_coordinator_name === userName;
-                              return (
-                                <CommandItem
-                                  key={user.userid}
-                                  value={userName}
-                                  onSelect={() => {
-                                    setNewTask({
-                                      ...newTask,
-                                      assigned_coordinator_name: userName
-                                    } as any);
-                                    setCoordinatorSearchOpen(false);
-                                    setCoordinatorSearchTerm("");
-                                    toast({
-                                      title: "Coordinator assigned",
-                                      description: `${userName} assigned to this task`,
-                                    });
-                                  }}
-                                >
-                                  <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4",
-                                      isSelected ? "opacity-100" : "opacity-0"
-                                    )}
-                                  />
-                                  {userName}
-                                </CommandItem>
-                              );
-                            })}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                  {(newTask as any).assigned_coordinator_name && (
-                    <div className="flex items-center justify-between p-2 bg-white rounded border border-blue-300">
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-blue-600" />
-                        <span className="text-sm font-medium">{(newTask as any).assigned_coordinator_name}</span>
-                      </div>
+                  <div className="flex gap-2">
+                    <Input
+                      id="coordinator-name"
+                      placeholder="Enter collaborator name (optional)"
+                      value={(newTask as any).assigned_coordinator_name || ""}
+                      onChange={(e) => {
+                        setNewTask({
+                          ...newTask,
+                          assigned_coordinator_name: e.target.value || undefined
+                        } as any);
+                      }}
+                      className="flex-1"
+                    />
+                    {(newTask as any).assigned_coordinator_name && (
                       <Button
                         type="button"
                         variant="ghost"
-                        size="sm"
+                        size="icon"
                         onClick={() => {
                           setNewTask({ ...newTask, assigned_coordinator_name: undefined } as any);
                           toast({
-                            title: "Coordinator removed",
-                            description: "Manual coordinator assignment cleared",
+                            title: "Collaborator removed",
+                            description: "Collaborator assignment cleared",
                           });
                         }}
                       >
                         <X className="h-4 w-4" />
                       </Button>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -1655,52 +1577,63 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     <p className="text-xs font-semibold text-foreground">
                       Assign Collaborator Task To
                     </p>
-                    <Select
-                      value={task.assigned_coordinator_name || "none"}
-                      onValueChange={async (value) => {
-                        try {
-                          const coordinatorValue = value === "none" ? null : value;
-                          const { error } = await supabase
-                            .from('tasks')
-                            .update({ assigned_coordinator_name: coordinatorValue })
-                            .eq('id', task.id);
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Enter collaborator name"
+                        value={cardCollaboratorInput[task.id] ?? task.assigned_coordinator_name ?? ""}
+                        onChange={(e) => {
+                          setCardCollaboratorInput(prev => ({
+                            ...prev,
+                            [task.id]: e.target.value
+                          }));
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="h-9 text-sm flex-1"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-9"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          try {
+                            const inputValue = cardCollaboratorInput[task.id] ?? task.assigned_coordinator_name ?? "";
+                            const coordinatorValue = inputValue.trim() === "" ? null : inputValue.trim();
+                            const { error } = await supabase
+                              .from('tasks')
+                              .update({ assigned_coordinator_name: coordinatorValue })
+                              .eq('id', task.id);
 
-                          if (error) throw error;
+                            if (error) throw error;
 
-                          toast({
-                            title: value !== "none" ? "Collaborator assigned" : "Collaborator removed",
-                            description: value !== "none"
-                              ? `${value} has been assigned to this task.`
-                              : "Collaborator assignment cleared.",
-                          });
+                            toast({
+                              title: coordinatorValue ? "Collaborator assigned" : "Collaborator removed",
+                              description: coordinatorValue
+                                ? `${coordinatorValue} has been assigned to this task.`
+                                : "Collaborator assignment cleared.",
+                            });
 
-                          fetchTasks();
-                        } catch (error) {
-                          console.error('Error assigning collaborator:', error);
-                          toast({
-                            title: "Error",
-                            description: "Failed to assign collaborator.",
-                            variant: "destructive",
-                          });
-                        }
-                      }}
-                    >
-                      <SelectTrigger className="h-9 text-sm" onClick={(e) => e.stopPropagation()}>
-                        <SelectValue placeholder="Select a collaborator (optional)" />
-                      </SelectTrigger>
-                      <SelectContent onClick={(e) => e.stopPropagation()}>
-                        <SelectItem value="none">None (Unassigned)</SelectItem>
-                        {users.length > 0 ? (
-                          users.map((user) => (
-                            <SelectItem key={user.userid} value={user.user_name || user.contact_name || user.userid}>
-                              {user.user_name || user.contact_name || user.userid}
-                            </SelectItem>
-                          ))
-                        ) : (
-                          <SelectItem value="no-users" disabled>No users available</SelectItem>
-                        )}
-                      </SelectContent>
-                    </Select>
+                            // Clear the local input state for this task
+                            setCardCollaboratorInput(prev => {
+                              const newState = { ...prev };
+                              delete newState[task.id];
+                              return newState;
+                            });
+
+                            fetchTasks();
+                          } catch (error) {
+                            console.error('Error assigning collaborator:', error);
+                            toast({
+                              title: "Error",
+                              description: "Failed to assign collaborator.",
+                              variant: "destructive",
+                            });
+                          }
+                        }}
+                      >
+                        <Save className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
 
                   {task.estimated_hours && (
@@ -1757,11 +1690,8 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
           if (!open) {
             setSelectedDependencies([]);
             setDependencySearchTerm(""); // Reset search term
-            setEditCoordinatorSearchTerm("");
-            setEditCoordinatorSearchOpen(false);
           } else {
             setDependencySearchTerm(""); // Reset search term when opening
-            setEditCoordinatorSearchTerm("");
           }
           setIsEditDialogOpen(open);
         }}>
@@ -1818,119 +1748,41 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     Assign Collaborator Task To
                   </Label>
                   <p className="text-xs text-muted-foreground">
-                    Type to search for a collaborator
+                    Enter collaborator name
                   </p>
-                  <Popover open={editCoordinatorSearchOpen} onOpenChange={setEditCoordinatorSearchOpen}>
-                    <PopoverTrigger asChild>
+                  <div className="flex gap-2">
+                    <Input
+                      id="edit-coordinator-name"
+                      placeholder="Enter collaborator name (optional)"
+                      value={selectedTask.assigned_coordinator_name || ""}
+                      onChange={(e) => {
+                        setSelectedTask({
+                          ...selectedTask,
+                          assigned_coordinator_name: e.target.value || undefined
+                        });
+                      }}
+                      className="flex-1"
+                    />
+                    {selectedTask.assigned_coordinator_name && (
                       <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={editCoordinatorSearchOpen}
-                        className="w-full justify-between"
-                        id="edit-coordinator-name"
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setSelectedTask({
+                            ...selectedTask,
+                            assigned_coordinator_name: undefined
+                          });
+                          toast({
+                            title: "Collaborator removed",
+                            description: "Collaborator assignment cleared",
+                          });
+                        }}
                       >
-                        {selectedTask.assigned_coordinator_name || "Select a collaborator (optional)"}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        <X className="h-4 w-4" />
                       </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[300px] p-0" align="start">
-                      <Command>
-                        <CommandInput
-                          placeholder="Search collaborator by name..."
-                          value={editCoordinatorSearchTerm}
-                          onValueChange={setEditCoordinatorSearchTerm}
-                        />
-                        <CommandList>
-                          <CommandEmpty>No collaborator found.</CommandEmpty>
-                          <CommandGroup>
-                            <CommandItem
-                              value="none"
-                              onSelect={async () => {
-                                try {
-                                  await updateTask(selectedTask.id, {
-                                    assigned_coordinator_name: null
-                                  });
-                                  setSelectedTask({
-                                    ...selectedTask,
-                                    assigned_coordinator_name: undefined
-                                  });
-                                  setEditCoordinatorSearchOpen(false);
-                                  setEditCoordinatorSearchTerm("");
-                                  toast({
-                                    title: "Coordinator removed",
-                                    description: "Coordinator assignment cleared",
-                                  });
-                                } catch (error) {
-                                  toast({
-                                    title: "Error",
-                                    description: "Failed to update coordinator",
-                                    variant: "destructive",
-                                  });
-                                }
-                              }}
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  !selectedTask.assigned_coordinator_name ? "opacity-100" : "opacity-0"
-                                )}
-                              />
-                              None (Unassigned)
-                            </CommandItem>
-                            {users.map((user) => {
-                              const userName = user.user_name || user.contact_name || user.userid;
-                              const isSelected = selectedTask.assigned_coordinator_name === userName;
-                              return (
-                                <CommandItem
-                                  key={user.userid}
-                                  value={userName}
-                                  onSelect={async () => {
-                                    try {
-                                      await updateTask(selectedTask.id, {
-                                        assigned_coordinator_name: userName
-                                      });
-                                      setSelectedTask({
-                                        ...selectedTask,
-                                        assigned_coordinator_name: userName
-                                      });
-                                      setEditCoordinatorSearchOpen(false);
-                                      setEditCoordinatorSearchTerm("");
-                                      toast({
-                                        title: "Coordinator assigned",
-                                        description: `${userName} assigned to this task`,
-                                      });
-                                    } catch (error) {
-                                      toast({
-                                        title: "Error",
-                                        description: "Failed to update coordinator",
-                                        variant: "destructive",
-                                      });
-                                    }
-                                  }}
-                                >
-                                  <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4",
-                                      isSelected ? "opacity-100" : "opacity-0"
-                                    )}
-                                  />
-                                  {userName}
-                                </CommandItem>
-                              );
-                            })}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                  {selectedTask.assigned_coordinator_name && (
-                    <div className="flex items-center justify-between p-2 bg-white rounded border border-blue-300">
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-blue-600" />
-                        <span className="text-sm font-medium">{selectedTask.assigned_coordinator_name}</span>
-                      </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
 
                 <div className="space-y-2">
