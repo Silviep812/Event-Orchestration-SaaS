@@ -1337,18 +1337,18 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                   </Select>
                 </div>
 
-                {/* Task Assignments selection with status and confirmation */}
+                {/* Task Assignments selection with status and confirmation - Grid Layout */}
                 <div className="space-y-2">
                   <Label>Resource Category Assignments</Label>
                   <p className="text-xs text-muted-foreground mb-2">
-                    Select resource categories, set their status, and mark as confirmed
+                    Select resource categories, set their status, and assign collaborators
                   </p>
-                  <div className="max-h-64 overflow-y-auto space-y-1 border rounded-md p-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {RESOURCE_CATEGORIES.map((category) => (
                       <ResourceAssignmentRow
                         key={category}
                         category={category}
-                        assignment={resourceAssignments[category] || { selected: false, status: 'pending', confirmed: false }}
+                        assignment={resourceAssignments[category] || { selected: false, status: 'pending', confirmed: false, collaborator_name: '' }}
                         onAssignmentChange={(newAssignment) => {
                           setResourceAssignments(prev => ({
                             ...prev,
@@ -1618,15 +1618,15 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     </div>
                   )}
 
-                  {/* Resource Category Assignments - Inline Editable */}
+                  {/* Resource Category Assignments - Grid Layout */}
                   <div className="border-t pt-3 mt-3 space-y-2" onClick={(e) => e.stopPropagation()}>
                     <p className="text-xs font-semibold text-foreground">
                       Resource Category Assignments
                     </p>
-                    <div className="max-h-48 overflow-y-auto space-y-0.5 border rounded-md p-1.5 bg-background">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {RESOURCE_CATEGORIES.map((category) => {
                         const currentAssignment = task.resource_assignments?.[category] || 
-                          { selected: false, status: 'pending' as const, confirmed: false };
+                          { selected: false, status: 'pending' as const, confirmed: false, collaborator_name: '' };
                         return (
                           <ResourceAssignmentRow
                             key={category}
@@ -1669,6 +1669,45 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                                   variant: "destructive",
                                 });
                                 // Revert on error
+                                fetchTasks();
+                              }
+                            }}
+                            onCollaboratorSave={async (collaboratorName) => {
+                              const updatedAssignments = {
+                                ...(task.resource_assignments || getEmptyResourceAssignments()),
+                                [category]: {
+                                  ...currentAssignment,
+                                  collaborator_name: collaboratorName
+                                }
+                              };
+                              
+                              setTasks(prevTasks => 
+                                prevTasks.map(t => 
+                                  t.id === task.id 
+                                    ? { ...t, resource_assignments: updatedAssignments }
+                                    : t
+                                )
+                              );
+                              
+                              try {
+                                const { error } = await supabase
+                                  .from('tasks')
+                                  .update({ resource_assignments: JSON.parse(JSON.stringify(updatedAssignments)) })
+                                  .eq('id', task.id);
+                                
+                                if (error) throw error;
+                                
+                                toast({
+                                  title: "Collaborator saved",
+                                  description: `${category} collaborator updated to "${collaboratorName}".`,
+                                });
+                              } catch (error) {
+                                console.error('Error saving collaborator:', error);
+                                toast({
+                                  title: "Error",
+                                  description: "Failed to save collaborator.",
+                                  variant: "destructive",
+                                });
                                 fetchTasks();
                               }
                             }}
@@ -1852,17 +1891,17 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                   </Select>
                 </div>
 
-                {/* Resource Category Assignments for Edit */}
+                {/* Resource Category Assignments for Edit - Grid Layout */}
                 <div className="space-y-2">
                   <Label>Resource Category Assignments</Label>
                   <p className="text-xs text-muted-foreground mb-2">
-                    Select resource categories, set their status, and mark as confirmed
+                    Select resource categories, set their status, and assign collaborators
                   </p>
-                  <div className="max-h-64 overflow-y-auto space-y-1 border rounded-md p-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {RESOURCE_CATEGORIES.map((category) => {
                       const currentAssignment = editResourceAssignments[category] || 
                         selectedTask.resource_assignments?.[category] || 
-                        { selected: false, status: 'pending' as const, confirmed: false };
+                        { selected: false, status: 'pending' as const, confirmed: false, collaborator_name: '' };
                       return (
                         <ResourceAssignmentRow
                           key={category}
