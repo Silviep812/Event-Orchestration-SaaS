@@ -1,7 +1,10 @@
+import { useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { CheckCircle2, Save } from "lucide-react";
 
 export type ResourceStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled';
 
@@ -9,6 +12,7 @@ export interface ResourceAssignment {
   selected: boolean;
   status: ResourceStatus;
   confirmed: boolean;
+  collaborator_name?: string;
 }
 
 export const RESOURCE_CATEGORIES = [
@@ -44,39 +48,60 @@ interface ResourceAssignmentRowProps {
   category: string;
   assignment: ResourceAssignment;
   onAssignmentChange: (assignment: ResourceAssignment) => void;
+  onCollaboratorSave?: (collaboratorName: string) => void;
+  showCollaboratorField?: boolean;
 }
 
 export function ResourceAssignmentRow({ 
   category, 
   assignment, 
-  onAssignmentChange 
+  onAssignmentChange,
+  onCollaboratorSave,
+  showCollaboratorField = true
 }: ResourceAssignmentRowProps) {
+  const [localCollaborator, setLocalCollaborator] = useState(assignment.collaborator_name || '');
+
+  const handleCollaboratorSave = () => {
+    if (onCollaboratorSave) {
+      onCollaboratorSave(localCollaborator);
+    } else {
+      onAssignmentChange({
+        ...assignment,
+        collaborator_name: localCollaborator
+      });
+    }
+  };
+
   return (
-    <div className="flex items-center gap-3 p-2 rounded-md hover:bg-accent/50 transition-colors">
-      {/* Selection Checkbox */}
-      <Checkbox
-        id={`resource-${category}`}
-        checked={assignment.selected}
-        onCheckedChange={(checked) => {
-          onAssignmentChange({
-            ...assignment,
-            selected: !!checked,
-            // Reset status and confirmed when deselecting
-            status: checked ? assignment.status : 'pending',
-            confirmed: checked ? assignment.confirmed : false
-          });
-        }}
-      />
+    <div className="p-3 border rounded-lg hover:bg-muted/50 transition-colors space-y-2">
+      {/* Top row: checkbox + category name */}
+      <div className="flex items-center gap-2">
+        <Checkbox
+          id={`resource-${category}`}
+          checked={assignment.selected}
+          onCheckedChange={(checked) => {
+            onAssignmentChange({
+              ...assignment,
+              selected: !!checked,
+              // Reset status and confirmed when deselecting
+              status: checked ? assignment.status : 'pending',
+              confirmed: checked ? assignment.confirmed : false,
+              collaborator_name: checked ? assignment.collaborator_name : ''
+            });
+            if (!checked) {
+              setLocalCollaborator('');
+            }
+          }}
+        />
+        <label 
+          htmlFor={`resource-${category}`} 
+          className="text-sm font-medium leading-none cursor-pointer"
+        >
+          {category}
+        </label>
+      </div>
       
-      {/* Category Name */}
-      <label 
-        htmlFor={`resource-${category}`} 
-        className="text-sm font-medium leading-none cursor-pointer min-w-[140px] flex-shrink-0"
-      >
-        {category}
-      </label>
-      
-      {/* Status Dropdown */}
+      {/* Status dropdown */}
       <Select
         value={assignment.status}
         onValueChange={(value: ResourceStatus) => {
@@ -87,7 +112,7 @@ export function ResourceAssignmentRow({
         }}
         disabled={!assignment.selected}
       >
-        <SelectTrigger className="h-8 w-[130px] text-xs">
+        <SelectTrigger className="h-8 w-full text-xs">
           <SelectValue placeholder="Status" />
         </SelectTrigger>
         <SelectContent className="bg-background border shadow-md z-50">
@@ -98,7 +123,7 @@ export function ResourceAssignmentRow({
         </SelectContent>
       </Select>
       
-      {/* Confirmation Checkbox */}
+      {/* Confirmation checkbox */}
       <div className="flex items-center gap-1.5">
         <Checkbox
           id={`confirm-${category}`}
@@ -118,6 +143,28 @@ export function ResourceAssignmentRow({
           Confirmed
         </label>
       </div>
+
+      {/* Per-resource collaborator field */}
+      {showCollaboratorField && (
+        <div className="flex gap-1">
+          <Input
+            placeholder="Collaborator name"
+            value={localCollaborator}
+            onChange={(e) => setLocalCollaborator(e.target.value)}
+            disabled={!assignment.selected}
+            className="h-8 text-xs flex-1"
+          />
+          <Button 
+            size="sm" 
+            variant="outline" 
+            disabled={!assignment.selected}
+            onClick={handleCollaboratorSave}
+            className="h-8 px-2"
+          >
+            <Save className="h-3 w-3" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
@@ -151,7 +198,8 @@ export function convertLegacyToResourceAssignments(
     result[category] = {
       selected: collaboratorTypes.includes(category),
       status: 'pending',
-      confirmed: false
+      confirmed: false,
+      collaborator_name: ''
     };
   });
   
@@ -166,7 +214,8 @@ export function getEmptyResourceAssignments(): Record<string, ResourceAssignment
     result[category] = {
       selected: false,
       status: 'pending',
-      confirmed: false
+      confirmed: false,
+      collaborator_name: ''
     };
   });
   
