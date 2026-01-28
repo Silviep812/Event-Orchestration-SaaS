@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -65,6 +65,14 @@ export function ResourceColumn({
   const [localDueDate, setLocalDueDate] = useState(assignment.due_date || '');
   const [localStartDate, setLocalStartDate] = useState(assignment.start_date || '');
   const [localEndDate, setLocalEndDate] = useState(assignment.end_date || '');
+
+  // Sync local state when assignment prop changes
+  useEffect(() => {
+    setLocalCollaborator(assignment.collaborator_name || '');
+    setLocalDueDate(assignment.due_date || '');
+    setLocalStartDate(assignment.start_date || '');
+    setLocalEndDate(assignment.end_date || '');
+  }, [assignment.collaborator_name, assignment.due_date, assignment.start_date, assignment.end_date, category]);
 
   const handleCollaboratorSave = () => {
     if (onCollaboratorSave) {
