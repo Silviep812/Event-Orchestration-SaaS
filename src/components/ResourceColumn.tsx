@@ -177,7 +177,7 @@ export function ResourceColumn({
 
       {/* Task Assigned To / Collaborator Row */}
       <div className="space-y-1 mb-3">
-        <label className="text-xs text-muted-foreground">Task Assigned To</label>
+        <label className="text-xs font-semibold text-foreground">Task Assigned To</label>
         <div className="flex gap-1">
           <Input
             placeholder="Collaborator name"

@@ -1737,69 +1737,6 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     </div>
                   </div>
 
-                  {/* Assign Collaborator Task To - Manual Name Entry */}
-                  <div className="border-t pt-3 mt-3 space-y-2" onClick={(e) => e.stopPropagation()}>
-                    <p className="text-xs font-semibold text-foreground">
-                      Assign Collaborator Task To
-                    </p>
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="Enter collaborator name"
-                        value={cardCollaboratorInput[task.id] ?? task.assigned_coordinator_name ?? ""}
-                        onChange={(e) => {
-                          setCardCollaboratorInput(prev => ({
-                            ...prev,
-                            [task.id]: e.target.value
-                          }));
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                        className="h-9 text-sm flex-1"
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-9"
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          try {
-                            const inputValue = cardCollaboratorInput[task.id] ?? task.assigned_coordinator_name ?? "";
-                            const coordinatorValue = inputValue.trim() === "" ? null : inputValue.trim();
-                            const { error } = await supabase
-                              .from('tasks')
-                              .update({ assigned_coordinator_name: coordinatorValue })
-                              .eq('id', task.id);
-
-                            if (error) throw error;
-
-                            toast({
-                              title: coordinatorValue ? "Collaborator assigned" : "Collaborator removed",
-                              description: coordinatorValue
-                                ? `${coordinatorValue} has been assigned to this task.`
-                                : "Collaborator assignment cleared.",
-                            });
-
-                            // Clear the local input state for this task
-                            setCardCollaboratorInput(prev => {
-                              const newState = { ...prev };
-                              delete newState[task.id];
-                              return newState;
-                            });
-
-                            fetchTasks();
-                          } catch (error) {
-                            console.error('Error assigning collaborator:', error);
-                            toast({
-                              title: "Error",
-                              description: "Failed to assign collaborator.",
-                              variant: "destructive",
-                            });
-                          }
-                        }}
-                      >
-                        <Save className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
 
                   {task.estimated_hours && (
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -1943,47 +1880,6 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
 
               {/* Right column */}
               <div className="space-y-4">
-                <div className="space-y-2 p-3 border border-primary/20 rounded-lg bg-primary/5">
-                  <Label htmlFor="edit-coordinator-name" className="text-base font-semibold">
-                    Assign Collaborator Task To
-                  </Label>
-                  <p className="text-xs text-muted-foreground">
-                    Enter collaborator name
-                  </p>
-                  <div className="flex gap-2">
-                    <Input
-                      id="edit-coordinator-name"
-                      placeholder="Enter collaborator name"
-                      value={selectedTask.assigned_coordinator_name || ""}
-                      onChange={(e) => {
-                        setSelectedTask({
-                          ...selectedTask,
-                          assigned_coordinator_name: e.target.value || undefined
-                        });
-                      }}
-                      className="flex-1"
-                    />
-                    {selectedTask.assigned_coordinator_name && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setSelectedTask({
-                            ...selectedTask,
-                            assigned_coordinator_name: undefined
-                          });
-                          toast({
-                            title: "Collaborator removed",
-                            description: "Collaborator assignment cleared",
-                          });
-                        }}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="edit-hours">Estimated Hours</Label>
