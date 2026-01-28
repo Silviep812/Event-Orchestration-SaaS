@@ -1753,7 +1753,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                   <div className="flex gap-2">
                     <Input
                       id="edit-coordinator-name"
-                      placeholder="Enter collaborator name (optional)"
+                      placeholder="Enter collaborator name"
                       value={selectedTask.assigned_coordinator_name || ""}
                       onChange={(e) => {
                         setSelectedTask({
