@@ -1,68 +1,118 @@
 
 
-# Change "Assign Collaborator Task To" from Dropdown to Manual Entry
+# Add Status Dropdown and Confirmation to Resource Category Assignments
 
 ## Overview
 
-Replace the dropdown/combobox fields for assigning collaborators with simple text input fields that allow free-form manual entry of names.
+Transform the Task Assignments section from simple checkboxes to an enhanced resource tracking system where each resource category includes a status dropdown and confirmation checkbox, matching the Bookings page pattern.
+
+## Complete Resource Categories List
+
+The following resource categories will be available (keeping Bookings and adding Vendors and Marketing):
+
+| # | Resource Category |
+|---|------------------|
+| 1 | Bookings |
+| 2 | Vendors |
+| 3 | Venues |
+| 4 | Hospitality |
+| 5 | Vendor Service Rental/Buy |
+| 6 | Service Vendor |
+| 7 | Transportation |
+| 8 | Entertainment |
+| 9 | Suppliers |
+| 10 | Marketing |
 
 ## Changes Required
 
 ### File: `src/components/TaskManager.tsx`
 
-Three locations need to be modified:
+#### 1. Update State Structure
 
-| Location | Lines | Current Implementation | New Implementation |
-|----------|-------|----------------------|-------------------|
-| Create Task Dialog | 1350-1458 | Popover with Command combobox | Simple Input field |
-| Task Card View | 1654-1703 | Select dropdown | Simple Input field with save button |
-| Edit Task Dialog | 1816-1920 | Popover with Command combobox | Simple Input field |
+Replace the simple string array with a structured object to track status and confirmation:
 
-### Detailed Changes
+```text
+Current: selectedCollaboratorTypes: string[]
 
-**1. Create Task Dialog (lines 1350-1458)**
+New: resourceAssignments: Record<string, {
+  selected: boolean;
+  status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+  confirmed: boolean;
+}>
+```
 
-Replace the entire Popover/Command block with:
-- A simple `Input` text field
-- Keep the "X" button to clear the value
-- Update helper text from "Type to search for a collaborator" to "Enter collaborator name"
+#### 2. New UI Layout for Task Assignments
 
-**2. Task Card View (lines 1654-1703)**
+Replace the current checkbox list with an enhanced layout:
 
-Replace the Select dropdown with:
-- An `Input` field for typing the name
-- A small save button to commit changes
-- The input will update the database when the user finishes typing and clicks save
+```text
+┌────────────────────────────────────────────────────────────────┐
+│ Task Assignments                                                │
+├────────────────────────────────────────────────────────────────┤
+│ ☑ Bookings       │ Status: [Pending ▼]    │ ☑ Confirmed       │
+│ ☐ Vendors        │ Status: [Pending ▼]    │ ☐ Confirmed       │
+│ ☐ Venues         │ Status: [Pending ▼]    │ ☐ Confirmed       │
+│ ☐ Hospitality    │ Status: [Pending ▼]    │ ☐ Confirmed       │
+│ ... (remaining categories)                                      │
+└────────────────────────────────────────────────────────────────┘
+```
 
-**3. Edit Task Dialog (lines 1816-1920)**
+Each row contains:
+- Checkbox to select the resource category
+- Status dropdown (Pending, Confirmed, Completed, Cancelled) - enabled when selected
+- Confirmation checkbox - enabled when selected
 
-Replace the Popover/Command block with:
-- A simple `Input` text field matching the create dialog pattern
-- Keep the ability to clear the field
+#### 3. Status Options
 
-### State Cleanup
+| Status | Color Badge |
+|--------|-------------|
+| Pending | Yellow |
+| Confirmed | Blue |
+| Completed | Green |
+| Cancelled | Red |
 
-Remove unused state variables (lines 140-143):
-- `coordinatorSearchOpen`
-- `coordinatorSearchTerm`
-- `editCoordinatorSearchOpen`
-- `editCoordinatorSearchTerm`
+#### 4. Task Card Display
 
-These states were only needed for the dropdown search functionality.
+Show assigned resources with status badges:
 
-### Import Cleanup
+```text
+Bookings: Confirmed ✓ | Venues: Pending | Transportation: Completed ✓
+```
 
-The following imports can be removed from the component since they will no longer be used for this feature:
-- `ChevronsUpDown`, `Check` from lucide-react (if not used elsewhere)
-- `Command`, `CommandEmpty`, `CommandGroup`, `CommandInput`, `CommandItem`, `CommandList` (if not used elsewhere)
+#### 5. Locations to Update
 
-## Technical Details
+| Location | Lines (approx) | Change |
+|----------|----------------|--------|
+| Create Task Dialog | 1294-1337 | Replace checkbox list with enhanced resource rows |
+| Task Card Display | 1546-1680 | Show resource assignments with status badges |
+| Edit Task Dialog | 1687-1920 | Mirror the enhanced resource assignment UI |
 
-### Benefits of Manual Entry
-- Simpler user experience - just type a name directly
-- Allows assigning tasks to people not in the system
-- Faster data entry without waiting for dropdown to load
+### Sidebar Addition
 
-### Validation
-The existing validation in `taskValidation.ts` already supports optional `assigned_coordinator_name` as a string with max 100 characters - no changes needed there.
+**File: `src/components/AppSidebar.tsx`**
+- Add "Marketing" to the Resources section
+
+**File: `src/pages/Marketing.tsx`** (New file)
+- Create placeholder Marketing page
+
+**File: `src/App.tsx`**
+- Add route for `/dashboard/marketing`
+
+### Database Consideration
+
+Add a `resource_assignments` JSONB column to the tasks table to persist the structured data:
+
+```json
+{
+  "Bookings": { "status": "confirmed", "confirmed": true },
+  "Venues": { "status": "pending", "confirmed": false }
+}
+```
+
+## Files Modified
+
+1. `src/components/TaskManager.tsx` - Main changes to Task Assignments UI
+2. `src/components/AppSidebar.tsx` - Add Marketing menu item
+3. `src/pages/Marketing.tsx` - New placeholder page
+4. `src/App.tsx` - Add Marketing route
 
