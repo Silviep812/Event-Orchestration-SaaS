@@ -1,79 +1,62 @@
 
-# Corrected Plan: Booking-Style Grid Layout for Resources on Task Cards
 
-## Problem Analysis
+# Corrected Plan: Horizontal Resource Columns Layout
 
-The current implementation is wrong because:
-1. **Resources displayed vertically** in a scrollable list instead of a horizontal grid
-2. **ResourceAssignmentRow component** uses a row-based layout not the tile/card-based pattern from Bookings
-3. **No per-resource collaborator field** - the user confirmed each resource needs its own collaborator name entry
+## Problem Understanding
 
-## Reference Pattern: BookingsDirectory.tsx (Lines 142-165)
+The current implementation is **wrong** in a fundamental way:
 
-The correct pattern uses:
-```tsx
-<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-  {options.map((option) => (
-    <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50">
-      <Checkbox checked={...} onCheckedChange={...} />
-      <label className="flex items-center gap-2 cursor-pointer text-sm font-medium">
-        <Icon />
-        {label}
-      </label>
-    </div>
-  ))}
-</div>
+**Current (Incorrect)**:
+- 2-column grid of tiles
+- Each tile repeats the same structure (checkbox + status + confirmed + collaborator)
+- Resources stack vertically, filling the grid
+
+**What You Actually Want**:
+- **Horizontal columns** where each column is a DIFFERENT resource type
+- Each column contains the SAME data flow from top to bottom
+- 3 columns visible at a time (scrollable for remaining 7 resources)
+
+## Correct Layout Structure
+
+```
++-------------------+-------------------+-------------------+
+|     BOOKINGS      |      VENUE        |   HOSPITALITY     |  (scroll →)
++-------------------+-------------------+-------------------+
+| Status:           | Status:           | Status:           |
+| [Pending ▼]       | [Pending ▼]       | [Pending ▼]       |
++-------------------+-------------------+-------------------+
+| Confirmation:     | Confirmation:     | Confirmation:     |
+| [Dropdown ▼]      | [Dropdown ▼]      | [Dropdown ▼]      |
++-------------------+-------------------+-------------------+
+| Task Assigned To: | Task Assigned To: | Task Assigned To: |
+| [Name_____][Save] | [Name_____][Save] | [Name_____][Save] |
++-------------------+-------------------+-------------------+
+| Timeline/Dates:   | Timeline/Dates:   | Timeline/Dates:   |
+| Due: [date]       | Due: [date]       | Due: [date]       |
+| Start: [date]     | Start: [date]     | Start: [date]     |
+| End: [date]       | End: [date]       | End: [date]       |
++-------------------+-------------------+-------------------+
 ```
 
-## New Layout Structure for Task Cards
-
-```text
-+------------------------------------------------------------------+
-| Task Title                                          [Priority]   |
-| Description                                                      |
-| [Task Status Dropdown]                                           |
-|                                                                  |
-| Resource Category Assignments (grid, 2 columns)                  |
-| ┌─────────────────────────┐ ┌─────────────────────────┐          |
-| │ ☑ Bookings              │ │ ☐ Vendors               │          |
-| │ Status: [Pending ▼]     │ │ Status: [Pending ▼]     │          |
-| │ ☑ Confirmed             │ │ ☐ Confirmed             │          |
-| │ [Collaborator____][Save]│ │ [Collaborator____][Save]│          |
-| └─────────────────────────┘ └─────────────────────────┘          |
-| ┌─────────────────────────┐ ┌─────────────────────────┐          |
-| │ ☐ Venues                │ │ ☐ Hospitality           │          |
-| │ Status: [Pending ▼]     │ │ Status: [Pending ▼]     │          |
-| │ ☐ Confirmed             │ │ ☐ Confirmed             │          |
-| │ [Collaborator____][Save]│ │ [Collaborator____][Save]│          |
-| └─────────────────────────┘ └─────────────────────────┘          |
-| ... (remaining 6 resources in grid)                              |
-|                                                                  |
-|------------------------------------------------------------------|
-| Assign Collaborator Task To (task-level, kept)                   |
-| [Name__________________________] [Save]                          |
-|------------------------------------------------------------------|
-| Hours | Due Date | Dependencies                                  |
-+------------------------------------------------------------------+
-```
+**Key Differences**:
+- Each **column header** is a resource name (Bookings, Venue, etc.)
+- Each **row** is a data type (Status, Confirmation, Collaborator, Dates)
+- 3 columns visible at once with horizontal scroll for all 10 resources
 
 ## Data Structure Update
 
-Current `resource_assignments` structure:
-```json
-{
-  "Bookings": { "selected": true, "status": "pending", "confirmed": false }
-}
-```
+Each resource needs its own dates/timeline, so the `ResourceAssignment` interface expands:
 
-New structure (add collaborator_name per resource):
-```json
-{
-  "Bookings": { 
-    "selected": true, 
-    "status": "pending", 
-    "confirmed": false,
-    "collaborator_name": "John Smith"
-  }
+```typescript
+export interface ResourceAssignment {
+  selected: boolean;
+  status: ResourceStatus;
+  confirmed: boolean;
+  collaborator_name?: string;
+  // NEW: Per-resource timeline/dates
+  due_date?: string;
+  start_date?: string;
+  end_date?: string;
 }
 ```
 
@@ -81,90 +64,79 @@ New structure (add collaborator_name per resource):
 
 ### 1. src/components/ResourceAssignmentRow.tsx
 
-Transform from row layout to tile/card layout:
-
-| Current | New |
-|---------|-----|
-| Single horizontal row | Card-style tile with stacked content |
-| No collaborator field | Add collaborator name input + Save button |
-| Inline checkbox + dropdown + checkbox | Stacked: checkbox+label at top, status dropdown, confirmation checkbox, collaborator field at bottom |
-
-Update ResourceAssignment interface:
-```typescript
-export interface ResourceAssignment {
-  selected: boolean;
-  status: ResourceStatus;
-  confirmed: boolean;
-  collaborator_name?: string;  // NEW
-}
-```
+- Rename to `ResourceColumn.tsx` (or keep name but restructure)
+- Change from a tile/card layout to a **column** layout
+- Add date fields (due, start, end) per resource
+- Structure as vertical stack: Header → Status → Confirmation → Collaborator → Dates
 
 ### 2. src/components/TaskManager.tsx
 
-**Task Card Section (lines 1621-1679)**:
-- Replace the vertical list layout with a 2-column grid
-- Wrap `ResourceAssignmentRow` components in `grid grid-cols-1 md:grid-cols-2 gap-3`
-- Remove the `max-h-48 overflow-y-auto` scrolling container
+- Replace 2-column grid with **horizontal scrollable container**
+- Use `flex flex-row overflow-x-auto` to display columns side by side
+- Each resource becomes a column (not a tile in a grid)
+- Remove the separate "Resource Category Assignments" section header tiles
 
-**Create/Edit Dialogs**:
-- Apply same grid layout change
-- Add per-resource collaborator field
+## New Component Structure
 
-### 3. Database Migration
-
-No schema change needed - the `resource_assignments` JSONB column already accepts any structure. The new `collaborator_name` field will be stored as part of each resource object.
-
-## Implementation Details
-
-### ResourceAssignmentRow New Layout
+**ResourceColumn Component (replaces ResourceAssignmentRow)**:
 
 ```tsx
-<div className="p-3 border rounded-lg hover:bg-muted/50 space-y-2">
-  {/* Top row: checkbox + category name */}
-  <div className="flex items-center gap-2">
-    <Checkbox checked={selected} onCheckedChange={...} />
-    <label className="text-sm font-medium cursor-pointer">{category}</label>
+<div className="min-w-[200px] border rounded-lg p-3 flex-shrink-0">
+  {/* Column Header - Resource Name */}
+  <div className="font-semibold text-sm border-b pb-2 mb-2">
+    <Checkbox checked={selected} /> Bookings
   </div>
   
-  {/* Status dropdown (enabled when selected) */}
-  <Select value={status} disabled={!selected}>
-    <SelectTrigger className="h-8 text-xs">...</SelectTrigger>
-  </Select>
-  
-  {/* Confirmation checkbox */}
-  <div className="flex items-center gap-2">
-    <Checkbox checked={confirmed} disabled={!selected} />
-    <label className="text-xs">Confirmed</label>
+  {/* Status Row */}
+  <div className="space-y-1 mb-3">
+    <label className="text-xs text-muted-foreground">Status</label>
+    <Select value={status}>...</Select>
   </div>
   
-  {/* Collaborator name input + Save */}
-  <div className="flex gap-1">
-    <Input 
-      placeholder="Collaborator name" 
-      value={collaborator_name}
-      disabled={!selected}
-      className="h-8 text-xs"
-    />
-    <Button size="sm" variant="outline" disabled={!selected}>
-      <Save className="h-3 w-3" />
-    </Button>
+  {/* Confirmation Row */}
+  <div className="space-y-1 mb-3">
+    <label className="text-xs text-muted-foreground">Confirmation</label>
+    <Select value={confirmed ? 'yes' : 'no'}>
+      <SelectItem value="yes">Confirmed</SelectItem>
+      <SelectItem value="no">Not Confirmed</SelectItem>
+    </Select>
+  </div>
+  
+  {/* Task Assigned To / Collaborator Row */}
+  <div className="space-y-1 mb-3">
+    <label className="text-xs text-muted-foreground">Task Assigned To</label>
+    <div className="flex gap-1">
+      <Input value={collaborator_name} />
+      <Button><Save /></Button>
+    </div>
+  </div>
+  
+  {/* Timeline/Dates Row */}
+  <div className="space-y-2">
+    <label className="text-xs text-muted-foreground">Timeline</label>
+    <div className="space-y-1">
+      <Input type="date" label="Due" value={due_date} />
+      <Input type="date" label="Start" value={start_date} />
+      <Input type="date" label="End" value={end_date} />
+    </div>
   </div>
 </div>
 ```
 
-### Grid Container in TaskManager.tsx
+**TaskManager Container**:
 
 ```tsx
-{/* Resource Category Assignments - Grid Layout */}
-<div className="border-t pt-3 mt-3 space-y-2">
-  <p className="text-xs font-semibold">Resource Category Assignments</p>
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+{/* Resource Columns - Horizontal Scroll */}
+<div className="border-t pt-3 mt-3">
+  <p className="text-xs font-semibold mb-2">Resource Category Assignments</p>
+  <div className="flex flex-row gap-3 overflow-x-auto pb-2">
     {RESOURCE_CATEGORIES.map((category) => (
-      <ResourceAssignmentTile
+      <ResourceColumn
         key={category}
         category={category}
-        assignment={task.resource_assignments?.[category] || defaultAssignment}
-        onAssignmentChange={(newAssignment) => {...}}
+        assignment={task.resource_assignments?.[category]}
+        onAssignmentChange={...}
+        onCollaboratorSave={...}
       />
     ))}
   </div>
@@ -173,20 +145,19 @@ No schema change needed - the `resource_assignments` JSONB column already accept
 
 ## Summary of Changes
 
-| Component | Change |
-|-----------|--------|
-| ResourceAssignmentRow.tsx | Convert to tile layout, add collaborator_name field |
-| TaskManager.tsx (Task Cards) | Replace vertical list with 2-column grid |
-| TaskManager.tsx (Create Dialog) | Apply same grid layout |
-| TaskManager.tsx (Edit Dialog) | Apply same grid layout |
-| ResourceAssignment interface | Add collaborator_name?: string |
-| getEmptyResourceAssignments() | Add collaborator_name: '' default |
+| Component | Current | New |
+|-----------|---------|-----|
+| Layout Direction | Vertical grid (2 cols) | Horizontal scroll (3+ visible) |
+| Resource Display | Tile with stacked elements | Column with labeled rows |
+| Confirmation | Checkbox | Dropdown (option menu) |
+| Dates | None per resource | Due/Start/End per resource |
+| Container | `grid grid-cols-1 md:grid-cols-2` | `flex flex-row overflow-x-auto` |
 
-## What Stays the Same
+## Technical Notes
 
-- Task-level "Assign Collaborator Task To" field at bottom of card (kept as requested)
-- Database schema (JSONB handles new field automatically)
-- All 10 resource categories
-- Status dropdown options (Pending, Confirmed, Completed, Cancelled)
-- Confirmed checkbox behavior
-- Auto-save on change
+- Horizontal scroll container uses `overflow-x-auto` with `flex-shrink-0` on children
+- Each column has `min-w-[200px]` to ensure consistent width
+- Confirmation changes from checkbox to dropdown per user request
+- Timeline/dates stored per resource in the JSONB `resource_assignments` column
+- Task-level "Assign Collaborator Task To" field remains at bottom of card
+
