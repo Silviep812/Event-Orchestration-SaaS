@@ -60,7 +60,7 @@ export default function ProjectManagement() {
         <div>
           <h1 className="text-3xl font-bold">Project Management</h1>
           <p className="text-muted-foreground">
-            Manage tasks, track budgets, and assign roles for your events
+            Manage tasks, track budgets, and assign collaborators for your events
           </p>
         </div>
         <div className="flex items-center gap-4">
@@ -106,7 +106,7 @@ export default function ProjectManagement() {
           </TabsTrigger>
           <TabsTrigger value="roles" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
-            Roles
+            Collaborators
           </TabsTrigger>
         </TabsList>
 
