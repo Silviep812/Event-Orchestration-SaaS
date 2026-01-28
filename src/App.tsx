@@ -36,6 +36,7 @@ import Profile from "./pages/Profile";
 import Contact from "./pages/Contact";
 import ChangeRequests from "./pages/ChangeRequests";
 import ChangeRequestDetail from "./pages/ChangeRequestDetail";
+import Marketing from "./pages/Marketing";
 
 const queryClient = new QueryClient();
 
@@ -77,6 +78,7 @@ const App = () => (
               <Route path="entertainment" element={<EntertainmentDirectory />} />
               <Route path="supplier" element={<SupplierDirectory />} />
               <Route path="vendors" element={<VendorsDirectory />} />
+              <Route path="marketing" element={<Marketing />} />
               <Route path="profile" element={<Profile />} />
             </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

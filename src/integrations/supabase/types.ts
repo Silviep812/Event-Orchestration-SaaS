@@ -2570,6 +2570,7 @@ export type Database = {
           event_id: string | null
           id: string
           priority: Database["public"]["Enums"]["task_priority"]
+          resource_assignments: Json | null
           start_date: string | null
           start_time: string | null
           status: Database["public"]["Enums"]["task_status"] | null
@@ -2596,6 +2597,7 @@ export type Database = {
           event_id?: string | null
           id?: string
           priority?: Database["public"]["Enums"]["task_priority"]
+          resource_assignments?: Json | null
           start_date?: string | null
           start_time?: string | null
           status?: Database["public"]["Enums"]["task_status"] | null
@@ -2622,6 +2624,7 @@ export type Database = {
           event_id?: string | null
           id?: string
           priority?: Database["public"]["Enums"]["task_priority"]
+          resource_assignments?: Json | null
           start_date?: string | null
           start_time?: string | null
           status?: Database["public"]["Enums"]["task_status"] | null
