@@ -1,173 +1,142 @@
 
+# Fix Plan: Resource Assignment Panel Layout and Fields Visibility
 
-# Plan: Fix Resource Assignments Display in Task Cards
-
-## Problem Identified
-
-The user is seeing 4 task cards on the Project Management page with cluttered, unreadable resource assignment sections. After analyzing the code and database, I've identified these root causes:
-
-1. **Card `overflow-hidden`** - The task Card has `overflow-hidden` which clips the expanded table content
-2. **Table in narrow card** - The 8-column table (~840px) tries to fit inside cards that are only 1/3 viewport width (~350-400px)
-3. **Double scroll wrapper** - Both the Table component and panel have `overflow-auto`
-4. **Collapsed by default** - User may not be seeing the expanded state
+## Problem Summary
+In the Project Management task cards, the Resource Assignments section is displaying incorrectly:
+- **5 selected resources** are appearing in **3 containers** (2+2+1 grouping) instead of 5 individual stacked cards
+- **Collaborator** and **Dates** fields appear to be missing or hard to see
+- **Edits are not saving** to the database
 
 ---
 
-## Solution: Redesign for Card Context
+## Root Cause Analysis
 
-Since the table layout is too wide for task cards, we need a **compact vertical layout** that fits within the card width while still showing all 8 fields.
+### Issue 1: "3 Containers" Layout
+The `ResourceAssignmentsPanel` renders cards inside `<div className="space-y-2">` which should stack vertically. The "3 containers" issue is likely caused by:
+- CSS `overflow-hidden` on parent task card clipping content
+- Cards appearing side-by-side due to flex/grid inheritance from parent
+- OR misinterpretation: each card looks like a "container" but the grouping is visual due to card styling
 
-### Design: Stacked Resource Cards (within expanded panel)
+### Issue 2: Missing Fields
+The `ResourceCard` component includes all required fields (Collaborator, Due/Start/End dates, Status, Confirmed, Dependencies) but:
+- Labels use `text-xs text-muted-foreground` which may be too subtle
+- Input fields blend into the card background when empty
+- The section may be scrollable and fields are out of view
 
-```text
-+------------------------------------------+
-| Booking                    [Priority ▼]  |
-|------------------------------------------|
-| [In Progress ▼]  Assigned: John Doe      |
-|------------------------------------------|
-| Resource Assignments [2]      [Expand ▼] |
-|------------------------------------------|
-| ┌──────────────────────────────────────┐ |
-| │ BOOKINGS                        [X]  │ |
-| │ Collaborator: [___Jane Smith____]    │ |
-| │ Due: [04/28] Start: [03/15] End: [03/30] │
-| │ Status: [Pending ▼]  Conf: [Y ▼]     │ |
-| │ Dependencies: [2 selected]           │ |
-| └──────────────────────────────────────┘ |
-| ┌──────────────────────────────────────┐ |
-| │ VENDORS                         [X]  │ |
-| │ Collaborator: [_______________]      │ |
-| │ Due: [__/__] Start: [__/__] End: [__/__] │
-| │ Status: [Pending ▼]  Conf: [N ▼]     │ |
-| │ Dependencies: [0 selected]           │ |
-| └──────────────────────────────────────┘ |
-| [+ Add Resource ▼]                       |
-+------------------------------------------+
-```
+### Issue 3: Edits Not Saving
+The debounced save logic in `ResourceCard` (`useEffect` with 500ms timer) may fail because:
+- Missing `dependencies` array in fallback assignment objects can cause save failures
+- The comparison logic `localValue !== (assignment.value || "")` may not detect changes correctly if values are `undefined`
 
 ---
 
-## Technical Changes
+## Implementation Plan
 
-### File 1: MODIFY `src/components/ResourceAssignmentsPanel.tsx`
+### Step 1: Fix Card Layout - Ensure Vertical Stacking
+**File: `src/components/ResourceAssignmentsPanel.tsx`**
 
-Replace the horizontal table with a vertical stacked card layout:
-
-**Key changes:**
-- Remove `Table`, `TableHeader`, `TableBody`, `TableRow`, `TableCell` imports
-- Add card-based layout for each resource
-- Each resource shows as a small bordered card with all 8 fields in 2-3 rows
-- Responsive layout that works within 350px card width
-
+Add explicit `flex-col` and prevent horizontal wrapping:
 ```tsx
-// Replace table with stacked cards
-{selectedAssignments.map(([category, assignment]) => (
-  <div key={category} className="border rounded-md p-3 mb-2 bg-muted/10">
-    {/* Header row */}
-    <div className="flex items-center justify-between mb-2">
-      <span className="text-sm font-semibold">{category}</span>
-      <Button variant="ghost" size="sm" onClick={() => handleRemoveResource(category)}>
-        <X className="h-3 w-3" />
-      </Button>
-    </div>
-    
-    {/* Collaborator - full width */}
-    <div className="mb-2">
-      <label className="text-xs text-muted-foreground">Collaborator</label>
-      <Input value={assignment.collaborator_name} className="h-8 text-sm" />
-    </div>
-    
-    {/* Dates row - 3 columns */}
-    <div className="grid grid-cols-3 gap-2 mb-2">
-      <div>
-        <label className="text-xs text-muted-foreground">Due</label>
-        <Input type="date" className="h-7 text-xs" />
-      </div>
-      <div>
-        <label className="text-xs text-muted-foreground">Start</label>
-        <Input type="date" className="h-7 text-xs" />
-      </div>
-      <div>
-        <label className="text-xs text-muted-foreground">End</label>
-        <Input type="date" className="h-7 text-xs" />
-      </div>
-    </div>
-    
-    {/* Status & Confirmed row */}
-    <div className="grid grid-cols-2 gap-2 mb-2">
-      <div>
-        <label className="text-xs text-muted-foreground">Status</label>
-        <Select value={assignment.status}>...</Select>
-      </div>
-      <div>
-        <label className="text-xs text-muted-foreground">Confirmed</label>
-        <Select value={assignment.confirmed ? "yes" : "no"}>...</Select>
-      </div>
-    </div>
-    
-    {/* Dependencies */}
-    <div>
-      <label className="text-xs text-muted-foreground">Dependencies</label>
-      <DependencyMultiSelect ... />
-    </div>
-  </div>
-))}
+// Around line 318
+<div className="flex flex-col space-y-3">
+  {selectedAssignments.map(([category, assignment]) => (
+    <ResourceCard key={category} ... />
+  ))}
+</div>
 ```
 
-### File 2: MODIFY `src/components/TaskManager.tsx`
+### Step 2: Improve Field Visibility with Larger Text and Better Contrast
+**File: `src/components/ResourceAssignmentsPanel.tsx` (ResourceCard component)**
 
-**Line 1581:** Remove `overflow-hidden` from task Card
+Increase text sizes and improve label visibility:
+- Change labels from `text-xs text-muted-foreground` to `text-sm font-medium text-foreground`
+- Increase input heights from `h-7`/`h-8` to `h-9`
+- Add placeholder text that's more visible
+- Add subtle background color to input fields
 
+### Step 3: Fix the Saving Logic
+**File: `src/components/ResourceAssignmentsPanel.tsx`**
+
+Fix the debounced save `useEffect` hooks:
+- Add proper dependency arrays
+- Ensure the timer cleanup works correctly
+- Handle `undefined` values explicitly
+
+**File: `src/components/ResourceColumn.tsx`**
+
+Ensure `getEmptyResourceAssignments` always includes all required fields with proper defaults:
 ```tsx
-// Before
-className="cursor-pointer hover:shadow-md transition-shadow overflow-hidden"
-
-// After
-className="cursor-pointer hover:shadow-md transition-shadow"
+// Line 281-298 - confirm dependencies: [] is present (already is, verified)
 ```
 
-### File 3: DELETE `src/components/ResourceAssignmentTableRow.tsx`
+### Step 4: Prevent Overflow Clipping
+**File: `src/components/TaskManager.tsx`**
 
-This component uses TableRow/TableCell which don't work well in card context. The logic will be moved inline to ResourceAssignmentsPanel with a vertical card layout.
-
-### File 4: KEEP `src/components/DependencyMultiSelect.tsx`
-
-Already works correctly - shows button with count and popover for multi-select.
-
----
-
-## Complete Field Layout (Per Resource Card)
-
-Each resource assignment card displays ALL 8 fields:
-
-| Row | Fields |
-|-----|--------|
-| **Header** | Category name + Remove button |
-| **Row 1** | Collaborator (full width text input) |
-| **Row 2** | Due Date / Start Date / End Date (3 columns) |
-| **Row 3** | Status dropdown / Confirmed dropdown (2 columns) |
-| **Row 4** | Dependencies multi-select (full width button) |
+Ensure the task card container allows the expanded panel to display fully:
+- Check for any `overflow-hidden` that might clip the expanded content
+- Consider `overflow-visible` or `overflow-y-auto` on the collapsible content
 
 ---
 
-## Files Summary
+## Detailed Code Changes
 
-| File | Action | Description |
-|------|--------|-------------|
-| `src/components/ResourceAssignmentsPanel.tsx` | REWRITE | Replace table with vertical stacked card layout |
-| `src/components/TaskManager.tsx` | MODIFY | Remove `overflow-hidden` from task Card (line 1581) |
-| `src/components/ResourceAssignmentTableRow.tsx` | DELETE | No longer needed - logic moved to panel |
-| `src/components/DependencyMultiSelect.tsx` | KEEP | Works correctly |
+### ResourceAssignmentsPanel.tsx Changes
+
+1. **Line 98-115 (ResourceCard header)**: Make category name larger and more prominent
+   - Change `text-sm font-semibold` to `text-base font-bold`
+
+2. **Line 117-127 (Collaborator field)**: Improve visibility
+   - Change label to `text-sm font-medium text-foreground`
+   - Add `bg-background` to input for contrast
+   - Keep `h-8` but add visible placeholder
+
+3. **Line 129-159 (Dates row)**: Improve label visibility
+   - Change labels to `text-sm font-medium`
+   - Increase date input size consistency
+
+4. **Line 161-193 (Status/Confirmed)**: Keep as-is (dropdowns work correctly)
+
+5. **Line 195-206 (Dependencies)**: Verify label is visible
+
+6. **Line 318 (selectedAssignments container)**: Add `flex flex-col` explicitly
+
+### TaskManager.tsx Changes
+
+Review line ~1600-1800 for any `overflow-hidden` on the task card that might clip the expanded resource panel content.
 
 ---
 
-## Visual Improvement Summary
+## Expected Result After Fix
 
-| Before | After |
-|--------|-------|
-| 8-column horizontal table crammed into 350px card | Vertical stacked cards, each showing one resource |
-| Content clipped by `overflow-hidden` | Full content visible |
-| Fields too small to read (text-xs everywhere) | Larger readable text (text-sm) |
-| Double scroll containers | Single scroll if needed |
-| Table header wastes vertical space | Compact labels above each field |
+Each task card's "Resource Assignments" section will:
+1. Display **5 individual cards** stacked vertically (one per selected resource)
+2. Each card shows **all 8 fields clearly**:
+   - Category name (bold, prominent header)
+   - Collaborator (visible input with placeholder)
+   - Due/Start/End dates (3-column row, visible labels)
+   - Status dropdown
+   - Confirmed dropdown
+   - Dependencies multi-select
+3. **Edits save correctly** with debounced updates to the database
 
+---
+
+## Files to Modify
+- `src/components/ResourceAssignmentsPanel.tsx` - Layout and visibility fixes
+- `src/components/TaskManager.tsx` - Remove overflow clipping (if present)
+- Possibly `src/components/ResourceColumn.tsx` - Verify getEmptyResourceAssignments defaults
+
+---
+
+## Testing Steps
+1. Navigate to `/dashboard/project-management`
+2. Find a task card with selected resources
+3. Click "Resource Assignments" to expand
+4. Verify:
+   - All 5 resources appear as separate stacked cards
+   - Each card shows Collaborator input field with label
+   - Each card shows Due/Start/End date fields with labels
+   - Status and Confirmed dropdowns are visible
+   - Dependencies field is visible
+5. Edit a collaborator name and wait 1 second - verify toast appears
+6. Refresh page - verify the saved value persists
