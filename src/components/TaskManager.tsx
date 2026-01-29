@@ -23,6 +23,7 @@ import {
   getEmptyResourceAssignments,
   getSelectedCategories
 } from "@/components/ResourceColumn";
+import { ResourceCard } from "@/components/ResourceCard";
 
 interface Task {
   id: string;
@@ -1374,15 +1375,16 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                   </Select>
                 </div>
 
-                {/* Task Assignments selection with status and confirmation - Horizontal Scroll */}
+                {/* Task Assignments selection with status and confirmation - Grid Layout */}
                 <div className="space-y-2">
                   <Label>Resource Category Assignments</Label>
                   <p className="text-xs text-muted-foreground mb-2">
                     Select resource categories, set their status, and assign collaborators
                   </p>
-                  <div className="flex flex-row gap-3 overflow-x-auto pb-2 max-w-full scrollbar-thin">
+                  {/* Responsive Grid: 1 col on mobile, 2 on sm, 3 on md, 4 on lg */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                     {RESOURCE_CATEGORIES.map((category) => (
-                      <ResourceColumn
+                      <ResourceCard
                         key={category}
                         category={category}
                         assignment={resourceAssignments[category] || { selected: false, status: 'pending', confirmed: false, collaborator_name: '', due_date: '', start_date: '', end_date: '' }}
@@ -1403,7 +1405,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     ))}
                   </div>
                   {/* Confirm All Entries Button */}
-                  <div className="flex justify-end mt-2">
+                  <div className="flex justify-end mt-3">
                     <Button
                       type="button"
                       size="sm"
@@ -1681,17 +1683,18 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     </div>
                   )}
 
-                  {/* Resource Category Assignments - Horizontal Scroll */}
-                  <div className="border-t pt-3 mt-3 space-y-2 max-w-full overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                  {/* Resource Category Assignments - Grid Layout */}
+                  <div className="border-t pt-3 mt-3 space-y-2" onClick={(e) => e.stopPropagation()}>
                     <p className="text-xs font-semibold text-foreground">
                       Resource Category Assignments
                     </p>
-                    <div className="flex flex-row gap-3 overflow-x-auto pb-2 max-w-full scrollbar-thin">
+                    {/* Responsive Grid: 1 col on mobile, 2 on sm, 3 on md, 4 on lg */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                       {RESOURCE_CATEGORIES.map((category) => {
                         const currentAssignment = task.resource_assignments?.[category] || 
                           { selected: false, status: 'pending' as const, confirmed: false, collaborator_name: '', due_date: '', start_date: '', end_date: '' };
                         return (
-                          <ResourceColumn
+                          <ResourceCard
                             key={category}
                             category={category}
                             assignment={currentAssignment}
@@ -1814,7 +1817,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                       })}
                     </div>
                     {/* Save All Resources Button */}
-                    <div className="mt-2 flex justify-end">
+                    <div className="mt-3 flex justify-end">
                       <Button
                         size="sm"
                         variant="default"
@@ -1941,19 +1944,20 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                   </Select>
                 </div>
 
-                {/* Resource Category Assignments for Edit - Horizontal Scroll */}
+                {/* Resource Category Assignments for Edit - Grid Layout */}
                 <div className="space-y-2">
                   <Label>Resource Category Assignments</Label>
                   <p className="text-xs text-muted-foreground mb-2">
                     Select resource categories, set their status, and assign collaborators
                   </p>
-                  <div className="flex flex-row gap-3 overflow-x-auto pb-2 max-w-full scrollbar-thin">
+                  {/* Responsive Grid: 1 col on mobile, 2 on sm, 3 on md, 4 on lg */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                     {RESOURCE_CATEGORIES.map((category) => {
                       const currentAssignment = editResourceAssignments[category] || 
                         selectedTask.resource_assignments?.[category] || 
                         { selected: false, status: 'pending' as const, confirmed: false, collaborator_name: '', due_date: '', start_date: '', end_date: '' };
                       return (
-                        <ResourceColumn
+                        <ResourceCard
                           key={category}
                           category={category}
                           assignment={currentAssignment}
@@ -1968,7 +1972,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     })}
                   </div>
                   {/* Confirm All Entries Button */}
-                  <div className="flex justify-end mt-2">
+                  <div className="flex justify-end mt-3">
                     <Button
                       type="button"
                       size="sm"
