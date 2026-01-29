@@ -77,7 +77,7 @@ export function ResourceCard({
   }, [localDueDate, localStartDate, localEndDate]);
 
   return (
-    <div className="border rounded-lg p-3 bg-card">
+    <div className="border rounded-lg p-4 bg-card">
       {/* Header with checkbox and category name */}
       <div className="flex items-center gap-2 border-b pb-2 mb-2">
         <Checkbox
@@ -104,7 +104,7 @@ export function ResourceCard({
         />
         <label 
           htmlFor={`resource-card-${category}`} 
-          className="text-sm font-semibold leading-none cursor-pointer truncate"
+          className="text-base font-semibold leading-none cursor-pointer truncate"
           title={category}
         >
           {category}
@@ -112,10 +112,10 @@ export function ResourceCard({
       </div>
       
       {/* Compact details grid - 2 columns within each card */}
-      <div className="grid grid-cols-2 gap-2 text-xs mb-2">
+      <div className="grid grid-cols-2 gap-3 mb-3">
         {/* Status */}
         <div className="space-y-1">
-          <label className="text-muted-foreground">Status</label>
+          <label className="text-sm text-muted-foreground">Status</label>
           <Select
             value={assignment.status}
             onValueChange={(value: ResourceStatus) => {
@@ -126,7 +126,7 @@ export function ResourceCard({
             }}
             disabled={!assignment.selected}
           >
-            <SelectTrigger className="h-7 w-full text-xs">
+            <SelectTrigger className="h-9 w-full text-sm">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent className="bg-card border shadow-md z-[100]">
@@ -140,7 +140,7 @@ export function ResourceCard({
         
         {/* Confirmation */}
         <div className="space-y-1">
-          <label className="text-muted-foreground">Confirmed</label>
+          <label className="text-sm text-muted-foreground">Confirmed</label>
           <Select
             value={assignment.confirmed ? 'yes' : 'no'}
             onValueChange={(value) => {
@@ -151,7 +151,7 @@ export function ResourceCard({
             }}
             disabled={!assignment.selected}
           >
-            <SelectTrigger className="h-7 w-full text-xs">
+            <SelectTrigger className="h-9 w-full text-sm">
               <SelectValue placeholder="Confirm" />
             </SelectTrigger>
             <SelectContent className="bg-card border shadow-md z-[100]">
@@ -164,48 +164,48 @@ export function ResourceCard({
       
       {/* Task Assigned To - full width */}
       <div className="space-y-1 mb-2">
-        <label className="text-xs font-semibold text-foreground">Task Assigned To</label>
+        <label className="text-sm font-semibold text-foreground">Task Assigned To</label>
         <Input
           placeholder="Collaborator name"
           value={localCollaborator}
           onChange={(e) => setLocalCollaborator(e.target.value)}
           disabled={!assignment.selected}
-          className="h-7 text-xs"
+          className="h-9 text-sm"
         />
       </div>
       
       {/* Timeline - compact 3-column display */}
       <div className="space-y-1">
-        <label className="text-xs text-muted-foreground">Timeline</label>
-        <div className="grid grid-cols-3 gap-1 text-xs">
+        <label className="text-sm text-muted-foreground">Timeline</label>
+        <div className="grid grid-cols-3 gap-2">
           <div className="space-y-0.5">
-            <span className="text-muted-foreground text-[10px]">Due</span>
+            <span className="text-xs text-muted-foreground">Due</span>
             <Input
               type="date"
               value={localDueDate}
               onChange={(e) => setLocalDueDate(e.target.value)}
               disabled={!assignment.selected}
-              className="h-6 text-xs px-1"
+              className="h-8 text-sm px-2"
             />
           </div>
           <div className="space-y-0.5">
-            <span className="text-muted-foreground text-[10px]">Start</span>
+            <span className="text-xs text-muted-foreground">Start</span>
             <Input
               type="date"
               value={localStartDate}
               onChange={(e) => setLocalStartDate(e.target.value)}
               disabled={!assignment.selected}
-              className="h-6 text-xs px-1"
+              className="h-8 text-sm px-2"
             />
           </div>
           <div className="space-y-0.5">
-            <span className="text-muted-foreground text-[10px]">End</span>
+            <span className="text-xs text-muted-foreground">End</span>
             <Input
               type="date"
               value={localEndDate}
               onChange={(e) => setLocalEndDate(e.target.value)}
               disabled={!assignment.selected}
-              className="h-6 text-xs px-1"
+              className="h-8 text-sm px-2"
             />
           </div>
         </div>
