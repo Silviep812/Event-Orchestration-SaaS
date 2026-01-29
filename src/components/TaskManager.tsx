@@ -24,6 +24,7 @@ import {
   getSelectedCategories
 } from "@/components/ResourceColumn";
 import { ResourceCard } from "@/components/ResourceCard";
+import { ResourceAssignmentsPanel } from "@/components/ResourceAssignmentsPanel";
 
 interface Task {
   id: string;
@@ -148,6 +149,9 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [clearFormAfterSave, setClearFormAfterSave] = useState(false);
   const [cardCollaboratorInput, setCardCollaboratorInput] = useState<Record<string, string>>({});
+  const [expandedResourceTaskId, setExpandedResourceTaskId] = useState<string | null>(null);
+  const [isResourcePanelExpanded, setIsResourcePanelExpanded] = useState(false);
+  const [isEditResourcePanelExpanded, setIsEditResourcePanelExpanded] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const { events, applyEventFilter } = useEventFilter();
@@ -1375,54 +1379,27 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                   </Select>
                 </div>
 
-                {/* Task Assignments selection with status and confirmation - Grid Layout */}
-                <div className="space-y-2">
-                  <Label>Resource Category Assignments</Label>
-                  <p className="text-xs text-muted-foreground mb-2">
-                    Select resource categories, set their status, and assign collaborators
-                  </p>
-                  {/* Responsive Grid: 1 col on mobile, 2 on sm, 3 on md, 4 on lg */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                    {RESOURCE_CATEGORIES.map((category) => (
-                      <ResourceCard
-                        key={category}
-                        category={category}
-                        assignment={resourceAssignments[category] || { selected: false, status: 'pending', confirmed: false, collaborator_name: '', due_date: '', start_date: '', end_date: '', dependencies: [] }}
-                        availableTasks={availableTasks}
-                        onAssignmentChange={(newAssignment) => {
-                          setResourceAssignments(prev => ({
-                            ...prev,
-                            [category]: newAssignment
-                          }));
-                          if (newAssignment.selected) {
-                            if (!selectedCollaboratorTypes.includes(category)) {
-                              setSelectedCollaboratorTypes([...selectedCollaboratorTypes, category]);
-                            }
-                          } else {
-                            setSelectedCollaboratorTypes(selectedCollaboratorTypes.filter(t => t !== category));
-                          }
-                        }}
-                      />
-                    ))}
-                  </div>
-                  {/* Confirm All Entries Button */}
-                  <div className="flex justify-end mt-3">
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => {
-                        toast({
-                          title: "Entries saved locally",
-                          description: "Resource assignments will be saved when you create the task.",
-                        });
-                      }}
-                    >
-                      <Save className="h-3 w-3 mr-1" />
-                      Confirm All Entries
-                    </Button>
-                  </div>
-                </div>
+                {/* Resource Category Assignments - Expandable Panel */}
+                <ResourceAssignmentsPanel
+                  taskId="new-task"
+                  assignments={resourceAssignments}
+                  availableTasks={availableTasks}
+                  isExpanded={isResourcePanelExpanded}
+                  onToggle={() => setIsResourcePanelExpanded(!isResourcePanelExpanded)}
+                  onAssignmentChange={(category, newAssignment) => {
+                    setResourceAssignments(prev => ({
+                      ...prev,
+                      [category]: newAssignment
+                    }));
+                    if (newAssignment.selected) {
+                      if (!selectedCollaboratorTypes.includes(category)) {
+                        setSelectedCollaboratorTypes([...selectedCollaboratorTypes, category]);
+                      }
+                    } else {
+                      setSelectedCollaboratorTypes(selectedCollaboratorTypes.filter(t => t !== category));
+                    }
+                  }}
+                />
               </div>
 
               {/* Right column */}
@@ -1684,156 +1661,137 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     </div>
                   )}
 
-                  {/* Resource Category Assignments - Grid Layout */}
-                  <div className="border-t pt-3 mt-3 space-y-2" onClick={(e) => e.stopPropagation()}>
-                    <p className="text-xs font-semibold text-foreground">
-                      Resource Category Assignments
-                    </p>
-                    {/* Responsive Grid: 1 col on mobile, 2 on sm, 3 on md, 4 on lg */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                      {RESOURCE_CATEGORIES.map((category) => {
-                        const currentAssignment = task.resource_assignments?.[category] || 
-                          { selected: false, status: 'pending' as const, confirmed: false, collaborator_name: '', due_date: '', start_date: '', end_date: '', dependencies: [] };
-                        return (
-                          <ResourceCard
-                            key={category}
-                            category={category}
-                            assignment={currentAssignment}
-                            availableTasks={availableTasks.filter(t => t.id !== task.id)}
-                            onAssignmentChange={async (newAssignment) => {
-                              const updatedAssignments = {
-                                ...(task.resource_assignments || getEmptyResourceAssignments()),
-                                [category]: newAssignment
-                              };
-                              
-                              setTasks(prevTasks => 
-                                prevTasks.map(t => 
-                                  t.id === task.id 
-                                    ? { ...t, resource_assignments: updatedAssignments }
-                                    : t
-                                )
-                              );
-                              
-                              try {
-                                const { error } = await supabase
-                                  .from('tasks')
-                                  .update({ resource_assignments: JSON.parse(JSON.stringify(updatedAssignments)) })
-                                  .eq('id', task.id);
-                                
-                                if (error) throw error;
-                                
-                                toast({
-                                  title: "Resource updated",
-                                  description: `${category} assignment updated successfully.`,
-                                });
-                              } catch (error) {
-                                console.error('Error updating resource assignment:', error);
-                                toast({
-                                  title: "Error",
-                                  description: "Failed to update resource assignment.",
-                                  variant: "destructive",
-                                });
-                                fetchTasks();
-                              }
-                            }}
-                            onCollaboratorSave={async (collaboratorName) => {
-                              const updatedAssignments = {
-                                ...(task.resource_assignments || getEmptyResourceAssignments()),
-                                [category]: {
-                                  ...currentAssignment,
-                                  collaborator_name: collaboratorName
-                                }
-                              };
-                              
-                              setTasks(prevTasks => 
-                                prevTasks.map(t => 
-                                  t.id === task.id 
-                                    ? { ...t, resource_assignments: updatedAssignments }
-                                    : t
-                                )
-                              );
-                              
-                              try {
-                                const { error } = await supabase
-                                  .from('tasks')
-                                  .update({ resource_assignments: JSON.parse(JSON.stringify(updatedAssignments)) })
-                                  .eq('id', task.id);
-                                
-                                if (error) throw error;
-                                
-                                toast({
-                                  title: "Collaborator saved",
-                                  description: `${category} collaborator updated.`,
-                                });
-                              } catch (error) {
-                                console.error('Error saving collaborator:', error);
-                                toast({
-                                  title: "Error",
-                                  description: "Failed to save collaborator.",
-                                  variant: "destructive",
-                                });
-                                fetchTasks();
-                              }
-                            }}
-                            onDatesSave={async (dates) => {
-                              const updatedAssignments = {
-                                ...(task.resource_assignments || getEmptyResourceAssignments()),
-                                [category]: {
-                                  ...currentAssignment,
-                                  ...dates
-                                }
-                              };
-                              
-                              setTasks(prevTasks => 
-                                prevTasks.map(t => 
-                                  t.id === task.id 
-                                    ? { ...t, resource_assignments: updatedAssignments }
-                                    : t
-                                )
-                              );
-                              
-                              try {
-                                const { error } = await supabase
-                                  .from('tasks')
-                                  .update({ resource_assignments: JSON.parse(JSON.stringify(updatedAssignments)) })
-                                  .eq('id', task.id);
-                                
-                                if (error) throw error;
-                                
-                                toast({
-                                  title: "Dates saved",
-                                  description: `${category} timeline updated.`,
-                                });
-                              } catch (error) {
-                                console.error('Error saving dates:', error);
-                                toast({
-                                  title: "Error",
-                                  description: "Failed to save dates.",
-                                  variant: "destructive",
-                                });
-                                fetchTasks();
-                              }
-                            }}
-                          />
-                        );
-                      })}
-                    </div>
-                    {/* Save All Resources Button */}
-                    <div className="mt-3 flex justify-end">
-                      <Button
-                        size="sm"
-                        variant="default"
-                        className="h-8 text-xs"
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          await saveAllResourceAssignments(task.id, task.resource_assignments);
-                        }}
-                      >
-                        <Save className="h-3 w-3 mr-1" />
-                        Save All Resources
-                      </Button>
-                    </div>
-                  </div>
+                  {/* Resource Category Assignments - Expandable Panel */}
+                  <ResourceAssignmentsPanel
+                    taskId={task.id}
+                    assignments={task.resource_assignments || getEmptyResourceAssignments()}
+                    availableTasks={availableTasks.filter(t => t.id !== task.id)}
+                    isExpanded={expandedResourceTaskId === task.id}
+                    onToggle={() => setExpandedResourceTaskId(
+                      expandedResourceTaskId === task.id ? null : task.id
+                    )}
+                    onAssignmentChange={async (category, newAssignment) => {
+                      const updatedAssignments = {
+                        ...(task.resource_assignments || getEmptyResourceAssignments()),
+                        [category]: newAssignment
+                      };
+                      
+                      setTasks(prevTasks => 
+                        prevTasks.map(t => 
+                          t.id === task.id 
+                            ? { ...t, resource_assignments: updatedAssignments }
+                            : t
+                        )
+                      );
+                      
+                      try {
+                        const { error } = await supabase
+                          .from('tasks')
+                          .update({ resource_assignments: JSON.parse(JSON.stringify(updatedAssignments)) })
+                          .eq('id', task.id);
+                        
+                        if (error) throw error;
+                        
+                        toast({
+                          title: "Resource updated",
+                          description: `${category} assignment updated successfully.`,
+                        });
+                      } catch (error) {
+                        console.error('Error updating resource assignment:', error);
+                        toast({
+                          title: "Error",
+                          description: "Failed to update resource assignment.",
+                          variant: "destructive",
+                        });
+                        fetchTasks();
+                      }
+                    }}
+                    onCollaboratorSave={async (category, collaboratorName) => {
+                      const currentAssignment = task.resource_assignments?.[category] || 
+                        { selected: false, status: 'pending' as const, confirmed: false, collaborator_name: '', due_date: '', start_date: '', end_date: '', dependencies: [] };
+                      const updatedAssignments = {
+                        ...(task.resource_assignments || getEmptyResourceAssignments()),
+                        [category]: {
+                          ...currentAssignment,
+                          collaborator_name: collaboratorName
+                        }
+                      };
+                      
+                      setTasks(prevTasks => 
+                        prevTasks.map(t => 
+                          t.id === task.id 
+                            ? { ...t, resource_assignments: updatedAssignments }
+                            : t
+                        )
+                      );
+                      
+                      try {
+                        const { error } = await supabase
+                          .from('tasks')
+                          .update({ resource_assignments: JSON.parse(JSON.stringify(updatedAssignments)) })
+                          .eq('id', task.id);
+                        
+                        if (error) throw error;
+                        
+                        toast({
+                          title: "Collaborator saved",
+                          description: `${category} collaborator updated.`,
+                        });
+                      } catch (error) {
+                        console.error('Error saving collaborator:', error);
+                        toast({
+                          title: "Error",
+                          description: "Failed to save collaborator.",
+                          variant: "destructive",
+                        });
+                        fetchTasks();
+                      }
+                    }}
+                    onDatesSave={async (category, dates) => {
+                      const currentAssignment = task.resource_assignments?.[category] || 
+                        { selected: false, status: 'pending' as const, confirmed: false, collaborator_name: '', due_date: '', start_date: '', end_date: '', dependencies: [] };
+                      const updatedAssignments = {
+                        ...(task.resource_assignments || getEmptyResourceAssignments()),
+                        [category]: {
+                          ...currentAssignment,
+                          ...dates
+                        }
+                      };
+                      
+                      setTasks(prevTasks => 
+                        prevTasks.map(t => 
+                          t.id === task.id 
+                            ? { ...t, resource_assignments: updatedAssignments }
+                            : t
+                        )
+                      );
+                      
+                      try {
+                        const { error } = await supabase
+                          .from('tasks')
+                          .update({ resource_assignments: JSON.parse(JSON.stringify(updatedAssignments)) })
+                          .eq('id', task.id);
+                        
+                        if (error) throw error;
+                        
+                        toast({
+                          title: "Dates saved",
+                          description: `${category} timeline updated.`,
+                        });
+                      } catch (error) {
+                        console.error('Error saving dates:', error);
+                        toast({
+                          title: "Error",
+                          description: "Failed to save dates.",
+                          variant: "destructive",
+                        });
+                        fetchTasks();
+                      }
+                    }}
+                    onSaveAll={async () => {
+                      await saveAllResourceAssignments(task.id, task.resource_assignments);
+                    }}
+                  />
 
 
                   {task.estimated_hours && (
@@ -1946,52 +1904,20 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                   </Select>
                 </div>
 
-                {/* Resource Category Assignments for Edit - Grid Layout */}
-                <div className="space-y-2">
-                  <Label>Resource Category Assignments</Label>
-                  <p className="text-xs text-muted-foreground mb-2">
-                    Select resource categories, set their status, and assign collaborators
-                  </p>
-                  {/* Responsive Grid: 1 col on mobile, 2 on sm, 3 on md, 4 on lg */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                    {RESOURCE_CATEGORIES.map((category) => {
-                      const currentAssignment = editResourceAssignments[category] || 
-                        selectedTask.resource_assignments?.[category] || 
-                        { selected: false, status: 'pending' as const, confirmed: false, collaborator_name: '', due_date: '', start_date: '', end_date: '', dependencies: [] };
-                      return (
-                        <ResourceCard
-                          key={category}
-                          category={category}
-                          assignment={currentAssignment}
-                          availableTasks={availableTasks.filter(t => t.id !== selectedTask.id)}
-                          onAssignmentChange={(newAssignment) => {
-                            setEditResourceAssignments(prev => ({
-                              ...prev,
-                              [category]: newAssignment
-                            }));
-                          }}
-                        />
-                      );
-                    })}
-                  </div>
-                  {/* Confirm All Entries Button */}
-                  <div className="flex justify-end mt-3">
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => {
-                        toast({
-                          title: "Entries confirmed",
-                          description: "Resource assignments will be saved when you save the task.",
-                        });
-                      }}
-                    >
-                      <Save className="h-3 w-3 mr-1" />
-                      Confirm All Entries
-                    </Button>
-                  </div>
-                </div>
+                {/* Resource Category Assignments for Edit - Expandable Panel */}
+                <ResourceAssignmentsPanel
+                  taskId={selectedTask.id}
+                  assignments={editResourceAssignments}
+                  availableTasks={availableTasks.filter(t => t.id !== selectedTask.id)}
+                  isExpanded={isEditResourcePanelExpanded}
+                  onToggle={() => setIsEditResourcePanelExpanded(!isEditResourcePanelExpanded)}
+                  onAssignmentChange={(category, newAssignment) => {
+                    setEditResourceAssignments(prev => ({
+                      ...prev,
+                      [category]: newAssignment
+                    }));
+                  }}
+                />
 
               </div>
 
