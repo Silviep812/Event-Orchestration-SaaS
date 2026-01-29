@@ -96,10 +96,10 @@ function ResourceCard({
   }, [localDueDate, localStartDate, localEndDate]);
 
   return (
-    <div className="border rounded-md p-3 mb-2 bg-muted/10">
+    <div className="border rounded-lg p-4 bg-card shadow-sm">
       {/* Header row */}
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-sm font-semibold">{category}</span>
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-base font-bold text-foreground">{category}</span>
         <Button
           variant="ghost"
           size="sm"
@@ -115,62 +115,62 @@ function ResourceCard({
       </div>
 
       {/* Collaborator - full width */}
-      <div className="mb-2">
-        <label className="text-xs text-muted-foreground block mb-1">Collaborator</label>
+      <div className="mb-3">
+        <label className="text-sm font-medium text-foreground block mb-1">Collaborator</label>
         <Input
-          placeholder="Assigned to..."
+          placeholder="Enter collaborator name..."
           value={localCollaborator}
           onChange={(e) => setLocalCollaborator(e.target.value)}
           onClick={(e) => e.stopPropagation()}
-          className="h-8 text-sm"
+          className="h-9 text-sm bg-background border-input"
         />
       </div>
 
       {/* Dates row - 3 columns */}
-      <div className="grid grid-cols-3 gap-2 mb-2">
+      <div className="grid grid-cols-3 gap-2 mb-3">
         <div>
-          <label className="text-xs text-muted-foreground block mb-1">Due</label>
+          <label className="text-sm font-medium text-foreground block mb-1">Due</label>
           <Input
             type="date"
             value={localDueDate}
             onChange={(e) => setLocalDueDate(e.target.value)}
             onClick={(e) => e.stopPropagation()}
-            className="h-7 text-xs"
+            className="h-9 text-sm bg-background border-input"
           />
         </div>
         <div>
-          <label className="text-xs text-muted-foreground block mb-1">Start</label>
+          <label className="text-sm font-medium text-foreground block mb-1">Start</label>
           <Input
             type="date"
             value={localStartDate}
             onChange={(e) => setLocalStartDate(e.target.value)}
             onClick={(e) => e.stopPropagation()}
-            className="h-7 text-xs"
+            className="h-9 text-sm bg-background border-input"
           />
         </div>
         <div>
-          <label className="text-xs text-muted-foreground block mb-1">End</label>
+          <label className="text-sm font-medium text-foreground block mb-1">End</label>
           <Input
             type="date"
             value={localEndDate}
             onChange={(e) => setLocalEndDate(e.target.value)}
             onClick={(e) => e.stopPropagation()}
-            className="h-7 text-xs"
+            className="h-9 text-sm bg-background border-input"
           />
         </div>
       </div>
 
       {/* Status & Confirmed row */}
-      <div className="grid grid-cols-2 gap-2 mb-2">
+      <div className="grid grid-cols-2 gap-2 mb-3">
         <div onClick={(e) => e.stopPropagation()}>
-          <label className="text-xs text-muted-foreground block mb-1">Status</label>
+          <label className="text-sm font-medium text-foreground block mb-1">Status</label>
           <Select
             value={assignment.status}
             onValueChange={(value: ResourceStatus) =>
               onUpdate({ ...assignment, status: value })
             }
           >
-            <SelectTrigger className="h-7 text-xs">
+            <SelectTrigger className="h-9 text-sm bg-background">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-popover border shadow-md z-[100]">
@@ -182,14 +182,14 @@ function ResourceCard({
           </Select>
         </div>
         <div onClick={(e) => e.stopPropagation()}>
-          <label className="text-xs text-muted-foreground block mb-1">Confirmed</label>
+          <label className="text-sm font-medium text-foreground block mb-1">Confirmed</label>
           <Select
             value={assignment.confirmed ? "yes" : "no"}
             onValueChange={(value) =>
               onUpdate({ ...assignment, confirmed: value === "yes" })
             }
           >
-            <SelectTrigger className="h-7 text-xs">
+            <SelectTrigger className="h-9 text-sm bg-background">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-popover border shadow-md z-[100]">
@@ -202,7 +202,7 @@ function ResourceCard({
 
       {/* Dependencies */}
       <div onClick={(e) => e.stopPropagation()}>
-        <label className="text-xs text-muted-foreground block mb-1">Dependencies</label>
+        <label className="text-sm font-medium text-foreground block mb-1">Dependencies</label>
         <DependencyMultiSelect
           selectedDependencies={assignment.dependencies || []}
           availableTasks={availableTasks}
@@ -315,7 +315,7 @@ export function ResourceAssignmentsPanel({
                 No resources assigned. Use "Add Resource" to get started.
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="flex flex-col space-y-3">
                 {selectedAssignments.map(([category, assignment]) => (
                   <ResourceCard
                     key={category}
