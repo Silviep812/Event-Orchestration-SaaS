@@ -315,28 +315,29 @@ export function ResourceAssignmentsPanel({
                 No resources assigned. Use "Add Resource" to get started.
               </div>
             ) : (
-              <div className="flex flex-col space-y-3">
+              <div className="flex flex-col gap-3 w-full">
                 {selectedAssignments.map(([category, assignment]) => (
-                  <ResourceCard
-                    key={category}
-                    category={category}
-                    assignment={assignment}
-                    availableTasks={availableTasks}
-                    onUpdate={(newAssignment) =>
-                      onAssignmentChange(category, newAssignment)
-                    }
-                    onRemove={() => handleRemoveResource(category)}
-                    onCollaboratorSave={
-                      onCollaboratorSave
-                        ? (name) => onCollaboratorSave(category, name)
-                        : undefined
-                    }
-                    onDatesSave={
-                      onDatesSave
-                        ? (dates) => onDatesSave(category, dates)
-                        : undefined
-                    }
-                  />
+                  <div key={category} className="w-full block">
+                    <ResourceCard
+                      category={category}
+                      assignment={assignment}
+                      availableTasks={availableTasks}
+                      onUpdate={(newAssignment) =>
+                        onAssignmentChange(category, newAssignment)
+                      }
+                      onRemove={() => handleRemoveResource(category)}
+                      onCollaboratorSave={
+                        onCollaboratorSave
+                          ? (name) => onCollaboratorSave(category, name)
+                          : undefined
+                      }
+                      onDatesSave={
+                        onDatesSave
+                          ? (dates) => onDatesSave(category, dates)
+                          : undefined
+                      }
+                    />
+                  </div>
                 ))}
               </div>
             )}
