@@ -1,175 +1,262 @@
 
 
-# Plan: Add Dependencies Field to ResourceCard + Improve Readability
+# Plan: Redesign Resource Assignments UI for Readability
 
-## Understanding the Current Structure
+## Problem Analysis
 
-The current implementation is correct in structure:
-- Each of the 10 resource categories (Bookings, Vendors, Venues, etc.) is displayed as a **separate card**
-- Cards are arranged in a responsive grid (1-4 columns based on screen size)
-- Each card contains its own fields for that specific resource assignment
+The current Project Management page displays **all 10 resource category cards** in a responsive grid (1-4 columns). Each card contains **all 8 fields**, resulting in:
+- Visual clutter - 10 cards x 8 fields = 80+ UI elements visible at once
+- Poor scannability - hard to compare resources across rows
+- No hierarchy - all fields shown with equal prominence regardless of selection state
 
-**What's Missing:**
-1. **Dependencies field** - Each resource card should have a dropdown to select task dependencies
-2. **Readability** - Text sizes are too small to read comfortably
+## Complete Field List to Preserve
+
+Each resource assignment MUST include all these fields (per the current `ResourceAssignment` interface):
+
+| # | Field | Type | Current Implementation |
+|---|-------|------|------------------------|
+| 1 | **Selected** | Checkbox | Select/deselect this resource category |
+| 2 | **Status** | Dropdown | Pending / Confirmed / Completed / Cancelled |
+| 3 | **Confirmed** | Dropdown | Yes / No |
+| 4 | **Collaborator** | Text Input | Task Assigned To - collaborator name |
+| 5 | **Due Date** | Date Input | Task due date |
+| 6 | **Start Date** | Date Input | Task start date |
+| 7 | **End Date** | Date Input | Task end date |
+| 8 | **Dependencies** | Multi-Select | Array of task IDs (upgrade to multi-select) |
 
 ---
 
-## Technical Changes
+## Solution: Expandable Table Layout
 
-### File 1: `src/components/ResourceColumn.tsx`
+### Design Principles
+1. **Expandable** - Resource section collapsed by default, toggle to expand
+2. **Selected Only** - Show only selected resources, with "Add Resource" control
+3. **Table Format** - Horizontal rows for easy scanning across resources
+4. **All Fields Visible** - Each row shows ALL 8 fields without hiding any
+5. **Multi-Dependencies** - Upgrade from single to multi-select
 
-**Update ResourceAssignment interface (lines 10-18):**
+---
 
-Add `dependencies` field to track task dependencies per resource:
+## Visual Design
+
+### Task Card (Collapsed - Default)
+```text
++-------------------------------------------------------+
+| [Booking]  Complete Venue Checklist    [Priority: High]|
+|-------------------------------------------------------|
+| [In Progress v]   Assigned: John Doe   Due: 04/28/26  |
+|-------------------------------------------------------|
+| [View Request]  [3 Resources]  [v Expand Resources]   |
++-------------------------------------------------------+
+```
+
+### Task Card (Expanded)
+```text
++---------------------------------------------------------------------------------+
+| [Booking]  Complete Venue Checklist                        [Priority: High]    |
+|---------------------------------------------------------------------------------|
+| [In Progress v]   Assigned: John Doe   Due: 04/28/26                           |
+|---------------------------------------------------------------------------------|
+| RESOURCE ASSIGNMENTS (3 selected)                        [^ Collapse] [+ Add]  |
+|---------------------------------------------------------------------------------|
+| Resource   | Collaborator  | Due Date   | Start    | End      | Status    |Conf|Deps|
+|---------------------------------------------------------------------------------|
+| ☑ Bookings | [Jane Smith ] | [04/28/26] | [03/15] | [03/30] | [Pending v]|[Y]|[2] |
+|---------------------------------------------------------------------------------|
+| ☑ Venues   | [Bob Wilson ] | [04/03/26] | [02/13] | [02/13] | [Pending v]|[N]|[0] |
+|---------------------------------------------------------------------------------|
+| ☑ Vendors  | [___________ ] | [__/__/__] | [__/__] | [__/__] | [Pending v]|[N]|[0] |
+|---------------------------------------------------------------------------------|
+| [+ Add Resource Category v]                                                     |
++---------------------------------------------------------------------------------+
+```
+
+### Dependencies Popup (Multi-Select)
+When clicking the dependencies cell:
+```text
++---------------------------+
+| Select Dependencies       |
+|---------------------------|
+| ☑ Task A: Setup venue     |
+| ☐ Task B: Order catering  |
+| ☑ Task C: Send invites    |
+| ☐ Task D: Confirm guests  |
++---------------------------+
+```
+
+---
+
+## Technical Implementation
+
+### File 1: CREATE `src/components/ResourceAssignmentsPanel.tsx`
+
+New component that replaces the grid of ResourceCards:
 
 ```typescript
-export interface ResourceAssignment {
-  selected: boolean;
-  status: ResourceStatus;
-  confirmed: boolean;
-  collaborator_name?: string;
-  due_date?: string;
-  start_date?: string;
-  end_date?: string;
-  dependencies?: string[];  // NEW: Array of task IDs
+interface ResourceAssignmentsPanelProps {
+  taskId: string;
+  assignments: Record<string, ResourceAssignment>;
+  availableTasks: Array<{ id: string; title: string }>;
+  isExpanded: boolean;
+  onToggle: () => void;
+  onAssignmentChange: (category: string, assignment: ResourceAssignment) => void;
+  onCollaboratorSave: (category: string, name: string) => void;
+  onDatesSave: (category: string, dates: { due_date?: string; start_date?: string; end_date?: string }) => void;
 }
 ```
 
-**Update getEmptyResourceAssignments (lines 280-296):**
+Features:
+- Collapsible header with resource count badge
+- Table layout showing only selected resources
+- Each row contains ALL 8 fields inline
+- "Add Resource" dropdown to select unselected categories
+- Remove button to deselect a resource
 
-Include empty dependencies array in default assignments.
+### File 2: CREATE `src/components/ResourceAssignmentTableRow.tsx`
 
----
-
-### File 2: `src/components/ResourceCard.tsx`
-
-**1. Add Props for Dependencies:**
+Individual table row component:
 
 ```typescript
-interface ResourceCardProps {
+interface ResourceAssignmentTableRowProps {
   category: string;
   assignment: ResourceAssignment;
-  onAssignmentChange: (assignment: ResourceAssignment) => void;
-  onCollaboratorSave?: (collaboratorName: string) => void;
-  onDatesSave?: (dates: { due_date?: string; start_date?: string; end_date?: string }) => void;
-  availableTasks?: Array<{ id: string; title: string }>;  // NEW
-  onDependenciesChange?: (dependencies: string[]) => void;  // NEW
+  availableTasks: Array<{ id: string; title: string }>;
+  onUpdate: (assignment: ResourceAssignment) => void;
+  onRemove: () => void;
+  onCollaboratorSave: (name: string) => void;
+  onDatesSave: (dates: {...}) => void;
 }
 ```
 
-**2. Add Dependencies UI Section (after Timeline):**
+Row contains (all visible, no hidden fields):
+- Resource name (with remove button)
+- Collaborator text input
+- Due date input
+- Start date input
+- End date input
+- Status dropdown
+- Confirmed dropdown
+- Dependencies multi-select button (shows count, opens popover)
 
-```tsx
-{/* Dependencies Section */}
-<div className="space-y-1 mt-3">
-  <label className="text-sm text-muted-foreground">Dependencies</label>
-  <Select
-    value={assignment.dependencies?.[0] || 'none'}
-    onValueChange={(value) => {
-      const newDeps = value === 'none' ? [] : [value];
-      onAssignmentChange({
-        ...assignment,
-        dependencies: newDeps
-      });
-    }}
-    disabled={!assignment.selected}
-  >
-    <SelectTrigger className="h-9 w-full text-sm">
-      <SelectValue placeholder="Select dependency" />
-    </SelectTrigger>
-    <SelectContent className="bg-card border shadow-md z-[100]">
-      <SelectItem value="none">None</SelectItem>
-      {availableTasks?.map(task => (
-        <SelectItem key={task.id} value={task.id}>
-          {task.title}
-        </SelectItem>
-      ))}
-    </SelectContent>
-  </Select>
-</div>
+### File 3: CREATE `src/components/DependencyMultiSelect.tsx`
+
+Multi-select popover for dependencies:
+
+```typescript
+interface DependencyMultiSelectProps {
+  selectedDependencies: string[];
+  availableTasks: Array<{ id: string; title: string }>;
+  onChange: (dependencies: string[]) => void;
+  disabled?: boolean;
+}
 ```
 
-**3. Readability Improvements (already partially applied):**
+Features:
+- Button showing selected count "[3 deps]"
+- Popover with checkbox list of available tasks
+- Select/deselect multiple dependencies
+- Updates parent on change
 
-The previous edit already increased sizes. We'll ensure consistency:
-- Card padding: `p-4` 
-- Category label: `text-base font-semibold`
-- Field labels: `text-sm`
-- Select triggers: `h-9 text-sm`
-- Inputs: `h-9 text-sm`
-- Date inputs: `h-8 text-sm`
+### File 4: MODIFY `src/components/TaskManager.tsx`
 
----
+Replace the ResourceCard grid sections with ResourceAssignmentsPanel:
 
-### File 3: `src/components/TaskManager.tsx`
-
-**Pass availableTasks to ResourceCard (lines 1697-1815):**
-
+**Changes at lines ~1380-1425 (Create Task Dialog):**
 ```tsx
-<ResourceCard
-  key={category}
-  category={category}
-  assignment={currentAssignment}
-  availableTasks={availableTasks.filter(t => t.id !== task.id)}  // NEW
-  onAssignmentChange={...}
-  onCollaboratorSave={...}
-  onDatesSave={...}
+// Replace grid of 10 ResourceCards with:
+<ResourceAssignmentsPanel
+  taskId="new-task"
+  assignments={resourceAssignments}
+  availableTasks={availableTasks}
+  isExpanded={isResourcePanelExpanded}
+  onToggle={() => setIsResourcePanelExpanded(!isResourcePanelExpanded)}
+  onAssignmentChange={(category, newAssignment) => {
+    setResourceAssignments(prev => ({ ...prev, [category]: newAssignment }));
+  }}
+  onCollaboratorSave={(category, name) => {...}}
+  onDatesSave={(category, dates) => {...}}
 />
 ```
 
----
-
-## Updated ResourceCard Layout
-
-Each of the 10 resource cards will display with this structure:
-
-```text
-┌─────────────────────────────────────────┐
-│ ☑ Bookings                              │  ← 16px category name
-│─────────────────────────────────────────│
-│                                         │
-│ Status           Confirmed              │  ← 14px labels
-│ [Pending ▼]      [No ▼]                 │  ← 36px dropdowns
-│                                         │
-│ Task Assigned To                        │  ← 14px bold label
-│ [_______________________________]       │  ← 36px input
-│                                         │
-│ Timeline                                │  ← 14px label
-│ Due         Start        End            │  ← 12px sub-labels
-│ [________]  [________]  [________]      │  ← 32px date inputs
-│                                         │
-│ Dependencies                            │  ← 14px label (NEW)
-│ [Select dependency ▼]                   │  ← 36px dropdown (NEW)
-└─────────────────────────────────────────┘
+**Changes at lines ~1690-1830 (Task List - Expanded View):**
+```tsx
+// Replace grid of 10 ResourceCards with:
+<ResourceAssignmentsPanel
+  taskId={task.id}
+  assignments={task.resource_assignments || getEmptyResourceAssignments()}
+  availableTasks={availableTasks.filter(t => t.id !== task.id)}
+  isExpanded={expandedResourceTaskId === task.id}
+  onToggle={() => setExpandedResourceTaskId(
+    expandedResourceTaskId === task.id ? null : task.id
+  )}
+  onAssignmentChange={async (category, newAssignment) => {
+    // Same logic as current onAssignmentChange
+  }}
+  onCollaboratorSave={async (category, name) => {
+    // Same logic as current onCollaboratorSave
+  }}
+  onDatesSave={async (category, dates) => {
+    // Same logic as current onDatesSave
+  }}
+/>
 ```
 
+**Add state for expand/collapse:**
+```tsx
+const [expandedResourceTaskId, setExpandedResourceTaskId] = useState<string | null>(null);
+const [isResourcePanelExpanded, setIsResourcePanelExpanded] = useState(false);
+```
+
+### File 5: MODIFY `src/components/ResourceCard.tsx`
+
+Keep for backward compatibility but update dependencies to support multi-select (used in edit dialogs if needed).
+
 ---
 
-## Summary of Files to Modify
+## Table Column Layout
 
-| File | Changes |
-|------|---------|
-| `src/components/ResourceColumn.tsx` | Add `dependencies?: string[]` to ResourceAssignment interface; Update helper functions |
-| `src/components/ResourceCard.tsx` | Add availableTasks prop; Add Dependencies dropdown section; Ensure readability sizing |
-| `src/components/TaskManager.tsx` | Pass availableTasks prop to each ResourceCard |
+| Column | Width | Component |
+|--------|-------|-----------|
+| Resource | 120px | Checkbox + Label + Remove button |
+| Collaborator | 150px | Text Input |
+| Due Date | 110px | Date Input |
+| Start | 100px | Date Input |
+| End | 100px | Date Input |
+| Status | 110px | Select dropdown |
+| Confirmed | 70px | Select (Y/N) |
+| Dependencies | 80px | Button with count + popover |
+
+Total: ~840px (scrollable on smaller screens)
 
 ---
 
-## Complete Field List Per Resource Card
+## Files Summary
 
-After this update, each of the 10 resource assignment cards will have:
+| File | Action | Description |
+|------|--------|-------------|
+| `src/components/ResourceAssignmentsPanel.tsx` | CREATE | Expandable panel with table layout |
+| `src/components/ResourceAssignmentTableRow.tsx` | CREATE | Table row with ALL 8 fields visible |
+| `src/components/DependencyMultiSelect.tsx` | CREATE | Multi-select popover for dependencies |
+| `src/components/TaskManager.tsx` | MODIFY | Replace ResourceCard grids with panel |
+| `src/components/ResourceCard.tsx` | KEEP/MODIFY | Update for multi-dependency support |
+| `src/components/ResourceColumn.tsx` | KEEP | Interface already has dependencies[] |
 
-| Field | Type | Description |
-|-------|------|-------------|
-| Resource Selection | Checkbox | Select this resource category |
-| Status | Dropdown | Pending/Confirmed/Completed/Cancelled |
-| Confirmed | Dropdown | Yes/No confirmation |
-| Task Assigned To | Text Input | Collaborator name |
-| Due Date | Date Input | Task due date |
-| Start Date | Date Input | Task start date |
-| End Date | Date Input | Task end date |
-| Dependencies | Dropdown | Select task dependency (NEW) |
+---
 
-All displayed with readable 14-16px text and comfortable 32-36px input heights.
+## Complete Field Mapping
+
+Each table row displays ALL fields from ResourceAssignment:
+
+| ResourceAssignment Field | Table Column | Input Type |
+|--------------------------|--------------|------------|
+| `selected` | Row checkbox | Checkbox (implicit - row exists = selected) |
+| `collaborator_name` | Collaborator | Text Input |
+| `due_date` | Due Date | Date Input |
+| `start_date` | Start | Date Input |
+| `end_date` | End | Date Input |
+| `status` | Status | Select (4 options) |
+| `confirmed` | Conf | Select (Y/N) |
+| `dependencies` | Deps | Multi-select popover |
+
+All 8 fields are visible and editable in each row. No fields are hidden or collapsed.
 
