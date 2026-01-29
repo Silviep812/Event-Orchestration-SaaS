@@ -1552,14 +1552,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
               >
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <CardTitle className="text-base">{task.title}</CardTitle>
-                      {task.category === 'Approval' && (
-                        <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-200 text-xs">
-                          Approval
-                        </Badge>
-                      )}
-                    </div>
+                    <CardTitle className="text-base">{task.title}</CardTitle>
                     <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                       <Select
                         value={task.priority}

@@ -2560,7 +2560,6 @@ export type Database = {
           assigned_venue_role: string | null
           assined_vendor_role: string | null
           category: string | null
-          change_request_id: string | null
           created_at: string
           created_by: string
           description: string | null
@@ -2588,7 +2587,6 @@ export type Database = {
           assigned_venue_role?: string | null
           assined_vendor_role?: string | null
           category?: string | null
-          change_request_id?: string | null
           created_at?: string
           created_by: string
           description?: string | null
@@ -2616,7 +2614,6 @@ export type Database = {
           assigned_venue_role?: string | null
           assined_vendor_role?: string | null
           category?: string | null
-          change_request_id?: string | null
           created_at?: string
           created_by?: string
           description?: string | null
@@ -2634,15 +2631,7 @@ export type Database = {
           title?: string
           updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "tasks_change_request_id_fkey"
-            columns: ["change_request_id"]
-            isOneToOne: false
-            referencedRelation: "change_requests"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       tasks_assignments: {
         Row: {
