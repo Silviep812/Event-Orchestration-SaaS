@@ -15,6 +15,7 @@ export interface ResourceAssignment {
   due_date?: string;
   start_date?: string;
   end_date?: string;
+  dependencies?: string[];
 }
 
 export const RESOURCE_CATEGORIES = [
@@ -288,7 +289,8 @@ export function getEmptyResourceAssignments(): Record<string, ResourceAssignment
       collaborator_name: '',
       due_date: '',
       start_date: '',
-      end_date: ''
+      end_date: '',
+      dependencies: []
     };
   });
   

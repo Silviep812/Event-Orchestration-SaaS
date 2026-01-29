@@ -1387,7 +1387,8 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                       <ResourceCard
                         key={category}
                         category={category}
-                        assignment={resourceAssignments[category] || { selected: false, status: 'pending', confirmed: false, collaborator_name: '', due_date: '', start_date: '', end_date: '' }}
+                        assignment={resourceAssignments[category] || { selected: false, status: 'pending', confirmed: false, collaborator_name: '', due_date: '', start_date: '', end_date: '', dependencies: [] }}
+                        availableTasks={availableTasks}
                         onAssignmentChange={(newAssignment) => {
                           setResourceAssignments(prev => ({
                             ...prev,
@@ -1692,12 +1693,13 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                       {RESOURCE_CATEGORIES.map((category) => {
                         const currentAssignment = task.resource_assignments?.[category] || 
-                          { selected: false, status: 'pending' as const, confirmed: false, collaborator_name: '', due_date: '', start_date: '', end_date: '' };
+                          { selected: false, status: 'pending' as const, confirmed: false, collaborator_name: '', due_date: '', start_date: '', end_date: '', dependencies: [] };
                         return (
                           <ResourceCard
                             key={category}
                             category={category}
                             assignment={currentAssignment}
+                            availableTasks={availableTasks.filter(t => t.id !== task.id)}
                             onAssignmentChange={async (newAssignment) => {
                               const updatedAssignments = {
                                 ...(task.resource_assignments || getEmptyResourceAssignments()),
@@ -1955,12 +1957,13 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     {RESOURCE_CATEGORIES.map((category) => {
                       const currentAssignment = editResourceAssignments[category] || 
                         selectedTask.resource_assignments?.[category] || 
-                        { selected: false, status: 'pending' as const, confirmed: false, collaborator_name: '', due_date: '', start_date: '', end_date: '' };
+                        { selected: false, status: 'pending' as const, confirmed: false, collaborator_name: '', due_date: '', start_date: '', end_date: '', dependencies: [] };
                       return (
                         <ResourceCard
                           key={category}
                           category={category}
                           assignment={currentAssignment}
+                          availableTasks={availableTasks.filter(t => t.id !== selectedTask.id)}
                           onAssignmentChange={(newAssignment) => {
                             setEditResourceAssignments(prev => ({
                               ...prev,
