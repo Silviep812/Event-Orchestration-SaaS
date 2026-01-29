@@ -1578,7 +1578,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
             return (
               <Card
                 key={task.id}
-                className="cursor-pointer hover:shadow-md transition-shadow overflow-hidden"
+                className="cursor-pointer hover:shadow-md transition-shadow"
                 onClick={() => {
                   setSelectedTask(task);
                   setSelectedDependencies(task.dependencies || []);
