@@ -1,202 +1,204 @@
 
 
-# Plan: Redesign Resource Category Assignments to 3-4 Column Grid Layout
+# Plan: Improve ResourceCard Readability (Text Size Fix)
 
-## Problem Identified
+## Problem
 
-The current horizontal scroll layout for Resource Category Assignments:
-- Uses 10 inline columns (each 200px min-width = ~2000px total)
-- Requires horizontal scrolling to see all categories
-- Information gets "lost" as users must scroll to find entries
-- Not user-friendly for viewing all assignment details at once
+The Resource Category Assignments section has the correct layout position (below "View Request", before Archive), but the text is too small to read comfortably.
 
-## Solution
+## Current Text Sizes (Too Small)
 
-Replace the horizontal scroll layout with a **responsive 3-4 column grid** that displays all resource assignment details visibly without horizontal scrolling.
+| Element | Current Size | Issue |
+|---------|-------------|-------|
+| Category label | `text-sm` (14px) | Okay but could be bolder |
+| Status/Confirmed labels | `text-xs` inherited (12px) | Too small |
+| Select triggers | `h-7 text-xs` (28px height, 12px text) | Too cramped |
+| "Task Assigned To" label | `text-xs` (12px) | Hard to read |
+| Collaborator input | `h-7 text-xs` (28px, 12px) | Too small |
+| Timeline label | `text-xs` (12px) | Okay |
+| Due/Start/End labels | `text-[10px]` (10px) | Very hard to read |
+| Date inputs | `h-6 text-xs px-1` (24px, 12px) | Too cramped |
+| Card padding | `p-3` (12px) | Could use more space |
+
+## Proposed Sizes (Readable)
+
+| Element | New Size | Improvement |
+|---------|----------|-------------|
+| Category label | `text-base font-semibold` (16px) | +2px, stands out more |
+| Status/Confirmed labels | `text-sm text-muted-foreground` (14px) | +2px |
+| Select triggers | `h-9 w-full text-sm` (36px, 14px) | +8px height, +2px text |
+| "Task Assigned To" label | `text-sm font-semibold` (14px) | +2px |
+| Collaborator input | `h-9 text-sm` (36px, 14px) | +8px height, +2px text |
+| Timeline label | `text-sm text-muted-foreground` (14px) | +2px |
+| Due/Start/End labels | `text-xs text-muted-foreground` (12px) | +2px from 10px |
+| Date inputs | `h-8 text-sm px-2` (32px, 14px) | +8px height, +2px text |
+| Card padding | `p-4` (16px) | +4px breathing room |
 
 ---
 
-## New Layout Design
+## Technical Changes
+
+**File: `src/components/ResourceCard.tsx`**
+
+### Line 80 - Card container padding
+```tsx
+// Before
+<div className="border rounded-lg p-3 bg-card">
+
+// After
+<div className="border rounded-lg p-4 bg-card">
+```
+
+### Line 107 - Category label size
+```tsx
+// Before
+className="text-sm font-semibold leading-none cursor-pointer truncate"
+
+// After
+className="text-base font-semibold leading-none cursor-pointer truncate"
+```
+
+### Line 115 - Status/Confirmed grid container
+```tsx
+// Before
+<div className="grid grid-cols-2 gap-2 text-xs mb-2">
+
+// After
+<div className="grid grid-cols-2 gap-3 mb-3">
+```
+
+### Lines 118, 143 - Field labels
+```tsx
+// Before
+<label className="text-muted-foreground">Status</label>
+<label className="text-muted-foreground">Confirmed</label>
+
+// After
+<label className="text-sm text-muted-foreground">Status</label>
+<label className="text-sm text-muted-foreground">Confirmed</label>
+```
+
+### Lines 129, 154 - Select triggers
+```tsx
+// Before
+<SelectTrigger className="h-7 w-full text-xs">
+
+// After
+<SelectTrigger className="h-9 w-full text-sm">
+```
+
+### Line 167 - "Task Assigned To" label
+```tsx
+// Before
+<label className="text-xs font-semibold text-foreground">Task Assigned To</label>
+
+// After
+<label className="text-sm font-semibold text-foreground">Task Assigned To</label>
+```
+
+### Line 173 - Collaborator input
+```tsx
+// Before
+className="h-7 text-xs"
+
+// After
+className="h-9 text-sm"
+```
+
+### Line 179 - Timeline label
+```tsx
+// Before
+<label className="text-xs text-muted-foreground">Timeline</label>
+
+// After
+<label className="text-sm text-muted-foreground">Timeline</label>
+```
+
+### Line 180 - Timeline grid
+```tsx
+// Before
+<div className="grid grid-cols-3 gap-1 text-xs">
+
+// After
+<div className="grid grid-cols-3 gap-2">
+```
+
+### Lines 182, 192, 202 - Date field labels
+```tsx
+// Before
+<span className="text-muted-foreground text-[10px]">Due</span>
+<span className="text-muted-foreground text-[10px]">Start</span>
+<span className="text-muted-foreground text-[10px]">End</span>
+
+// After
+<span className="text-xs text-muted-foreground">Due</span>
+<span className="text-xs text-muted-foreground">Start</span>
+<span className="text-xs text-muted-foreground">End</span>
+```
+
+### Lines 188, 198, 208 - Date inputs
+```tsx
+// Before
+className="h-6 text-xs px-1"
+
+// After
+className="h-8 text-sm px-2"
+```
+
+---
+
+## Visual Comparison
 
 ```text
-CURRENT: Horizontal Scroll (entries get lost)
-┌─────────────────────────────────────────────────────────────────────►
-│ [Bookings] │ [Vendors] │ [Venues] │ [Hospitality] │ ... (scroll to see more)
-└─────────────────────────────────────────────────────────────────────►
+BEFORE (cramped, hard to read):
+┌─────────────────────────┐
+│☑ Bookings               │  ← 14px, okay
+│ Status    Confirmed     │  ← 12px, small
+│ [Pending▼] [No ▼]       │  ← 28px height, cramped
+│ Task Assigned To        │  ← 12px, hard to read
+│ [________________]      │  ← 28px height
+│ Timeline                │
+│ Due  Start  End         │  ← 10px, VERY small
+│ [__] [___] [___]        │  ← 24px height, cramped
+└─────────────────────────┘
 
-PROPOSED: 3-4 Column Grid (all visible)
-┌────────────────────────────────────────────────────────────────┐
-│  [Bookings]        [Vendors]         [Venues]        [Hospitality]  │
-│  ☑ Status: Pending ☐ Status: N/A     ☑ Status: OK   ☑ Status: Pending│
-│  Assignee: John    Assignee: -       Assignee: Jane  Assignee: Mike │
-│  Due: Jan 30       Due: -            Due: Feb 1      Due: Feb 5     │
-├────────────────────────────────────────────────────────────────┤
-│  [Vendor Service]  [Service Vendor]  [Transport]    [Entertainment] │
-│  ☐ Status: N/A     ☑ Status: Conf    ☐ Status: N/A  ☐ Status: N/A   │
-│  Assignee: -       Assignee: Pat     Assignee: -    Assignee: -     │
-│  Due: -            Due: Jan 31       Due: -         Due: -          │
-├────────────────────────────────────────────────────────────────┤
-│  [Suppliers]       [Marketing]                                      │
-│  ☐ Status: N/A     ☐ Status: N/A                                    │
-│  Assignee: -       Assignee: -                                      │
-│  Due: -            Due: -                                           │
-└────────────────────────────────────────────────────────────────┘
-                                          [Save All Resources]
+AFTER (readable):
+┌───────────────────────────┐
+│ ☑ Bookings                │  ← 16px, clear
+│                           │
+│ Status      Confirmed     │  ← 14px, readable
+│ [Pending ▼]  [No ▼]       │  ← 36px height, comfortable
+│                           │
+│ Task Assigned To          │  ← 14px, readable
+│ [____________________]    │  ← 36px height, comfortable
+│                           │
+│ Timeline                  │  ← 14px
+│ Due      Start     End    │  ← 12px, readable
+│ [______] [______] [______]│  ← 32px height, usable
+└───────────────────────────┘
 ```
 
 ---
 
-## Technical Implementation
-
-### Phase 1: Create Compact ResourceCard Component
-
-Create a new `ResourceCard` component (or modify `ResourceColumn`) that displays in a more compact, card-based format suitable for a grid:
-
-**New Component: `src/components/ResourceCard.tsx`**
-
-```tsx
-// Compact card for grid display - shows all details in condensed format
-interface ResourceCardProps {
-  category: string;
-  assignment: ResourceAssignment;
-  onAssignmentChange: (assignment: ResourceAssignment) => void;
-  onCollaboratorSave?: (collaboratorName: string) => void;
-  onDatesSave?: (dates: { due_date?: string; start_date?: string; end_date?: string }) => void;
-}
-
-export function ResourceCard({ category, assignment, ... }: ResourceCardProps) {
-  return (
-    <div className="border rounded-lg p-3 bg-card">
-      {/* Header with checkbox and category name */}
-      <div className="flex items-center gap-2 border-b pb-2 mb-2">
-        <Checkbox checked={assignment.selected} ... />
-        <span className="text-sm font-semibold">{category}</span>
-      </div>
-      
-      {/* Compact details grid - 2 columns within each card */}
-      <div className="grid grid-cols-2 gap-2 text-xs">
-        {/* Status */}
-        <div>
-          <label className="text-muted-foreground">Status</label>
-          <Select value={assignment.status} ... />
-        </div>
-        
-        {/* Confirmation */}
-        <div>
-          <label className="text-muted-foreground">Confirmed</label>
-          <Select value={assignment.confirmed ? 'yes' : 'no'} ... />
-        </div>
-      </div>
-      
-      {/* Task Assigned To - full width */}
-      <div className="mt-2">
-        <label className="text-xs font-semibold">Task Assigned To</label>
-        <Input placeholder="Collaborator name" value={...} className="h-7 text-xs" />
-      </div>
-      
-      {/* Timeline - compact display */}
-      <div className="mt-2 grid grid-cols-3 gap-1 text-xs">
-        <div>
-          <label className="text-muted-foreground">Due</label>
-          <Input type="date" value={...} className="h-6 text-xs" />
-        </div>
-        <div>
-          <label className="text-muted-foreground">Start</label>
-          <Input type="date" value={...} className="h-6 text-xs" />
-        </div>
-        <div>
-          <label className="text-muted-foreground">End</label>
-          <Input type="date" value={...} className="h-6 text-xs" />
-        </div>
-      </div>
-    </div>
-  );
-}
-```
-
-### Phase 2: Update TaskManager Layout
-
-**File: `src/components/TaskManager.tsx`**
-
-Replace the horizontal scroll (lines 1684-1831) with a responsive grid:
-
-```tsx
-{/* Resource Category Assignments - Grid Layout */}
-<div className="border-t pt-3 mt-3 space-y-2" onClick={(e) => e.stopPropagation()}>
-  <p className="text-xs font-semibold text-foreground">
-    Resource Category Assignments
-  </p>
-  
-  {/* Responsive Grid: 1 col on mobile, 2 on sm, 3 on md, 4 on lg */}
-  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-    {RESOURCE_CATEGORIES.map((category) => {
-      const currentAssignment = task.resource_assignments?.[category] || {...};
-      return (
-        <ResourceCard
-          key={category}
-          category={category}
-          assignment={currentAssignment}
-          onAssignmentChange={...}
-          onCollaboratorSave={...}
-          onDatesSave={...}
-        />
-      );
-    })}
-  </div>
-  
-  {/* Save All Resources Button */}
-  <div className="mt-3 flex justify-end">
-    <Button size="sm" onClick={() => saveAllResourceAssignments(...)}>
-      <Save className="h-3 w-3 mr-1" />
-      Save All Resources
-    </Button>
-  </div>
-</div>
-```
-
-### Phase 3: Apply Same Layout to Create/Edit Dialogs
-
-Update the Create Task and Edit Task dialogs to use the same grid layout for consistency.
-
----
-
-## Responsive Breakpoints
-
-| Screen Size | Columns | Visual |
-|-------------|---------|--------|
-| Mobile (<640px) | 1 column | Stack vertically |
-| Small (640px+) | 2 columns | 5 rows of 2 |
-| Medium (768px+) | 3 columns | ~3-4 rows of 3 |
-| Large (1024px+) | 4 columns | ~3 rows of 4 |
-
----
-
-## Files to Create/Modify
+## File to Modify
 
 | File | Changes |
 |------|---------|
-| `src/components/ResourceCard.tsx` | **NEW** - Compact card component for grid display |
-| `src/components/TaskManager.tsx` | Replace horizontal scroll with responsive grid layout in task cards |
-| `src/components/TaskManager.tsx` | Update Create Task dialog to use grid layout |
-| `src/components/TaskManager.tsx` | Update Edit Task dialog to use grid layout |
-
----
-
-## Benefits
-
-1. **All Entries Visible** - No horizontal scrolling needed, all 10 categories visible in 3-4 columns
-2. **Complete Details Shown** - Each card displays: checkbox, status, confirmation, assignee, and all 3 dates
-3. **Responsive Design** - Adapts from 1 to 4 columns based on screen size
-4. **Better Scannability** - Grid layout makes it easy to compare assignments across categories
-5. **Consistent Experience** - Same layout in task cards and dialogs
+| `src/components/ResourceCard.tsx` | Increase all text sizes from text-xs/text-[10px] to text-sm/text-xs, increase input heights from h-6/h-7 to h-8/h-9, increase padding from p-3 to p-4, increase gaps |
 
 ---
 
 ## Summary
 
-- Create new `ResourceCard` component optimized for grid display
-- Replace horizontal scroll with `grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4`
-- All 10 resource categories visible without scrolling
-- Each card shows complete assignment details (status, confirmation, assignee, timeline)
-- "Save All Resources" button preserved at the bottom
+Single file change to `ResourceCard.tsx`:
+- Card padding: `p-3` → `p-4`
+- Category label: `text-sm` → `text-base`
+- Field labels: inherit `text-xs` → explicit `text-sm`
+- Select triggers: `h-7 text-xs` → `h-9 text-sm`
+- Inputs: `h-7 text-xs` → `h-9 text-sm`
+- Date labels: `text-[10px]` → `text-xs`
+- Date inputs: `h-6 text-xs px-1` → `h-8 text-sm px-2`
+- Gaps: `gap-1`/`gap-2` → `gap-2`/`gap-3`
+
+All functionality preserved, only visual sizing improved for readability.
 
