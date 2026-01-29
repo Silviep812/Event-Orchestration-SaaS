@@ -1685,13 +1685,19 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                       );
                       
                       try {
-                        const { error } = await supabase
+                        console.log('Saving resource assignments:', updatedAssignments);
+                        const { error, data } = await supabase
                           .from('tasks')
                           .update({ resource_assignments: JSON.parse(JSON.stringify(updatedAssignments)) })
-                          .eq('id', task.id);
+                          .eq('id', task.id)
+                          .select();
                         
-                        if (error) throw error;
+                        if (error) {
+                          console.error('Supabase error:', error);
+                          throw error;
+                        }
                         
+                        console.log('Save successful:', data);
                         toast({
                           title: "Resource updated",
                           description: `${category} assignment updated successfully.`,
@@ -1700,7 +1706,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                         console.error('Error updating resource assignment:', error);
                         toast({
                           title: "Error",
-                          description: "Failed to update resource assignment.",
+                          description: "Failed to update resource. Please try again.",
                           variant: "destructive",
                         });
                         fetchTasks();

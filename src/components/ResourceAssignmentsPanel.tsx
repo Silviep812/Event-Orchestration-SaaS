@@ -96,7 +96,7 @@ function ResourceCard({
   }, [localDueDate, localStartDate, localEndDate]);
 
   return (
-    <div className="border rounded-lg p-4 bg-card shadow-sm">
+    <div className="border rounded-lg p-4 bg-card shadow-sm relative">
       {/* Header row */}
       <div className="flex items-center justify-between mb-3">
         <span className="text-base font-bold text-foreground">{category}</span>
@@ -308,16 +308,16 @@ export function ResourceAssignmentsPanel({
         </div>
 
         {/* Expanded Content */}
-        <CollapsibleContent>
-          <div className="pb-3">
+        <CollapsibleContent className="overflow-visible">
+          <div className="pb-3 overflow-visible">
             {selectedCount === 0 ? (
               <div className="text-center py-4 text-xs text-muted-foreground border rounded-md bg-muted/20">
                 No resources assigned. Use "Add Resource" to get started.
               </div>
             ) : (
-              <div className="flex flex-col gap-3 w-full">
+              <div className="flex flex-col gap-3 w-full isolate" style={{ contain: 'layout' }}>
                 {selectedAssignments.map(([category, assignment]) => (
-                  <div key={category} className="w-full block">
+                  <div key={category} className="w-full block" style={{ display: 'block' }}>
                     <ResourceCard
                       category={category}
                       assignment={assignment}
