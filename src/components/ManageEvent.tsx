@@ -623,13 +623,7 @@ const ManageEvent = () => {
   };
 
   const submitChangeRequest = async () => {
-    console.log('[Change Request] Starting submission...');
-    console.log('[Change Request] Selected Event:', selectedEvent?.id, selectedEvent?.title);
-    console.log('[Change Request] User ID:', user?.id);
-    console.log('[Change Request] Pending Changes:', pendingChanges);
-    
     if (!selectedEvent?.id || !user?.id) {
-      console.error('[Change Request] Missing event or user');
       toast({
         title: "Error",
         description: "You must be logged in and have an event selected",
@@ -794,12 +788,6 @@ const ManageEvent = () => {
       if (!createdTask) {
         throw new Error('Failed to create change request');
       }
-
-      console.log('[Change Request] Successfully created:', createdTask);
-      console.log('[Change Request] ID:', createdTask.id);
-      console.log('[Change Request] Status:', createdTask.status);
-      console.log('[Change Request] Event ID:', createdTask.event_id);
-      console.log('[Change Request] Trigger should now create an Approval task in Project Management');
 
       // Log each field change individually for the change request
       for (const [field, change] of Object.entries(pendingChanges)) {
