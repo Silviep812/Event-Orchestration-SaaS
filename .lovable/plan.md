@@ -1,163 +1,192 @@
 
+# Plan: Integrate Change Management Approvals with Project Management Tasks
 
-# Corrected Plan: Horizontal Resource Columns Layout
+## Problem Statement
 
-## Problem Understanding
+Currently, when a Change Request is approved, rejected, or applied in the Change Management system, there is no corresponding entry created in the Project Management / Task Manager. This means:
 
-The current implementation is **wrong** in a fundamental way:
+1. Coordinators and team members cannot see approval-related activities as tasks
+2. There is no visibility into pending approvals from the Project Management view
+3. Accept/Decline decisions are not tracked as actionable items in the task workflow
 
-**Current (Incorrect)**:
-- 2-column grid of tiles
-- Each tile repeats the same structure (checkbox + status + confirmed + collaborator)
-- Resources stack vertically, filling the grid
+## Solution Overview
 
-**What You Actually Want**:
-- **Horizontal columns** where each column is a DIFFERENT resource type
-- Each column contains the SAME data flow from top to bottom
-- 3 columns visible at a time (scrollable for remaining 7 resources)
+Automatically create tasks in Project Management when:
+1. A Change Request is **approved** - creates an "Apply Changes" task
+2. A Change Request is **rejected** - creates a "Review Rejection" notification task
+3. A Change Request is **created** (pending) - optionally creates a "Review & Approve" task for coordinators
 
-## Correct Layout Structure
+## Technical Implementation
 
+### 1. Database Trigger Function
+
+Create a new PostgreSQL trigger function that fires when a `change_request` status changes:
+
+```sql
+CREATE OR REPLACE FUNCTION create_approval_task_on_change_request()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+DECLARE
+  v_task_title TEXT;
+  v_task_description TEXT;
+  v_task_priority TEXT;
+  v_event_id UUID;
+BEGIN
+  -- Only trigger on status changes
+  IF TG_OP = 'UPDATE' AND OLD.status IS DISTINCT FROM NEW.status THEN
+    
+    -- Convert event_id to UUID if it's a valid UUID format
+    IF NEW.event_id ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN
+      v_event_id := NEW.event_id::UUID;
+    ELSE
+      v_event_id := NULL;
+    END IF;
+    
+    -- Handle approved status
+    IF NEW.status = 'approved' THEN
+      v_task_title := 'Apply Approved Changes: ' || NEW.title;
+      v_task_description := 'Change request approved. Apply the changes to complete this workflow.';
+      v_task_priority := COALESCE(NEW.priority, 'medium');
+      
+      INSERT INTO tasks (
+        title, description, status, priority, event_id, 
+        created_by, category, due_date
+      ) VALUES (
+        v_task_title,
+        v_task_description,
+        'not_started',
+        v_task_priority::task_priority,
+        v_event_id,
+        COALESCE(NEW.approved_by, NEW.requested_by),
+        'Approval',
+        NOW() + INTERVAL '3 days'
+      );
+    
+    -- Handle rejected status
+    ELSIF NEW.status = 'rejected' THEN
+      v_task_title := 'Review Rejected Request: ' || NEW.title;
+      v_task_description := 'Change request was rejected. Reason: ' || COALESCE(NEW.rejection_reason, 'No reason provided');
+      
+      INSERT INTO tasks (
+        title, description, status, priority, event_id,
+        created_by, category, due_date
+      ) VALUES (
+        v_task_title,
+        v_task_description,
+        'not_started',
+        'medium'::task_priority,
+        v_event_id,
+        NEW.requested_by,
+        'Approval',
+        NOW() + INTERVAL '7 days'
+      );
+    END IF;
+  
+  -- Handle new pending change requests
+  ELSIF TG_OP = 'INSERT' AND NEW.status = 'pending' THEN
+    IF NEW.event_id ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN
+      v_event_id := NEW.event_id::UUID;
+    ELSE
+      v_event_id := NULL;
+    END IF;
+    
+    v_task_title := 'Review Change Request: ' || NEW.title;
+    v_task_description := 'A new change request requires your review. Accept or Decline.';
+    v_task_priority := COALESCE(NEW.priority, 'medium');
+    
+    INSERT INTO tasks (
+      title, description, status, priority, event_id,
+      created_by, category, due_date
+    ) VALUES (
+      v_task_title,
+      v_task_description,
+      'not_started',
+      v_task_priority::task_priority,
+      v_event_id,
+      NEW.requested_by,
+      'Approval',
+      NOW() + INTERVAL '2 days'
+    );
+  END IF;
+  
+  RETURN NEW;
+END;
+$$;
 ```
-+-------------------+-------------------+-------------------+
-|     BOOKINGS      |      VENUE        |   HOSPITALITY     |  (scroll →)
-+-------------------+-------------------+-------------------+
-| Status:           | Status:           | Status:           |
-| [Pending ▼]       | [Pending ▼]       | [Pending ▼]       |
-+-------------------+-------------------+-------------------+
-| Confirmation:     | Confirmation:     | Confirmation:     |
-| [Dropdown ▼]      | [Dropdown ▼]      | [Dropdown ▼]      |
-+-------------------+-------------------+-------------------+
-| Task Assigned To: | Task Assigned To: | Task Assigned To: |
-| [Name_____][Save] | [Name_____][Save] | [Name_____][Save] |
-+-------------------+-------------------+-------------------+
-| Timeline/Dates:   | Timeline/Dates:   | Timeline/Dates:   |
-| Due: [date]       | Due: [date]       | Due: [date]       |
-| Start: [date]     | Start: [date]     | Start: [date]     |
-| End: [date]       | End: [date]       | End: [date]       |
-+-------------------+-------------------+-------------------+
+
+### 2. Create Database Trigger
+
+```sql
+CREATE TRIGGER change_request_to_task_trigger
+  AFTER INSERT OR UPDATE ON change_requests
+  FOR EACH ROW
+  EXECUTE FUNCTION create_approval_task_on_change_request();
 ```
 
-**Key Differences**:
-- Each **column header** is a resource name (Bookings, Venue, etc.)
-- Each **row** is a data type (Status, Confirmation, Collaborator, Dates)
-- 3 columns visible at once with horizontal scroll for all 10 resources
+### 3. Task Category for Approvals
 
-## Data Structure Update
+Add "Approval" as a recognized task category in the UI to filter and identify approval-related tasks.
 
-Each resource needs its own dates/timeline, so the `ResourceAssignment` interface expands:
+### 4. UI Enhancement: Task Cards with Approval Badge
 
-```typescript
-export interface ResourceAssignment {
-  selected: boolean;
-  status: ResourceStatus;
-  confirmed: boolean;
-  collaborator_name?: string;
-  // NEW: Per-resource timeline/dates
-  due_date?: string;
-  start_date?: string;
-  end_date?: string;
-}
+Update `TaskManager.tsx` to show a special badge for tasks with `category = 'Approval'` to make them visually distinct.
+
+### 5. Link Tasks to Change Requests
+
+Add a `change_request_id` column to the `tasks` table to link approval tasks back to their source change request:
+
+```sql
+ALTER TABLE tasks 
+ADD COLUMN change_request_id UUID REFERENCES change_requests(id) ON DELETE SET NULL;
 ```
+
+Update the trigger to populate this column, enabling navigation from task to change request.
 
 ## Files to Modify
 
-### 1. src/components/ResourceAssignmentRow.tsx
+| File | Change |
+|------|--------|
+| **Migration** | Create trigger function, trigger, and add `change_request_id` column |
+| `src/components/TaskManager.tsx` | Add "Approval" category badge, show link to change request |
+| `src/components/ResourceColumn.tsx` | Add "Approval" to RESOURCE_CATEGORIES if needed |
 
-- Rename to `ResourceColumn.tsx` (or keep name but restructure)
-- Change from a tile/card layout to a **column** layout
-- Add date fields (due, start, end) per resource
-- Structure as vertical stack: Header → Status → Confirmation → Collaborator → Dates
+## Workflow Summary
 
-### 2. src/components/TaskManager.tsx
-
-- Replace 2-column grid with **horizontal scrollable container**
-- Use `flex flex-row overflow-x-auto` to display columns side by side
-- Each resource becomes a column (not a tile in a grid)
-- Remove the separate "Resource Category Assignments" section header tiles
-
-## New Component Structure
-
-**ResourceColumn Component (replaces ResourceAssignmentRow)**:
-
-```tsx
-<div className="min-w-[200px] border rounded-lg p-3 flex-shrink-0">
-  {/* Column Header - Resource Name */}
-  <div className="font-semibold text-sm border-b pb-2 mb-2">
-    <Checkbox checked={selected} /> Bookings
-  </div>
-  
-  {/* Status Row */}
-  <div className="space-y-1 mb-3">
-    <label className="text-xs text-muted-foreground">Status</label>
-    <Select value={status}>...</Select>
-  </div>
-  
-  {/* Confirmation Row */}
-  <div className="space-y-1 mb-3">
-    <label className="text-xs text-muted-foreground">Confirmation</label>
-    <Select value={confirmed ? 'yes' : 'no'}>
-      <SelectItem value="yes">Confirmed</SelectItem>
-      <SelectItem value="no">Not Confirmed</SelectItem>
-    </Select>
-  </div>
-  
-  {/* Task Assigned To / Collaborator Row */}
-  <div className="space-y-1 mb-3">
-    <label className="text-xs text-muted-foreground">Task Assigned To</label>
-    <div className="flex gap-1">
-      <Input value={collaborator_name} />
-      <Button><Save /></Button>
-    </div>
-  </div>
-  
-  {/* Timeline/Dates Row */}
-  <div className="space-y-2">
-    <label className="text-xs text-muted-foreground">Timeline</label>
-    <div className="space-y-1">
-      <Input type="date" label="Due" value={due_date} />
-      <Input type="date" label="Start" value={start_date} />
-      <Input type="date" label="End" value={end_date} />
-    </div>
-  </div>
-</div>
+```
++---------------------------+
+| Change Request Created    |
+| (Status: pending)         |
++-------------+-------------+
+              |
+              v
++---------------------------+
+| Task Created:             |
+| "Review Change Request"   |
+| Category: Approval        |
++-------------+-------------+
+              |
+    +---------+---------+
+    |                   |
+    v                   v
++--------+         +--------+
+| Accept |         | Decline|
++---+----+         +---+----+
+    |                  |
+    v                  v
++------------------+  +--------------------+
+| Task Created:    |  | Task Created:      |
+| "Apply Approved  |  | "Review Rejected   |
+|  Changes"        |  |  Request"          |
++------------------+  +--------------------+
 ```
 
-**TaskManager Container**:
+## Benefits
 
-```tsx
-{/* Resource Columns - Horizontal Scroll */}
-<div className="border-t pt-3 mt-3">
-  <p className="text-xs font-semibold mb-2">Resource Category Assignments</p>
-  <div className="flex flex-row gap-3 overflow-x-auto pb-2">
-    {RESOURCE_CATEGORIES.map((category) => (
-      <ResourceColumn
-        key={category}
-        category={category}
-        assignment={task.resource_assignments?.[category]}
-        onAssignmentChange={...}
-        onCollaboratorSave={...}
-      />
-    ))}
-  </div>
-</div>
-```
-
-## Summary of Changes
-
-| Component | Current | New |
-|-----------|---------|-----|
-| Layout Direction | Vertical grid (2 cols) | Horizontal scroll (3+ visible) |
-| Resource Display | Tile with stacked elements | Column with labeled rows |
-| Confirmation | Checkbox | Dropdown (option menu) |
-| Dates | None per resource | Due/Start/End per resource |
-| Container | `grid grid-cols-1 md:grid-cols-2` | `flex flex-row overflow-x-auto` |
-
-## Technical Notes
-
-- Horizontal scroll container uses `overflow-x-auto` with `flex-shrink-0` on children
-- Each column has `min-w-[200px]` to ensure consistent width
-- Confirmation changes from checkbox to dropdown per user request
-- Timeline/dates stored per resource in the JSONB `resource_assignments` column
-- Task-level "Assign Collaborator Task To" field remains at bottom of card
-
+1. **Full Visibility**: All change request activities appear as tasks in Project Management
+2. **Accountability**: Approval tasks are assigned and tracked with due dates
+3. **Workflow Integration**: Seamlessly connects Change Management with Project Management
+4. **Filtering**: "Approval" category allows filtering to see only approval-related work
+5. **Navigation**: Direct link from task to the change request for easy context switching
