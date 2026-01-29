@@ -1,142 +1,140 @@
 
-# Fix Plan: Resource Assignment Panel Layout and Fields Visibility
+# Fix Plan: Resource Assignment Panel - Layout and Saving Issues
 
 ## Problem Summary
-In the Project Management task cards, the Resource Assignments section is displaying incorrectly:
-- **5 selected resources** are appearing in **3 containers** (2+2+1 grouping) instead of 5 individual stacked cards
-- **Collaborator** and **Dates** fields appear to be missing or hard to see
-- **Edits are not saving** to the database
-
----
+In the Project Management task cards, the Resource Assignments section has two issues:
+1. **Layout Issue**: Selected resources appear grouped into "containers" (2+2+1) instead of 5 individual stacked cards
+2. **Saving Issue**: Resource changes are not persisting to the database
 
 ## Root Cause Analysis
 
-### Issue 1: "3 Containers" Layout
-The `ResourceAssignmentsPanel` renders cards inside `<div className="space-y-2">` which should stack vertically. The "3 containers" issue is likely caused by:
-- CSS `overflow-hidden` on parent task card clipping content
-- Cards appearing side-by-side due to flex/grid inheritance from parent
-- OR misinterpretation: each card looks like a "container" but the grouping is visual due to card styling
+### Issue 1: Visual Grouping
+After reviewing the code, the `ResourceAssignmentsPanel` component structure is:
+- `CollapsibleContent` wrapping a `<div className="pb-3">`
+- Inside: `<div className="flex flex-col gap-3 w-full">` 
+- Each resource wrapped in `<div className="w-full block">`
+- Each `ResourceCard` has its own `border rounded-lg p-4 bg-card shadow-sm`
 
-### Issue 2: Missing Fields
-The `ResourceCard` component includes all required fields (Collaborator, Due/Start/End dates, Status, Confirmed, Dependencies) but:
-- Labels use `text-xs text-muted-foreground` which may be too subtle
-- Input fields blend into the card background when empty
-- The section may be scrollable and fields are out of view
+The "container grouping" visual issue is likely caused by:
+- **CSS inheritance from parent grid**: The task cards are in a `grid gap-4 md:grid-cols-2 lg:grid-cols-3` layout which may affect nested flex containers
+- **Collapsible animation interference**: Radix CollapsibleContent may apply hidden overflow or transform styles that affect layout
+- **Missing isolation styles**: The flex container needs explicit `isolate` or `overflow-visible` to prevent CSS conflicts
 
-### Issue 3: Edits Not Saving
-The debounced save logic in `ResourceCard` (`useEffect` with 500ms timer) may fail because:
-- Missing `dependencies` array in fallback assignment objects can cause save failures
-- The comparison logic `localValue !== (assignment.value || "")` may not detect changes correctly if values are `undefined`
+### Issue 2: Saves Not Persisting
+Looking at the database:
+- The "Review Change Request" task only has 1 resource (`Bookings`) saved, not 5
+- The save handler (`onAssignmentChange`) calls `supabase.from('tasks').update(...)` 
 
----
+Possible causes:
+- **Race conditions**: Multiple rapid selections may overwrite each other
+- **Toast suppressing errors**: The try/catch shows "Resource updated" but may hide failures
+- **State not syncing**: Local state updates before DB confirmation, then DB fails silently
 
 ## Implementation Plan
 
-### Step 1: Fix Card Layout - Ensure Vertical Stacking
+### Step 1: Fix Layout - Add Isolation and Force Column Layout
 **File: `src/components/ResourceAssignmentsPanel.tsx`**
 
-Add explicit `flex-col` and prevent horizontal wrapping:
+Modify the container that holds resource cards to use proper isolation:
+
 ```tsx
-// Around line 318
-<div className="flex flex-col space-y-3">
-  {selectedAssignments.map(([category, assignment]) => (
-    <ResourceCard key={category} ... />
-  ))}
-</div>
+// Line 318: Change the container classes
+<div className="flex flex-col gap-3 w-full isolate" style={{ contain: 'layout' }}>
 ```
 
-### Step 2: Improve Field Visibility with Larger Text and Better Contrast
-**File: `src/components/ResourceAssignmentsPanel.tsx` (ResourceCard component)**
+Also add explicit display styles to each wrapper:
 
-Increase text sizes and improve label visibility:
-- Change labels from `text-xs text-muted-foreground` to `text-sm font-medium text-foreground`
-- Increase input heights from `h-7`/`h-8` to `h-9`
-- Add placeholder text that's more visible
-- Add subtle background color to input fields
-
-### Step 3: Fix the Saving Logic
-**File: `src/components/ResourceAssignmentsPanel.tsx`**
-
-Fix the debounced save `useEffect` hooks:
-- Add proper dependency arrays
-- Ensure the timer cleanup works correctly
-- Handle `undefined` values explicitly
-
-**File: `src/components/ResourceColumn.tsx`**
-
-Ensure `getEmptyResourceAssignments` always includes all required fields with proper defaults:
 ```tsx
-// Line 281-298 - confirm dependencies: [] is present (already is, verified)
+// Line 320: Ensure each card is truly a block element
+<div key={category} className="w-full block" style={{ display: 'block' }}>
 ```
 
-### Step 4: Prevent Overflow Clipping
+### Step 2: Fix Saving - Add Await and Better Error Handling
 **File: `src/components/TaskManager.tsx`**
 
-Ensure the task card container allows the expanded panel to display fully:
-- Check for any `overflow-hidden` that might clip the expanded content
-- Consider `overflow-visible` or `overflow-y-auto` on the collapsible content
+The `onAssignmentChange` handler at line 1673 updates local state first, then tries to save. If save fails, it should revert. We need to:
 
----
+1. Add console logging to debug what's being saved
+2. Ensure the full resource_assignments object is being sent, not just the changed category
+3. Add a retry mechanism or clearer error feedback
 
-## Detailed Code Changes
+```tsx
+// Around line 1687-1707
+try {
+  console.log('Saving resource assignments:', updatedAssignments);
+  const { error, data } = await supabase
+    .from('tasks')
+    .update({ resource_assignments: JSON.parse(JSON.stringify(updatedAssignments)) })
+    .eq('id', task.id)
+    .select();
+  
+  if (error) {
+    console.error('Supabase error:', error);
+    throw error;
+  }
+  
+  console.log('Save successful:', data);
+  toast({ title: "Resource updated", description: `${category} assignment updated.` });
+} catch (error) {
+  console.error('Error updating resource assignment:', error);
+  toast({ title: "Error", description: "Failed to update resource. Please try again.", variant: "destructive" });
+  // Revert local state
+  fetchTasks();
+}
+```
 
-### ResourceAssignmentsPanel.tsx Changes
+### Step 3: Fix CollapsibleContent Overflow
+**File: `src/components/ResourceAssignmentsPanel.tsx`**
 
-1. **Line 98-115 (ResourceCard header)**: Make category name larger and more prominent
-   - Change `text-sm font-semibold` to `text-base font-bold`
+Add overflow-visible to prevent clipping:
 
-2. **Line 117-127 (Collaborator field)**: Improve visibility
-   - Change label to `text-sm font-medium text-foreground`
-   - Add `bg-background` to input for contrast
-   - Keep `h-8` but add visible placeholder
+```tsx
+// Line 311: Add className to CollapsibleContent wrapper
+<CollapsibleContent className="overflow-visible">
+  <div className="pb-3 overflow-visible">
+```
 
-3. **Line 129-159 (Dates row)**: Improve label visibility
-   - Change labels to `text-sm font-medium`
-   - Increase date input size consistency
+### Step 4: Ensure ResourceCard Has Proper Stacking Context
+**File: `src/components/ResourceAssignmentsPanel.tsx`**
 
-4. **Line 161-193 (Status/Confirmed)**: Keep as-is (dropdowns work correctly)
+Modify the ResourceCard wrapper:
 
-5. **Line 195-206 (Dependencies)**: Verify label is visible
+```tsx
+// Line 99: Add relative positioning and z-index
+<div className="border rounded-lg p-4 bg-card shadow-sm relative">
+```
 
-6. **Line 318 (selectedAssignments container)**: Add `flex flex-col` explicitly
+## Technical Details
 
-### TaskManager.tsx Changes
+### Files to Modify
+1. `src/components/ResourceAssignmentsPanel.tsx`
+   - Line 99: Add `relative` to card class
+   - Line 311: Add `overflow-visible` to CollapsibleContent
+   - Line 312: Add `overflow-visible` to inner wrapper
+   - Line 318: Add `isolate` and inline `contain: layout` style
+   - Line 320: Add inline `display: block` style
 
-Review line ~1600-1800 for any `overflow-hidden` on the task card that might clip the expanded resource panel content.
+2. `src/components/TaskManager.tsx`
+   - Lines 1687-1707: Add console.log for debugging saves
+   - Add `.select()` after update to get confirmation
+   - Improve error messaging
 
----
-
-## Expected Result After Fix
-
-Each task card's "Resource Assignments" section will:
-1. Display **5 individual cards** stacked vertically (one per selected resource)
-2. Each card shows **all 8 fields clearly**:
-   - Category name (bold, prominent header)
-   - Collaborator (visible input with placeholder)
-   - Due/Start/End dates (3-column row, visible labels)
-   - Status dropdown
-   - Confirmed dropdown
-   - Dependencies multi-select
-3. **Edits save correctly** with debounced updates to the database
-
----
-
-## Files to Modify
-- `src/components/ResourceAssignmentsPanel.tsx` - Layout and visibility fixes
-- `src/components/TaskManager.tsx` - Remove overflow clipping (if present)
-- Possibly `src/components/ResourceColumn.tsx` - Verify getEmptyResourceAssignments defaults
-
----
-
-## Testing Steps
+### Testing Steps
 1. Navigate to `/dashboard/project-management`
-2. Find a task card with selected resources
+2. Find the "Review Change Request" task (or any task)
 3. Click "Resource Assignments" to expand
-4. Verify:
-   - All 5 resources appear as separate stacked cards
-   - Each card shows Collaborator input field with label
-   - Each card shows Due/Start/End date fields with labels
-   - Status and Confirmed dropdowns are visible
-   - Dependencies field is visible
-5. Edit a collaborator name and wait 1 second - verify toast appears
-6. Refresh page - verify the saved value persists
+4. Click "Add Resource" and select 5 different resources
+5. Verify:
+   - All 5 appear as separate stacked cards (not grouped)
+   - Each card shows all fields (Collaborator, Due/Start/End, Status, Confirmed, Dependencies)
+6. Open browser DevTools Console
+7. Edit a collaborator name and watch for console logs
+8. Refresh the page
+9. Verify the 5 resources are still there with your edits
+
+## Expected Outcome
+- Each selected resource displays as its own distinct, full-width card
+- Cards stack vertically with 12px (gap-3) spacing between them
+- All fields are visible and editable
+- Changes save to the database with confirmation
+- Console logs help identify any remaining save issues
