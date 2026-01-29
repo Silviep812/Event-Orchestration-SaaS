@@ -587,6 +587,41 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
     }
   };
 
+  const saveAllResourceAssignments = async (
+    taskId: string, 
+    assignments: Record<string, ResourceAssignment> | undefined
+  ) => {
+    if (!assignments) {
+      toast({
+        title: "No changes",
+        description: "No resource assignments to save.",
+      });
+      return;
+    }
+    
+    try {
+      const { error } = await supabase
+        .from('tasks')
+        .update({ resource_assignments: JSON.parse(JSON.stringify(assignments)) })
+        .eq('id', taskId);
+      
+      if (error) throw error;
+      
+      toast({
+        title: "All resources saved",
+        description: "All resource assignments have been saved successfully.",
+      });
+    } catch (error) {
+      console.error('Error saving all resources:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save resource assignments.",
+        variant: "destructive",
+      });
+      fetchTasks();
+    }
+  };
+
   const findDependentTasks = async (taskId: string): Promise<Array<{ id: string; title: string; due_date?: string }>> => {
     try {
       // Find all task IDs that depend on this task
@@ -1345,7 +1380,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                   <p className="text-xs text-muted-foreground mb-2">
                     Select resource categories, set their status, and assign collaborators
                   </p>
-                  <div className="flex flex-row gap-3 overflow-x-auto pb-2">
+                  <div className="flex flex-row gap-3 overflow-x-auto pb-2 max-w-full scrollbar-thin">
                     {RESOURCE_CATEGORIES.map((category) => (
                       <ResourceColumn
                         key={category}
@@ -1366,6 +1401,23 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                         }}
                       />
                     ))}
+                  </div>
+                  {/* Confirm All Entries Button */}
+                  <div className="flex justify-end mt-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => {
+                        toast({
+                          title: "Entries saved locally",
+                          description: "Resource assignments will be saved when you create the task.",
+                        });
+                      }}
+                    >
+                      <Save className="h-3 w-3 mr-1" />
+                      Confirm All Entries
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -1546,7 +1598,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
             return (
               <Card
                 key={task.id}
-                className="cursor-pointer hover:shadow-md transition-shadow"
+                className="cursor-pointer hover:shadow-md transition-shadow overflow-hidden"
                 onClick={() => {
                   setSelectedTask(task);
                   setSelectedDependencies(task.dependencies || []);
@@ -1630,11 +1682,11 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                   )}
 
                   {/* Resource Category Assignments - Horizontal Scroll */}
-                  <div className="border-t pt-3 mt-3 space-y-2" onClick={(e) => e.stopPropagation()}>
+                  <div className="border-t pt-3 mt-3 space-y-2 max-w-full overflow-hidden" onClick={(e) => e.stopPropagation()}>
                     <p className="text-xs font-semibold text-foreground">
                       Resource Category Assignments
                     </p>
-                    <div className="flex flex-row gap-3 overflow-x-auto pb-2">
+                    <div className="flex flex-row gap-3 overflow-x-auto pb-2 max-w-full scrollbar-thin">
                       {RESOURCE_CATEGORIES.map((category) => {
                         const currentAssignment = task.resource_assignments?.[category] || 
                           { selected: false, status: 'pending' as const, confirmed: false, collaborator_name: '', due_date: '', start_date: '', end_date: '' };
@@ -1761,6 +1813,21 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                         );
                       })}
                     </div>
+                    {/* Save All Resources Button */}
+                    <div className="mt-2 flex justify-end">
+                      <Button
+                        size="sm"
+                        variant="default"
+                        className="h-8 text-xs"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          await saveAllResourceAssignments(task.id, task.resource_assignments);
+                        }}
+                      >
+                        <Save className="h-3 w-3 mr-1" />
+                        Save All Resources
+                      </Button>
+                    </div>
                   </div>
 
 
@@ -1880,7 +1947,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                   <p className="text-xs text-muted-foreground mb-2">
                     Select resource categories, set their status, and assign collaborators
                   </p>
-                  <div className="flex flex-row gap-3 overflow-x-auto pb-2">
+                  <div className="flex flex-row gap-3 overflow-x-auto pb-2 max-w-full scrollbar-thin">
                     {RESOURCE_CATEGORIES.map((category) => {
                       const currentAssignment = editResourceAssignments[category] || 
                         selectedTask.resource_assignments?.[category] || 
@@ -1899,6 +1966,23 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                         />
                       );
                     })}
+                  </div>
+                  {/* Confirm All Entries Button */}
+                  <div className="flex justify-end mt-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => {
+                        toast({
+                          title: "Entries confirmed",
+                          description: "Resource assignments will be saved when you save the task.",
+                        });
+                      }}
+                    >
+                      <Save className="h-3 w-3 mr-1" />
+                      Confirm All Entries
+                    </Button>
                   </div>
                 </div>
 
