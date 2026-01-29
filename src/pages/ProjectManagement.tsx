@@ -110,15 +110,15 @@ export default function ProjectManagement() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="tasks" className="space-y-4">
+        <TabsContent value="tasks" className="space-y-4 overflow-hidden">
           <TaskManager selectedEventFilter={selectedEventFilter} />
         </TabsContent>
 
-        <TabsContent value="budget" className="space-y-4">
+        <TabsContent value="budget" className="space-y-4 overflow-hidden">
           <BudgetTracker selectedEventFilter={selectedEventFilter} />
         </TabsContent>
 
-        <TabsContent value="roles" className="space-y-4">
+        <TabsContent value="roles" className="space-y-4 overflow-hidden">
           <RoleManager selectedEventFilter={selectedEventFilter} />
         </TabsContent>
       </Tabs>
