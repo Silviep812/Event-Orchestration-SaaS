@@ -4,12 +4,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { ResourceAssignment, ResourceStatus } from "@/components/ResourceColumn";
 
+interface AvailableTask {
+  id: string;
+  title: string;
+}
+
 interface ResourceCardProps {
   category: string;
   assignment: ResourceAssignment;
   onAssignmentChange: (assignment: ResourceAssignment) => void;
   onCollaboratorSave?: (collaboratorName: string) => void;
   onDatesSave?: (dates: { due_date?: string; start_date?: string; end_date?: string }) => void;
+  availableTasks?: AvailableTask[];
 }
 
 export function ResourceCard({ 
@@ -17,7 +23,8 @@ export function ResourceCard({
   assignment, 
   onAssignmentChange,
   onCollaboratorSave,
-  onDatesSave
+  onDatesSave,
+  availableTasks = []
 }: ResourceCardProps) {
   const [localCollaborator, setLocalCollaborator] = useState(assignment.collaborator_name || '');
   const [localDueDate, setLocalDueDate] = useState(assignment.due_date || '');
@@ -79,7 +86,7 @@ export function ResourceCard({
   return (
     <div className="border rounded-lg p-4 bg-card">
       {/* Header with checkbox and category name */}
-      <div className="flex items-center gap-2 border-b pb-2 mb-2">
+      <div className="flex items-center gap-2 border-b pb-2 mb-3">
         <Checkbox
           id={`resource-card-${category}`}
           checked={assignment.selected}
@@ -92,7 +99,8 @@ export function ResourceCard({
               collaborator_name: checked ? assignment.collaborator_name : '',
               due_date: checked ? assignment.due_date : '',
               start_date: checked ? assignment.start_date : '',
-              end_date: checked ? assignment.end_date : ''
+              end_date: checked ? assignment.end_date : '',
+              dependencies: checked ? assignment.dependencies : []
             });
             if (!checked) {
               setLocalCollaborator('');
@@ -163,7 +171,7 @@ export function ResourceCard({
       </div>
       
       {/* Task Assigned To - full width */}
-      <div className="space-y-1 mb-2">
+      <div className="space-y-1 mb-3">
         <label className="text-sm font-semibold text-foreground">Task Assigned To</label>
         <Input
           placeholder="Collaborator name"
@@ -175,7 +183,7 @@ export function ResourceCard({
       </div>
       
       {/* Timeline - compact 3-column display */}
-      <div className="space-y-1">
+      <div className="space-y-1 mb-3">
         <label className="text-sm text-muted-foreground">Timeline</label>
         <div className="grid grid-cols-3 gap-2">
           <div className="space-y-0.5">
@@ -209,6 +217,34 @@ export function ResourceCard({
             />
           </div>
         </div>
+      </div>
+
+      {/* Dependencies Section */}
+      <div className="space-y-1">
+        <label className="text-sm text-muted-foreground">Dependencies</label>
+        <Select
+          value={assignment.dependencies?.[0] || 'none'}
+          onValueChange={(value) => {
+            const newDeps = value === 'none' ? [] : [value];
+            onAssignmentChange({
+              ...assignment,
+              dependencies: newDeps
+            });
+          }}
+          disabled={!assignment.selected}
+        >
+          <SelectTrigger className="h-9 w-full text-sm">
+            <SelectValue placeholder="Select dependency" />
+          </SelectTrigger>
+          <SelectContent className="bg-card border shadow-md z-[100]">
+            <SelectItem value="none">None</SelectItem>
+            {availableTasks.map(task => (
+              <SelectItem key={task.id} value={task.id}>
+                {task.title}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
     </div>
   );
