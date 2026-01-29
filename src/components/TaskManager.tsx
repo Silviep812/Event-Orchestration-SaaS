@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useEventFilter } from "@/hooks/useEventFilter";
-import { CheckCircle2, Clock, AlertCircle, Plus, Calendar, User, Archive, ArchiveRestore, Eye, EyeOff, Link, Save, X } from "lucide-react";
+import { CheckCircle2, Clock, AlertCircle, Plus, Calendar, User, Archive, ArchiveRestore, Eye, EyeOff, Link, Save, X, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { createTaskSchema } from "@/lib/validation/taskValidation";
 import { 
@@ -49,6 +49,7 @@ interface Task {
   dependencies?: string[]; // Array of task IDs this task depends on
   category?: string; // Task category based on collaborator type (Bookings, Venue, etc.)
   resource_assignments?: Record<string, ResourceAssignment>; // Enhanced resource tracking
+  change_request_id?: string; // Link to source change request for approval tasks
 }
 
 interface AvailableTask {
@@ -96,6 +97,7 @@ const statusIcons = {
 
 
 export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [availableTasks, setAvailableTasks] = useState<AvailableTask[]>([]);
@@ -350,7 +352,8 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
             assigned_user_name,
             assigned_role: roleAssignment,
             assigned_coordinator_name: task.assigned_coordinator_name,
-            resource_assignments: parsedResourceAssignments
+            resource_assignments: parsedResourceAssignments,
+            change_request_id: task.change_request_id
           } as Task;
         })
       );
@@ -1552,7 +1555,14 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
               >
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between">
-                    <CardTitle className="text-base">{task.title}</CardTitle>
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-base">{task.title}</CardTitle>
+                      {task.category === 'Approval' && (
+                        <Badge className="bg-purple-100 text-purple-800 border-purple-200 text-xs">
+                          Approval
+                        </Badge>
+                      )}
+                    </div>
                     <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                       <Select
                         value={task.priority}
@@ -1576,6 +1586,22 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                 <CardContent className="space-y-2">
                   {task.description && (
                     <p className="text-xs text-muted-foreground line-clamp-2">{task.description}</p>
+                  )}
+
+                  {/* View Change Request link for Approval tasks */}
+                  {task.change_request_id && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 text-xs text-purple-600 hover:text-purple-800 hover:bg-purple-50 p-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/dashboard/change-requests/${task.change_request_id}`);
+                      }}
+                    >
+                      <FileText className="h-3 w-3 mr-1" />
+                      View Request
+                    </Button>
                   )}
 
                   <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
