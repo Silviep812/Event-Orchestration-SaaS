@@ -1,10 +1,28 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import iepFullLogo from "@/assets/iep-full-logo.png";
 
 const ComingSoon = () => {
+  const navigate = useNavigate();
+  const clickCountRef = useRef(0);
+  const lastClickTimeRef = useRef(0);
+
+  const handleLogoClick = () => {
+    const now = Date.now();
+    // Reset if more than 2 seconds since last click
+    if (now - lastClickTimeRef.current > 2000) {
+      clickCountRef.current = 0;
+    }
+    lastClickTimeRef.current = now;
+    clickCountRef.current += 1;
+
+    if (clickCountRef.current >= 5) {
+      navigate("/dashboard");
+    }
+  };
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
@@ -32,7 +50,8 @@ const ComingSoon = () => {
           <img 
             src={iepFullLogo} 
             alt="Ida Event Partners Logo" 
-            className="h-[120px] w-auto mx-auto"
+            className="h-[120px] w-auto mx-auto cursor-pointer"
+            onClick={handleLogoClick}
           />
         </div>
 
