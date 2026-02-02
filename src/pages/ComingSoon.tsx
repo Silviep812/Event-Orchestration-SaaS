@@ -29,9 +29,9 @@ const ComingSoon = () => {
         {/* Logo */}
         <div className="mb-8">
           <img 
-            src="/lovable-uploads/e8e18250-fa27-4ae4-a4bc-867e063bcfd1.png" 
+            src="/iep-logo.png" 
             alt="IEP Logo" 
-            className="h-20 w-20 mx-auto"
+            className="h-[120px] w-auto mx-auto"
           />
         </div>
 
