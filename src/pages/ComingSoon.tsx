@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import iepFullLogo from "@/assets/iep-full-logo.png";
 
 const ComingSoon = () => {
   const [email, setEmail] = useState("");
@@ -29,8 +30,8 @@ const ComingSoon = () => {
         {/* Logo */}
         <div className="mb-8">
           <img 
-            src="/iep-logo.png" 
-            alt="IEP Logo" 
+            src={iepFullLogo} 
+            alt="Ida Event Partners Logo" 
             className="h-[120px] w-auto mx-auto"
           />
         </div>
