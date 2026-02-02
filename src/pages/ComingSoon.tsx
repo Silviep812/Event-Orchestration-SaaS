@@ -28,11 +28,11 @@ const ComingSoon = () => {
       {/* Content */}
       <div className="relative z-10 text-center px-4 max-w-2xl mx-auto">
         {/* Logo */}
-        <div className="mb-8 p-6 bg-white rounded-2xl shadow-lg inline-block">
+        <div className="mb-8">
           <img 
             src={iepFullLogo} 
             alt="Ida Event Partners Logo" 
-            className="h-[120px] w-auto mx-auto drop-shadow-sm"
+            className="h-[120px] w-auto mx-auto"
           />
         </div>
 
