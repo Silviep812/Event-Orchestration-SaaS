@@ -51,7 +51,7 @@ const ComingSoon = () => {
         {/* Description */}
         <p className="text-lg text-muted-foreground mb-8 max-w-md mx-auto">
           Your comprehensive event planning platform is launching soon. 
-          Stay tuned for an easier way to create, manage, and collaborate on events.
+          Stay tuned for a User-friendly way to create, manage, make change requests, monitor progress, collaborate with team on event and so much more.
         </p>
 
         {/* Email signup */}
