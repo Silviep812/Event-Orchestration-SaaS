@@ -120,7 +120,7 @@ const DashboardHome = () => {
 
         // Fetch all change_logs for the user
         const { data: changeLogs } = await supabase
-          .from('change_logs')
+          .from('cm_change_logs')
           .select('id, entity_type, action, created_at, field_name, old_value, new_value, change_description, entity_id')
           .eq('changed_by', user.id)
           .order('created_at', { ascending: false })

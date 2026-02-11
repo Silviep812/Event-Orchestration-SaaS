@@ -374,7 +374,7 @@ const ManageEvent = () => {
     try {
       // Fetch event change logs
       const { data: eventLogs, error: eventError } = await supabase
-        .from('change_logs')
+        .from('cm_change_logs')
         .select('*')
         .eq('entity_id', entityId)
         .eq('entity_type', 'event')
