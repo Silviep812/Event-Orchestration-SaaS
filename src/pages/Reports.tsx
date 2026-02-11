@@ -201,7 +201,7 @@ const Reports = () => {
       setLoading(true);
 
       let query = supabase
-        .from('change_logs')
+        .from('cm_change_logs')
         .select('*')
         .order('created_at', { ascending: false });
 

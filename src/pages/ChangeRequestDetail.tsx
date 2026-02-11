@@ -410,7 +410,7 @@ const ChangeRequestDetail = () => {
 
     try {
       const { data, error } = await supabase
-        .from("change_logs")
+        .from("cm_change_logs")
         .select("*")
         .eq("entity_type", "change_request")
         .eq("entity_id", id)
