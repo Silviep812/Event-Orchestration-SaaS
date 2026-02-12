@@ -766,28 +766,7 @@ export type Database = {
         }
         Relationships: []
       }
-      entertainment_types: {
-        Row: {
-          created_at: string
-          id: number
-          name: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          id?: number
-          name: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          id?: number
-          name?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      entertainments: {
+      entertainment_profiles: {
         Row: {
           business_name: string
           city: string | null
@@ -835,13 +814,34 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "entertainments_ent_type_id_fkey"
+            foreignKeyName: "entertainment_profiles_ent_type_id_fkey"
             columns: ["ent_type_id"]
             isOneToOne: false
             referencedRelation: "entertainment_types"
             referencedColumns: ["id"]
           },
         ]
+      }
+      entertainment_types: {
+        Row: {
+          created_at: string
+          id: number
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       "Event Analytics": {
         Row: {
