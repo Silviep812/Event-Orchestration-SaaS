@@ -3015,6 +3015,7 @@ export type Database = {
       }
       transportation_profiles: {
         Row: {
+          amenities: string[] | null
           business_name: string
           capacity: number | null
           city: string | null
@@ -3026,7 +3027,6 @@ export type Database = {
           phone_number: string | null
           price: number | null
           seating_capacity: number | null
-          special_accommodations: string[] | null
           state: string | null
           transp_type_id: number | null
           transpo_images: string | null
@@ -3034,6 +3034,7 @@ export type Database = {
           zip: string | null
         }
         Insert: {
+          amenities?: string[] | null
           business_name: string
           capacity?: number | null
           city?: string | null
@@ -3045,7 +3046,6 @@ export type Database = {
           phone_number?: string | null
           price?: number | null
           seating_capacity?: number | null
-          special_accommodations?: string[] | null
           state?: string | null
           transp_type_id?: number | null
           transpo_images?: string | null
@@ -3053,6 +3053,7 @@ export type Database = {
           zip?: string | null
         }
         Update: {
+          amenities?: string[] | null
           business_name?: string
           capacity?: number | null
           city?: string | null
@@ -3064,7 +3065,6 @@ export type Database = {
           phone_number?: string | null
           price?: number | null
           seating_capacity?: number | null
-          special_accommodations?: string[] | null
           state?: string | null
           transp_type_id?: number | null
           transpo_images?: string | null
