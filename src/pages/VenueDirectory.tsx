@@ -221,7 +221,7 @@ const VenueDirectory = () => {
                 {venueTypeOptions.find(opt => opt.value === selectedVenueType)?.label || 'Venue'} ({filteredProfiles.length})
               </>
             ) : (
-              <>Venue Profiles ({filteredProfiles.length})</>
+              <>Venues ({filteredProfiles.length})</>
             )}
           </CardTitle>
         </CardHeader>
