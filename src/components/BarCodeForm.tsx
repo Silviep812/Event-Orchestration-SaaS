@@ -62,7 +62,7 @@ const BarCodeForm = () => {
           .upsert({
             book_id: `booking_${user.id}`,
             user_id: user.id,
-            barcode: true,
+            QR_Code: true,
           }, {
             onConflict: 'book_id',
           });
