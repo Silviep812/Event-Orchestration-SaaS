@@ -272,12 +272,14 @@ const VenueDirectory = () => {
                         )}
                         <p><strong>Location:</strong> {[profile.city, profile.state, profile.zip].filter(Boolean).join(', ') || 'Location not specified'}</p>
                         {profile.amenities && profile.amenities.length > 0 && (
-                          <div className="flex flex-wrap gap-1 pt-1">
-                            {profile.amenities.map((amenity: string, idx: number) => (
-                              <span key={idx} className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">
-                                {amenity}
-                              </span>
-                            ))}
+                          <div>
+                            <div className="flex flex-wrap gap-1">
+                              {profile.amenities.map((amenity: string, idx: number) => (
+                                <span key={idx} className="text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded">
+                                  {amenity}
+                                </span>
+                              ))}
+                            </div>
                           </div>
                         )}
                       </div>
