@@ -778,7 +778,7 @@ export default function CreateEvent() {
               </div>
 
               <div>
-                <Label htmlFor="venue">Venue Profile *</Label>
+                <Label htmlFor="venue">Venue *</Label>
                 <Controller
                   name="venue"
                   control={control}
