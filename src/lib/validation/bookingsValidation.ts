@@ -102,8 +102,8 @@ export const registrySchema = z.object({
     .optional(),
 });
 
-// BarCode Validation Schema
-export const barcodeSchema = z.object({
+// QR Code Validation Schema
+export const qrCodeSchema = z.object({
   event_name: z.string()
     .trim()
     .min(2, { message: "Event name must be at least 2 characters" })
@@ -132,4 +132,4 @@ export type RSVPFormData = z.infer<typeof rsvpSchema>;
 export type ConfirmationFormData = z.infer<typeof confirmationSchema>;
 export type ReservationFormData = z.infer<typeof reservationSchema>;
 export type RegistryFormData = z.infer<typeof registrySchema>;
-export type BarcodeFormData = z.infer<typeof barcodeSchema>;
+export type QRCodeFormData = z.infer<typeof qrCodeSchema>;

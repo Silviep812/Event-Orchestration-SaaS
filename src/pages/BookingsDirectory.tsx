@@ -11,7 +11,7 @@ import RSVPInvitation from "@/components/RSVPInvitation";
 import ConfirmationForm from "@/components/ConfirmationForm";
 import ReservationForm from "@/components/ReservationForm";
 import RegistryForm from "@/components/RegistryForm";
-import BarCodeForm from "@/components/BarCodeForm";
+import QRCodeForm from "@/components/QRCodeForm";
 
 const BookingsDirectory = () => {
   const location = useLocation();
@@ -25,7 +25,7 @@ const BookingsDirectory = () => {
     confirmation: 0,
     reservation: 0,
     registry: 0,
-    barcode: 0,
+    qrCode: 0,
   });
 
   // Redirect to auth if not logged in
@@ -62,7 +62,7 @@ const BookingsDirectory = () => {
 
   const fetchSubmissionCounts = async () => {
     try {
-      const [rsvpRes, confirmRes, reservRes, regRes, barcodeRes] = await Promise.all([
+      const [rsvpRes, confirmRes, reservRes, regRes, qrCodeRes] = await Promise.all([
         supabase.from('rsvp_submissions').select('id', { count: 'exact', head: true }),
         supabase.from('confirmation_submissions').select('id', { count: 'exact', head: true }),
         supabase.from('reservation_submissions').select('id', { count: 'exact', head: true }),
@@ -75,7 +75,7 @@ const BookingsDirectory = () => {
         confirmation: confirmRes.count || 0,
         reservation: reservRes.count || 0,
         registry: regRes.count || 0,
-        barcode: barcodeRes.count || 0,
+        qrCode: qrCodeRes.count || 0,
       });
     } catch (error) {
       console.error('Error fetching submission counts:', error);
@@ -108,7 +108,7 @@ const BookingsDirectory = () => {
     { value: "confirmation", label: "Confirmation", icon: CheckCircle },
     { value: "rsvp", label: "RSVP", icon: Clock },
     { value: "registry", label: "Registry", icon: Calendar },
-    { value: "barcode", label: "QR Code", icon: QrCode }
+    { value: "qrCode", label: "QR Code", icon: QrCode }
   ];
 
   return (
@@ -222,9 +222,9 @@ const BookingsDirectory = () => {
         </div>
       )}
 
-      {selectedBookingTypes.includes('barcode') && (
+      {selectedBookingTypes.includes('qrCode') && (
         <div className="animate-fade-in">
-          <BarCodeForm />
+          <QRCodeForm />
         </div>
       )}
 
@@ -256,7 +256,7 @@ const BookingsDirectory = () => {
             </div>
             <div className="flex flex-col items-center p-4 bg-muted rounded-lg">
               <QrCode className="w-6 h-6 text-primary mb-2" />
-              <span className="text-2xl font-bold">{submissionCounts.barcode}</span>
+              <span className="text-2xl font-bold">{submissionCounts.qrCode}</span>
               <span className="text-sm text-muted-foreground">QR Codes</span>
             </div>
           </div>
