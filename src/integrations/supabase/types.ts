@@ -68,42 +68,6 @@ export type Database = {
         }
         Relationships: []
       }
-      barcode_submissions: {
-        Row: {
-          book_id: string
-          created_at: string
-          email: string
-          event_name: string
-          id: string
-          notes: string | null
-          phone: string | null
-          ticket_number: string
-          updated_at: string
-        }
-        Insert: {
-          book_id: string
-          created_at?: string
-          email: string
-          event_name: string
-          id?: string
-          notes?: string | null
-          phone?: string | null
-          ticket_number: string
-          updated_at?: string
-        }
-        Update: {
-          book_id?: string
-          created_at?: string
-          email?: string
-          event_name?: string
-          id?: string
-          notes?: string | null
-          phone?: string | null
-          ticket_number?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       "Bookings Directory": {
         Row: {
           book_id: string
@@ -1725,6 +1689,42 @@ export type Database = {
           updated_at?: string
           user_id?: string
           username?: string | null
+        }
+        Relationships: []
+      }
+      qrcode_submissions: {
+        Row: {
+          book_id: string
+          created_at: string
+          email: string
+          event_name: string
+          id: string
+          notes: string | null
+          phone: string | null
+          ticket_number: string
+          updated_at: string
+        }
+        Insert: {
+          book_id: string
+          created_at?: string
+          email: string
+          event_name: string
+          id?: string
+          notes?: string | null
+          phone?: string | null
+          ticket_number: string
+          updated_at?: string
+        }
+        Update: {
+          book_id?: string
+          created_at?: string
+          email?: string
+          event_name?: string
+          id?: string
+          notes?: string | null
+          phone?: string | null
+          ticket_number?: string
+          updated_at?: string
         }
         Relationships: []
       }
