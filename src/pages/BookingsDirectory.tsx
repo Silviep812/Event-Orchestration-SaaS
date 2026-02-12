@@ -67,7 +67,7 @@ const BookingsDirectory = () => {
         supabase.from('confirmation_submissions').select('id', { count: 'exact', head: true }),
         supabase.from('reservation_submissions').select('id', { count: 'exact', head: true }),
         supabase.from('registry_submissions').select('id', { count: 'exact', head: true }),
-        supabase.from('barcode_submissions').select('id', { count: 'exact', head: true }),
+        supabase.from('qrcode_submissions').select('id', { count: 'exact', head: true }),
       ]);
 
       setSubmissionCounts({
