@@ -67,7 +67,8 @@ export const VenueSelector = ({ onSelectVenue, selectedVenue }: VenueSelectorPro
     state: '',
     zip: '',
     capacity: '',
-    venue_type_id: ''
+    venue_type_id: '',
+    amenities: ''
   });
   const { toast } = useToast();
   const { user } = useAuth();
@@ -416,6 +417,14 @@ export const VenueSelector = ({ onSelectVenue, selectedVenue }: VenueSelectorPro
               </div>
             </div>
             <div>
+              <Label>Amenities (comma-separated)</Label>
+              <Input
+                placeholder="e.g. WiFi, Parking, Stage"
+                value={newVenue.amenities}
+                onChange={e => setNewVenue({ ...newVenue, amenities: e.target.value })}
+              />
+            </div>
+            <div>
               <Label>Venue Type</Label>
               <Select value={newVenue.venue_type_id} onValueChange={value => setNewVenue({ ...newVenue, venue_type_id: value })}>
                 <SelectTrigger>
@@ -446,7 +455,10 @@ export const VenueSelector = ({ onSelectVenue, selectedVenue }: VenueSelectorPro
                 city: newVenue.city,
                 state: newVenue.state,
                 zip: newVenue.zip,
-                user_id: user.id
+                user_id: user.id,
+                amenities: newVenue.amenities
+                  ? newVenue.amenities.split(',').map(s => s.trim()).filter(Boolean)
+                  : []
               };
               if (newVenue.capacity && !isNaN(Number(newVenue.capacity))) {
                 venueData.capacity = Number(newVenue.capacity);
@@ -461,7 +473,7 @@ export const VenueSelector = ({ onSelectVenue, selectedVenue }: VenueSelectorPro
               } else {
                 setVenues(prev => [...prev, data]);
                 setIsAddVenueDialogOpen(false);
-                setNewVenue({ business_name: '', contact_name: '', email: '', phone_number: '', city: '', state: '', zip: '', capacity: '', venue_type_id: '' });
+                setNewVenue({ business_name: '', contact_name: '', email: '', phone_number: '', city: '', state: '', zip: '', capacity: '', venue_type_id: '', amenities: '' });
                 toast({ title: 'Venue Added', description: 'Your venue has been added.' });
               }
             }}>
