@@ -7,10 +7,10 @@ import { QrCode, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { barcodeSchema } from "@/lib/validation/bookingsValidation";
+import { qrCodeSchema } from "@/lib/validation/bookingsValidation";
 import { useAuth } from "@/hooks/useAuth";
 
-const BarCodeForm = () => {
+const QRCodeForm = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const [formData, setFormData] = useState({
@@ -33,7 +33,7 @@ const BarCodeForm = () => {
         throw new Error("Please generate a QR code number first");
       }
 
-      const validatedData = barcodeSchema.parse({
+      const validatedData = qrCodeSchema.parse({
         event_name: formData.eventName,
         ticket_number: formData.ticketNumber,
         email: formData.email,
@@ -42,7 +42,7 @@ const BarCodeForm = () => {
       });
 
       const bookId = `bar_${Date.now()}`;
-      const { error: barcodeError } = await supabase
+      const { error: qrCodeError } = await supabase
         .from('barcode_submissions')
         .insert([{
           book_id: bookId,
@@ -53,7 +53,7 @@ const BarCodeForm = () => {
           notes: validatedData.notes,
         }]);
 
-      if (barcodeError) throw barcodeError;
+      if (qrCodeError) throw qrCodeError;
 
       // Update Bookings Directory if user is authenticated
       if (user) {
@@ -120,15 +120,15 @@ const BarCodeForm = () => {
     }
   };
 
-  const generateBarcode = () => {
-    const barcodeNumber = `BC${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
+  const generateQRCode = () => {
+    const qrCodeNumber = `BC${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
     setFormData({
       ...formData,
-      ticketNumber: barcodeNumber
+      ticketNumber: qrCodeNumber
     });
     toast({
       title: "QR Code Number Generated",
-      description: `Generated: ${barcodeNumber}`,
+      description: `Generated: ${qrCodeNumber}`,
     });
   };
 
@@ -165,7 +165,7 @@ const BarCodeForm = () => {
                 placeholder="Generated QR code number"
                 readOnly
               />
-              <Button type="button" onClick={generateBarcode} variant="outline">
+              <Button type="button" onClick={generateQRCode} variant="outline">
                 Generate
               </Button>
             </div>
@@ -267,4 +267,4 @@ const BarCodeForm = () => {
   );
 };
 
-export default BarCodeForm;
+export default QRCodeForm;
