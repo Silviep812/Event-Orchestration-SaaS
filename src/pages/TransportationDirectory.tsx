@@ -240,13 +240,13 @@ const TransportationDirectory = () => {
                         <p className="text-sm text-muted-foreground">{profile.description}</p>
                       )}
 
-                      {profile.special_accommodations && profile.special_accommodations.length > 0 && (
+                      {profile.amenities && profile.amenities.length > 0 && (
                         <div>
-                          <p className="text-sm font-medium mb-1">Accommodations:</p>
+                          <p className="text-sm font-medium mb-1">Amenities:</p>
                           <div className="flex flex-wrap gap-1">
-                            {profile.special_accommodations.map((accommodation: string, index: number) => (
+                            {profile.amenities.map((amenity: string, index: number) => (
                               <span key={index} className="text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded">
-                                {accommodation}
+                                {amenity}
                               </span>
                             ))}
                           </div>
