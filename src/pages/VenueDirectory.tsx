@@ -6,9 +6,10 @@ import { Label } from "@/components/ui/label";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Building, Home, Utensils, MapPin, Trees, Dumbbell, Warehouse, Users, Building2, Hotel, ShoppingBag, HelpCircle, Calendar } from "lucide-react";
+import { Building, Home, Utensils, MapPin, Trees, Dumbbell, Warehouse, Users, Building2, Hotel, ShoppingBag, HelpCircle, Calendar, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const VenueDirectory = () => {
   const [venueProfiles, setVenueProfiles] = useState<any[]>([]);
@@ -19,6 +20,11 @@ const VenueDirectory = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [isAddVenueOpen, setIsAddVenueOpen] = useState(false);
+  const [newVenue, setNewVenue] = useState({
+    business_name: '', contact_name: '', email: '', phone_number: '',
+    city: '', state: '', zip: '', capacity: '', venue_type_id: ''
+  });
 
   // Fetch venue profiles and types from Supabase
   useEffect(() => {
@@ -127,11 +133,17 @@ const VenueDirectory = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Venue Directory</h1>
-        <p className="text-muted-foreground">
-          Browse and manage event venues
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Venue Directory</h1>
+          <p className="text-muted-foreground">
+            Browse and manage event venues
+          </p>
+        </div>
+        <Button onClick={() => setIsAddVenueOpen(true)}>
+          <Plus className="w-4 h-4 mr-2" />
+          Add Venue
+        </Button>
       </div>
 
       <Card>
@@ -307,6 +319,65 @@ const VenueDirectory = () => {
           )}
         </CardContent>
       </Card>
+      {/* Add Venue Dialog */}
+      <Dialog open={isAddVenueOpen} onOpenChange={setIsAddVenueOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Venue</DialogTitle>
+          </DialogHeader>
+          <form className="space-y-4" onSubmit={async (e) => {
+            e.preventDefault();
+            if (!user) {
+              toast({ title: 'Error', description: 'You must be logged in to add a venue', variant: 'destructive' });
+              return;
+            }
+            if (!newVenue.business_name.trim()) {
+              toast({ title: 'Error', description: 'Business name is required', variant: 'destructive' });
+              return;
+            }
+            const venueData: any = {
+              business_name: newVenue.business_name.trim(),
+              contact_name: newVenue.contact_name.trim() || null,
+              email: newVenue.email.trim() || null,
+              phone_number: newVenue.phone_number.trim() || null,
+              city: newVenue.city.trim() || null,
+              state: newVenue.state.trim() || null,
+              zip: newVenue.zip.trim() || null,
+              capacity: newVenue.capacity ? parseInt(newVenue.capacity) : null,
+              venue_type_id: newVenue.venue_type_id || null,
+              user_id: user.id,
+            };
+            const { error } = await supabase.from('venue_profiles').insert(venueData);
+            if (error) {
+              toast({ title: 'Error', description: 'Failed to add venue', variant: 'destructive' });
+            } else {
+              toast({ title: 'Venue Added', description: 'Your venue has been added.' });
+              setIsAddVenueOpen(false);
+              setNewVenue({ business_name: '', contact_name: '', email: '', phone_number: '', city: '', state: '', zip: '', capacity: '', venue_type_id: '' });
+              fetchData();
+            }
+          }}>
+            <div><Label>Business Name *</Label><Input value={newVenue.business_name} onChange={e => setNewVenue(v => ({ ...v, business_name: e.target.value }))} /></div>
+            <div><Label>Contact Name</Label><Input value={newVenue.contact_name} onChange={e => setNewVenue(v => ({ ...v, contact_name: e.target.value }))} /></div>
+            <div><Label>Email</Label><Input type="email" value={newVenue.email} onChange={e => setNewVenue(v => ({ ...v, email: e.target.value }))} /></div>
+            <div><Label>Phone</Label><Input value={newVenue.phone_number} onChange={e => setNewVenue(v => ({ ...v, phone_number: e.target.value }))} /></div>
+            <div className="grid grid-cols-3 gap-2">
+              <div><Label>City</Label><Input value={newVenue.city} onChange={e => setNewVenue(v => ({ ...v, city: e.target.value }))} /></div>
+              <div><Label>State</Label><Input value={newVenue.state} onChange={e => setNewVenue(v => ({ ...v, state: e.target.value }))} /></div>
+              <div><Label>Zip</Label><Input value={newVenue.zip} onChange={e => setNewVenue(v => ({ ...v, zip: e.target.value }))} /></div>
+            </div>
+            <div><Label>Capacity</Label><Input type="number" value={newVenue.capacity} onChange={e => setNewVenue(v => ({ ...v, capacity: e.target.value }))} /></div>
+            <div>
+              <Label>Venue Type</Label>
+              <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={newVenue.venue_type_id} onChange={e => setNewVenue(v => ({ ...v, venue_type_id: e.target.value }))}>
+                <option value="">Select type...</option>
+                {venueTypes.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+              </select>
+            </div>
+            <Button type="submit" className="w-full">Add Venue</Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
