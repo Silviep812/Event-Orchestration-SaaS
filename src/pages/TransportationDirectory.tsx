@@ -242,7 +242,7 @@ const TransportationDirectory = () => {
 
                       {profile.amenities && profile.amenities.length > 0 && (
                         <div>
-                          <p className="text-sm font-medium mb-1">Amenities:</p>
+                          
                           <div className="flex flex-wrap gap-1">
                             {profile.amenities.map((amenity: string, index: number) => (
                               <span key={index} className="text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded">
