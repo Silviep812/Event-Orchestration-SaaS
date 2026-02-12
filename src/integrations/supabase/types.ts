@@ -3479,6 +3479,7 @@ export type Database = {
       }
       venue_profiles: {
         Row: {
+          amenities: string[]
           business_name: string
           capacity: number | null
           city: string | null
@@ -3496,6 +3497,7 @@ export type Database = {
           zip: string | null
         }
         Insert: {
+          amenities?: string[]
           business_name: string
           capacity?: number | null
           city?: string | null
@@ -3513,6 +3515,7 @@ export type Database = {
           zip?: string | null
         }
         Update: {
+          amenities?: string[]
           business_name?: string
           capacity?: number | null
           city?: string | null
