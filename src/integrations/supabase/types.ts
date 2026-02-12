@@ -106,30 +106,30 @@ export type Database = {
       }
       "Bookings Directory": {
         Row: {
-          barcode: boolean | null
           book_id: string
           confirmation: boolean | null
           created_at: string
+          QR_Code: boolean | null
           registry: string[] | null
           reservation: boolean | null
           rsvp: boolean | null
           user_id: string | null
         }
         Insert: {
-          barcode?: boolean | null
           book_id: string
           confirmation?: boolean | null
           created_at?: string
+          QR_Code?: boolean | null
           registry?: string[] | null
           reservation?: boolean | null
           rsvp?: boolean | null
           user_id?: string | null
         }
         Update: {
-          barcode?: boolean | null
           book_id?: string
           confirmation?: boolean | null
           created_at?: string
+          QR_Code?: boolean | null
           registry?: string[] | null
           reservation?: boolean | null
           rsvp?: boolean | null
