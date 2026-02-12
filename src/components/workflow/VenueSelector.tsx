@@ -86,7 +86,7 @@ export const VenueSelector = ({ onSelectVenue, selectedVenue }: VenueSelectorPro
       
       // Fetch both venues and venue types
       const [venuesResponse, typesResponse] = await Promise.all([
-        supabase.from('venues').select('*'),
+        supabase.from('venue_profiles').select('*'),
         supabase.from('venue_types').select('*')
       ]);
 
@@ -455,7 +455,7 @@ export const VenueSelector = ({ onSelectVenue, selectedVenue }: VenueSelectorPro
                 venueData.venue_type_id = Number(newVenue.venue_type_id);
               }
               // Save to DB
-              const { data, error } = await supabase.from('venues').insert(venueData).select().single();
+              const { data, error } = await supabase.from('venue_profiles').insert(venueData).select().single();
               if (error) {
                 toast({ title: 'Error', description: 'Failed to add venue', variant: 'destructive' });
               } else {

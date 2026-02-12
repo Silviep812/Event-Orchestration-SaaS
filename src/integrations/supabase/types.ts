@@ -1844,10 +1844,10 @@ export type Database = {
             referencedColumns: ["userid"]
           },
           {
-            foreignKeyName: "reservation_submissions_venue_id_fkey"
+            foreignKeyName: "reservation_submissions_venue_profile_id_fkey"
             columns: ["venue_id"]
             isOneToOne: false
-            referencedRelation: "venues"
+            referencedRelation: "venue_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -3477,28 +3477,7 @@ export type Database = {
         }
         Relationships: []
       }
-      venue_types: {
-        Row: {
-          created_at: string
-          id: number
-          name: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          id?: number
-          name: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          id?: number
-          name?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      venues: {
+      venue_profiles: {
         Row: {
           business_name: string
           capacity: number | null
@@ -3552,13 +3531,34 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "venues_venue_type_id_fkey"
+            foreignKeyName: "venue_profiles_venue_type_id_fkey"
             columns: ["venue_type_id"]
             isOneToOne: false
             referencedRelation: "venue_types"
             referencedColumns: ["id"]
           },
         ]
+      }
+      venue_types: {
+        Row: {
+          created_at: string
+          id: number
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       workflow_types: {
         Row: {
@@ -3681,10 +3681,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "workflows_venue_id_fkey"
+            foreignKeyName: "workflows_venue_profile_id_fkey"
             columns: ["venue_id"]
             isOneToOne: false
-            referencedRelation: "venues"
+            referencedRelation: "venue_profiles"
             referencedColumns: ["id"]
           },
           {
