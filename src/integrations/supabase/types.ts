@@ -1728,21 +1728,6 @@ export type Database = {
         }
         Relationships: []
       }
-      Registration: {
-        Row: {
-          created_at: string
-          id: number
-        }
-        Insert: {
-          created_at?: string
-          id?: number
-        }
-        Update: {
-          created_at?: string
-          id?: number
-        }
-        Relationships: []
-      }
       registry_submissions: {
         Row: {
           book_id: string
