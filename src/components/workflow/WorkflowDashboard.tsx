@@ -392,7 +392,7 @@ export const WorkflowDashboard = ({ userType, selectedTheme, workflowId, setCurr
         // Fetch venue name
         if (workflowData.venue_id) {
           const { data: venue } = await supabase
-            .from('venues')
+            .from('venue_profiles')
             .select('business_name')
             .eq('id', workflowData.venue_id)
             .limit(1)
