@@ -1,13 +1,17 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, Users, UserCheck, Crown, ClipboardList, Eye } from "lucide-react";
+import { Shield, Users, UserCheck, Crown, ClipboardList, Eye, CheckCircle2, XCircle, FileText } from "lucide-react";
 import { PermissionLevel } from "@/lib/permissions";
 import { UnassignedUserCard } from "./UnassignedUserCard";
 import { TeamMemberTaskAssignments } from "./TeamMemberTaskAssignments";
+import { useNavigate } from "react-router-dom";
 
 interface UserRole {
   id: string;
@@ -36,6 +40,18 @@ interface Event {
   organizer_name?: string;
 }
 
+interface ChangeRequest {
+  id: string;
+  title: string;
+  status: string;
+  priority: string;
+  description: string | null;
+  created_at: string;
+  event_id: string | null;
+  requested_by: string | null;
+  field_changes: any;
+}
+
 export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilter?: string }) {
   const [userRoles, setUserRoles] = useState<UserRole[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -44,7 +60,12 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
   const [loading, setLoading] = useState(true);
   const [permissionMappings, setPermissionMappings] = useState<Map<string, PermissionLevel>>(new Map());
   const [dataTimestamp, setDataTimestamp] = useState(Date.now());
+  const [changeRequests, setChangeRequests] = useState<ChangeRequest[]>([]);
+  const [rejectDialog, setRejectDialog] = useState<{ open: boolean; requestId: string | null }>({ open: false, requestId: null });
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const roles = [
     { value: 'event_planner', label: 'Event Planner', description: 'Plan and execute event logistics' },
@@ -83,6 +104,8 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
       await fetchUsers();
       if (!isMounted) return;
       await fetchEvents();
+      if (!isMounted) return;
+      await fetchChangeRequests();
     };
 
     fetchData();
@@ -368,6 +391,57 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
     };
   };
 
+  const fetchChangeRequests = async () => {
+    try {
+      let query = supabase
+        .from('change_requests')
+        .select('id, title, status, priority, description, created_at, event_id, requested_by, field_changes')
+        .in('status', ['pending', 'approved']);
+
+      if (selectedEventFilter && selectedEventFilter !== 'all') {
+        query = query.eq('event_id', selectedEventFilter);
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false });
+      if (error) throw error;
+      setChangeRequests(data || []);
+    } catch (error) {
+      console.error('Error fetching change requests:', error);
+    }
+  };
+
+  const handleChangeRequestAction = async (requestId: string, action: 'approve' | 'reject') => {
+    try {
+      setActionLoading(requestId);
+      const rpcFunction = action === 'approve' ? 'approve_change_request' : 'reject_change_request';
+      const rpcParams: any = { p_change_request_id: requestId };
+      if (action === 'reject') {
+        rpcParams.p_rejection_reason = rejectionReason || 'No reason provided';
+      }
+
+      const { error } = await supabase.rpc(rpcFunction, rpcParams);
+      if (error) throw error;
+
+      toast({
+        title: action === 'approve' ? 'Request Approved' : 'Request Declined',
+        description: `Change request has been ${action === 'approve' ? 'approved' : 'declined'} successfully.`,
+      });
+
+      setRejectDialog({ open: false, requestId: null });
+      setRejectionReason('');
+      await fetchChangeRequests();
+    } catch (error: any) {
+      console.error('Error handling change request:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to process change request.',
+        variant: 'destructive',
+      });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   if (loading) {
     return <div className="flex justify-center py-8">Loading roles...</div>;
   }
@@ -404,34 +478,41 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
       </Card>
 
 
-      {/* Role Assignments */}
+      {/* All Users - Merged Container */}
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold">Current Role Assignments</h3>
+        <h3 className="text-lg font-semibold">
+          All Users ({userRoles.length + usersWithoutRoles.length})
+        </h3>
 
-        {userRoles.length === 0 && usersWithoutRoles.length > 0 ? (
-          <Card className="p-6 text-center">
-            <p className="text-muted-foreground">No role assignments yet. Assign roles to users below.</p>
-          </Card>
-        ) : null}
+        {userRoles.length === 0 && usersWithoutRoles.length === 0 && (
+          <div className="text-center py-12">
+            <Shield className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+            <h3 className="text-lg font-semibold mb-2">No users found</h3>
+            <p className="text-muted-foreground mb-4">Invite team members to get started.</p>
+          </div>
+        )}
 
+        {/* Assigned Users */}
         {userRoles
           .filter((userRole) => {
-            // Filter roles based on selectedEventFilter
             if (selectedEventFilter && selectedEventFilter !== "all") {
-              // Show roles for the selected event OR global roles (event_id is null)
               return userRole.event_id === selectedEventFilter || userRole.event_id === null;
             }
-            // Show all roles when "all" is selected
             return true;
           })
           .map((userRole) => {
             const user = getUserInfo(userRole.user_id);
             const roleInfo = roles.find(r => r.value === userRole.role);
-            // Use the actual database value, with 'viewer' as fallback only if null
             const currentPermission = userRole.permission_level ?? 'viewer';
             const permissionInfo = permissionLevels[currentPermission];
             const PermissionIcon = permissionInfo?.icon;
             const assignedEvent = events.find(e => e.id === userRole.event_id);
+
+            // Get pending change requests for this user's event
+            const userChangeRequests = changeRequests.filter(cr =>
+              cr.status === 'pending' &&
+              (cr.event_id === userRole.event_id || (!cr.event_id && !userRole.event_id))
+            );
 
             return (
               <Card key={userRole.id}>
@@ -480,8 +561,6 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
                           key={`${userRole.id}-role-${dataTimestamp}-${userRole.role}`}
                           value={userRole.role}
                           onValueChange={(newRole) => {
-                            console.log('[RoleManager] Role changed to:', newRole, 'for user:', userRole.user_id);
-                            // Only change role, keep current permission
                             changeRole(userRole.id, userRole.user_id, newRole as any, currentPermission, userRole.event_id);
                           }}
                         >
@@ -527,60 +606,142 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
                     {roleInfo?.description && (
                       <p className="text-sm text-muted-foreground">{roleInfo.description}</p>
                     )}
+
+                    {/* Pending Change Requests for this role/event */}
+                    {userChangeRequests.length > 0 && (
+                      <div className="mt-3 border-t pt-3 space-y-2">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                          Pending Change Requests ({userChangeRequests.length})
+                        </p>
+                        {userChangeRequests.map((cr) => (
+                          <div key={cr.id} className="p-3 rounded-lg border bg-muted/30 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Badge className="bg-purple-100 text-purple-800 border-purple-200 text-xs">
+                                  Change Request
+                                </Badge>
+                                <span className="text-sm font-medium">{cr.title}</span>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 text-xs text-purple-600 hover:text-purple-800"
+                                onClick={() => navigate(`/dashboard/change-requests/${cr.id}`)}
+                              >
+                                <FileText className="h-3 w-3 mr-1" />
+                                View Details
+                              </Button>
+                            </div>
+                            {cr.description && (
+                              <p className="text-xs text-muted-foreground">{cr.description}</p>
+                            )}
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                variant="default"
+                                className="h-7 text-xs bg-green-600 hover:bg-green-700"
+                                disabled={actionLoading === cr.id}
+                                onClick={() => handleChangeRequestAction(cr.id, 'approve')}
+                              >
+                                <CheckCircle2 className="h-3 w-3 mr-1" />
+                                Accept
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                className="h-7 text-xs"
+                                disabled={actionLoading === cr.id}
+                                onClick={() => setRejectDialog({ open: true, requestId: cr.id })}
+                              >
+                                <XCircle className="h-3 w-3 mr-1" />
+                                Decline
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
             );
           })}
+
+        {/* Unassigned Users - in the same container */}
+        {usersWithoutRoles.map((user) => (
+          <UnassignedUserCard
+            key={user.id}
+            user={user}
+            roles={roles}
+            events={events}
+            permissionLevels={permissionLevels}
+            permissionMappings={permissionMappings}
+            selectedEventFilter={selectedEventFilter}
+            onAssign={async (userId, role, permissionLevel, eventId) => {
+              const response = await supabase.functions.invoke('assign-user-role', {
+                body: { userId, role, permissionLevel, eventId },
+              });
+              const error = response.error || (response.data && !response.data.success ? { message: response.data.error || 'Unknown error' } : null);
+
+              if (error) {
+                toast({
+                  title: "Error assigning role",
+                  description: error.message,
+                  variant: "destructive",
+                });
+              } else {
+                toast({
+                  title: "Role assigned",
+                  description: "User role has been assigned successfully.",
+                });
+                await fetchUsers();
+              }
+            }}
+          />
+        ))}
       </div>
 
-      {/* Users Without Roles Section */}
-      {usersWithoutRoles.length > 0 && (
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Users Without Roles</h3>
-
-          {usersWithoutRoles.map((user) => (
-            <UnassignedUserCard
-              key={user.id}
-              user={user}
-              roles={roles}
-              events={events}
-              permissionLevels={permissionLevels}
-              permissionMappings={permissionMappings}
-              selectedEventFilter={selectedEventFilter}
-              onAssign={async (userId, role, permissionLevel, eventId) => {
-                // Use edge function with service role to bypass RLS
-                const response = await supabase.functions.invoke('assign-user-role', {
-                  body: { userId, role, permissionLevel, eventId },
-                });
-                const error = response.error || (response.data && !response.data.success ? { message: response.data.error || 'Unknown error' } : null);
-
-                if (error) {
-                  toast({
-                    title: "Error assigning role",
-                    description: error.message,
-                    variant: "destructive",
-                  });
-                } else {
-                  toast({
-                    title: "Role assigned",
-                    description: "User role has been assigned successfully.",
-                  });
-                  await fetchUsers();
+      {/* Rejection Reason Dialog */}
+      <Dialog open={rejectDialog.open} onOpenChange={(open) => {
+        if (!open) {
+          setRejectDialog({ open: false, requestId: null });
+          setRejectionReason('');
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Decline Change Request</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <label className="text-sm font-medium">Reason for declining</label>
+            <Textarea
+              placeholder="Enter reason for declining this change request..."
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              rows={3}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setRejectDialog({ open: false, requestId: null });
+              setRejectionReason('');
+            }}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={actionLoading === rejectDialog.requestId}
+              onClick={() => {
+                if (rejectDialog.requestId) {
+                  handleChangeRequestAction(rejectDialog.requestId, 'reject');
                 }
               }}
-            />
-          ))}
-        </div>
-      )}
-
-      {userRoles.length === 0 && usersWithoutRoles.length === 0 && (
-        <div className="text-center py-12">
-          <Shield className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-          <h3 className="text-lg font-semibold mb-2">No users found</h3>
-          <p className="text-muted-foreground mb-4">Invite team members to get started.</p>
-        </div>
-      )}
+            >
+              Decline Request
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Team Member Task Assignments */}
       <TeamMemberTaskAssignments />
