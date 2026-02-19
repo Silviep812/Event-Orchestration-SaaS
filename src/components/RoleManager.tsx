@@ -555,15 +555,11 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
               permissionMappings={permissionMappings}
               selectedEventFilter={selectedEventFilter}
               onAssign={async (userId, role, permissionLevel, eventId) => {
-                // For new assignments, create a new role
-                const { error } = await supabase
-                  .from('user_roles')
-                  .insert({
-                    user_id: userId,
-                    role: role as any,
-                    permission_level: permissionLevel,
-                    event_id: eventId
-                  });
+                // Use edge function with service role to bypass RLS
+                const response = await supabase.functions.invoke('assign-user-role', {
+                  body: { userId, role, permissionLevel, eventId },
+                });
+                const error = response.error || (response.data && !response.data.success ? { message: response.data.error || 'Unknown error' } : null);
 
                 if (error) {
                   toast({

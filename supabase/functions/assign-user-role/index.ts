@@ -20,6 +20,8 @@ const corsHeaders = {
 interface AssignRoleRequest {
   userId: string;
   role: string;
+  permissionLevel?: string;
+  eventId?: string | null;
 }
 
 serve(async (req) => {
@@ -67,9 +69,20 @@ serve(async (req) => {
     }
 
     // Upsert role using service role to bypass RLS safely
+    const insertData: Record<string, unknown> = {
+      user_id: body.userId,
+      role: body.role as any,
+    };
+    if (body.permissionLevel) {
+      insertData.permission_level = body.permissionLevel;
+    }
+    if (body.eventId !== undefined) {
+      insertData.event_id = body.eventId;
+    }
+
     const { error: upsertError } = await supabase
       .from("user_roles")
-      .upsert({ user_id: body.userId, role: body.role as any }, { onConflict: "user_id,role" });
+      .upsert(insertData as any, { onConflict: "user_id,role" });
 
     if (upsertError) {
       console.error("assign-user-role upsert error", upsertError);
