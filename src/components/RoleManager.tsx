@@ -47,16 +47,13 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
   const { toast } = useToast();
 
   const roles = [
-    { value: 'manager', label: 'Manager', description: 'Full access to manage events, users, and system settings' },
     { value: 'event_planner', label: 'Event Planner', description: 'Plan and execute event logistics' },
     { value: 'organizer', label: 'Organizer', description: 'Organize and coordinate event details' },
     { value: 'partner', label: 'Partner', description: 'Collaborate on event planning and execution' },
     { value: 'host', label: 'Host', description: 'Host and manage events' },
-    { value: 'venue_owner', label: 'Venue Owner', description: 'Manage venue-related information' },
-    { value: 'venue_manager', label: 'Venue Manager', description: 'Manage venue operations and bookings' },
+    { value: 'venue_owner', label: 'Venue Owner or Venue Manager', description: 'Manage venue-related information and operations' },
     { value: 'sponsor', label: 'Sponsor', description: 'Sponsor events and track sponsorship details' },
     { value: 'stakeholder', label: 'Stakeholder', description: 'View event progress and key metrics' },
-    { value: 'hospitality_provider', label: 'Hospitality Provider', description: 'Provide hospitality services' }
   ];
 
   const permissionLevels = {
@@ -66,16 +63,13 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
   };
 
   const roleColors: Record<string, string> = {
-    manager: "bg-destructive/10 text-destructive",
     event_planner: "bg-secondary/50 text-secondary-foreground",
     organizer: "bg-accent/50 text-accent-foreground",
     partner: "bg-primary/10 text-primary",
     host: "bg-primary/20 text-primary",
     venue_owner: "bg-muted text-muted-foreground",
-    venue_manager: "bg-muted text-muted-foreground",
     sponsor: "bg-accent/30 text-accent-foreground",
     stakeholder: "bg-secondary/30 text-secondary-foreground",
-    hospitality_provider: "bg-primary/20 text-primary"
   };
 
   useEffect(() => {
