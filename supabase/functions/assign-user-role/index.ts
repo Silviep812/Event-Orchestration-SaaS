@@ -68,7 +68,7 @@ serve(async (req) => {
       );
     }
 
-    // Upsert role using service role to bypass RLS safely
+    // Insert role using service role to bypass RLS safely
     const insertData: Record<string, unknown> = {
       user_id: body.userId,
       role: body.role as any,
@@ -80,14 +80,14 @@ serve(async (req) => {
       insertData.event_id = body.eventId;
     }
 
-    const { error: upsertError } = await supabase
+    const { error: insertError } = await supabase
       .from("user_roles")
-      .upsert(insertData as any, { onConflict: "user_id,role" });
+      .insert(insertData as any);
 
-    if (upsertError) {
-      console.error("assign-user-role upsert error", upsertError);
+    if (insertError) {
+      console.error("assign-user-role insert error", insertError);
       return new Response(
-        JSON.stringify({ success: false, error: upsertError.message }),
+        JSON.stringify({ success: false, error: insertError.message }),
         { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } },
       );
     }
