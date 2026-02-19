@@ -7,6 +7,12 @@ import { Save } from "lucide-react";
 
 export type ResourceStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled';
 
+export interface ChecklistItem {
+  id: string;
+  label: string;
+  completed: boolean;
+}
+
 export interface ResourceAssignment {
   selected: boolean;
   status: ResourceStatus;
@@ -16,6 +22,86 @@ export interface ResourceAssignment {
   start_date?: string;
   end_date?: string;
   dependencies?: string[];
+  checklist?: ChecklistItem[];
+}
+
+// Predefined checklist items per resource category (except Themes/Marketing)
+export const RESOURCE_CHECKLISTS: Record<string, string[]> = {
+  Bookings: [
+    'Confirm booking date & time',
+    'Verify booking reference number',
+    'Review cancellation policy',
+    'Send booking confirmation to client',
+    'Arrange payment or deposit',
+  ],
+  Vendors: [
+    'Contact vendor for availability',
+    'Review and sign contract',
+    'Confirm pricing and payment terms',
+    'Schedule delivery or setup time',
+    'Verify insurance and licenses',
+  ],
+  Venues: [
+    'Site visit completed',
+    'Confirm venue capacity',
+    'Review venue contract and terms',
+    'Verify AV and equipment availability',
+    'Coordinate setup and teardown schedule',
+    'Confirm parking and accessibility',
+  ],
+  Hospitality: [
+    'Confirm room block or reservations',
+    'Verify check-in/check-out dates',
+    'Arrange amenities and special requests',
+    'Confirm catering or meal arrangements',
+    'Send guest accommodation details',
+  ],
+  'Vendor Service Rental/Buy': [
+    'Request rental/purchase quote',
+    'Confirm availability for event dates',
+    'Review rental agreement terms',
+    'Schedule delivery and pickup',
+    'Inspect equipment condition',
+  ],
+  'Service Vendor': [
+    'Verify service vendor credentials',
+    'Confirm scope of services',
+    'Review service agreement',
+    'Schedule service delivery timeline',
+    'Arrange on-site point of contact',
+  ],
+  Transportation: [
+    'Confirm vehicle type and capacity',
+    'Verify route and travel time',
+    'Arrange pickup and drop-off schedule',
+    'Confirm driver details and contact',
+    'Review transportation insurance',
+  ],
+  Entertainment: [
+    'Confirm performer/act availability',
+    'Review performance requirements',
+    'Arrange sound and lighting needs',
+    'Confirm set time and duration',
+    'Coordinate backstage/green room',
+  ],
+  Suppliers: [
+    'Confirm supply order quantities',
+    'Verify delivery date and location',
+    'Review quality specifications',
+    'Arrange storage for supplies',
+    'Confirm return/refund policy',
+  ],
+};
+
+// Generate default checklist for a category
+export function getDefaultChecklist(category: string): ChecklistItem[] {
+  const items = RESOURCE_CHECKLISTS[category];
+  if (!items) return [];
+  return items.map((label, index) => ({
+    id: `${category.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${index}`,
+    label,
+    completed: false,
+  }));
 }
 
 export const RESOURCE_CATEGORIES = [
@@ -290,7 +376,8 @@ export function getEmptyResourceAssignments(): Record<string, ResourceAssignment
       due_date: '',
       start_date: '',
       end_date: '',
-      dependencies: []
+      dependencies: [],
+      checklist: getDefaultChecklist(category),
     };
   });
   
