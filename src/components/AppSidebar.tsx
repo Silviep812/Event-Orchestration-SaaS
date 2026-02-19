@@ -185,7 +185,7 @@ const menuGroups = [
         hoverColor: "hover:bg-orange-50"
       },
       {
-        title: "Service Vendor",
+        title: "Vendor Service",
         url: "/dashboard/service-vendor",
         icon: Truck,
         color: "text-orange-600",
