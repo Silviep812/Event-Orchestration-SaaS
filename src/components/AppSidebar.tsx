@@ -178,7 +178,7 @@ const menuGroups = [
         hoverColor: "hover:bg-orange-50"
       },
       {
-        title: "Vendor Service Rental/Buy",
+        title: "Rental Service",
         url: "/dashboard/vendor-service",
         icon: ShoppingCart,
         color: "text-orange-600",
