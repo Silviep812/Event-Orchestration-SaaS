@@ -753,15 +753,18 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
 
     if (!validationResult.success) {
       const errors: Record<string, string> = {};
+      const errorMessages: string[] = [];
       validationResult.error.issues.forEach((issue) => {
         if (issue.path[0]) {
-          errors[issue.path[0].toString()] = issue.message;
+          const field = issue.path[0].toString();
+          errors[field] = issue.message;
+          errorMessages.push(issue.message);
         }
       });
       setValidationErrors(errors);
       toast({
         title: "Validation Error",
-        description: "Please fix the errors in the form before submitting.",
+        description: errorMessages.join(". ") || "Please fix the errors in the form before submitting.",
         variant: "destructive",
       });
       return;
