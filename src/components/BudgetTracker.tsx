@@ -196,7 +196,8 @@ export function BudgetTracker({ eventId, selectedEventFilter }: BudgetTrackerPro
       item_name: ""
     };
 
-    if (!newItem.event_id.trim()) {
+    const resolvedEvent = newItem.event_id || eventId || selectedEventFilter || "";
+    if (!resolvedEvent.trim() || resolvedEvent === 'all') {
       errors.event_id = "Project is required";
     }
     if (!newItem.category.trim()) {
@@ -217,6 +218,16 @@ export function BudgetTracker({ eventId, selectedEventFilter }: BudgetTrackerPro
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
+    const resolvedEventId = newItem.event_id || eventId || selectedEventFilter;
+      if (!resolvedEventId || resolvedEventId === 'all') {
+        toast({
+          title: "Event required",
+          description: "Please select a specific event for this budget item.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const itemData = {
         category: newItem.category as any,
         item_name: newItem.item_name,
@@ -225,7 +236,7 @@ export function BudgetTracker({ eventId, selectedEventFilter }: BudgetTrackerPro
         vendor_name: newItem.vendor_name || null,
         vendor_contact: newItem.vendor_contact || null,
         payment_due_date: newItem.payment_due_date || null,
-        event_id: newItem.event_id || eventId || null,
+        event_id: resolvedEventId,
         created_by: user.id
       };
 
@@ -452,8 +463,6 @@ export function BudgetTracker({ eventId, selectedEventFilter }: BudgetTrackerPro
                       <SelectItem value="marketing">Marketing</SelectItem>
                       <SelectItem value="supplies">Supplies</SelectItem>
                       <SelectItem value="services">Services</SelectItem>
-                      <SelectItem value="vendors">Vendors</SelectItem>
-                      <SelectItem value="misc">Miscellaneous</SelectItem>
                       <SelectItem value="other">Other</SelectItem>
                     </SelectContent>
                   </Select>
