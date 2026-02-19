@@ -2,14 +2,12 @@ import { TaskManager } from "@/components/TaskManager";
 import { BudgetTracker } from "@/components/BudgetTracker";
 import { RoleManager } from "@/components/RoleManager";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useEventFilter } from "@/hooks/useEventFilter";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { CheckCircle2, Clock, DollarSign, Users, RefreshCw } from "lucide-react";
+import { CheckCircle2, DollarSign, Users, RefreshCw, LayoutDashboard } from "lucide-react";
 import { format } from "date-fns";
 import { useState } from "react";
 
@@ -54,38 +52,50 @@ export default function ProjectManagement() {
     }
   };
 
+  const selectedEvent = events.find(e => e.id === selectedEventFilter);
+
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Project Management</h1>
-          <p className="text-muted-foreground">
-            Manage tasks, track budgets, and assign collaborators for your events
-          </p>
+    <div className="container mx-auto p-4 md:p-6 space-y-6 max-w-7xl">
+      {/* Header */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-primary/10">
+            <LayoutDashboard className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Project Management</h1>
+            <p className="text-sm text-muted-foreground">
+              Manage tasks, budgets, and collaborators for your events
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-4">
-          <Label htmlFor="event-filter" className="text-sm font-medium">
-            Filter by Event:
-          </Label>
-          <Select value={selectedEventFilter} onValueChange={setSelectedEventFilter}>
-            <SelectTrigger className="w-64">
-              <SelectValue placeholder="Select an event to filter" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Events</SelectItem>
-              {events.map((event) => (
-                <SelectItem key={event.id} value={event.id}>
-                  {event.title} {event.start_date && `(${format(new Date(event.start_date), 'MMM d, yyyy')})`}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+
+        {/* Controls Bar */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-3 rounded-lg border bg-card">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">Event:</span>
+            <Select value={selectedEventFilter} onValueChange={setSelectedEventFilter}>
+              <SelectTrigger className="w-full sm:w-72">
+                <SelectValue placeholder="Select an event" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Events</SelectItem>
+                {events.map((event) => (
+                  <SelectItem key={event.id} value={event.id}>
+                    {event.title} {event.start_date && `(${format(new Date(event.start_date), 'MMM d, yyyy')})`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           {selectedEventFilter && selectedEventFilter !== 'all' && (
             <Button
               onClick={handleRecalculateTimeline}
               disabled={isRecalculating}
               variant="outline"
-              className="flex items-center gap-2"
+              size="sm"
+              className="flex items-center gap-2 whitespace-nowrap"
             >
               <RefreshCw className={`h-4 w-4 ${isRecalculating ? 'animate-spin' : ''}`} />
               {isRecalculating ? 'Recalculating...' : 'Recalculate Timeline'}
@@ -94,19 +104,20 @@ export default function ProjectManagement() {
         </div>
       </div>
 
-      <Tabs defaultValue="tasks" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="tasks" className="flex items-center gap-2">
+      {/* Main Tabs */}
+      <Tabs defaultValue="tasks" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-3 h-11">
+          <TabsTrigger value="tasks" className="flex items-center gap-2 text-sm">
             <CheckCircle2 className="h-4 w-4" />
-            Tasks
+            <span className="hidden sm:inline">Tasks</span>
           </TabsTrigger>
-          <TabsTrigger value="budget" className="flex items-center gap-2">
+          <TabsTrigger value="budget" className="flex items-center gap-2 text-sm">
             <DollarSign className="h-4 w-4" />
-            Budget
+            <span className="hidden sm:inline">Budget</span>
           </TabsTrigger>
-          <TabsTrigger value="roles" className="flex items-center gap-2">
+          <TabsTrigger value="roles" className="flex items-center gap-2 text-sm">
             <Users className="h-4 w-4" />
-            Collaborators
+            <span className="hidden sm:inline">Collaborators</span>
           </TabsTrigger>
         </TabsList>
 
