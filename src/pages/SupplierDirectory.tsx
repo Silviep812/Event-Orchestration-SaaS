@@ -92,7 +92,7 @@ export default function SupplierDirectory() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Supplier Directory</h1>
+        <h1 className="text-3xl font-bold">External Vendor</h1>
         <p className="text-muted-foreground">
           Browse and select suppliers for your event needs
         </p>
