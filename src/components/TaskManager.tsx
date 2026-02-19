@@ -744,7 +744,12 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
   };
 
   const createTask = async () => {
-    const validationResult = createTaskSchema.safeParse({ ...newTask, dependencies: [] });
+    const taskToValidate = {
+      ...newTask,
+      dependencies: [],
+      selected_event_id: newTask.selected_event_id || eventId || "",
+    };
+    const validationResult = createTaskSchema.safeParse(taskToValidate);
 
     if (!validationResult.success) {
       const errors: Record<string, string> = {};
