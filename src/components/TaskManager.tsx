@@ -744,10 +744,11 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
   };
 
   const createTask = async () => {
+    const resolvedEventId = newTask.selected_event_id || eventId || (selectedEventFilter !== 'all' ? selectedEventFilter : '') || "";
     const taskToValidate = {
       ...newTask,
       dependencies: [],
-      selected_event_id: newTask.selected_event_id || eventId || "",
+      selected_event_id: resolvedEventId,
     };
     const validationResult = createTaskSchema.safeParse(taskToValidate);
 
@@ -801,7 +802,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         end_date: endDate,
         start_time: newTask.start_time || null,
         end_time: newTask.end_time || null,
-        event_id: eventId || newTask.selected_event_id || null,
+        event_id: newTask.selected_event_id || eventId || (selectedEventFilter && selectedEventFilter !== 'all' ? selectedEventFilter : null),
         created_by: user.id,
         category: getSelectedCategories(resourceAssignments).join(', ') || null,
         assigned_to: null, // Removed user assignment dropdown, only using coordinator assignment
