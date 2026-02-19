@@ -101,7 +101,7 @@ const VendorServiceDirectory = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Vendor Service Rental/Buy Directory</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Vendor Service</h1>
         <p className="text-muted-foreground">
           Browse vendor services and rental options
         </p>
