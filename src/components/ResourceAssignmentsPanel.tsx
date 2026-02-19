@@ -3,9 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronDown, ChevronUp, Plus, Save, X } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ChevronDown, ChevronUp, Plus, Save, X, ClipboardList } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ResourceAssignment, ResourceStatus, RESOURCE_CATEGORIES, getEmptyResourceAssignments } from "@/components/ResourceColumn";
+import { ResourceAssignment, ResourceStatus, RESOURCE_CATEGORIES, getEmptyResourceAssignments, ChecklistItem, getDefaultChecklist } from "@/components/ResourceColumn";
 import { DependencyMultiSelect } from "@/components/DependencyMultiSelect";
 
 interface AvailableTask {
@@ -48,7 +49,21 @@ function ResourceCard({
   const [localDueDate, setLocalDueDate] = useState(assignment.due_date || "");
   const [localStartDate, setLocalStartDate] = useState(assignment.start_date || "");
   const [localEndDate, setLocalEndDate] = useState(assignment.end_date || "");
+  const [checklistOpen, setChecklistOpen] = useState(false);
 
+  // Initialize checklist from assignment or defaults
+  const checklist: ChecklistItem[] = assignment.checklist && assignment.checklist.length > 0
+    ? assignment.checklist
+    : getDefaultChecklist(category);
+
+  const completedCount = checklist.filter((item) => item.completed).length;
+
+  const handleChecklistToggle = (itemId: string, checked: boolean) => {
+    const updatedChecklist = checklist.map((item) =>
+      item.id === itemId ? { ...item, completed: checked } : item
+    );
+    onUpdate({ ...assignment, checklist: updatedChecklist });
+  };
   // Sync local state when assignment prop changes
   useEffect(() => {
     setLocalCollaborator(assignment.collaborator_name || "");
@@ -201,7 +216,7 @@ function ResourceCard({
       </div>
 
       {/* Dependencies */}
-      <div onClick={(e) => e.stopPropagation()}>
+      <div className="mb-3" onClick={(e) => e.stopPropagation()}>
         <label className="text-sm font-medium text-foreground block mb-1">Dependencies</label>
         <DependencyMultiSelect
           selectedDependencies={assignment.dependencies || []}
@@ -209,6 +224,63 @@ function ResourceCard({
           onChange={(deps) => onUpdate({ ...assignment, dependencies: deps })}
         />
       </div>
+
+      {/* Checklist */}
+      {checklist.length > 0 && (
+        <div onClick={(e) => e.stopPropagation()}>
+          <Collapsible open={checklistOpen} onOpenChange={setChecklistOpen}>
+            <CollapsibleTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full flex items-center justify-between h-8 px-2 hover:bg-muted/50 mb-1"
+              >
+                <div className="flex items-center gap-1.5">
+                  <ClipboardList className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="text-xs font-medium">Checklist</span>
+                  <Badge variant="secondary" className="text-[10px] h-4 px-1">
+                    {completedCount}/{checklist.length}
+                  </Badge>
+                </div>
+                {checklistOpen ? (
+                  <ChevronUp className="h-3 w-3" />
+                ) : (
+                  <ChevronDown className="h-3 w-3" />
+                )}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="space-y-1.5 pl-1">
+                {checklist.map((item) => (
+                  <div key={item.id} className="flex items-start gap-2">
+                    <Checkbox
+                      id={`checklist-${category}-${item.id}`}
+                      checked={item.completed}
+                      onCheckedChange={(checked) => handleChecklistToggle(item.id, !!checked)}
+                      className="mt-0.5"
+                    />
+                    <label
+                      htmlFor={`checklist-${category}-${item.id}`}
+                      className={`text-xs cursor-pointer leading-snug ${
+                        item.completed ? "line-through text-muted-foreground" : "text-foreground"
+                      }`}
+                    >
+                      {item.label}
+                    </label>
+                  </div>
+                ))}
+              </div>
+              {/* Progress bar */}
+              <div className="mt-2 h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-primary rounded-full transition-all duration-300"
+                  style={{ width: `${checklist.length > 0 ? (completedCount / checklist.length) * 100 : 0}%` }}
+                />
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+        </div>
+      )}
     </div>
   );
 }
