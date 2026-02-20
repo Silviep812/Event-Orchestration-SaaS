@@ -68,9 +68,7 @@ export function TeamMemberTaskAssignments() {
         .select('display_name, user_id')
         .not('display_name', 'is', null);
 
-      if (profilesError) {
-        console.error('Error fetching profiles:', profilesError);
-      }
+      if (profilesError) throw profilesError;
 
       // Combine existing collaborators with all users from profiles
       const profileNames = profiles?.map(p => p.display_name) || [];
@@ -83,7 +81,6 @@ export function TeamMemberTaskAssignments() {
         email: '' // Not needed for this use case
       }));
 
-      console.log('[TeamMemberTaskAssignments] Loaded collaborators:', allUsers.length, allUsers);
       setAllUsers(allUsers);
 
       // Fetch all tasks with their categories
@@ -181,7 +178,7 @@ export function TeamMemberTaskAssignments() {
 
       setTeamMembers(teamMembersData);
     } catch (error) {
-      console.error('Error fetching task assignments:', error);
+      // Error fetching task assignments
     } finally {
       setLoading(false);
     }
@@ -219,7 +216,7 @@ export function TeamMemberTaskAssignments() {
       toast.success('Task assigned successfully');
       fetchTaskAssignments();
     } catch (error) {
-      console.error('Error assigning task:', error);
+      // Error assigning task
       toast.error('Failed to assign task');
     }
   };
@@ -240,7 +237,7 @@ export function TeamMemberTaskAssignments() {
       toast.success('Task reassigned successfully');
       fetchTaskAssignments();
     } catch (error) {
-      console.error('Error reassigning task:', error);
+      // Error reassigning task
       toast.error('Failed to reassign task');
     }
   };
