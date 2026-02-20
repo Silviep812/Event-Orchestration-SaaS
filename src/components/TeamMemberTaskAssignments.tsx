@@ -106,11 +106,13 @@ export function TeamMemberTaskAssignments() {
         'Bookings'
       ];
 
-      // Filter tasks to only show resource-type tasks
-      const filteredTasks = tasks?.filter(task =>
-        resourceCategories.includes(task.category) ||
-        task.title === 'Lee Task Team'
-      ) || [];
+      // Filter tasks to only show resource-type tasks (supports comma-separated categories)
+      const filteredTasks = tasks?.filter(task => {
+        if (!task.category) return false;
+        const taskCategories = task.category.split(',').map(c => c.trim());
+        return taskCategories.some(cat => resourceCategories.includes(cat)) ||
+          task.title === 'Lee Task Team';
+      }) || [];
 
       // Fetch event titles separately
       const eventIds = [...new Set(filteredTasks?.map(t => t.event_id).filter(Boolean))];
