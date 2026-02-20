@@ -1723,7 +1723,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     }}
                     onCollaboratorSave={async (category, collaboratorName) => {
                       const currentAssignment = task.resource_assignments?.[category] || 
-                        { selected: false, status: 'pending' as const, confirmed: false, collaborator_name: '', due_date: '', start_date: '', end_date: '', dependencies: [] };
+                        { selected: false, status: 'pending' as const, confirmed: false, collaborator_name: '', due_date: '', start_date: '', end_date: '', dependencies: [], checklist: [] };
                       const updatedAssignments = {
                         ...(task.resource_assignments || getEmptyResourceAssignments()),
                         [category]: {
@@ -1764,7 +1764,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     }}
                     onDatesSave={async (category, dates) => {
                       const currentAssignment = task.resource_assignments?.[category] || 
-                        { selected: false, status: 'pending' as const, confirmed: false, collaborator_name: '', due_date: '', start_date: '', end_date: '', dependencies: [] };
+                        { selected: false, status: 'pending' as const, confirmed: false, collaborator_name: '', due_date: '', start_date: '', end_date: '', dependencies: [], checklist: [] };
                       const updatedAssignments = {
                         ...(task.resource_assignments || getEmptyResourceAssignments()),
                         [category]: {
