@@ -94,25 +94,8 @@ export function TeamMemberTaskAssignments() {
 
       if (tasksError) throw tasksError;
 
-      // Define valid resource type categories
-      const resourceCategories = [
-        'Venue',
-        'Transportation',
-        'Service Vendor',
-        'Vendor Service Rental/Buy',
-        'Hospitality',
-        'Supplier',
-        'Entertainment',
-        'Bookings'
-      ];
-
-      // Filter tasks to only show resource-type tasks (supports comma-separated categories)
-      const filteredTasks = tasks?.filter(task => {
-        if (!task.category) return false;
-        const taskCategories = task.category.split(',').map(c => c.trim());
-        return taskCategories.some(cat => resourceCategories.includes(cat)) ||
-          task.title === 'Lee Task Team';
-      }) || [];
+      // Show all tasks (no category filtering)
+      const filteredTasks = tasks || [];
 
       // Fetch event titles separately
       const eventIds = [...new Set(filteredTasks?.map(t => t.event_id).filter(Boolean))];
