@@ -14,7 +14,7 @@ interface ResourceCardProps {
   assignment: ResourceAssignment;
   onAssignmentChange: (assignment: ResourceAssignment) => void;
   onCollaboratorSave?: (collaboratorName: string) => void;
-  onDatesSave?: (dates: { due_date?: string; start_date?: string; end_date?: string }) => void;
+  onDatesSave?: (dates: { due_date?: string; start_date?: string; end_date?: string; start_time?: string; end_time?: string }) => void;
   availableTasks?: AvailableTask[];
 }
 
@@ -30,6 +30,8 @@ export function ResourceCard({
   const [localDueDate, setLocalDueDate] = useState(assignment.due_date || '');
   const [localStartDate, setLocalStartDate] = useState(assignment.start_date || '');
   const [localEndDate, setLocalEndDate] = useState(assignment.end_date || '');
+  const [localStartTime, setLocalStartTime] = useState(assignment.start_time || '');
+  const [localEndTime, setLocalEndTime] = useState(assignment.end_time || '');
 
   // Sync local state when assignment prop changes
   useEffect(() => {
@@ -37,7 +39,9 @@ export function ResourceCard({
     setLocalDueDate(assignment.due_date || '');
     setLocalStartDate(assignment.start_date || '');
     setLocalEndDate(assignment.end_date || '');
-  }, [assignment.collaborator_name, assignment.due_date, assignment.start_date, assignment.end_date, category]);
+    setLocalStartTime(assignment.start_time || '');
+    setLocalEndTime(assignment.end_time || '');
+  }, [assignment.collaborator_name, assignment.due_date, assignment.start_date, assignment.end_date, assignment.start_time, assignment.end_time, category]);
 
   // Debounced save for collaborator changes
   useEffect(() => {
@@ -56,19 +60,23 @@ export function ResourceCard({
     }
   }, [localCollaborator]);
 
-  // Debounced save for date changes
+  // Debounced save for date/time changes
   useEffect(() => {
     const hasChanges = 
       localDueDate !== (assignment.due_date || '') ||
       localStartDate !== (assignment.start_date || '') ||
-      localEndDate !== (assignment.end_date || '');
+      localEndDate !== (assignment.end_date || '') ||
+      localStartTime !== (assignment.start_time || '') ||
+      localEndTime !== (assignment.end_time || '');
     
     if (hasChanges) {
       const timer = setTimeout(() => {
         const dates = {
           due_date: localDueDate || undefined,
           start_date: localStartDate || undefined,
-          end_date: localEndDate || undefined
+          end_date: localEndDate || undefined,
+          start_time: localStartTime || undefined,
+          end_time: localEndTime || undefined
         };
         if (onDatesSave) {
           onDatesSave(dates);
@@ -81,7 +89,7 @@ export function ResourceCard({
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [localDueDate, localStartDate, localEndDate]);
+  }, [localDueDate, localStartDate, localEndDate, localStartTime, localEndTime]);
 
   return (
     <div className="border rounded-lg p-4 bg-card">
@@ -100,6 +108,8 @@ export function ResourceCard({
               due_date: checked ? assignment.due_date : '',
               start_date: checked ? assignment.start_date : '',
               end_date: checked ? assignment.end_date : '',
+              start_time: checked ? assignment.start_time : '',
+              end_time: checked ? assignment.end_time : '',
               dependencies: checked ? assignment.dependencies : []
             });
             if (!checked) {
@@ -107,6 +117,8 @@ export function ResourceCard({
               setLocalDueDate('');
               setLocalStartDate('');
               setLocalEndDate('');
+              setLocalStartTime('');
+              setLocalEndTime('');
             }
           }}
         />
@@ -182,7 +194,7 @@ export function ResourceCard({
         />
       </div>
       
-      {/* Timeline - compact 3-column display */}
+      {/* Timeline - dates and times */}
       <div className="space-y-1 mb-3">
         <label className="text-sm text-muted-foreground">Timeline</label>
         <div className="grid grid-cols-3 gap-2">
@@ -197,7 +209,7 @@ export function ResourceCard({
             />
           </div>
           <div className="space-y-0.5">
-            <span className="text-xs text-muted-foreground">Start</span>
+            <span className="text-xs text-muted-foreground">Start Date</span>
             <Input
               type="date"
               value={localStartDate}
@@ -207,11 +219,33 @@ export function ResourceCard({
             />
           </div>
           <div className="space-y-0.5">
-            <span className="text-xs text-muted-foreground">End</span>
+            <span className="text-xs text-muted-foreground">End Date</span>
             <Input
               type="date"
               value={localEndDate}
               onChange={(e) => setLocalEndDate(e.target.value)}
+              disabled={!assignment.selected}
+              className="h-8 text-sm px-2"
+            />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-2 mt-2">
+          <div className="space-y-0.5">
+            <span className="text-xs text-muted-foreground">Start Time</span>
+            <Input
+              type="time"
+              value={localStartTime}
+              onChange={(e) => setLocalStartTime(e.target.value)}
+              disabled={!assignment.selected}
+              className="h-8 text-sm px-2"
+            />
+          </div>
+          <div className="space-y-0.5">
+            <span className="text-xs text-muted-foreground">End Time</span>
+            <Input
+              type="time"
+              value={localEndTime}
+              onChange={(e) => setLocalEndTime(e.target.value)}
               disabled={!assignment.selected}
               className="h-8 text-sm px-2"
             />
