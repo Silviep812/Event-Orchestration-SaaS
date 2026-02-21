@@ -21,6 +21,8 @@ export interface ResourceAssignment {
   due_date?: string;
   start_date?: string;
   end_date?: string;
+  start_time?: string;
+  end_time?: string;
   dependencies?: string[];
   checklist?: ChecklistItem[];
 }
@@ -138,7 +140,7 @@ interface ResourceColumnProps {
   assignment: ResourceAssignment;
   onAssignmentChange: (assignment: ResourceAssignment) => void;
   onCollaboratorSave?: (collaboratorName: string) => void;
-  onDatesSave?: (dates: { due_date?: string; start_date?: string; end_date?: string }) => void;
+  onDatesSave?: (dates: { due_date?: string; start_date?: string; end_date?: string; start_time?: string; end_time?: string }) => void;
 }
 
 export function ResourceColumn({ 
@@ -152,6 +154,8 @@ export function ResourceColumn({
   const [localDueDate, setLocalDueDate] = useState(assignment.due_date || '');
   const [localStartDate, setLocalStartDate] = useState(assignment.start_date || '');
   const [localEndDate, setLocalEndDate] = useState(assignment.end_date || '');
+  const [localStartTime, setLocalStartTime] = useState(assignment.start_time || '');
+  const [localEndTime, setLocalEndTime] = useState(assignment.end_time || '');
 
   // Sync local state when assignment prop changes
   useEffect(() => {
@@ -159,7 +163,9 @@ export function ResourceColumn({
     setLocalDueDate(assignment.due_date || '');
     setLocalStartDate(assignment.start_date || '');
     setLocalEndDate(assignment.end_date || '');
-  }, [assignment.collaborator_name, assignment.due_date, assignment.start_date, assignment.end_date, category]);
+    setLocalStartTime(assignment.start_time || '');
+    setLocalEndTime(assignment.end_time || '');
+  }, [assignment.collaborator_name, assignment.due_date, assignment.start_date, assignment.end_date, assignment.start_time, assignment.end_time, category]);
 
   const handleCollaboratorSave = () => {
     if (onCollaboratorSave) {
@@ -176,7 +182,9 @@ export function ResourceColumn({
     const dates = {
       due_date: localDueDate || undefined,
       start_date: localStartDate || undefined,
-      end_date: localEndDate || undefined
+      end_date: localEndDate || undefined,
+      start_time: localStartTime || undefined,
+      end_time: localEndTime || undefined
     };
     if (onDatesSave) {
       onDatesSave(dates);
@@ -327,6 +335,26 @@ export function ResourceColumn({
               className="h-7 text-xs flex-1"
             />
           </div>
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-muted-foreground w-10">Start T:</span>
+            <Input
+              type="time"
+              value={localStartTime}
+              onChange={(e) => setLocalStartTime(e.target.value)}
+              disabled={!assignment.selected}
+              className="h-7 text-xs flex-1"
+            />
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-muted-foreground w-10">End T:</span>
+            <Input
+              type="time"
+              value={localEndTime}
+              onChange={(e) => setLocalEndTime(e.target.value)}
+              disabled={!assignment.selected}
+              className="h-7 text-xs flex-1"
+            />
+          </div>
           <Button 
             size="sm" 
             variant="outline" 
@@ -334,7 +362,7 @@ export function ResourceColumn({
             onClick={handleDatesSave}
             className="h-7 w-full text-xs mt-1"
           >
-            <Save className="h-3 w-3 mr-1" /> Save Dates
+            <Save className="h-3 w-3 mr-1" /> Save Timeline
           </Button>
         </div>
       </div>
