@@ -22,7 +22,7 @@ interface ResourceAssignmentsPanelProps {
   onToggle: () => void;
   onAssignmentChange: (category: string, assignment: ResourceAssignment) => void;
   onCollaboratorSave?: (category: string, name: string) => void;
-  onDatesSave?: (category: string, dates: { due_date?: string; start_date?: string; end_date?: string }) => void;
+  onDatesSave?: (category: string, dates: {due_date?: string;start_date?: string;end_date?: string;}) => void;
   onSaveAll?: () => void;
 }
 
@@ -33,7 +33,7 @@ interface ResourceCardProps {
   onUpdate: (assignment: ResourceAssignment) => void;
   onRemove: () => void;
   onCollaboratorSave?: (name: string) => void;
-  onDatesSave?: (dates: { due_date?: string; start_date?: string; end_date?: string }) => void;
+  onDatesSave?: (dates: {due_date?: string;start_date?: string;end_date?: string;}) => void;
 }
 
 function ResourceCard({
@@ -43,7 +43,7 @@ function ResourceCard({
   onUpdate,
   onRemove,
   onCollaboratorSave,
-  onDatesSave,
+  onDatesSave
 }: ResourceCardProps) {
   const [localCollaborator, setLocalCollaborator] = useState(assignment.collaborator_name || "");
   const [localDueDate, setLocalDueDate] = useState(assignment.due_date || "");
@@ -52,15 +52,15 @@ function ResourceCard({
   const [checklistOpen, setChecklistOpen] = useState(false);
 
   // Initialize checklist from assignment or defaults
-  const checklist: ChecklistItem[] = assignment.checklist && assignment.checklist.length > 0
-    ? assignment.checklist
-    : getDefaultChecklist(category);
+  const checklist: ChecklistItem[] = assignment.checklist && assignment.checklist.length > 0 ?
+  assignment.checklist :
+  getDefaultChecklist(category);
 
   const completedCount = checklist.filter((item) => item.completed).length;
 
   const handleChecklistToggle = (itemId: string, checked: boolean) => {
     const updatedChecklist = checklist.map((item) =>
-      item.id === itemId ? { ...item, completed: checked } : item
+    item.id === itemId ? { ...item, completed: checked } : item
     );
     onUpdate({ ...assignment, checklist: updatedChecklist });
   };
@@ -89,16 +89,16 @@ function ResourceCard({
   // Debounced save for dates
   useEffect(() => {
     const hasChanges =
-      localDueDate !== (assignment.due_date || "") ||
-      localStartDate !== (assignment.start_date || "") ||
-      localEndDate !== (assignment.end_date || "");
+    localDueDate !== (assignment.due_date || "") ||
+    localStartDate !== (assignment.start_date || "") ||
+    localEndDate !== (assignment.end_date || "");
 
     if (hasChanges) {
       const timer = setTimeout(() => {
         const dates = {
           due_date: localDueDate || undefined,
           start_date: localStartDate || undefined,
-          end_date: localEndDate || undefined,
+          end_date: localEndDate || undefined
         };
         if (onDatesSave) {
           onDatesSave(dates);
@@ -123,8 +123,8 @@ function ResourceCard({
             e.stopPropagation();
             onRemove();
           }}
-          title="Remove resource"
-        >
+          title="Remove resource">
+
           <X className="h-3 w-3" />
         </Button>
       </div>
@@ -137,8 +137,8 @@ function ResourceCard({
           value={localCollaborator}
           onChange={(e) => setLocalCollaborator(e.target.value)}
           onClick={(e) => e.stopPropagation()}
-          className="h-9 text-sm bg-background border-input"
-        />
+          className="h-9 text-sm bg-background border-input" />
+
       </div>
 
       {/* Dates row - 3 columns */}
@@ -150,8 +150,8 @@ function ResourceCard({
             value={localDueDate}
             onChange={(e) => setLocalDueDate(e.target.value)}
             onClick={(e) => e.stopPropagation()}
-            className="h-9 text-sm bg-background border-input"
-          />
+            className="h-9 text-sm bg-background border-input" />
+
         </div>
         <div>
           <label className="text-sm font-medium text-foreground block mb-1">Start</label>
@@ -160,8 +160,8 @@ function ResourceCard({
             value={localStartDate}
             onChange={(e) => setLocalStartDate(e.target.value)}
             onClick={(e) => e.stopPropagation()}
-            className="h-9 text-sm bg-background border-input"
-          />
+            className="h-9 text-sm bg-background border-input" />
+
         </div>
         <div>
           <label className="text-sm font-medium text-foreground block mb-1">End</label>
@@ -170,8 +170,8 @@ function ResourceCard({
             value={localEndDate}
             onChange={(e) => setLocalEndDate(e.target.value)}
             onClick={(e) => e.stopPropagation()}
-            className="h-9 text-sm bg-background border-input"
-          />
+            className="h-9 text-sm bg-background border-input" />
+
         </div>
       </div>
 
@@ -182,9 +182,9 @@ function ResourceCard({
           <Select
             value={assignment.status}
             onValueChange={(value: ResourceStatus) =>
-              onUpdate({ ...assignment, status: value })
-            }
-          >
+            onUpdate({ ...assignment, status: value })
+            }>
+
             <SelectTrigger className="h-9 text-sm bg-background">
               <SelectValue />
             </SelectTrigger>
@@ -201,9 +201,9 @@ function ResourceCard({
           <Select
             value={assignment.confirmed ? "yes" : "no"}
             onValueChange={(value) =>
-              onUpdate({ ...assignment, confirmed: value === "yes" })
-            }
-          >
+            onUpdate({ ...assignment, confirmed: value === "yes" })
+            }>
+
             <SelectTrigger className="h-9 text-sm bg-background">
               <SelectValue />
             </SelectTrigger>
@@ -221,20 +221,20 @@ function ResourceCard({
         <DependencyMultiSelect
           selectedDependencies={assignment.dependencies || []}
           availableTasks={availableTasks}
-          onChange={(deps) => onUpdate({ ...assignment, dependencies: deps })}
-        />
+          onChange={(deps) => onUpdate({ ...assignment, dependencies: deps })} />
+
       </div>
 
       {/* Checklist */}
-      {checklist.length > 0 && (
-        <div onClick={(e) => e.stopPropagation()}>
+      {checklist.length > 0 &&
+      <div onClick={(e) => e.stopPropagation()}>
           <Collapsible open={checklistOpen} onOpenChange={setChecklistOpen}>
             <CollapsibleTrigger asChild>
               <Button
-                variant="ghost"
-                size="sm"
-                className="w-full flex items-center justify-between h-8 px-2 hover:bg-muted/50 mb-1"
-              >
+              variant="ghost"
+              size="sm"
+              className="w-full flex items-center justify-between h-8 px-2 hover:bg-muted/50 mb-1">
+
                 <div className="flex items-center gap-1.5">
                   <ClipboardList className="h-3.5 w-3.5 text-muted-foreground" />
                   <span className="text-xs font-medium">Checklist</span>
@@ -242,47 +242,47 @@ function ResourceCard({
                     {completedCount}/{checklist.length}
                   </Badge>
                 </div>
-                {checklistOpen ? (
-                  <ChevronUp className="h-3 w-3" />
-                ) : (
-                  <ChevronDown className="h-3 w-3" />
-                )}
+                {checklistOpen ?
+              <ChevronUp className="h-3 w-3" /> :
+
+              <ChevronDown className="h-3 w-3" />
+              }
               </Button>
             </CollapsibleTrigger>
             <CollapsibleContent>
               <div className="space-y-1.5 pl-1">
-                {checklist.map((item) => (
-                  <div key={item.id} className="flex items-start gap-2">
+                {checklist.map((item) =>
+              <div key={item.id} className="flex items-start gap-2">
                     <Checkbox
-                      id={`checklist-${category}-${item.id}`}
-                      checked={item.completed}
-                      onCheckedChange={(checked) => handleChecklistToggle(item.id, !!checked)}
-                      className="mt-0.5"
-                    />
+                  id={`checklist-${category}-${item.id}`}
+                  checked={item.completed}
+                  onCheckedChange={(checked) => handleChecklistToggle(item.id, !!checked)}
+                  className="mt-0.5" />
+
                     <label
-                      htmlFor={`checklist-${category}-${item.id}`}
-                      className={`text-xs cursor-pointer leading-snug ${
-                        item.completed ? "line-through text-muted-foreground" : "text-foreground"
-                      }`}
-                    >
+                  htmlFor={`checklist-${category}-${item.id}`}
+                  className={`text-xs cursor-pointer leading-snug ${
+                  item.completed ? "line-through text-muted-foreground" : "text-foreground"}`
+                  }>
+
                       {item.label}
                     </label>
                   </div>
-                ))}
+              )}
               </div>
               {/* Progress bar */}
               <div className="mt-2 h-1.5 w-full bg-muted rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-primary rounded-full transition-all duration-300"
-                  style={{ width: `${checklist.length > 0 ? (completedCount / checklist.length) * 100 : 0}%` }}
-                />
+                className="h-full bg-primary rounded-full transition-all duration-300"
+                style={{ width: `${checklist.length > 0 ? completedCount / checklist.length * 100 : 0}%` }} />
+
               </div>
             </CollapsibleContent>
           </Collapsible>
         </div>
-      )}
-    </div>
-  );
+      }
+    </div>);
+
 }
 
 export function ResourceAssignmentsPanel({
@@ -294,7 +294,7 @@ export function ResourceAssignmentsPanel({
   onAssignmentChange,
   onCollaboratorSave,
   onDatesSave,
-  onSaveAll,
+  onSaveAll
 }: ResourceAssignmentsPanelProps) {
   const [addResourceValue, setAddResourceValue] = useState<string>("");
 
@@ -330,7 +330,7 @@ export function ResourceAssignmentsPanel({
         end_date: "",
         dependencies: [],
         status: "pending",
-        confirmed: false,
+        confirmed: false
       });
     }
   };
@@ -344,22 +344,22 @@ export function ResourceAssignmentsPanel({
             <Button
               variant="ghost"
               size="sm"
-              className="flex items-center gap-2 h-8 px-2 hover:bg-muted/50"
-            >
-              <span className="text-xs font-medium">Resource Assignments</span>
+              className="flex items-center gap-2 h-8 px-2 hover:bg-muted/50">
+
+              <span className="text-xs font-medium text-black">Resource Assignments</span>
               <Badge variant="secondary" className="text-xs h-5 px-1.5">
                 {selectedCount}
               </Badge>
-              {isExpanded ? (
-                <ChevronUp className="h-3 w-3" />
-              ) : (
-                <ChevronDown className="h-3 w-3" />
-              )}
+              {isExpanded ?
+              <ChevronUp className="h-3 w-3" /> :
+
+              <ChevronDown className="h-3 w-3" />
+              }
             </Button>
           </CollapsibleTrigger>
 
-          {isExpanded && unselectedCategories.length > 0 && (
-            <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+          {isExpanded && unselectedCategories.length > 0 &&
+          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
               <Select value={addResourceValue} onValueChange={handleAddResource}>
                 <SelectTrigger className="h-7 w-[140px] text-xs">
                   <div className="flex items-center gap-1">
@@ -368,72 +368,72 @@ export function ResourceAssignmentsPanel({
                   </div>
                 </SelectTrigger>
                 <SelectContent className="bg-popover border shadow-md z-[100]">
-                  {unselectedCategories.map((category) => (
-                    <SelectItem key={category} value={category} className="text-xs">
+                  {unselectedCategories.map((category) =>
+                <SelectItem key={category} value={category} className="text-xs">
                       {category}
                     </SelectItem>
-                  ))}
+                )}
                 </SelectContent>
               </Select>
             </div>
-          )}
+          }
         </div>
 
         {/* Expanded Content */}
         <CollapsibleContent className="overflow-visible">
           <div className="pb-3 overflow-visible">
-            {selectedCount === 0 ? (
-              <div className="text-center py-4 text-xs text-muted-foreground border rounded-md bg-muted/20">
+            {selectedCount === 0 ?
+            <div className="text-center py-4 text-xs text-muted-foreground border rounded-md bg-muted/20">
                 No resources assigned. Use "Add Resource" to get started.
-              </div>
-            ) : (
-              <div className="flex flex-col gap-3 w-full isolate" style={{ contain: 'layout' }}>
-                {selectedAssignments.map(([category, assignment]) => (
-                  <div key={category} className="w-full block" style={{ display: 'block' }}>
+              </div> :
+
+            <div className="flex flex-col gap-3 w-full isolate" style={{ contain: 'layout' }}>
+                {selectedAssignments.map(([category, assignment]) =>
+              <div key={category} className="w-full block" style={{ display: 'block' }}>
                     <ResourceCard
-                      category={category}
-                      assignment={assignment}
-                      availableTasks={availableTasks}
-                      onUpdate={(newAssignment) =>
-                        onAssignmentChange(category, newAssignment)
-                      }
-                      onRemove={() => handleRemoveResource(category)}
-                      onCollaboratorSave={
-                        onCollaboratorSave
-                          ? (name) => onCollaboratorSave(category, name)
-                          : undefined
-                      }
-                      onDatesSave={
-                        onDatesSave
-                          ? (dates) => onDatesSave(category, dates)
-                          : undefined
-                      }
-                    />
+                  category={category}
+                  assignment={assignment}
+                  availableTasks={availableTasks}
+                  onUpdate={(newAssignment) =>
+                  onAssignmentChange(category, newAssignment)
+                  }
+                  onRemove={() => handleRemoveResource(category)}
+                  onCollaboratorSave={
+                  onCollaboratorSave ?
+                  (name) => onCollaboratorSave(category, name) :
+                  undefined
+                  }
+                  onDatesSave={
+                  onDatesSave ?
+                  (dates) => onDatesSave(category, dates) :
+                  undefined
+                  } />
+
                   </div>
-                ))}
+              )}
               </div>
-            )}
+            }
 
             {/* Save All Button */}
-            {selectedCount > 0 && onSaveAll && (
-              <div className="mt-2 flex justify-end">
+            {selectedCount > 0 && onSaveAll &&
+            <div className="mt-2 flex justify-end">
                 <Button
-                  size="sm"
-                  variant="default"
-                  className="h-7 text-xs"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onSaveAll();
-                  }}
-                >
+                size="sm"
+                variant="default"
+                className="h-7 text-xs"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSaveAll();
+                }}>
+
                   <Save className="h-3 w-3 mr-1" />
                   Save All Resources
                 </Button>
               </div>
-            )}
+            }
           </div>
         </CollapsibleContent>
       </Collapsible>
-    </div>
-  );
+    </div>);
+
 }
