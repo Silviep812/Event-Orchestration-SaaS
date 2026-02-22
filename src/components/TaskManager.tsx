@@ -2046,6 +2046,43 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                   }));
                 }} />
 
+                {/* Checklist inline in edit dialog */}
+                <div onClick={(e) => e.stopPropagation()}>
+                  <TaskChecklistSheet
+                    taskId={selectedTask.id}
+                    taskTitle={selectedTask.title}
+                    assignmentType={selectedTask.assignment_type}
+                    resourceCategories={
+                      editResourceAssignments
+                        ? Object.keys(editResourceAssignments).filter(
+                            (k) => editResourceAssignments[k]?.selected
+                          )
+                        : []
+                    }
+                    checklist={selectedTask.checklist}
+                    onChecklistSave={async (updatedChecklist) => {
+                      setSelectedTask({ ...selectedTask, checklist: updatedChecklist });
+                      setTasks((prev) =>
+                        prev.map((t) =>
+                          t.id === selectedTask.id ? { ...t, checklist: updatedChecklist } : t
+                        )
+                      );
+                      try {
+                        await supabase
+                          .from('tasks')
+                          .update({ checklist: updatedChecklist as any })
+                          .eq('id', selectedTask.id);
+                      } catch (err) {
+                        console.error('Failed to save checklist:', err);
+                        fetchTasks();
+                      }
+                    }}
+                    onStatusChange={async (status) => {
+                      await updateTask(selectedTask.id, { status });
+                      fetchTasks();
+                    }}
+                  />
+                </div>
 
               </div>
 
