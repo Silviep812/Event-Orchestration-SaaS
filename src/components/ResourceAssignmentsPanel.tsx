@@ -237,7 +237,7 @@ function ResourceCard({
 
                 <div className="flex items-center gap-1.5">
                   <ClipboardList className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="text-xs font-medium">Checklist</span>
+                  <span className="text-xs font-medium text-black">Checklist</span>
                   <Badge variant="secondary" className="text-[10px] h-4 px-1">
                     {completedCount}/{checklist.length}
                   </Badge>
