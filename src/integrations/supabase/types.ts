@@ -4163,6 +4163,7 @@ export type Database = {
         | "vendor_update"
         | "workflow_update"
         | "note"
+        | "budget"
       event_status_enum: "pending" | "in_progress" | "completed" | "cancelled"
       permission_level: "admin" | "coordinator" | "viewer"
       task_priority: "low" | "medium" | "high" | "urgent"
@@ -4339,6 +4340,7 @@ export const Constants = {
         "vendor_update",
         "workflow_update",
         "note",
+        "budget",
       ],
       event_status_enum: ["pending", "in_progress", "completed", "cancelled"],
       permission_level: ["admin", "coordinator", "viewer"],
