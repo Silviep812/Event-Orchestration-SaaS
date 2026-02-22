@@ -1646,12 +1646,12 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                 }
 
                   <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                    <StatusIcon className="h-3 w-3" />
+                    <StatusIcon className="h-3 w-3 shrink-0 text-muted-foreground" />
                     <Select value={task.status} onValueChange={(value: any) => updateTask(task.id, { status: value })}>
-                      <SelectTrigger className="h-7 text-xs">
+                      <SelectTrigger className="h-6 text-[11px] border-muted/50 bg-muted/30 rounded-full px-2.5 w-auto gap-1">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-popover border shadow-lg z-50">
                         <SelectItem value="not_started">Not Started</SelectItem>
                         <SelectItem value="in_progress">In Progress</SelectItem>
                         <SelectItem value="completed">Completed</SelectItem>
