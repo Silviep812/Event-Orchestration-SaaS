@@ -327,7 +327,7 @@ const Reports = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `EventReport_${utcDate}_UTC.csv`;
+    a.download = `Event_Report_${utcDate}_UTC.csv`;
     a.click();
     URL.revokeObjectURL(url);
 
@@ -399,7 +399,7 @@ const Reports = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `EventReport_${event.title?.replace(/\s+/g, '-') || 'event'}_${utcDate}_UTC.csv`;
+    a.download = `Event_Report_${event.title?.replace(/\s+/g, '-') || 'event'}_${utcDate}_UTC.csv`;
     a.click();
     URL.revokeObjectURL(url);
 

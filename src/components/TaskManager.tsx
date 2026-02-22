@@ -2306,7 +2306,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
 
       {/* Add Dependencies Dialog - Step 2 of Task Creation */}
       <Dialog open={showDependencyDialog} onOpenChange={setShowDependencyDialog}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add Task Dependencies (Optional)</DialogTitle>
             <p className="text-sm text-muted-foreground mt-2">
@@ -2606,7 +2606,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
           }
         }}>
 
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Dependent Tasks Update Required</DialogTitle>
           </DialogHeader>

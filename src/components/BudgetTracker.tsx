@@ -355,7 +355,7 @@ export function BudgetTracker({ eventId, selectedEventFilter }: BudgetTrackerPro
               <Button size="sm"><Plus className="h-4 w-4 mr-2" />Add Budget Item</Button>
             </DialogTrigger>
           )}
-          <DialogContent className="max-w-md md:max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-[95vw] md:max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle>Add Budget Item</DialogTitle></DialogHeader>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
@@ -648,7 +648,7 @@ export function BudgetTracker({ eventId, selectedEventFilter }: BudgetTrackerPro
 
       {/* ====== CHANGE REQUEST DIALOG ====== */}
       <Dialog open={!!changeDialogItem} onOpenChange={open => { if (!open) setChangeDialogItem(null); }}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-lg">Request Budget Change</DialogTitle>
           </DialogHeader>
