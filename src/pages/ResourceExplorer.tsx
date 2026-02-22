@@ -29,6 +29,8 @@ interface ResourceProfile {
   cost: number | null;
   description: string | null;
   source_table: "venues" | "vendors" | "suppliers";
+  /** The exact category this resource belongs to for filtering */
+  category: string;
   type_name: string | null;
 }
 
@@ -45,15 +47,14 @@ const DMV_STATES: Record<string, string[]> = {
 
 const CATEGORIES = [
   "All",
-  "Bookings",
-  "Vendors",
   "Venues",
   "Hospitality",
+  "Vendors",
+  "Suppliers",
   "Entertainment",
   "Transportation",
-  "Suppliers",
+  "Bookings",
   "Services",
-  "Marketing",
 ];
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -64,7 +65,7 @@ const ResourceExplorer = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [regionFilter, setRegionFilter] = useState("All");
   const [categoryFilter, setCategoryFilter] = useState("All");
-  const [activeTab, setActiveTab] = useState("venues");
+  const [activeTab, setActiveTab] = useState("all");
   const [userEvents, setUserEvents] = useState<UserEvent[]>([]);
   const [selectedEventId, setSelectedEventId] = useState<string>("");
   const [addingId, setAddingId] = useState<string | null>(null);
@@ -118,11 +119,19 @@ const ResourceExplorer = () => {
             cost: v.cost,
             description: null,
             source_table: "venues",
+            category: "Venues",
             type_name: v.venue_types?.name || "Venue",
           })
         );
 
-        (vendorsRes.data || []).forEach((v: any) =>
+        (vendorsRes.data || []).forEach((v: any) => {
+          const typeName = v.vendor_supplier_types?.name || "Vendor";
+          // Map vendor sub-types to proper categories
+          let cat = "Vendors";
+          const tl = typeName.toLowerCase();
+          if (tl.includes("transport") || tl.includes("delivery")) cat = "Transportation";
+          else if (tl.includes("rental")) cat = "Services";
+
           all.push({
             id: v.id,
             business_name: v.business_name,
@@ -139,9 +148,10 @@ const ResourceExplorer = () => {
             cost: v.price,
             description: v.description,
             source_table: "vendors",
-            type_name: v.vendor_supplier_types?.name || "Vendor",
-          })
-        );
+            category: cat,
+            type_name: typeName,
+          });
+        });
 
         (suppliersRes.data || []).forEach((v: any) =>
           all.push({
@@ -160,6 +170,7 @@ const ResourceExplorer = () => {
             cost: v.price,
             description: v.description,
             source_table: "suppliers",
+            category: "Suppliers",
             type_name: v.supplier_types?.name || "Supplier",
           })
         );
@@ -181,6 +192,7 @@ const ResourceExplorer = () => {
             cost: v.cost,
             description: null,
             source_table: "venues",
+            category: "Hospitality",
             type_name: v.hospitality_types?.name || "Hospitality",
           })
         );
@@ -202,6 +214,7 @@ const ResourceExplorer = () => {
             cost: v.price,
             description: v.description,
             source_table: "vendors",
+            category: "Entertainment",
             type_name: v.entertainment_types?.name || "Entertainment",
           })
         );
@@ -219,25 +232,26 @@ const ResourceExplorer = () => {
   // Filter logic
   const filtered = useMemo(() => {
     return resources.filter((r) => {
-      // Tab filter
-      if (activeTab === "venues" && r.source_table !== "venues") return false;
-      if (activeTab === "vendors" && r.source_table !== "vendors") return false;
-      if (activeTab === "suppliers" && r.source_table !== "suppliers") return false;
+      // Tab filter — "all" shows everything, otherwise filter by source_table
+      if (activeTab !== "all") {
+        if (activeTab === "venues" && r.source_table !== "venues") return false;
+        if (activeTab === "vendors" && r.source_table !== "vendors") return false;
+        if (activeTab === "suppliers" && r.source_table !== "suppliers") return false;
+      }
 
-      // Region filter
+      // Region filter — strict state match
       if (regionFilter !== "All") {
         const validStates = DMV_STATES[regionFilter] || [];
+        const stateVal = (r.state || "").trim();
         const match = validStates.some(
-          (s) => r.state?.toLowerCase() === s.toLowerCase()
+          (s) => stateVal.toLowerCase() === s.toLowerCase()
         );
         if (!match) return false;
       }
 
-      // Category filter
+      // Category filter — exact category match (no partial includes)
       if (categoryFilter !== "All") {
-        const typeLower = (r.type_name || "").toLowerCase();
-        const catLower = categoryFilter.toLowerCase();
-        if (!typeLower.includes(catLower) && catLower !== typeLower) return false;
+        if (r.category !== categoryFilter) return false;
       }
 
       // Search query
@@ -250,6 +264,7 @@ const ResourceExplorer = () => {
           r.state,
           r.type_name,
           r.description,
+          r.category,
         ]
           .filter(Boolean)
           .join(" ")
@@ -269,11 +284,10 @@ const ResourceExplorer = () => {
     }
     setAddingId(resource.id);
     try {
-      // Add as a resource to the event's resources table
       const { error } = await supabase.from("resources").insert({
         name: resource.business_name,
-        category_id: 1, // default Equipment; user can change later
-        location: `${resource.city || ""}, ${resource.state || ""}`.trim().replace(/^,|,$/g, ""),
+        category_id: 1,
+        location: [resource.city, resource.state].filter(Boolean).join(", ") || "Unknown",
         event_id: selectedEventId,
         total: 1,
         allocated: 0,
@@ -304,6 +318,30 @@ const ResourceExplorer = () => {
     );
   };
 
+  // Count by tab
+  const counts = useMemo(() => {
+    const base = resources.filter((r) => {
+      if (regionFilter !== "All") {
+        const validStates = DMV_STATES[regionFilter] || [];
+        if (!validStates.some((s) => (r.state || "").toLowerCase() === s.toLowerCase())) return false;
+      }
+      if (categoryFilter !== "All" && r.category !== categoryFilter) return false;
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        const haystack = [r.business_name, r.contact_name, r.city, r.state, r.type_name, r.description, r.category]
+          .filter(Boolean).join(" ").toLowerCase();
+        if (!haystack.includes(q)) return false;
+      }
+      return true;
+    });
+    return {
+      all: base.length,
+      venues: base.filter((r) => r.source_table === "venues").length,
+      vendors: base.filter((r) => r.source_table === "vendors").length,
+      suppliers: base.filter((r) => r.source_table === "suppliers").length,
+    };
+  }, [resources, regionFilter, categoryFilter, searchQuery]);
+
   // ─── Skeleton ────────────────────────────────────────────────────────────
   const SkeletonCard = () => (
     <div className="rounded-xl border bg-card/60 p-5 space-y-3 animate-pulse">
@@ -330,7 +368,7 @@ const ResourceExplorer = () => {
         </div>
         {userEvents.length > 0 && (
           <Select value={selectedEventId} onValueChange={setSelectedEventId}>
-            <SelectTrigger className="w-full sm:w-64">
+            <SelectTrigger className="w-full sm:w-64 min-h-[44px]">
               <SelectValue placeholder="Select event for Quick Add" />
             </SelectTrigger>
             <SelectContent>
@@ -354,14 +392,14 @@ const ResourceExplorer = () => {
               placeholder="Search by keyword (e.g. 'Catering in Baltimore' or 'DC Hotel Venues')..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              className="pl-10 min-h-[44px]"
             />
           </div>
           {/* Filter row */}
           <div className="flex flex-col sm:flex-row gap-3">
             <Select value={regionFilter} onValueChange={setRegionFilter}>
-              <SelectTrigger className="w-full sm:w-48">
-                <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
+              <SelectTrigger className="w-full sm:w-48 min-h-[44px]">
+                <MapPin className="h-4 w-4 mr-2 text-muted-foreground shrink-0" />
                 <SelectValue placeholder="Region" />
               </SelectTrigger>
               <SelectContent>
@@ -372,7 +410,7 @@ const ResourceExplorer = () => {
               </SelectContent>
             </Select>
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-full sm:w-48">
+              <SelectTrigger className="w-full sm:w-48 min-h-[44px]">
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
               <SelectContent>
@@ -387,21 +425,31 @@ const ResourceExplorer = () => {
         </CardContent>
       </Card>
 
-      {/* Tabs: Venues / Vendors / Suppliers */}
+      {/* Tabs: All / Venues / Vendors / Suppliers */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="venues" className="gap-2">
-            <Building2 className="h-4 w-4" /> Venues
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="all" className="gap-1.5 text-xs sm:text-sm">
+            All
+            <span className="hidden sm:inline text-xs text-muted-foreground">({counts.all})</span>
           </TabsTrigger>
-          <TabsTrigger value="vendors" className="gap-2">
-            <Store className="h-4 w-4" /> Vendors
+          <TabsTrigger value="venues" className="gap-1.5 text-xs sm:text-sm">
+            <Building2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Venues</span>
+            <span className="text-xs text-muted-foreground">({counts.venues})</span>
           </TabsTrigger>
-          <TabsTrigger value="suppliers" className="gap-2">
-            <Package className="h-4 w-4" /> Suppliers
+          <TabsTrigger value="vendors" className="gap-1.5 text-xs sm:text-sm">
+            <Store className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Vendors</span>
+            <span className="text-xs text-muted-foreground">({counts.vendors})</span>
+          </TabsTrigger>
+          <TabsTrigger value="suppliers" className="gap-1.5 text-xs sm:text-sm">
+            <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Suppliers</span>
+            <span className="text-xs text-muted-foreground">({counts.suppliers})</span>
           </TabsTrigger>
         </TabsList>
 
-        {["venues", "vendors", "suppliers"].map((tab) => (
+        {["all", "venues", "vendors", "suppliers"].map((tab) => (
           <TabsContent key={tab} value={tab}>
             {loading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
@@ -422,7 +470,7 @@ const ResourceExplorer = () => {
                   </div>
                   <Button
                     variant="outline"
-                    className="gap-2"
+                    className="gap-2 min-h-[44px]"
                     onClick={() => {
                       const q = encodeURIComponent(
                         `${searchQuery || tab} ${regionFilter !== "All" ? regionFilter : "DMV"}`
@@ -445,16 +493,21 @@ const ResourceExplorer = () => {
                     className="rounded-xl border bg-card/80 backdrop-blur-sm hover:shadow-md transition-shadow"
                   >
                     <CardHeader className="pb-2">
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-1 flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="space-y-1.5 flex-1 min-w-0">
                           <CardTitle className="text-base font-bold truncate">
                             {r.business_name}
                           </CardTitle>
-                          <span className="inline-block text-xs font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-                            {r.type_name}
-                          </span>
+                          <div className="flex flex-wrap gap-1.5">
+                            <span className="inline-block text-xs font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                              {r.type_name}
+                            </span>
+                            <span className="inline-block text-xs font-medium px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground">
+                              {r.category}
+                            </span>
+                          </div>
                         </div>
-                        {r.cost != null && (
+                        {r.cost != null && r.cost > 0 && (
                           <span className="text-sm font-semibold text-primary whitespace-nowrap">
                             ${Number(r.cost).toLocaleString()}
                           </span>
@@ -486,20 +539,20 @@ const ResourceExplorer = () => {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 rounded-full"
+                          className="h-9 w-9 rounded-full"
                           disabled={!r.linkedin_url}
                           onClick={() => r.linkedin_url && window.open(r.linkedin_url, "_blank")}
-                          title="LinkedIn"
+                          title="LinkedIn Profile"
                         >
                           <Linkedin className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 rounded-full"
+                          className="h-9 w-9 rounded-full"
                           disabled={!r.instagram_url}
                           onClick={() => r.instagram_url && window.open(r.instagram_url, "_blank")}
-                          title="Instagram"
+                          title="Instagram Profile"
                         >
                           <Instagram className="h-4 w-4" />
                         </Button>
@@ -507,7 +560,7 @@ const ResourceExplorer = () => {
                         {/* Quick Add */}
                         <Button
                           size="sm"
-                          className="ml-auto gap-1.5"
+                          className="ml-auto gap-1.5 min-h-[36px]"
                           disabled={addingId === r.id || !selectedEventId}
                           onClick={() => handleQuickAdd(r)}
                         >
