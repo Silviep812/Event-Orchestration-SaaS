@@ -284,8 +284,16 @@ export function BudgetTracker({ eventId, selectedEventFilter }: BudgetTrackerPro
     try {
       const { error } = await supabase.rpc('approve_change_request', { p_change_request_id: crId });
       if (error) throw error;
-      toast({ title: "Approved", description: "Change request approved." });
+      // Auto-apply the approved change to update the linked budget_items/tasks
+      const { error: applyError } = await supabase.rpc('apply_change_request', { p_change_request_id: crId });
+      if (applyError) {
+        console.error('Error applying change request:', applyError);
+        toast({ title: "Warning", description: "Approved but failed to auto-apply. Apply manually.", variant: "destructive" });
+      } else {
+        toast({ title: "Approved & Applied", description: "Change request approved and applied to budget." });
+      }
       fetchPendingChangeRequests();
+      fetchBudgetItems();
     } catch {
       toast({ title: "Error", description: "Failed to approve.", variant: "destructive" });
     }

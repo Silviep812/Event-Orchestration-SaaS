@@ -118,75 +118,101 @@ const DashboardHome = () => {
           type: 'task' | 'analytics' | 'resource';
         }> = [];
 
-        // Fetch all change_logs for the user
+        // 1. Fetch change_logs for the user
         const { data: changeLogs } = await supabase
           .from('cm_change_logs')
           .select('id, entity_type, action, created_at, field_name, old_value, new_value, change_description, entity_id')
           .eq('changed_by', user.id)
           .order('created_at', { ascending: false })
-          .limit(20);
+          .limit(15);
 
-        // Map event names for all change logs
+        // 2. Fetch recent budget item creations for the user's events
+        const { data: userEvents } = await supabase
+          .from('events')
+          .select('id, title')
+          .eq('user_id', user.id);
+
+        const userEventIds = (userEvents || []).map(e => e.id);
+        const eventTitleMap: Record<string, string> = {};
+        (userEvents || []).forEach(e => { eventTitleMap[e.id] = e.title; });
+
+        if (userEventIds.length > 0) {
+          const { data: recentBudgetItems } = await supabase
+            .from('budget_items')
+            .select('id, item_name, category, event_id, created_at')
+            .in('event_id', userEventIds)
+            .order('created_at', { ascending: false })
+            .limit(5);
+
+          (recentBudgetItems || []).forEach(item => {
+            activitiesData.push({
+              id: `budget-${item.id}`,
+              description: `Budget item "${item.item_name}" (${item.category}) added${eventTitleMap[item.event_id] ? ` in ${eventTitleMap[item.event_id]}` : ''}`,
+              timestamp: item.created_at,
+              type: 'resource',
+            });
+          });
+
+          // 3. Fetch recent checklist updates (tasks with non-empty checklist updated recently)
+          const { data: recentChecklistTasks } = await supabase
+            .from('tasks')
+            .select('id, title, event_id, updated_at, checklist')
+            .in('event_id', userEventIds)
+            .not('checklist', 'is', null)
+            .order('updated_at', { ascending: false })
+            .limit(5);
+
+          (recentChecklistTasks || []).forEach(task => {
+            const checklist = task.checklist as any[];
+            if (checklist && checklist.length > 0) {
+              const completed = checklist.filter((c: any) => c.checked).length;
+              activitiesData.push({
+                id: `checklist-${task.id}`,
+                description: `Checklist updated: "${task.title}" (${completed}/${checklist.length} done)${eventTitleMap[task.event_id] ? ` in ${eventTitleMap[task.event_id]}` : ''}`,
+                timestamp: task.updated_at,
+                type: 'task',
+              });
+            }
+          });
+
+          // 4. Fetch recent change request approvals
+          const { data: recentApprovals } = await supabase
+            .from('change_requests')
+            .select('id, title, status, updated_at, event_id')
+            .in('event_id', userEventIds)
+            .in('status', ['approved', 'applied'])
+            .order('updated_at', { ascending: false })
+            .limit(5);
+
+          (recentApprovals || []).forEach(cr => {
+            activitiesData.push({
+              id: `approval-${cr.id}`,
+              description: `Change request "${cr.title}" ${cr.status}${eventTitleMap[cr.event_id || ''] ? ` in ${eventTitleMap[cr.event_id || '']}` : ''}`,
+              timestamp: cr.updated_at,
+              type: 'analytics',
+            });
+          });
+        }
+
+        // Map event names for change logs
         let changeLogEventMap: Record<string, string> = {};
-        let allEventTitles: Record<string, string> = {};
         if (changeLogs && changeLogs.length > 0) {
-          // Collect all possible event_ids from entity_id (for budget_item, workflow, task, etc.)
           const budgetItemIds = changeLogs.filter(log => log.entity_type === 'budget_item').map(log => log.entity_id).filter(Boolean);
-          const workflowIds = changeLogs.filter(log => log.entity_type === 'workflow').map(log => log.entity_id).filter(Boolean);
           const taskIds = changeLogs.filter(log => log.entity_type === 'task').map(log => log.entity_id).filter(Boolean);
-          // Fetch event_ids for each type
-          let eventIds: string[] = [];
-          // Budget items
+          
           if (budgetItemIds.length > 0) {
-            const { data: budgetItems } = await supabase
-              .from('budget_items')
-              .select('id, event_id')
-              .in('id', budgetItemIds);
-            (budgetItems || []).forEach(item => {
-              changeLogEventMap[item.id] = item.event_id;
-              eventIds.push(item.event_id);
-            });
+            const { data: budgetItems } = await supabase.from('budget_items').select('id, event_id').in('id', budgetItemIds);
+            (budgetItems || []).forEach(item => { changeLogEventMap[item.id] = item.event_id; });
           }
-          // Workflows
-          if (workflowIds.length > 0) {
-            const { data: workflows } = await supabase
-              .from('workflows')
-              .select('id, event_id')
-              .in('id', workflowIds);
-            (workflows || []).forEach(w => {
-              changeLogEventMap[w.id] = w.event_id;
-              eventIds.push(w.event_id);
-            });
-          }
-          // Tasks
           if (taskIds.length > 0) {
-            const { data: tasks } = await supabase
-              .from('tasks')
-              .select('id, event_id')
-              .in('id', taskIds);
-            (tasks || []).forEach(t => {
-              changeLogEventMap[t.id] = t.event_id;
-              eventIds.push(t.event_id);
-            });
-          }
-          // Remove duplicates
-          eventIds = Array.from(new Set(eventIds.filter(Boolean)));
-          // Fetch event titles
-          if (eventIds.length > 0) {
-            const { data: events } = await supabase
-              .from('events')
-              .select('id, title')
-              .in('id', eventIds);
-            (events || []).forEach(event => {
-              allEventTitles[event.id] = event.title;
-            });
+            const { data: tasks } = await supabase.from('tasks').select('id, event_id').in('id', taskIds);
+            (tasks || []).forEach(t => { changeLogEventMap[t.id] = t.event_id; });
           }
         }
 
         if (changeLogs) {
           changeLogs.forEach(log => {
             let description = '';
-            // Format date fields
             const dateFields = ['due_date', 'start_date', 'end_date'];
             if (dateFields.includes(log.field_name)) {
               const formatDate = (dateStr: string) => {
@@ -196,34 +222,24 @@ const DashboardHome = () => {
                 return `${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getDate().toString().padStart(2,'0')}/${d.getFullYear()}`;
               };
               description = `${log.entity_type} ${log.field_name.replace('_', ' ')} changed from "${formatDate(log.old_value)}" to "${formatDate(log.new_value)}"`;
-            
-            } else if (log.entity_type === 'workflow') {
-              description = `${log.entity_type} ${log.field_name.replace('_', ' ')} changed`;
             } else if (log.field_name && log.old_value && log.new_value) {
               description = `${log.entity_type} ${log.field_name.replace('_', ' ')} changed from "${log.old_value}" to "${log.new_value}"`;
             } else if (log.action === 'created') {
               description = `${log.entity_type} created`;
-            } else if (log.action === 'updated') {
-              description = `${log.entity_type} ${log.field_name ? log.field_name.replace('_', ' ') : ''} updated`.trim();
-            } else if (log.action === 'deleted') {
-              description = `${log.entity_type} deleted`;
+            } else if (log.action === 'approved') {
+              description = `${log.entity_type} approved`;
+            } else if (log.action === 'applied') {
+              description = `${log.entity_type} changes applied`;
             } else {
               description = `${log.entity_type} ${log.action}`;
             }
-            // Append event name if available
             const eventId = changeLogEventMap[log.entity_id];
-            const eventName = eventId ? allEventTitles[eventId] : null;
-            if (eventName && eventName !== 'Unnamed Event') {
-              description += ` in ${eventName}`;
-            }
+            const eventName = eventId ? eventTitleMap[eventId] : null;
+            if (eventName) description += ` in ${eventName}`;
 
-            // Determine activity type based on entity_type
             let activityType: 'task' | 'analytics' | 'resource' = 'resource';
-            if (log.entity_type === 'task') {
-              activityType = 'task';
-            } else if (log.entity_type === 'event_analytics') {
-              activityType = 'analytics';
-            }
+            if (log.entity_type === 'task') activityType = 'task';
+            else if (log.action === 'approved' || log.action === 'applied') activityType = 'analytics';
 
             activitiesData.push({
               id: `log-${log.id}`,
@@ -234,12 +250,9 @@ const DashboardHome = () => {
           });
         }
 
-        // Sort all activities by timestamp
-        activitiesData.sort((a, b) => 
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-        );
-
-        setActivities(activitiesData.slice(0, 10));
+        // Sort and deduplicate
+        activitiesData.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        setActivities(activitiesData.slice(0, 15));
       } catch (error) {
         console.error('Error fetching activities:', error);
       }

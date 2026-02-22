@@ -200,9 +200,17 @@ const Reports = () => {
     try {
       setLoading(true);
 
+      // Filter by current user to ensure data isolation
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (!currentUser) {
+        setLoading(false);
+        return;
+      }
+
       let query = supabase
         .from('cm_change_logs')
         .select('*')
+        .eq('changed_by', currentUser.id)
         .order('created_at', { ascending: false });
 
       // Apply filters
@@ -307,18 +315,19 @@ const Reports = () => {
         log.entity_type,
         log.action,
         log.field_name || '',
-        log.old_value || '',
-        log.new_value || '',
-        log.change_description || '',
+        `"${(log.old_value || '').replace(/"/g, '""')}"`,
+        `"${(log.new_value || '').replace(/"/g, '""')}"`,
+        `"${(log.change_description || '').replace(/"/g, '""')}"`,
         log.changed_by,
       ])
     ].map(row => row.join(',')).join('\n');
 
+    const utcDate = new Date().toISOString().split('T')[0];
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `change-management-report-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    a.download = `EventReport_${utcDate}_UTC.csv`;
     a.click();
     URL.revokeObjectURL(url);
 
@@ -371,25 +380,26 @@ const Reports = () => {
 
     const csvContent = [
       ['Field', 'Value'],
-      ['Event Title', event.title || ''],
-      ['Description', event.description || ''],
+      ['Event Title', `"${(event.title || '').replace(/"/g, '""')}"`],
+      ['Description', `"${(event.description || '').replace(/"/g, '""')}"`],
       ['Start Date', event.start_date || ''],
       ['End Date', event.end_date || ''],
       ['Start Time', event.start_time || ''],
       ['End Time', event.end_time || ''],
-      ['Location', event.location || ''],
-      ['Venue', event.venue || ''],
+      ['Location', `"${(event.location || '').replace(/"/g, '""')}"`],
+      ['Venue', `"${(event.venue || '').replace(/"/g, '""')}"`],
       ['Status', event.status || ''],
       ['Budget', event.budget?.toString() || ''],
       ['Created At', format(new Date(event.created_at), 'yyyy-MM-dd HH:mm:ss')],
       ['Updated At', format(new Date(event.updated_at), 'yyyy-MM-dd HH:mm:ss')],
     ].map(row => row.join(',')).join('\n');
 
+    const utcDate = new Date().toISOString().split('T')[0];
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `event-details-report-${event.title?.replace(/\s+/g, '-') || 'event'}-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    a.download = `EventReport_${event.title?.replace(/\s+/g, '-') || 'event'}_${utcDate}_UTC.csv`;
     a.click();
     URL.revokeObjectURL(url);
 

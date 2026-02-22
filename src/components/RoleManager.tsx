@@ -344,9 +344,20 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
       const { error } = await supabase.rpc(rpcFunction, rpcParams);
       if (error) throw error;
 
+      // After approval, automatically apply the change to update tasks/budget_items
+      if (action === 'approve') {
+        const { error: applyError } = await supabase.rpc('apply_change_request', { p_change_request_id: requestId });
+        if (applyError) {
+          console.error('Error applying change request:', applyError);
+          toast({ title: 'Warning', description: 'Approved but failed to auto-apply changes. You may need to apply manually.', variant: 'destructive' });
+        }
+      }
+
       toast({
-        title: action === 'approve' ? 'Request Approved' : 'Request Declined',
-        description: `Change request has been ${action === 'approve' ? 'approved' : 'declined'}.`,
+        title: action === 'approve' ? 'Request Approved & Applied' : 'Request Declined',
+        description: action === 'approve'
+          ? 'Change request approved and changes applied to tasks/budget.'
+          : 'Change request has been declined.',
       });
       setRejectDialog({ open: false, requestId: null });
       setRejectionReason('');
