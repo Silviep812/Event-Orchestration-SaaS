@@ -467,7 +467,9 @@ export type Database = {
           is_coordinator: boolean | null
           is_viewer: boolean | null
           notes: string | null
+          permission_level_text: string | null
           role: string
+          roles: string[] | null
           team_id: string | null
           updated_at: string | null
         }
@@ -479,7 +481,9 @@ export type Database = {
           is_coordinator?: boolean | null
           is_viewer?: boolean | null
           notes?: string | null
+          permission_level_text?: string | null
           role: string
+          roles?: string[] | null
           team_id?: string | null
           updated_at?: string | null
         }
@@ -491,7 +495,9 @@ export type Database = {
           is_coordinator?: boolean | null
           is_viewer?: boolean | null
           notes?: string | null
+          permission_level_text?: string | null
           role?: string
+          roles?: string[] | null
           team_id?: string | null
           updated_at?: string | null
         }
