@@ -230,6 +230,30 @@ export type Database = {
           },
         ]
       }
+      checklist_templates: {
+        Row: {
+          category_name: string
+          created_at: string
+          id: number
+          label: string
+          sort_order: number
+        }
+        Insert: {
+          category_name: string
+          created_at?: string
+          id?: number
+          label: string
+          sort_order?: number
+        }
+        Update: {
+          category_name?: string
+          created_at?: string
+          id?: number
+          label?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       cm_audit_events: {
         Row: {
           created_at: string
