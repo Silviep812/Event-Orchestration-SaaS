@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useEventFilter } from "@/hooks/useEventFilter";
+import { usePermissions } from "@/lib/permissions";
 import { CheckCircle2, Clock, AlertCircle, Plus, Calendar, User, Archive, ArchiveRestore, Eye, EyeOff, Link, Save, X, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { createTaskSchema } from "@/lib/validation/taskValidation";
@@ -157,6 +158,8 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
   const [isEditResourcePanelExpanded, setIsEditResourcePanelExpanded] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+  const { isViewer } = usePermissions();
+  const isReadOnly = isViewer();
   const { events, applyEventFilter } = useEventFilter();
 
   useEffect(() => {
@@ -1301,12 +1304,14 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
           }
           setIsCreateDialogOpen(open);
         }}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Create Task
-            </Button>
-          </DialogTrigger>
+          {!isReadOnly && (
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Create Task
+              </Button>
+            </DialogTrigger>
+          )}
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto w-[95vw] sm:w-full">
             <DialogHeader>
               <DialogTitle>Create New Task</DialogTitle>
@@ -1617,8 +1622,9 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
           return (
             <Card
               key={task.id}
-              className="cursor-pointer hover:shadow-md transition-shadow"
+              className={`${isReadOnly ? '' : 'cursor-pointer hover:shadow-md'} transition-shadow`}
               onClick={() => {
+                if (isReadOnly) return;
                 setSelectedTask(task);
                 setSelectedDependencies(task.dependencies || []);
                 setEditResourceAssignments(
@@ -1924,6 +1930,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                         fetchTasks();
                       }}
                     />
+                    {!isReadOnly && (
                     <Button
                       variant="outline"
                       size="sm"
@@ -1942,6 +1949,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                         </>
                       )}
                     </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>);

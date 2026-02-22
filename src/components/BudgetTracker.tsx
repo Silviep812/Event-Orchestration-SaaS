@@ -11,6 +11,7 @@ import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { usePermissions } from "@/lib/permissions";
 import { useEventFilter } from "@/hooks/useEventFilter";
 import {
   DollarSign, Plus, AlertTriangle, Archive, ArchiveRestore,
@@ -121,6 +122,8 @@ export function BudgetTracker({ eventId, selectedEventFilter }: BudgetTrackerPro
   const { toast } = useToast();
   const { events } = useEventFilter();
   const { user, userRoles } = useAuth();
+  const { isViewer } = usePermissions();
+  const isReadOnly = isViewer();
 
   const isOwner = userRoles.includes("admin") || userRoles.includes("event_manager");
   const currentEventId = eventId || selectedEventFilter;
@@ -326,9 +329,11 @@ export function BudgetTracker({ eventId, selectedEventFilter }: BudgetTrackerPro
           </Button>
         </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm"><Plus className="h-4 w-4 mr-2" />Add Budget Item</Button>
-          </DialogTrigger>
+          {!isReadOnly && (
+            <DialogTrigger asChild>
+              <Button size="sm"><Plus className="h-4 w-4 mr-2" />Add Budget Item</Button>
+            </DialogTrigger>
+          )}
           <DialogContent className="max-w-md md:max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle>Add Budget Item</DialogTitle></DialogHeader>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -519,6 +524,7 @@ export function BudgetTracker({ eventId, selectedEventFilter }: BudgetTrackerPro
                   {item.description && <p className="text-sm text-muted-foreground mb-1">{item.description}</p>}
                   {item.vendor_name && <p className="text-sm text-muted-foreground">Vendor: {item.vendor_name}</p>}
                 </div>
+                {!isReadOnly && (
                 <div className="flex items-center gap-2 shrink-0">
                   <Button variant="outline" size="sm" onClick={() => { setChangeDialogItem(item); setChangeForm({ proposed_amount: "", reason: "", impact: "medium" }); }}>
                     <FileEdit className="h-3.5 w-3.5 mr-1" />
@@ -529,6 +535,7 @@ export function BudgetTracker({ eventId, selectedEventFilter }: BudgetTrackerPro
                     {item.archived ? <ArchiveRestore className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
                   </Button>
                 </div>
+                )}
               </div>
 
               {/* Fields grid */}
