@@ -1809,13 +1809,6 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                   />
 
 
-                  {task.estimated_hours && (
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Clock className="h-3 w-3" />
-                      <span>{task.estimated_hours}h</span>
-                    </div>
-                  )}
-
                   {/* Timeline Row */}
                   {(task.start_date || task.end_date || task.due_date) && (
                     <div className="rounded-md border bg-muted/30 p-2 space-y-1">
@@ -1845,6 +1838,13 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                           </div>
                         )}
                       </div>
+                    </div>
+                  )}
+
+                  {task.estimated_hours && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Clock className="h-3 w-3" />
+                      <span>{task.estimated_hours}h</span>
                     </div>
                   )}
 
