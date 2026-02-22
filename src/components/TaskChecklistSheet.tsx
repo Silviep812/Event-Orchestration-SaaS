@@ -95,6 +95,7 @@ interface TaskChecklistSheetProps {
   taskId: string;
   taskTitle: string;
   assignmentType?: string | null;
+  resourceCategories?: string[];
   checklist?: TaskChecklistItem[] | null;
   onChecklistSave: (checklist: TaskChecklistItem[]) => Promise<void>;
   onStatusChange: (status: "completed") => Promise<void>;
@@ -104,6 +105,7 @@ export function TaskChecklistSheet({
   taskId,
   taskTitle,
   assignmentType,
+  resourceCategories,
   checklist,
   onChecklistSave,
   onStatusChange,
@@ -111,11 +113,20 @@ export function TaskChecklistSheet({
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
 
+  // Derive effective assignment type from prop or resource assignments
+  const effectiveAssignmentType = (() => {
+    if (assignmentType && ASSIGNMENT_TYPE_CHECKLISTS[assignmentType]) return assignmentType;
+    if (resourceCategories && resourceCategories.length > 0) {
+      return resourceCategories.find((cat) => ASSIGNMENT_TYPE_CHECKLISTS[cat]) || null;
+    }
+    return null;
+  })();
+
   // No assignment type = no checklist
-  if (!assignmentType || !ASSIGNMENT_TYPE_CHECKLISTS[assignmentType]) return null;
+  if (!effectiveAssignmentType) return null;
 
   // Merge saved checklist with defaults (in case items changed)
-  const defaultItems = getChecklistForAssignmentType(assignmentType);
+  const defaultItems = getChecklistForAssignmentType(effectiveAssignmentType);
   const currentChecklist: TaskChecklistItem[] =
     checklist && checklist.length > 0
       ? defaultItems.map((defaultItem) => {
@@ -188,7 +199,7 @@ export function TaskChecklistSheet({
           </SheetTitle>
           <p className="text-sm text-muted-foreground truncate">{taskTitle}</p>
           <Badge variant="outline" className="w-fit text-xs">
-            {assignmentType}
+            {effectiveAssignmentType}
           </Badge>
         </SheetHeader>
 
