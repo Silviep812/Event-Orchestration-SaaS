@@ -165,7 +165,7 @@ const DashboardHome = () => {
           (recentChecklistTasks || []).forEach(task => {
             const checklist = task.checklist as any[];
             if (checklist && checklist.length > 0) {
-              const completed = checklist.filter((c: any) => c.checked).length;
+              const completed = checklist.filter((c: any) => c.completed || c.checked).length;
               activitiesData.push({
                 id: `checklist-${task.id}`,
                 description: `Checklist updated: "${task.title}" (${completed}/${checklist.length} done)${eventTitleMap[task.event_id] ? ` in ${eventTitleMap[task.event_id]}` : ''}`,
