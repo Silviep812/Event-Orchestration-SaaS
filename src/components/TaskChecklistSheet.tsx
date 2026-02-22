@@ -3,92 +3,14 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { ClipboardList, CheckCircle2, Circle, PartyPopper } from "lucide-react";
+import { ClipboardList, CheckCircle2, Circle, PartyPopper, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useChecklistTemplates, groupTemplatesByCategory } from "@/hooks/useChecklistTemplates";
 
 export interface TaskChecklistItem {
   id: string;
   label: string;
   completed: boolean;
-}
-
-// Checklist items mapped by assignment_type
-const ASSIGNMENT_TYPE_CHECKLISTS: Record<string, string[]> = {
-  // Group 1: Bookings, Venues, Hospitality, Transportation
-  Bookings: [
-    "Confirm availability and service window",
-    "Validate compatibility with venue rules and layout",
-    "Verify access credentials and load-in requirements",
-    "Confirm setup and teardown timing",
-    "Coordinate with venue and lead vendors",
-  ],
-  Venues: [
-    "Confirm availability and service window",
-    "Validate compatibility with venue rules and layout",
-    "Verify access credentials and load-in requirements",
-    "Confirm setup and teardown timing",
-    "Coordinate with venue and lead vendors",
-  ],
-  Hospitality: [
-    "Confirm availability and service window",
-    "Validate compatibility with venue rules and layout",
-    "Verify access credentials and load-in requirements",
-    "Confirm setup and teardown timing",
-    "Coordinate with venue and lead vendors",
-  ],
-  Transportation: [
-    "Confirm availability and service window",
-    "Validate compatibility with venue rules and layout",
-    "Verify access credentials and load-in requirements",
-    "Confirm setup and teardown timing",
-    "Coordinate with venue and lead vendors",
-  ],
-  // Group 2: Vendors, Vendor Service Rental/Buy, Service Vendor, Suppliers
-  Vendors: [
-    "Define scope of work and deliverables",
-    "Finalize agreement or service terms",
-    "Log deviations, delays, or issues",
-    "Confirm all deliverables received",
-    "Process final payment",
-  ],
-  "Vendor Service Rental/Buy": [
-    "Define scope of work and deliverables",
-    "Finalize agreement or service terms",
-    "Log deviations, delays, or issues",
-    "Confirm all deliverables received",
-    "Process final payment",
-  ],
-  "Service Vendor": [
-    "Define scope of work and deliverables",
-    "Finalize agreement or service terms",
-    "Log deviations, delays, or issues",
-    "Confirm all deliverables received",
-    "Process final payment",
-  ],
-  Suppliers: [
-    "Define scope of work and deliverables",
-    "Finalize agreement or service terms",
-    "Log deviations, delays, or issues",
-    "Confirm all deliverables received",
-    "Process final payment",
-  ],
-  // Group 3: Entertainment
-  Entertainment: [
-    "Technical rider review (Sound/Light)",
-    "Performance schedule alignment",
-    "Green room/Hospitality requirements",
-    "Soundcheck timing",
-  ],
-};
-
-export function getChecklistForAssignmentType(assignmentType: string): TaskChecklistItem[] {
-  const items = ASSIGNMENT_TYPE_CHECKLISTS[assignmentType];
-  if (!items) return [];
-  return items.map((label, index) => ({
-    id: `${assignmentType.toLowerCase().replace(/[^a-z0-9]/g, "_")}_${index}`,
-    label,
-    completed: false,
-  }));
 }
 
 interface TaskChecklistSheetProps {
@@ -112,12 +34,19 @@ export function TaskChecklistSheet({
 }: TaskChecklistSheetProps) {
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
+  const { data: templates, isLoading } = useChecklistTemplates();
+
+  const categoryMap = templates ? groupTemplatesByCategory(templates) : {};
+  const availableCategories = Object.keys(categoryMap);
 
   // Derive effective assignment type from prop or resource assignments
   const effectiveAssignmentType = (() => {
-    if (assignmentType && ASSIGNMENT_TYPE_CHECKLISTS[assignmentType]) return assignmentType;
+    if (assignmentType && availableCategories.includes(assignmentType)) return assignmentType;
     if (resourceCategories && resourceCategories.length > 0) {
-      return resourceCategories.find((cat) => ASSIGNMENT_TYPE_CHECKLISTS[cat]) || null;
+      // Try exact match first, then trim whitespace for DB categories like "Supplier "
+      return resourceCategories.find((cat) =>
+        availableCategories.some((ac) => ac.trim() === cat.trim())
+      ) || null;
     }
     return null;
   })();
@@ -125,8 +54,22 @@ export function TaskChecklistSheet({
   // No assignment type = no checklist
   if (!effectiveAssignmentType) return null;
 
-  // Merge saved checklist with defaults (in case items changed)
-  const defaultItems = getChecklistForAssignmentType(effectiveAssignmentType);
+  // Find the matching category key (handle whitespace differences)
+  const matchedCategoryKey = availableCategories.find(
+    (ac) => ac.trim() === effectiveAssignmentType.trim()
+  ) || effectiveAssignmentType;
+
+  const items = categoryMap[matchedCategoryKey] || [];
+  if (items.length === 0 && !isLoading) return null;
+
+  // Build default checklist items from DB templates
+  const defaultItems: TaskChecklistItem[] = items.map((label, index) => ({
+    id: `${matchedCategoryKey.toLowerCase().replace(/[^a-z0-9]/g, "_")}_${index}`,
+    label,
+    completed: false,
+  }));
+
+  // Merge saved checklist with defaults
   const currentChecklist: TaskChecklistItem[] =
     checklist && checklist.length > 0
       ? defaultItems.map((defaultItem) => {
@@ -146,7 +89,6 @@ export function TaskChecklistSheet({
 
     await onChecklistSave(updated);
 
-    // Check if all items are now completed
     const allCompleted = updated.every((item) => item.completed);
     if (allCompleted) {
       toast({
@@ -203,69 +145,78 @@ export function TaskChecklistSheet({
           </Badge>
         </SheetHeader>
 
-        {/* Progress Section */}
-        <div className="mt-5 space-y-2">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Progress</span>
-            <span className="font-semibold text-foreground">
-              {progressPercent}% Complete
-            </span>
+        {isLoading ? (
+          <div className="mt-8 flex items-center justify-center gap-2 text-muted-foreground">
+            <Loader2 className="h-5 w-5 animate-spin" />
+            <span className="text-sm">Loading checklist…</span>
           </div>
-          <Progress value={progressPercent} className="h-2.5" />
-          <p className="text-xs text-muted-foreground">
-            {completedItems} of {totalItems} items completed
-          </p>
-        </div>
-
-        {/* Checklist Items */}
-        <div className="mt-6 space-y-1">
-          {currentChecklist.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              className={`w-full flex items-start gap-3 p-3 rounded-lg transition-colors text-left hover:bg-muted/50 ${
-                item.completed ? "opacity-70" : ""
-              }`}
-              onClick={() => handleToggle(item.id, !item.completed)}
-            >
-              {item.completed ? (
-                <CheckCircle2 className="h-5 w-5 text-primary mt-0.5 shrink-0" />
-              ) : (
-                <Circle className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
-              )}
-              <span
-                className={`text-sm leading-snug ${
-                  item.completed
-                    ? "line-through text-muted-foreground"
-                    : "text-foreground"
-                }`}
-              >
-                {item.label}
-              </span>
-            </button>
-          ))}
-        </div>
-
-        {/* Completion celebration */}
-        {progressPercent === 100 && (
-          <div className="mt-6 p-4 rounded-lg bg-primary/10 border border-primary/20 flex items-center gap-3">
-            <PartyPopper className="h-6 w-6 text-primary shrink-0" />
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-foreground">All items complete!</p>
-              <Button
-                size="sm"
-                onClick={async () => {
-                  await onStatusChange("completed");
-                  toast({
-                    title: "Task completed",
-                    description: `"${taskTitle}" has been marked as completed.`,
-                  });
-                }}
-              >
-                Mark Task as Completed
-              </Button>
+        ) : (
+          <>
+            {/* Progress Section */}
+            <div className="mt-5 space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Progress</span>
+                <span className="font-semibold text-foreground">
+                  {progressPercent}% Complete
+                </span>
+              </div>
+              <Progress value={progressPercent} className="h-2.5" />
+              <p className="text-xs text-muted-foreground">
+                {completedItems} of {totalItems} items completed
+              </p>
             </div>
-          </div>
+
+            {/* Checklist Items */}
+            <div className="mt-6 space-y-1">
+              {currentChecklist.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={`w-full flex items-start gap-3 p-3 rounded-lg transition-colors text-left hover:bg-muted/50 ${
+                    item.completed ? "opacity-70" : ""
+                  }`}
+                  onClick={() => handleToggle(item.id, !item.completed)}
+                >
+                  {item.completed ? (
+                    <CheckCircle2 className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                  ) : (
+                    <Circle className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+                  )}
+                  <span
+                    className={`text-sm leading-snug ${
+                      item.completed
+                        ? "line-through text-muted-foreground"
+                        : "text-foreground"
+                    }`}
+                  >
+                    {item.label}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            {/* Completion celebration */}
+            {progressPercent === 100 && (
+              <div className="mt-6 p-4 rounded-lg bg-primary/10 border border-primary/20 flex items-center gap-3">
+                <PartyPopper className="h-6 w-6 text-primary shrink-0" />
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-foreground">All items complete!</p>
+                  <Button
+                    size="sm"
+                    onClick={async () => {
+                      await onStatusChange("completed");
+                      toast({
+                        title: "Task completed",
+                        description: `"${taskTitle}" has been marked as completed.`,
+                      });
+                    }}
+                  >
+                    Mark Task as Completed
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </SheetContent>
     </Sheet>
