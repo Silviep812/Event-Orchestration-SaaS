@@ -25,7 +25,7 @@ import {
 "@/components/ResourceColumn";
 import { ResourceCard } from "@/components/ResourceCard";
 import { ResourceAssignmentsPanel } from "@/components/ResourceAssignmentsPanel";
-import { TaskChecklistSheet } from "@/components/TaskChecklistSheet";
+import { TaskChecklistSheet, TaskChecklistItem } from "@/components/TaskChecklistSheet";
 
 interface Task {
   id: string;
@@ -53,6 +53,8 @@ interface Task {
   category?: string; // Task category based on collaborator type (Bookings, Venue, etc.)
   resource_assignments?: Record<string, ResourceAssignment>; // Enhanced resource tracking
   change_request_id?: string; // Link to source change request for approval tasks
+  assignment_type?: string | null;
+  checklist?: TaskChecklistItem[] | null;
 }
 
 interface AvailableTask {
@@ -359,7 +361,9 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
             assigned_role: roleAssignment,
             assigned_coordinator_name: task.assigned_coordinator_name,
             resource_assignments: parsedResourceAssignments,
-            change_request_id: task.change_request_id
+            change_request_id: task.change_request_id,
+            assignment_type: task.assignment_type,
+            checklist: task.checklist ? (task.checklist as unknown as TaskChecklistItem[]) : null,
           } as Task;
         })
       );
@@ -808,7 +812,8 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         category: getSelectedCategories(resourceAssignments).join(', ') || null,
         assigned_to: null, // Removed user assignment dropdown, only using coordinator assignment
         assigned_coordinator_name: (newTask as any).assigned_coordinator_name || null,
-        resource_assignments: resourceAssignments as unknown as Record<string, unknown>
+        resource_assignments: resourceAssignments as unknown as Record<string, unknown>,
+        assignment_type: (newTask as any).assignment_type || null,
       };
 
       const { data: createdTask, error } = await supabase.
@@ -1173,7 +1178,8 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         start_date: taskToUpdate.start_date,
         end_date: taskToUpdate.end_date,
         start_time: taskToUpdate.start_time,
-        end_time: taskToUpdate.end_time
+        end_time: taskToUpdate.end_time,
+        assignment_type: taskToUpdate.assignment_type,
       });
 
       // Save dependencies
@@ -1385,6 +1391,29 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                       <SelectItem value="medium">Medium</SelectItem>
                       <SelectItem value="high">High</SelectItem>
                       <SelectItem value="urgent">Urgent</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="assignment_type">Assignment Type</Label>
+                  <Select
+                    value={(newTask as any).assignment_type || ""}
+                    onValueChange={(value) => setNewTask({ ...newTask, assignment_type: value } as any)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select assignment type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Bookings">Bookings</SelectItem>
+                      <SelectItem value="Venues">Venues</SelectItem>
+                      <SelectItem value="Hospitality">Hospitality</SelectItem>
+                      <SelectItem value="Transportation">Transportation</SelectItem>
+                      <SelectItem value="Vendors">Vendors</SelectItem>
+                      <SelectItem value="Vendor Service Rental/Buy">Vendor Service Rental/Buy</SelectItem>
+                      <SelectItem value="Service Vendor">Service Vendor</SelectItem>
+                      <SelectItem value="Suppliers">Suppliers</SelectItem>
+                      <SelectItem value="Entertainment">Entertainment</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1866,27 +1895,29 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
 
                   <div className="flex items-center gap-2 pt-1 flex-wrap" onClick={(e) => e.stopPropagation()}>
                     <TaskChecklistSheet
+                      taskId={task.id}
                       taskTitle={task.title}
-                      resourceAssignments={task.resource_assignments}
-                      onChecklistUpdate={async (category, updatedAssignment) => {
-                        const updatedAssignments = {
-                          ...(task.resource_assignments || getEmptyResourceAssignments()),
-                          [category]: updatedAssignment,
-                        };
+                      assignmentType={task.assignment_type}
+                      checklist={task.checklist}
+                      onChecklistSave={async (updatedChecklist) => {
                         setTasks((prev) =>
                           prev.map((t) =>
-                            t.id === task.id ? { ...t, resource_assignments: updatedAssignments } : t
+                            t.id === task.id ? { ...t, checklist: updatedChecklist } : t
                           )
                         );
                         try {
                           await supabase
                             .from('tasks')
-                            .update({ resource_assignments: updatedAssignments as any })
+                            .update({ checklist: updatedChecklist as any })
                             .eq('id', task.id);
                         } catch (err) {
                           console.error('Failed to save checklist:', err);
                           fetchTasks();
                         }
+                      }}
+                      onStatusChange={async (status) => {
+                        await updateTask(task.id, { status });
+                        fetchTasks();
                       }}
                     />
                     <Button
@@ -1973,6 +2004,29 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                       <SelectItem value="medium">Medium</SelectItem>
                       <SelectItem value="high">High</SelectItem>
                       <SelectItem value="urgent">Urgent</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-assignment_type">Assignment Type</Label>
+                  <Select
+                    value={selectedTask.assignment_type || ""}
+                    onValueChange={(value) => setSelectedTask({ ...selectedTask, assignment_type: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select assignment type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Bookings">Bookings</SelectItem>
+                      <SelectItem value="Venues">Venues</SelectItem>
+                      <SelectItem value="Hospitality">Hospitality</SelectItem>
+                      <SelectItem value="Transportation">Transportation</SelectItem>
+                      <SelectItem value="Vendors">Vendors</SelectItem>
+                      <SelectItem value="Vendor Service Rental/Buy">Vendor Service Rental/Buy</SelectItem>
+                      <SelectItem value="Service Vendor">Service Vendor</SelectItem>
+                      <SelectItem value="Suppliers">Suppliers</SelectItem>
+                      <SelectItem value="Entertainment">Entertainment</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
