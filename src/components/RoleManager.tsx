@@ -395,7 +395,17 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
   const consolidated = consolidateUserRoles(userRoles);
 
   if (loading) {
-    return <div className="flex justify-center py-8">Loading collaborators...</div>;
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="h-8 w-52 rounded-lg bg-muted animate-pulse" />
+          <div className="h-6 w-20 rounded-full bg-muted animate-pulse" />
+        </div>
+        {[1, 2, 3, 4].map(i => (
+          <div key={i} className="h-20 rounded-xl bg-muted animate-pulse" />
+        ))}
+      </div>
+    );
   }
 
   return (
@@ -411,13 +421,18 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
         </Badge>
       </div>
 
-      {/* ====== OWNER: PENDING APPROVALS INBOX ====== */}
+      {/* ====== OWNER: ACTION REQUIRED INBOX ====== */}
       {isEventOwner() && pendingRequests.length > 0 && (
-        <Card className="border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20">
+        <Card className="border-amber-300/50 dark:border-amber-700/50 bg-gradient-to-br from-amber-50/80 to-orange-50/40 dark:from-amber-950/30 dark:to-orange-950/20 rounded-xl shadow-sm backdrop-blur-sm">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
-              <Bell className="h-4 w-4 text-amber-600" />
-              Pending Approvals ({pendingRequests.length})
+              <div className="p-1.5 rounded-lg bg-amber-500/10">
+                <Bell className="h-4 w-4 text-amber-600" />
+              </div>
+              <span>Action Required</span>
+              <Badge variant="destructive" className="rounded-full text-[10px] h-5 px-2 ml-1">
+                {pendingRequests.length}
+              </Badge>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 pt-0">
@@ -425,19 +440,23 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
               const fields = cr.field_changes as Record<string, any> | null;
               const fieldEntries = fields ? Object.entries(fields) : [];
               return (
-                <div key={cr.id} className="p-3 rounded-lg border bg-background space-y-2">
+                <div key={cr.id} className="p-4 rounded-xl border bg-background/90 backdrop-blur-sm space-y-3 shadow-sm hover:shadow-md transition-shadow">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <Badge className="bg-purple-100 text-purple-800 border-purple-200 text-xs">
+                        <Badge className="bg-purple-100 text-purple-800 border-purple-200 text-[10px] rounded-full px-2">
                           Change Request
                         </Badge>
-                        <Badge variant="outline" className="text-[10px]">{cr.priority}</Badge>
+                        <Badge variant="outline" className={`text-[10px] rounded-full px-2 ${
+                          cr.priority === 'high' || cr.priority === 'critical' 
+                            ? 'border-destructive/50 text-destructive' 
+                            : 'border-muted-foreground/30'
+                        }`}>{cr.priority}</Badge>
                       </div>
-                      <p className="text-sm font-medium">{cr.title}</p>
+                      <p className="text-sm font-semibold">{cr.title}</p>
                       {cr.description && <p className="text-xs text-muted-foreground mt-0.5">{cr.description}</p>}
                     </div>
-                    <Button variant="ghost" size="sm" className="text-xs shrink-0"
+                    <Button variant="ghost" size="sm" className="text-xs shrink-0 rounded-lg"
                       onClick={() => navigate(`/dashboard/change-requests/${cr.id}`)}>
                       <FileText className="h-3 w-3 mr-1" />Details
                     </Button>
@@ -445,28 +464,28 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
 
                   {/* Old → New values */}
                   {fieldEntries.length > 0 && (
-                    <div className="bg-muted/50 rounded p-2 space-y-1">
+                    <div className="bg-muted/40 rounded-lg p-3 space-y-1">
                       {fieldEntries.map(([key, val]) => (
                         <div key={key} className="text-xs flex flex-wrap gap-1">
-                          <span className="font-medium capitalize">{key.replace(/_/g, ' ')}:</span>
+                          <span className="font-semibold capitalize">{key.replace(/_/g, ' ')}:</span>
                           <span className="line-through text-muted-foreground">"{val?.oldValue || 'empty'}"</span>
                           <span>→</span>
-                          <span className="font-semibold">"{val?.newValue || 'empty'}"</span>
+                          <span className="font-bold text-foreground">"{val?.newValue || 'empty'}"</span>
                         </div>
                       ))}
                     </div>
                   )}
 
                   <div className="flex items-center gap-2">
-                    <Button size="sm" className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700"
+                    <Button size="sm" className="h-8 text-xs rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
                       disabled={actionLoading === cr.id}
                       onClick={() => handleChangeRequestAction(cr.id, 'approve')}>
-                      <CheckCircle2 className="h-3 w-3 mr-1" />Approve
+                      <CheckCircle2 className="h-3.5 w-3.5 mr-1" />Approve
                     </Button>
-                    <Button size="sm" variant="destructive" className="h-7 text-xs"
+                    <Button size="sm" variant="outline" className="h-8 text-xs rounded-lg text-destructive border-destructive/30 hover:bg-destructive/5"
                       disabled={actionLoading === cr.id}
                       onClick={() => setRejectDialog({ open: true, requestId: cr.id })}>
-                      <XCircle className="h-3 w-3 mr-1" />Decline
+                      <XCircle className="h-3.5 w-3.5 mr-1" />Decline
                     </Button>
                   </div>
                 </div>
@@ -477,10 +496,10 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
       )}
 
       {/* ====== CONSOLIDATED COLLABORATOR TABLE ====== */}
-      <Card>
+      <Card className="rounded-xl border bg-card/80 backdrop-blur-sm shadow-sm">
         <CardContent className="p-0">
           {/* Table Header (desktop only) */}
-          <div className="hidden md:grid md:grid-cols-[2fr_2fr_1.5fr_auto] gap-4 px-4 py-3 border-b bg-muted/30 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+          <div className="hidden md:grid md:grid-cols-[2fr_2fr_1.5fr_auto] gap-4 px-5 py-3 border-b bg-muted/20 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
             <span>User</span>
             <span>Roles</span>
             <span>Permission Level</span>

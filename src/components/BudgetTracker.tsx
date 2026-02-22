@@ -314,7 +314,20 @@ export function BudgetTracker({ eventId, selectedEventFilter }: BudgetTrackerPro
   const spentPercent = totalBudget > 0 ? Math.min((totalSpent / totalBudget) * 100, 100) : 0;
 
   if (loading) {
-    return <div className="flex justify-center py-8">Loading budget...</div>;
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="h-8 w-48 rounded-lg bg-muted animate-pulse" />
+          <div className="h-9 w-40 rounded-lg bg-muted animate-pulse" />
+        </div>
+        <div className="h-32 rounded-xl bg-muted animate-pulse" />
+        <div className="space-y-3">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="h-40 rounded-xl bg-muted animate-pulse" />
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -401,56 +414,56 @@ export function BudgetTracker({ eventId, selectedEventFilter }: BudgetTrackerPro
       </div>
 
       {/* ====== BUDGET SUMMARY DASHBOARD ====== */}
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden rounded-xl border bg-card/80 backdrop-blur-sm shadow-sm">
         <CardContent className="p-0">
           <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-border">
-            {/* Total Budget */}
+            {/* Allocated */}
             <div className="p-5 flex items-center gap-4">
-              <div className="p-3 rounded-full bg-primary/10">
+              <div className="p-3 rounded-xl bg-primary/10">
                 <Wallet className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total Budget</p>
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Allocated</p>
                 <p className="text-2xl font-bold">{totalBudget > 0 ? fmt(totalBudget) : "Not set"}</p>
               </div>
             </div>
-            {/* Total Spent */}
+            {/* Spent */}
             <div className="p-5 flex items-center gap-4">
-              <div className={`p-3 rounded-full ${isOverBudget ? "bg-destructive/10" : "bg-orange-500/10"}`}>
-                <CreditCard className={`h-5 w-5 ${isOverBudget ? "text-destructive" : "text-orange-500"}`} />
+              <div className={`p-3 rounded-xl ${isOverBudget ? "bg-destructive/10" : "bg-amber-500/10"}`}>
+                <CreditCard className={`h-5 w-5 ${isOverBudget ? "text-destructive" : "text-amber-500"}`} />
               </div>
               <div>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total Spent</p>
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Spent</p>
                 <p className={`text-2xl font-bold ${isOverBudget ? "text-destructive" : ""}`}>{fmt(totalSpent)}</p>
               </div>
             </div>
-            {/* Remaining */}
+            {/* Variance (Remaining) */}
             <div className="p-5 flex items-center gap-4">
-              <div className={`p-3 rounded-full ${remaining < 0 ? "bg-destructive/10" : "bg-emerald-500/10"}`}>
+              <div className={`p-3 rounded-xl ${remaining < 0 ? "bg-destructive/10" : "bg-emerald-500/10"}`}>
                 <PiggyBank className={`h-5 w-5 ${remaining < 0 ? "text-destructive" : "text-emerald-500"}`} />
               </div>
               <div>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Remaining</p>
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Variance</p>
                 <p className={`text-2xl font-bold ${remaining < 0 ? "text-destructive" : "text-emerald-600"}`}>
                   {totalBudget > 0 ? fmt(remaining) : "—"}
                 </p>
               </div>
             </div>
           </div>
-          {/* Progress Bar */}
+          {/* Financial Health Bar */}
           {totalBudget > 0 && (
             <div className="px-5 pb-4 pt-1">
               <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
-                <span>{spentPercent.toFixed(0)}% spent</span>
+                <span className="font-medium">{spentPercent.toFixed(0)}% spent</span>
                 {isOverBudget && (
-                  <span className="text-destructive font-medium flex items-center gap-1">
+                  <span className="text-destructive font-semibold flex items-center gap-1">
                     <AlertTriangle className="h-3 w-3" /> Over budget by {fmt(totalSpent - totalBudget)}
                   </span>
                 )}
               </div>
               <div className="relative h-3 w-full overflow-hidden rounded-full bg-secondary">
                 <div
-                  className={`h-full rounded-full transition-all ${isOverBudget ? "bg-destructive" : "bg-primary"}`}
+                  className={`h-full rounded-full transition-all duration-500 ${isOverBudget ? "bg-destructive shadow-[0_0_12px_hsl(var(--destructive)/0.5)]" : "bg-primary"}`}
                   style={{ width: `${Math.min((totalSpent / totalBudget) * 100, 100)}%` }}
                 />
               </div>
@@ -505,8 +518,8 @@ export function BudgetTracker({ eventId, selectedEventFilter }: BudgetTrackerPro
 
       {/* ====== BUDGET ITEMS ====== */}
       <div className="space-y-4">
-        {budgetItems.map(item => (
-          <Card key={item.id}>
+        {budgetItems.map((item, index) => (
+          <Card key={item.id} className={`rounded-xl border bg-card/80 backdrop-blur-sm shadow-sm ${index % 2 === 1 ? 'bg-muted/20' : ''}`}>
             <CardContent className="p-4 sm:p-6">
               {/* Top row */}
               <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-4">

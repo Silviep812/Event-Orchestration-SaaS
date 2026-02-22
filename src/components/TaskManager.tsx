@@ -78,19 +78,19 @@ interface TaskManagerProps {
   selectedEventFilter?: string;
 }
 
-const statusColors = {
-  not_started: "bg-gray-100 text-gray-800",
-  in_progress: "bg-blue-100 text-blue-800",
-  completed: "bg-green-100 text-green-800",
-  on_hold: "bg-yellow-100 text-yellow-800",
-  cancelled: "bg-red-100 text-red-800"
+const statusColors: Record<string, string> = {
+  not_started: "bg-muted text-muted-foreground",
+  in_progress: "bg-primary/10 text-primary",
+  completed: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300",
+  on_hold: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
+  cancelled: "bg-destructive/10 text-destructive"
 };
 
-const priorityColors = {
-  low: "bg-green-100 text-green-800",
-  medium: "bg-yellow-100 text-yellow-800",
-  high: "bg-orange-100 text-orange-800",
-  urgent: "bg-red-100 text-red-800"
+const priorityColors: Record<string, string> = {
+  low: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+  medium: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
+  high: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
+  urgent: "bg-red-500 text-white dark:bg-red-600 dark:text-white"
 };
 
 const statusIcons = {
@@ -1244,7 +1244,19 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
   };
 
   if (loading) {
-    return <div className="flex justify-center py-8">Loading tasks...</div>;
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="h-8 w-48 rounded-lg bg-muted animate-pulse" />
+          <div className="h-9 w-32 rounded-lg bg-muted animate-pulse" />
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3, 4, 5, 6].map(i => (
+            <div key={i} className="h-52 rounded-xl bg-muted animate-pulse" />
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -1622,7 +1634,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
           return (
             <Card
               key={task.id}
-              className={`${isReadOnly ? '' : 'cursor-pointer hover:shadow-md'} transition-shadow`}
+              className={`${isReadOnly ? '' : 'cursor-pointer hover:shadow-lg hover:-translate-y-0.5'} transition-all duration-200 rounded-xl border bg-card/80 backdrop-blur-sm`}
               onClick={() => {
                 if (isReadOnly) return;
                 setSelectedTask(task);
@@ -1634,23 +1646,30 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
               }}>
 
                 <CardHeader className="pb-2">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-2">
-                      <CardTitle className="text-base">{task.title}</CardTitle>
-                      {task.category === 'Approval' &&
-                    <Badge className="bg-purple-100 text-purple-800 border-purple-200 text-xs">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="text-base font-bold leading-snug">{task.title}</CardTitle>
+                      {/* Timeline secondary row */}
+                      {(task.start_date || task.end_date) && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {task.start_date && <>Start: {format(new Date(task.start_date), 'MMM d')}{task.start_time && ` ${task.start_time}`}</>}
+                          {task.start_date && task.end_date && ' — '}
+                          {task.end_date && <>End: {format(new Date(task.end_date), 'MMM d')}{task.end_time && ` ${task.end_time}`}</>}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                      {task.category === 'Approval' && (
+                        <Badge className="bg-purple-100 text-purple-800 border-purple-200 text-[10px] rounded-full px-2">
                           Approval
                         </Badge>
-                    }
-                    </div>
-                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                      )}
                       <Select
                       value={task.priority}
                       onValueChange={(value: 'low' | 'medium' | 'high' | 'urgent') =>
                       updateTask(task.id, { priority: value })
                       }>
-
-                        <SelectTrigger className={`h-7 text-xs ${priorityColors[task.priority]}`}>
+                        <SelectTrigger className={`h-7 text-[11px] font-medium rounded-full px-2.5 border-0 ${priorityColors[task.priority]}`}>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="bg-background z-50">
@@ -1687,7 +1706,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                   <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                     <StatusIcon className="h-3 w-3 shrink-0 text-muted-foreground" />
                     <Select value={task.status} onValueChange={(value: any) => updateTask(task.id, { status: value })}>
-                      <SelectTrigger className="h-6 text-[11px] border-muted/50 bg-muted/30 rounded-full px-2.5 w-auto gap-1">
+                      <SelectTrigger className={`h-6 text-[11px] border-0 rounded-full px-2.5 w-auto gap-1 font-medium ${statusColors[task.status]}`}>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="bg-popover border shadow-lg z-50">
