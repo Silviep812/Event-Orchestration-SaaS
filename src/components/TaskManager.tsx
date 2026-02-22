@@ -1661,12 +1661,20 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     </Select>
                   </div>
 
-                  {(task.assigned_user_name || task.assigned_role) && (
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <User className="h-3 w-3" />
-                      <span>
-                        {task.assigned_user_name || task.assigned_role?.replace('_', ' ')}
-                      </span>
+                  {(task.assigned_user_name || task.assigned_role || task.assigned_coordinator_name) && (
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground min-w-0">
+                        <User className="h-3 w-3 shrink-0" />
+                        <span className="truncate">
+                          {task.assigned_coordinator_name || task.assigned_user_name || task.assigned_role?.replace('_', ' ')}
+                        </span>
+                      </div>
+                      {task.estimated_hours && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2 py-0.5 text-[10px] font-medium shrink-0">
+                          <Clock className="h-2.5 w-2.5" />
+                          {task.estimated_hours}h
+                        </span>
+                      )}
                     </div>
                   )}
 
@@ -1841,7 +1849,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     </div>
                   )}
 
-                  {task.estimated_hours && (
+                  {task.estimated_hours && !task.assigned_user_name && !task.assigned_role && !task.assigned_coordinator_name && (
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <Clock className="h-3 w-3" />
                       <span>{task.estimated_hours}h</span>
