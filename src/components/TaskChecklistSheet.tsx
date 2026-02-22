@@ -24,6 +24,41 @@ interface TaskChecklistSheetProps {
   onStatusChange: (status: "completed") => Promise<void>;
 }
 
+// Circular Progress Ring component
+function CircularProgress({ percent, size = 72, strokeWidth = 6 }: { percent: number; size?: number; strokeWidth?: number }) {
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (percent / 100) * circumference;
+
+  return (
+    <div className="relative inline-flex items-center justify-center">
+      <svg width={size} height={size} className="-rotate-90">
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="hsl(var(--muted))"
+          strokeWidth={strokeWidth}
+        />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="hsl(var(--primary))"
+          strokeWidth={strokeWidth}
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+          className="transition-all duration-500"
+        />
+      </svg>
+      <span className="absolute text-sm font-bold text-foreground">{percent}%</span>
+    </div>
+  );
+}
+
 export function TaskChecklistSheet({
   taskId,
   taskTitle,
@@ -41,11 +76,9 @@ export function TaskChecklistSheet({
   const categoryMap = templates ? groupTemplatesByCategory(templates) : {};
   const availableCategories = Object.keys(categoryMap);
 
-  // Derive effective assignment type from prop or resource assignments
   const effectiveAssignmentType = (() => {
     if (assignmentType && availableCategories.includes(assignmentType)) return assignmentType;
     if (resourceCategories && resourceCategories.length > 0) {
-      // Try exact match first, then trim whitespace for DB categories like "Supplier "
       return resourceCategories.find((cat) =>
         availableCategories.some((ac) => ac.trim() === cat.trim())
       ) || null;
@@ -53,10 +86,8 @@ export function TaskChecklistSheet({
     return null;
   })();
 
-  // No assignment type = no checklist
   if (!effectiveAssignmentType) return null;
 
-  // Find the matching category key (handle whitespace differences)
   const matchedCategoryKey = availableCategories.find(
     (ac) => ac.trim() === effectiveAssignmentType.trim()
   ) || effectiveAssignmentType;
@@ -64,20 +95,17 @@ export function TaskChecklistSheet({
   const items = categoryMap[matchedCategoryKey] || [];
   if (items.length === 0 && !isLoading) return null;
 
-  // Build default checklist items from DB templates
   const defaultItems: TaskChecklistItem[] = items.map((label, index) => ({
     id: `${matchedCategoryKey.toLowerCase().replace(/[^a-z0-9]/g, "_")}_${index}`,
     label,
     completed: false,
   }));
 
-  // Merge saved checklist with defaults, preserving custom items
   const currentChecklist: TaskChecklistItem[] = (() => {
     const merged = defaultItems.map((defaultItem) => {
       const saved = checklist?.find((c) => c.id === defaultItem.id);
       return saved ? { ...defaultItem, completed: saved.completed } : defaultItem;
     });
-    // Append any custom (non-template) items from saved checklist
     const templateIds = new Set(defaultItems.map((d) => d.id));
     const customItems = (checklist || []).filter((c) => !templateIds.has(c.id));
     return [...merged, ...customItems];
@@ -93,6 +121,11 @@ export function TaskChecklistSheet({
     );
 
     await onChecklistSave(updated);
+
+    toast({
+      title: checked ? "Item completed" : "Item unchecked",
+      description: `Checklist progress: ${updated.filter(i => i.completed).length}/${totalItems}`,
+    });
 
     const allCompleted = updated.every((item) => item.completed);
     if (allCompleted) {
@@ -138,12 +171,12 @@ export function TaskChecklistSheet({
         <Button
           variant="outline"
           size="sm"
-          className="flex items-center gap-1.5 h-7 text-xs"
+          className="flex items-center gap-1.5 h-7 text-xs rounded-lg"
           onClick={(e) => e.stopPropagation()}
         >
           <ClipboardList className="h-3 w-3" />
           Open Checklist
-          <Badge variant="secondary" className="text-[10px] h-4 px-1 ml-0.5">
+          <Badge variant="secondary" className="text-[10px] h-4 px-1 ml-0.5 rounded-full">
             {completedItems}/{totalItems}
           </Badge>
         </Button>
@@ -158,7 +191,7 @@ export function TaskChecklistSheet({
             Task Checklist
           </SheetTitle>
           <p className="text-sm text-muted-foreground truncate">{taskTitle}</p>
-          <Badge variant="outline" className="w-fit text-xs">
+          <Badge variant="outline" className="w-fit text-xs rounded-full">
             {effectiveAssignmentType}
           </Badge>
         </SheetHeader>
@@ -170,18 +203,17 @@ export function TaskChecklistSheet({
           </div>
         ) : (
           <>
-            {/* Progress Section */}
-            <div className="mt-5 space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Progress</span>
-                <span className="font-semibold text-foreground">
-                  {progressPercent}% Complete
-                </span>
-              </div>
-              <Progress value={progressPercent} className="h-2.5" />
+            {/* Circular Progress Ring */}
+            <div className="mt-5 flex flex-col items-center gap-3">
+              <CircularProgress percent={progressPercent} />
               <p className="text-xs text-muted-foreground">
                 {completedItems} of {totalItems} items completed
               </p>
+            </div>
+
+            {/* Linear progress bar */}
+            <div className="mt-3 px-1">
+              <Progress value={progressPercent} className="h-2" />
             </div>
 
             {/* Checklist Items */}
@@ -190,7 +222,7 @@ export function TaskChecklistSheet({
                 <button
                   key={item.id}
                   type="button"
-                  className={`w-full flex items-start gap-3 p-3 rounded-lg transition-colors text-left hover:bg-muted/50 ${
+                  className={`w-full flex items-start gap-3 p-3 rounded-xl transition-colors text-left hover:bg-muted/50 ${
                     item.completed ? "opacity-70" : ""
                   }`}
                   onClick={() => handleToggle(item.id, !item.completed)}
@@ -224,12 +256,12 @@ export function TaskChecklistSheet({
                     handleAddItem();
                   }
                 }}
-                className="h-9 text-sm"
+                className="h-9 text-sm rounded-lg"
               />
               <Button
                 size="sm"
                 variant="outline"
-                className="shrink-0 h-9"
+                className="shrink-0 h-9 rounded-lg"
                 disabled={!newItemLabel.trim()}
                 onClick={handleAddItem}
               >
@@ -239,12 +271,13 @@ export function TaskChecklistSheet({
 
             {/* Completion celebration */}
             {progressPercent === 100 && (
-              <div className="mt-6 p-4 rounded-lg bg-primary/10 border border-primary/20 flex items-center gap-3">
+              <div className="mt-6 p-4 rounded-xl bg-primary/10 border border-primary/20 flex items-center gap-3">
                 <PartyPopper className="h-6 w-6 text-primary shrink-0" />
                 <div className="space-y-1">
                   <p className="text-sm font-medium text-foreground">All items complete!</p>
                   <Button
                     size="sm"
+                    className="rounded-lg"
                     onClick={async () => {
                       await onStatusChange("completed");
                       toast({
