@@ -1661,12 +1661,12 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     </Select>
                   </div>
 
-                  {(task.assigned_user_name || task.assigned_role || task.assigned_coordinator_name) && (
+                  {(task.assigned_user_name || task.assigned_role || task.assigned_coordinator_name || task.estimated_hours) && (
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 text-xs text-muted-foreground min-w-0">
                         <User className="h-3 w-3 shrink-0" />
                         <span className="truncate">
-                          {task.assigned_coordinator_name || task.assigned_user_name || task.assigned_role?.replace('_', ' ')}
+                          {task.assigned_coordinator_name || task.assigned_user_name || task.assigned_role?.replace('_', ' ') || 'Unassigned'}
                         </span>
                       </div>
                       {task.estimated_hours && (
