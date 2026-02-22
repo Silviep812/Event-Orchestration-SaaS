@@ -171,7 +171,7 @@ export function BudgetTracker({ eventId, selectedEventFilter }: BudgetTrackerPro
     try {
       let query = supabase.from('change_requests').select('*')
         .eq('status', 'pending')
-        .eq('change_type', 'budget')
+        .eq('change_type', 'budget' as any)
         .order('created_at', { ascending: false });
       if (currentEventId && currentEventId !== 'all') query = query.eq('event_id', currentEventId);
       const { data } = await query;
