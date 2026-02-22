@@ -1816,10 +1816,35 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     </div>
                   )}
 
-                  {task.due_date && (
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Calendar className="h-3 w-3" />
-                      <span>{format(new Date(task.due_date), 'MMM d')}</span>
+                  {/* Timeline Row */}
+                  {(task.start_date || task.end_date || task.due_date) && (
+                    <div className="rounded-md border bg-muted/30 p-2 space-y-1">
+                      <div className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+                        <Calendar className="h-3 w-3" />
+                        <span>Timeline</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-xs text-muted-foreground pl-4">
+                        {(task.start_date || task.start_time) && (
+                          <div>
+                            <span className="font-medium text-foreground/70">Start: </span>
+                            {task.start_date && format(new Date(task.start_date), 'MMM d')}
+                            {task.start_time && ` ${task.start_time}`}
+                          </div>
+                        )}
+                        {(task.end_date || task.end_time) && (
+                          <div>
+                            <span className="font-medium text-foreground/70">End: </span>
+                            {task.end_date && format(new Date(task.end_date), 'MMM d')}
+                            {task.end_time && ` ${task.end_time}`}
+                          </div>
+                        )}
+                        {task.due_date && (
+                          <div className="col-span-2">
+                            <span className="font-medium text-foreground/70">Due Date: </span>
+                            {format(new Date(task.due_date), 'MMM d, yyyy')}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
 
