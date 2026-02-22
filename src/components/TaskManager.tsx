@@ -1898,6 +1898,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                       taskId={task.id}
                       taskTitle={task.title}
                       assignmentType={task.assignment_type}
+                      resourceCategories={task.resource_assignments ? Object.keys(task.resource_assignments).filter(k => task.resource_assignments![k]?.selected) : []}
                       checklist={task.checklist}
                       onChecklistSave={async (updatedChecklist) => {
                         setTasks((prev) =>
