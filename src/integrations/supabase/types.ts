@@ -113,8 +113,10 @@ export type Database = {
           event_id: string
           id: string
           item_name: string
+          original_amount: number | null
           payment_due_date: string | null
           payment_status: string | null
+          status: string | null
           updated_at: string
           vendor_contact: string | null
           vendor_name: string | null
@@ -130,8 +132,10 @@ export type Database = {
           event_id: string
           id?: string
           item_name: string
+          original_amount?: number | null
           payment_due_date?: string | null
           payment_status?: string | null
+          status?: string | null
           updated_at?: string
           vendor_contact?: string | null
           vendor_name?: string | null
@@ -147,8 +151,10 @@ export type Database = {
           event_id?: string
           id?: string
           item_name?: string
+          original_amount?: number | null
           payment_due_date?: string | null
           payment_status?: string | null
+          status?: string | null
           updated_at?: string
           vendor_contact?: string | null
           vendor_name?: string | null
