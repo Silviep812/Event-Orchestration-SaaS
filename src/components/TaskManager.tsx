@@ -25,6 +25,7 @@ import {
 "@/components/ResourceColumn";
 import { ResourceCard } from "@/components/ResourceCard";
 import { ResourceAssignmentsPanel } from "@/components/ResourceAssignmentsPanel";
+import { TaskChecklistSheet } from "@/components/TaskChecklistSheet";
 
 interface Task {
   id: string;
@@ -1863,24 +1864,48 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     </div>
                 }
 
-                  <div className="flex items-center gap-2 pt-1" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center gap-2 pt-1 flex-wrap" onClick={(e) => e.stopPropagation()}>
+                    <TaskChecklistSheet
+                      taskTitle={task.title}
+                      resourceAssignments={task.resource_assignments}
+                      onChecklistUpdate={async (category, updatedAssignment) => {
+                        const updatedAssignments = {
+                          ...(task.resource_assignments || getEmptyResourceAssignments()),
+                          [category]: updatedAssignment,
+                        };
+                        setTasks((prev) =>
+                          prev.map((t) =>
+                            t.id === task.id ? { ...t, resource_assignments: updatedAssignments } : t
+                          )
+                        );
+                        try {
+                          await supabase
+                            .from('tasks')
+                            .update({ resource_assignments: updatedAssignments as any })
+                            .eq('id', task.id);
+                        } catch (err) {
+                          console.error('Failed to save checklist:', err);
+                          fetchTasks();
+                        }
+                      }}
+                    />
                     <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => archiveTask(task.id, !task.archived)}
-                    className="flex items-center gap-1 h-7 text-xs">
-
-                      {task.archived ?
-                    <>
+                      variant="outline"
+                      size="sm"
+                      onClick={() => archiveTask(task.id, !task.archived)}
+                      className="flex items-center gap-1 h-7 text-xs"
+                    >
+                      {task.archived ? (
+                        <>
                           <ArchiveRestore className="h-3 w-3" />
                           Restore
-                        </> :
-
-                    <>
+                        </>
+                      ) : (
+                        <>
                           <Archive className="h-3 w-3" />
                           Archive
                         </>
-                    }
+                      )}
                     </Button>
                   </div>
                 </CardContent>
