@@ -2543,9 +2543,11 @@ export type Database = {
           assigned_supplier_vendor_role: string | null
           assigned_to: string | null
           assigned_venue_role: string | null
+          assignment_type: string | null
           assined_vendor_role: string | null
           category: string | null
           change_request_id: string | null
+          checklist: Json | null
           created_at: string
           created_by: string
           description: string | null
@@ -2571,9 +2573,11 @@ export type Database = {
           assigned_supplier_vendor_role?: string | null
           assigned_to?: string | null
           assigned_venue_role?: string | null
+          assignment_type?: string | null
           assined_vendor_role?: string | null
           category?: string | null
           change_request_id?: string | null
+          checklist?: Json | null
           created_at?: string
           created_by: string
           description?: string | null
@@ -2599,9 +2603,11 @@ export type Database = {
           assigned_supplier_vendor_role?: string | null
           assigned_to?: string | null
           assigned_venue_role?: string | null
+          assignment_type?: string | null
           assined_vendor_role?: string | null
           category?: string | null
           change_request_id?: string | null
+          checklist?: Json | null
           created_at?: string
           created_by?: string
           description?: string | null
