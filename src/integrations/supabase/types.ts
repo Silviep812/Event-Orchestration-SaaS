@@ -812,8 +812,11 @@ export type Database = {
           email: string | null
           ent_type_id: number | null
           id: string
+          instagram_url: string | null
+          linkedin_url: string | null
           phone_number: string | null
           price: number | null
+          rating: number | null
           state: string | null
           updated_at: string
           zip: string | null
@@ -827,8 +830,11 @@ export type Database = {
           email?: string | null
           ent_type_id?: number | null
           id?: string
+          instagram_url?: string | null
+          linkedin_url?: string | null
           phone_number?: string | null
           price?: number | null
+          rating?: number | null
           state?: string | null
           updated_at?: string
           zip?: string | null
@@ -842,8 +848,11 @@ export type Database = {
           email?: string | null
           ent_type_id?: number | null
           id?: string
+          instagram_url?: string | null
+          linkedin_url?: string | null
           phone_number?: string | null
           price?: number | null
+          rating?: number | null
           state?: string | null
           updated_at?: string
           zip?: string | null
@@ -1359,8 +1368,11 @@ export type Database = {
           email: string | null
           hospitality_type: number | null
           id: string
+          instagram_url: string | null
+          linkedin_url: string | null
           make_reservations: string | null
           phone_number: string | null
+          rating: number | null
           state: string | null
           updated_at: string
           website: string | null
@@ -1376,8 +1388,11 @@ export type Database = {
           email?: string | null
           hospitality_type?: number | null
           id?: string
+          instagram_url?: string | null
+          linkedin_url?: string | null
           make_reservations?: string | null
           phone_number?: string | null
+          rating?: number | null
           state?: string | null
           updated_at?: string
           website?: string | null
@@ -1393,8 +1408,11 @@ export type Database = {
           email?: string | null
           hospitality_type?: number | null
           id?: string
+          instagram_url?: string | null
+          linkedin_url?: string | null
           make_reservations?: string | null
           phone_number?: string | null
+          rating?: number | null
           state?: string | null
           updated_at?: string
           website?: string | null
@@ -2142,8 +2160,11 @@ export type Database = {
           description: string | null
           email: string | null
           id: string
+          instagram_url: string | null
+          linkedin_url: string | null
           phone_number: string | null
           price: number | null
+          rating: number | null
           state: string | null
           updated_at: string
           vendor_sup_type_id: number | null
@@ -2157,8 +2178,11 @@ export type Database = {
           description?: string | null
           email?: string | null
           id?: string
+          instagram_url?: string | null
+          linkedin_url?: string | null
           phone_number?: string | null
           price?: number | null
+          rating?: number | null
           state?: string | null
           updated_at?: string
           vendor_sup_type_id?: number | null
@@ -2172,8 +2196,11 @@ export type Database = {
           description?: string | null
           email?: string | null
           id?: string
+          instagram_url?: string | null
+          linkedin_url?: string | null
           phone_number?: string | null
           price?: number | null
+          rating?: number | null
           state?: string | null
           updated_at?: string
           vendor_sup_type_id?: number | null
@@ -2511,9 +2538,12 @@ export type Database = {
           description: string | null
           email: string | null
           id: string
+          instagram_url: string | null
           inventory_images: string | null
+          linkedin_url: string | null
           phone_number: string | null
           price: number | null
+          rating: number | null
           state: string | null
           type_id: number | null
           updated_at: string
@@ -2528,9 +2558,12 @@ export type Database = {
           description?: string | null
           email?: string | null
           id?: string
+          instagram_url?: string | null
           inventory_images?: string | null
+          linkedin_url?: string | null
           phone_number?: string | null
           price?: number | null
+          rating?: number | null
           state?: string | null
           type_id?: number | null
           updated_at?: string
@@ -2545,9 +2578,12 @@ export type Database = {
           description?: string | null
           email?: string | null
           id?: string
+          instagram_url?: string | null
           inventory_images?: string | null
+          linkedin_url?: string | null
           phone_number?: string | null
           price?: number | null
+          rating?: number | null
           state?: string | null
           type_id?: number | null
           updated_at?: string
@@ -3515,7 +3551,10 @@ export type Database = {
           created_at: string
           email: string | null
           id: string
+          instagram_url: string | null
+          linkedin_url: string | null
           phone_number: string | null
+          rating: number | null
           state: string | null
           updated_at: string
           user_id: string | null
@@ -3533,7 +3572,10 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          instagram_url?: string | null
+          linkedin_url?: string | null
           phone_number?: string | null
+          rating?: number | null
           state?: string | null
           updated_at?: string
           user_id?: string | null
@@ -3551,7 +3593,10 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          instagram_url?: string | null
+          linkedin_url?: string | null
           phone_number?: string | null
+          rating?: number | null
           state?: string | null
           updated_at?: string
           user_id?: string | null
