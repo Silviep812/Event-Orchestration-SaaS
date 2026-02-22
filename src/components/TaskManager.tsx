@@ -1621,6 +1621,9 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
               onClick={() => {
                 setSelectedTask(task);
                 setSelectedDependencies(task.dependencies || []);
+                setEditResourceAssignments(
+                  task.resource_assignments || getEmptyResourceAssignments()
+                );
                 setIsEditDialogOpen(true);
               }}>
 
