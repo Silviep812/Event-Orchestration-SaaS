@@ -3,7 +3,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { ClipboardList, CheckCircle2, Circle, PartyPopper, Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { ClipboardList, CheckCircle2, Circle, PartyPopper, Loader2, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useChecklistTemplates, groupTemplatesByCategory } from "@/hooks/useChecklistTemplates";
 
@@ -33,6 +34,7 @@ export function TaskChecklistSheet({
   onStatusChange,
 }: TaskChecklistSheetProps) {
   const [open, setOpen] = useState(false);
+  const [newItemLabel, setNewItemLabel] = useState("");
   const { toast } = useToast();
   const { data: templates, isLoading } = useChecklistTemplates();
 
@@ -69,14 +71,17 @@ export function TaskChecklistSheet({
     completed: false,
   }));
 
-  // Merge saved checklist with defaults
-  const currentChecklist: TaskChecklistItem[] =
-    checklist && checklist.length > 0
-      ? defaultItems.map((defaultItem) => {
-          const saved = checklist.find((c) => c.id === defaultItem.id);
-          return saved ? { ...defaultItem, completed: saved.completed } : defaultItem;
-        })
-      : defaultItems;
+  // Merge saved checklist with defaults, preserving custom items
+  const currentChecklist: TaskChecklistItem[] = (() => {
+    const merged = defaultItems.map((defaultItem) => {
+      const saved = checklist?.find((c) => c.id === defaultItem.id);
+      return saved ? { ...defaultItem, completed: saved.completed } : defaultItem;
+    });
+    // Append any custom (non-template) items from saved checklist
+    const templateIds = new Set(defaultItems.map((d) => d.id));
+    const customItems = (checklist || []).filter((c) => !templateIds.has(c.id));
+    return [...merged, ...customItems];
+  })();
 
   const totalItems = currentChecklist.length;
   const completedItems = currentChecklist.filter((i) => i.completed).length;
@@ -112,6 +117,19 @@ export function TaskChecklistSheet({
         ),
       });
     }
+  };
+
+  const handleAddItem = async () => {
+    const label = newItemLabel.trim();
+    if (!label) return;
+    const newItem: TaskChecklistItem = {
+      id: `custom_${Date.now()}`,
+      label,
+      completed: false,
+    };
+    const updated = [...currentChecklist, newItem];
+    setNewItemLabel("");
+    await onChecklistSave(updated);
   };
 
   return (
@@ -193,6 +211,30 @@ export function TaskChecklistSheet({
                   </span>
                 </button>
               ))}
+            </div>
+
+            {/* Add custom checklist item */}
+            <div className="mt-4 flex items-center gap-2">
+              <Input
+                placeholder="Add a checklist item…"
+                value={newItemLabel}
+                onChange={(e) => setNewItemLabel(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && newItemLabel.trim()) {
+                    handleAddItem();
+                  }
+                }}
+                className="h-9 text-sm"
+              />
+              <Button
+                size="sm"
+                variant="outline"
+                className="shrink-0 h-9"
+                disabled={!newItemLabel.trim()}
+                onClick={handleAddItem}
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
             </div>
 
             {/* Completion celebration */}
