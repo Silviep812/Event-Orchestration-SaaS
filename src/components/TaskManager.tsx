@@ -1425,12 +1425,21 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="assignment_type">Assignment Type</Label>
+                  <Label htmlFor="assignment_type">Assignment Type <span className="text-destructive">*</span></Label>
                   <Select
                     value={(newTask as any).assignment_type || ""}
-                    onValueChange={(value) => setNewTask({ ...newTask, assignment_type: value } as any)}
+                    onValueChange={(value) => {
+                      setNewTask({ ...newTask, assignment_type: value } as any);
+                      if (validationErrors.assignment_type) {
+                        setValidationErrors((prev) => {
+                          const next = { ...prev };
+                          delete next.assignment_type;
+                          return next;
+                        });
+                      }
+                    }}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className={validationErrors.assignment_type ? 'border-destructive focus:ring-destructive' : ''}>
                       <SelectValue placeholder="Select assignment type" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1445,6 +1454,9 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                       <SelectItem value="Entertainment">Entertainment</SelectItem>
                     </SelectContent>
                   </Select>
+                  {validationErrors.assignment_type && (
+                    <p className="text-sm font-medium text-destructive">{validationErrors.assignment_type}</p>
+                  )}
                 </div>
 
                 {/* Resource Category Assignments - Expandable Panel */}

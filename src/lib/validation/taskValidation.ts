@@ -21,7 +21,8 @@ export const createTaskSchema = z.object({
     ),
   due_date: z.string().optional(),
   dependencies: z.array(z.string()).optional(),
-  assigned_coordinator_name: z.string()
+  assignment_type: z.string()
+    .min(1, { message: "Assignment type is required" }),
     .trim()
     .min(1, { message: "Collaborator name is required" })
     .max(100, { message: "Coordinator name must be less than 100 characters" })
