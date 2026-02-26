@@ -50,32 +50,32 @@ export function TeamMemberTaskAssignments() {
       setLoading(true);
 
       // Fetch all tasks to extract unique collaborator names
-      const { data: allTasksForCollaborators, error: collaboratorsError } = await supabase
-        .from('tasks')
-        .select('assigned_coordinator_name')
-        .not('assigned_coordinator_name', 'is', null);
+      const { data: allTasksForCollaborators, error: collaboratorsError } = await supabase.
+      from('tasks').
+      select('assigned_coordinator_name').
+      not('assigned_coordinator_name', 'is', null);
 
       if (collaboratorsError) throw collaboratorsError;
 
       // Extract unique collaborator names from existing task assignments
       const uniqueCollaborators = [...new Set(
-        allTasksForCollaborators?.map(t => t.assigned_coordinator_name) || []
+        allTasksForCollaborators?.map((t) => t.assigned_coordinator_name) || []
       )].sort();
 
       // Also fetch users from profiles to enable creating new assignments
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('display_name, user_id')
-        .not('display_name', 'is', null);
+      const { data: profiles, error: profilesError } = await supabase.
+      from('profiles').
+      select('display_name, user_id').
+      not('display_name', 'is', null);
 
       if (profilesError) throw profilesError;
 
       // Combine existing collaborators with all users from profiles
-      const profileNames = profiles?.map(p => p.display_name) || [];
+      const profileNames = profiles?.map((p) => p.display_name) || [];
       const allUniqueNames = [...new Set([...uniqueCollaborators, ...profileNames])].sort();
 
       // Convert to user-like objects for compatibility with existing UI
-      const allUsers = allUniqueNames.map(name => ({
+      const allUsers = allUniqueNames.map((name) => ({
         id: name, // Use name as ID for simplicity
         name: name,
         email: '' // Not needed for this use case
@@ -84,10 +84,10 @@ export function TeamMemberTaskAssignments() {
       setAllUsers(allUsers);
 
       // Fetch all tasks with their categories
-      const { data: tasks, error: tasksError } = await supabase
-        .from('tasks')
-        .select('id, title, status, priority, due_date, assigned_to, assigned_coordinator_name, event_id, category')
-        .order('due_date', { ascending: true });
+      const { data: tasks, error: tasksError } = await supabase.
+      from('tasks').
+      select('id, title, status, priority, due_date, assigned_to, assigned_coordinator_name, event_id, category').
+      order('due_date', { ascending: true });
 
       if (tasksError) throw tasksError;
 
@@ -95,16 +95,16 @@ export function TeamMemberTaskAssignments() {
       const filteredTasks = tasks || [];
 
       // Fetch event titles separately
-      const eventIds = [...new Set(filteredTasks?.map(t => t.event_id).filter(Boolean))];
-      const { data: events } = await supabase
-        .from('events')
-        .select('id, title')
-        .in('id', eventIds);
+      const eventIds = [...new Set(filteredTasks?.map((t) => t.event_id).filter(Boolean))];
+      const { data: events } = await supabase.
+      from('events').
+      select('id, title').
+      in('id', eventIds);
 
-      const eventMap = new Map(events?.map(e => [e.id, e.title]) || []);
+      const eventMap = new Map(events?.map((e) => [e.id, e.title]) || []);
 
       // Count unassigned tasks and store them
-      const unassigned = filteredTasks?.filter(task => !task.assigned_coordinator_name) || [];
+      const unassigned = filteredTasks?.filter((task) => !task.assigned_coordinator_name) || [];
       setUnassignedTasksCount(unassigned.length);
 
       // Convert unassigned tasks to TaskAssignment format
@@ -154,9 +154,9 @@ export function TeamMemberTaskAssignments() {
 
       // Create team member summaries
       const teamMembersData: TeamMemberWithTasks[] = Array.from(userTasksMap.entries()).map(([userId, tasks]) => {
-        const completed = tasks.filter(t => t.taskStatus === 'completed').length;
-        const pending = tasks.filter(t => t.taskStatus === 'pending' || t.taskStatus === 'in_progress').length;
-        const overdue = tasks.filter(t => {
+        const completed = tasks.filter((t) => t.taskStatus === 'completed').length;
+        const pending = tasks.filter((t) => t.taskStatus === 'pending' || t.taskStatus === 'in_progress').length;
+        const overdue = tasks.filter((t) => {
           if (!t.taskDueDate) return false;
           return new Date(t.taskDueDate) < new Date() && t.taskStatus !== 'completed';
         }).length;
@@ -178,9 +178,9 @@ export function TeamMemberTaskAssignments() {
 
       setTeamMembers(teamMembersData);
     } catch (error) {
+
       // Error fetching task assignments
-    } finally {
-      setLoading(false);
+    } finally {setLoading(false);
     }
   };
 
@@ -192,11 +192,11 @@ export function TeamMemberTaskAssignments() {
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'urgent': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
-      case 'high': return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400';
-      case 'medium': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
-      case 'low': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400';
+      case 'urgent':return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
+      case 'high':return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400';
+      case 'medium':return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
+      case 'low':return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
+      default:return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400';
     }
   };
 
@@ -206,10 +206,10 @@ export function TeamMemberTaskAssignments() {
       if (!user) throw new Error('Not authenticated');
 
       // Update the task's assigned_coordinator_name field
-      const { error: taskError } = await supabase
-        .from('tasks')
-        .update({ assigned_coordinator_name: collaboratorName })
-        .eq('id', taskId);
+      const { error: taskError } = await supabase.
+      from('tasks').
+      update({ assigned_coordinator_name: collaboratorName }).
+      eq('id', taskId);
 
       if (taskError) throw taskError;
 
@@ -227,10 +227,10 @@ export function TeamMemberTaskAssignments() {
       if (!user) throw new Error('Not authenticated');
 
       // Update the task's assigned_coordinator_name field
-      const { error: taskError } = await supabase
-        .from('tasks')
-        .update({ assigned_coordinator_name: newCollaboratorName })
-        .eq('id', taskId);
+      const { error: taskError } = await supabase.
+      from('tasks').
+      update({ assigned_coordinator_name: newCollaboratorName }).
+      eq('id', taskId);
 
       if (taskError) throw taskError;
 
@@ -249,135 +249,135 @@ export function TeamMemberTaskAssignments() {
   return (
     <div className="space-y-6">
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Team Members with Tasks</p>
-                <p className="text-2xl font-bold">{teamMembers.length}</p>
-              </div>
-              <ClipboardList className="h-8 w-8 text-muted-foreground" />
-            </div>
-          </CardContent>
-        </Card>
+      
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Assigned Tasks</p>
-                <p className="text-2xl font-bold">
-                  {teamMembers.reduce((acc, member) => acc + member.totalTasks, 0)}
-                </p>
-              </div>
-              <CheckCircle2 className="h-8 w-8 text-muted-foreground" />
-            </div>
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Unassigned Tasks</p>
-                <p className="text-2xl font-bold">{unassignedTasksCount}</p>
-              </div>
-              <AlertCircle className="h-8 w-8 text-muted-foreground" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
       {/* Unassigned Tasks Section */}
-      {unassignedTasksCount > 0 && (
-        <div className="space-y-4">
+      {unassignedTasksCount > 0 &&
+      <div className="space-y-4">
           <h3 className="text-lg font-semibold">Unassigned Tasks ({unassignedTasksCount})</h3>
           <Card>
             <CardContent className="p-6">
               <div className="space-y-2">
-                {unassignedTasks.map((task) => (
-                  <div key={task.taskId} className="p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
+                {unassignedTasks.map((task) =>
+              <div key={task.taskId} className="p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <p className="font-medium text-sm">{task.taskTitle}</p>
-                          {task.taskCategory && (
-                            <Badge className="bg-primary text-primary-foreground font-semibold">{task.taskCategory}</Badge>
-                          )}
+                          {task.taskCategory &&
+                      <Badge className="bg-primary text-primary-foreground font-semibold">{task.taskCategory}</Badge>
+                      }
                         </div>
-                        {task.eventTitle && (
-                          <p className="text-xs text-muted-foreground mt-1">Event: {task.eventTitle}</p>
-                        )}
-                        {task.taskDueDate && (
-                          <p className="text-xs text-muted-foreground mt-1">
+                        {task.eventTitle &&
+                    <p className="text-xs text-muted-foreground mt-1">Event: {task.eventTitle}</p>
+                    }
+                        {task.taskDueDate &&
+                    <p className="text-xs text-muted-foreground mt-1">
                             Due: {format(new Date(task.taskDueDate), 'MMM d, yyyy')}
                           </p>
-                        )}
+                    }
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <Select
-                          value={pendingAssignments[task.taskId] || ""}
-                          onValueChange={(userId) => setPendingAssignments({ ...pendingAssignments, [task.taskId]: userId })}
-                        >
+                      value={pendingAssignments[task.taskId] || ""}
+                      onValueChange={(userId) => setPendingAssignments({ ...pendingAssignments, [task.taskId]: userId })}>
+
                           <SelectTrigger className="w-[180px]">
                             <SelectValue placeholder="Select user..." />
                           </SelectTrigger>
                           <SelectContent>
-                            {allUsers.map((user) => (
-                              <SelectItem key={user.id} value={user.id}>
+                            {allUsers.map((user) =>
+                        <SelectItem key={user.id} value={user.id}>
                                 {user.name}
                               </SelectItem>
-                            ))}
+                        )}
                           </SelectContent>
                         </Select>
                         <Button
-                          size="sm"
-                          onClick={() => {
-                            if (pendingAssignments[task.taskId]) {
-                              assignTask(task.taskId, pendingAssignments[task.taskId]);
-                              setPendingAssignments({ ...pendingAssignments, [task.taskId]: undefined });
-                            }
-                          }}
-                          disabled={!pendingAssignments[task.taskId]}
-                          className="h-9 gap-2"
-                        >
+                      size="sm"
+                      onClick={() => {
+                        if (pendingAssignments[task.taskId]) {
+                          assignTask(task.taskId, pendingAssignments[task.taskId]);
+                          setPendingAssignments({ ...pendingAssignments, [task.taskId]: undefined });
+                        }
+                      }}
+                      disabled={!pendingAssignments[task.taskId]}
+                      className="h-9 gap-2">
+
                           <Check className="h-4 w-4" />
                           <span>Save</span>
                         </Button>
                         <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setPendingAssignments({ ...pendingAssignments, [task.taskId]: undefined });
-                          }}
-                          disabled={!pendingAssignments[task.taskId]}
-                          className="h-9 gap-2"
-                        >
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setPendingAssignments({ ...pendingAssignments, [task.taskId]: undefined });
+                      }}
+                      disabled={!pendingAssignments[task.taskId]}
+                      className="h-9 gap-2">
+
                           <X className="h-4 w-4" />
                           <span>Cancel</span>
                         </Button>
                       </div>
                     </div>
                   </div>
-                ))}
+              )}
               </div>
             </CardContent>
           </Card>
         </div>
-      )}
+      }
 
       {/* Team Member Task Assignments */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold">Team Member Task Assignments</h3>
 
-        {teamMembers.length === 0 ? (
-          <Card className="p-6 text-center">
+        {teamMembers.length === 0 ?
+        <Card className="p-6 text-center">
             <p className="text-muted-foreground">No task assignments yet. Assign tasks to team members in the Tasks tab.</p>
-          </Card>
-        ) : (
-          teamMembers.map((member) => (
-            <Card key={member.userId}>
+          </Card> :
+
+        teamMembers.map((member) =>
+        <Card key={member.userId}>
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
@@ -391,100 +391,100 @@ export function TeamMemberTaskAssignments() {
                     <Badge variant="outline" className="bg-primary/10">
                       {member.totalTasks} Total
                     </Badge>
-                    {member.completedTasks > 0 && (
-                      <Badge variant="outline" className="bg-success/10 text-success">
+                    {member.completedTasks > 0 &&
+                <Badge variant="outline" className="bg-success/10 text-success">
                         {member.completedTasks} Done
                       </Badge>
-                    )}
-                    {member.pendingTasks > 0 && (
-                      <Badge variant="outline" className="bg-warning/10 text-warning">
+                }
+                    {member.pendingTasks > 0 &&
+                <Badge variant="outline" className="bg-warning/10 text-warning">
                         {member.pendingTasks} Pending
                       </Badge>
-                    )}
-                    {member.overdueTasks > 0 && (
-                      <Badge variant="outline" className="bg-destructive/10 text-destructive">
+                }
+                    {member.overdueTasks > 0 &&
+                <Badge variant="outline" className="bg-destructive/10 text-destructive">
                         {member.overdueTasks} Overdue
                       </Badge>
-                    )}
+                }
                   </div>
                 </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {member.tasks.map((task) => (
-                    <div key={task.taskId} className="p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
+                  {member.tasks.map((task) =>
+              <div key={task.taskId} className="p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <p className="font-medium text-sm">{task.taskTitle}</p>
-                            {task.taskCategory && (
-                              <Badge className="bg-primary text-primary-foreground font-semibold">{task.taskCategory}</Badge>
-                            )}
+                            {task.taskCategory &&
+                      <Badge className="bg-primary text-primary-foreground font-semibold">{task.taskCategory}</Badge>
+                      }
                             <Badge variant={task.taskStatus === 'completed' ? 'default' : 'outline'}>
                               {task.taskStatus}
                             </Badge>
                           </div>
-                          {task.eventTitle && (
-                            <p className="text-xs text-muted-foreground mt-1">Event: {task.eventTitle}</p>
-                          )}
-                          {task.taskDueDate && (
-                            <p className="text-xs text-muted-foreground mt-1">
+                          {task.eventTitle &&
+                    <p className="text-xs text-muted-foreground mt-1">Event: {task.eventTitle}</p>
+                    }
+                          {task.taskDueDate &&
+                    <p className="text-xs text-muted-foreground mt-1">
                               Due: {format(new Date(task.taskDueDate), 'MMM d, yyyy')}
                             </p>
-                          )}
+                    }
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
                           <Select
-                            value={pendingAssignments[`reassign-${task.taskId}`] || member.userId}
-                            onValueChange={(userId) => setPendingAssignments({ ...pendingAssignments, [`reassign-${task.taskId}`]: userId })}
-                          >
+                      value={pendingAssignments[`reassign-${task.taskId}`] || member.userId}
+                      onValueChange={(userId) => setPendingAssignments({ ...pendingAssignments, [`reassign-${task.taskId}`]: userId })}>
+
                             <SelectTrigger className="w-[140px]">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              {allUsers.map((user) => (
-                                <SelectItem key={user.id} value={user.id}>
+                              {allUsers.map((user) =>
+                        <SelectItem key={user.id} value={user.id}>
                                   {user.name}
                                 </SelectItem>
-                              ))}
+                        )}
                             </SelectContent>
                           </Select>
                           <Button
-                            size="sm"
-                            onClick={() => {
-                              if (pendingAssignments[`reassign-${task.taskId}`] && pendingAssignments[`reassign-${task.taskId}`] !== member.userId) {
-                                reassignTask(task.taskId, pendingAssignments[`reassign-${task.taskId}`]);
-                                setPendingAssignments({ ...pendingAssignments, [`reassign-${task.taskId}`]: undefined });
-                              }
-                            }}
-                            disabled={!pendingAssignments[`reassign-${task.taskId}`] || pendingAssignments[`reassign-${task.taskId}`] === member.userId}
-                            className="h-9 gap-2"
-                          >
+                      size="sm"
+                      onClick={() => {
+                        if (pendingAssignments[`reassign-${task.taskId}`] && pendingAssignments[`reassign-${task.taskId}`] !== member.userId) {
+                          reassignTask(task.taskId, pendingAssignments[`reassign-${task.taskId}`]);
+                          setPendingAssignments({ ...pendingAssignments, [`reassign-${task.taskId}`]: undefined });
+                        }
+                      }}
+                      disabled={!pendingAssignments[`reassign-${task.taskId}`] || pendingAssignments[`reassign-${task.taskId}`] === member.userId}
+                      className="h-9 gap-2">
+
                             <Check className="h-4 w-4" />
                             <span>Change</span>
                           </Button>
                           <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setPendingAssignments({ ...pendingAssignments, [`reassign-${task.taskId}`]: undefined });
-                            }}
-                            disabled={!pendingAssignments[`reassign-${task.taskId}`] || pendingAssignments[`reassign-${task.taskId}`] === member.userId}
-                            className="h-9 gap-2"
-                          >
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setPendingAssignments({ ...pendingAssignments, [`reassign-${task.taskId}`]: undefined });
+                      }}
+                      disabled={!pendingAssignments[`reassign-${task.taskId}`] || pendingAssignments[`reassign-${task.taskId}`] === member.userId}
+                      className="h-9 gap-2">
+
                             <X className="h-4 w-4" />
                             <span>Cancel</span>
                           </Button>
                         </div>
                       </div>
                     </div>
-                  ))}
+              )}
                 </div>
               </CardContent>
             </Card>
-          ))
-        )}
+        )
+        }
       </div>
-    </div>
-  );
+    </div>);
+
 }
