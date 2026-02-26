@@ -12,11 +12,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions } from "@/lib/permissions";
-import { Bell, Clock, Plus, Save, AlertCircle, History, Eye, Trash2, Calendar as CalendarIcon, Package, BarChart3, MapPin, DollarSign, Tag, Sparkles, CheckCircle2, XCircle, Loader2, TrendingUp, RefreshCw, Edit } from "lucide-react";
+import { Bell, Clock, Plus, Save, AlertCircle, History, Eye, Trash2, Calendar as CalendarIcon, Package, BarChart3, MapPin, DollarSign, Tag, Sparkles, CheckCircle2, XCircle, Loader2, TrendingUp, RefreshCw, Edit, ClipboardList } from "lucide-react";
 import { format } from "date-fns";
 import TimelineView from "@/components/timeline/TimelineView";
 import ResourceManager from "@/components/ResourceManager";
 import Analytics from "@/components/Analytics";
+import { TeamMemberTaskAssignments } from "@/components/TeamMemberTaskAssignments";
 
 interface ManageEventData {
   id?: string;
@@ -1265,7 +1266,7 @@ const ManageEvent = () => {
               )}
 
               <Tabs defaultValue="details" className="space-y-4">
-                <TabsList className="grid w-full grid-cols-5 bg-muted/50 p-1 h-auto">
+                <TabsList className="grid w-full grid-cols-6 bg-muted/50 p-1 h-auto">
                   <TabsTrigger
                     value="details"
                     className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
@@ -1305,6 +1306,13 @@ const ManageEvent = () => {
                         {changeLogs.length}
                       </Badge>
                     )}
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="assignments"
+                    className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
+                  >
+                    <ClipboardList className="h-4 w-4" />
+                    <span className="hidden sm:inline">Assignments</span>
                   </TabsTrigger>
                 </TabsList>
 
@@ -2026,6 +2034,10 @@ const ManageEvent = () => {
                       </div>
                     </CardContent>
                   </Card>
+                </TabsContent>
+
+                <TabsContent value="assignments">
+                  <TeamMemberTaskAssignments />
                 </TabsContent>
               </Tabs>
             </>

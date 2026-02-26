@@ -16,7 +16,7 @@ import {
   FileText, ChevronDown, Bell, UserPlus
 } from "lucide-react";
 import { UnassignedUserCard } from "./UnassignedUserCard";
-import { TeamMemberTaskAssignments } from "./TeamMemberTaskAssignments";
+
 import { useNavigate } from "react-router-dom";
 
 interface UserRole {
@@ -596,7 +596,6 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
         </DialogContent>
       </Dialog>
 
-      <TeamMemberTaskAssignments />
     </div>
   );
 }
