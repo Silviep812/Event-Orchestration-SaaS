@@ -556,7 +556,7 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
               </TableHeader>
               <TableBody>
                 {/* OWNER/ADMIN ROWS */}
-                {consolidated.filter(cu => cu.highestPermission === 'admin').map((cu) => {
+                {(permissionFilter === 'all' || permissionFilter === 'admin') && consolidated.filter(cu => cu.highestPermission === 'admin').map((cu) => {
                   const userInfo = getUserInfo(cu.user_id);
                   const userTasks = getTasksForUser(userInfo.name);
                   const userCRs = changeRequests.filter(cr => cr.requested_by === cu.user_id || isEventOwner());
