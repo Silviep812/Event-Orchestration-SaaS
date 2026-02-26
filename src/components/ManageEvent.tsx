@@ -1266,7 +1266,7 @@ const ManageEvent = () => {
               )}
 
               <Tabs defaultValue="details" className="space-y-4">
-                <TabsList className="grid w-full grid-cols-5 bg-muted/50 p-1 h-auto">
+                <TabsList className="grid w-full grid-cols-6 bg-muted/50 p-1 h-auto">
                   <TabsTrigger
                     value="details"
                     className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
