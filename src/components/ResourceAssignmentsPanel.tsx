@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { ChevronDown, ChevronUp, Plus, Save, X, ClipboardList, CheckCircle2, Circle, PartyPopper } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Progress } from "@/components/ui/progress";
 import { ResourceAssignment, ResourceStatus, RESOURCE_CATEGORIES, getEmptyResourceAssignments, ChecklistItem, getDefaultChecklist } from "@/components/ResourceColumn";
 import { DependencyMultiSelect } from "@/components/DependencyMultiSelect";
