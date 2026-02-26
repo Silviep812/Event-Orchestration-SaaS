@@ -652,7 +652,7 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
 
           {/* Mobile Card Layout */}
           <div className="lg:hidden space-y-0 divide-y">
-            {(permissionFilter === 'all' || permissionFilter === 'admin') && consolidated.filter(cu => cu.highestPermission === 'admin').map((cu) => {
+            {(permissionFilter === 'all' || permissionFilter === 'admin') && consolidated.filter(cu => cu.highestPermission === 'admin' && (roleFilter === 'all' || cu.roles.some(r => r.role === roleFilter))).map((cu) => {
               const userInfo = getUserInfo(cu.user_id);
               const userTasks = getTasksForUser(userInfo.name);
               return (
