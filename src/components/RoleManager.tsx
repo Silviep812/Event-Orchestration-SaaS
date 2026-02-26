@@ -497,13 +497,30 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
+       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Users className="h-5 w-5 text-primary" />
           <h2 className="text-xl sm:text-2xl font-bold">Collaborator Management</h2>
+          <Badge variant="outline" className="text-xs">
+            {consolidated.length + usersWithoutRoles.length} users
+          </Badge>
         </div>
-        <Badge variant="outline" className="text-xs">
-          {consolidated.length + usersWithoutRoles.length} users
-        </Badge>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground whitespace-nowrap">Filter by Task:</span>
+          <Select value={taskFilter} onValueChange={setTaskFilter}>
+            <SelectTrigger className="h-8 w-[180px] text-xs">
+              <SelectValue placeholder="All Tasks" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Tasks</SelectItem>
+              {tasks.map(t => (
+                <SelectItem key={t.id} value={t.id}>
+                  {t.title}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* ====== THE RUSTIC GRAPH — 5-COLUMN TABLE ====== */}
