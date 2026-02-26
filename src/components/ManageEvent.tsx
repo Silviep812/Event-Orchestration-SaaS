@@ -2033,9 +2033,6 @@ const ManageEvent = () => {
                   </Card>
                 </TabsContent>
 
-                <TabsContent value="assignments">
-                  <TeamMemberTaskAssignments />
-                </TabsContent>
               </Tabs>
             </>
           ) : (
