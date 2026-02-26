@@ -1398,10 +1398,19 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="priority">Priority</Label>
-                  <Select value={newTask.priority} onValueChange={(value: any) => setNewTask({ ...newTask, priority: value })}>
-                    <SelectTrigger>
-                      <SelectValue />
+                  <Label htmlFor="priority">Priority <span className="text-destructive">*</span></Label>
+                  <Select value={newTask.priority} onValueChange={(value: any) => {
+                    setNewTask({ ...newTask, priority: value });
+                    if (validationErrors.priority) {
+                      setValidationErrors((prev) => {
+                        const next = { ...prev };
+                        delete next.priority;
+                        return next;
+                      });
+                    }
+                  }}>
+                    <SelectTrigger className={validationErrors.priority ? 'border-destructive focus:ring-destructive' : ''}>
+                      <SelectValue placeholder="Select priority" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="low">Low</SelectItem>
@@ -1410,6 +1419,9 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                       <SelectItem value="urgent">Urgent</SelectItem>
                     </SelectContent>
                   </Select>
+                  {validationErrors.priority && (
+                    <p className="text-sm font-medium text-destructive">{validationErrors.priority}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
