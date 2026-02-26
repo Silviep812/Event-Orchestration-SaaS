@@ -1083,7 +1083,8 @@ const ManageEvent = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Events List */}
-        <Card className="lg:col-span-1 shadow-lg border-0 bg-card/50 backdrop-blur-sm">
+        <div className="lg:col-span-1 space-y-6">
+        <Card className="shadow-lg border-0 bg-card/50 backdrop-blur-sm">
           <CardHeader className="border-b border-border/50 bg-gradient-to-r from-muted/50 to-transparent">
             <CardTitle className="flex items-center gap-2 text-lg">
               <div className="p-1.5 rounded-md bg-primary/10">
@@ -1219,6 +1220,9 @@ const ManageEvent = () => {
           </CardContent>
         </Card>
 
+        <TeamMemberTaskAssignments />
+        </div>
+
         {/* Event Details & Change Logs */}
         <div className="lg:col-span-2 space-y-6">
           {selectedEvent ? (
@@ -1266,7 +1270,7 @@ const ManageEvent = () => {
               )}
 
               <Tabs defaultValue="details" className="space-y-4">
-                <TabsList className="grid w-full grid-cols-6 bg-muted/50 p-1 h-auto">
+                <TabsList className="grid w-full grid-cols-5 bg-muted/50 p-1 h-auto">
                   <TabsTrigger
                     value="details"
                     className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
@@ -1306,13 +1310,6 @@ const ManageEvent = () => {
                         {changeLogs.length}
                       </Badge>
                     )}
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="assignments"
-                    className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
-                  >
-                    <ClipboardList className="h-4 w-4" />
-                    <span className="hidden sm:inline">Assignments</span>
                   </TabsTrigger>
                 </TabsList>
 
@@ -2036,9 +2033,6 @@ const ManageEvent = () => {
                   </Card>
                 </TabsContent>
 
-                <TabsContent value="assignments">
-                  <TeamMemberTaskAssignments />
-                </TabsContent>
               </Tabs>
             </>
           ) : (
