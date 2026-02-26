@@ -180,9 +180,9 @@ export function TeamMemberTaskAssignments() {
     } catch (error) {
 
 
+
       // Error fetching task assignments
-    } finally {setLoading(false);}
-  };
+    } finally {setLoading(false);}};
 
   const getStatusIcon = (member: TeamMemberWithTasks) => {
     if (member.overdueTasks > 0) return <AlertCircle className="h-4 w-4 text-destructive" />;
@@ -290,11 +290,7 @@ export function TeamMemberTaskAssignments() {
 
 
       {/* Unassigned Tasks Section */}
-      {unassignedTasksCount > 0 &&
-      <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Unassigned Tasks ({unassignedTasksCount})</h3>
-          <Card>
-            
+      {unassignedTasksCount > 0
 
 
 
@@ -363,8 +359,12 @@ export function TeamMemberTaskAssignments() {
 
 
 
-          </Card>
-        </div>
+
+
+
+
+
+
       }
 
       {/* Team Member Task Assignments */}
