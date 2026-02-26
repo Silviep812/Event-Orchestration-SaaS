@@ -141,6 +141,7 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
   const [dataTimestamp, setDataTimestamp] = useState(Date.now());
   const [changeRequests, setChangeRequests] = useState<ChangeRequest[]>([]);
   const [tasks, setTasks] = useState<TaskData[]>([]);
+  const [taskFilter, setTaskFilter] = useState<string>("all");
   const [rejectDialog, setRejectDialog] = useState<{ open: boolean; requestId: string | null }>({ open: false, requestId: null });
   const [rejectionReason, setRejectionReason] = useState("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -457,9 +458,12 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
   const pendingRequests = changeRequests.filter(cr => cr.status === 'pending');
   const consolidated = consolidateUserRoles(userRoles);
 
+  // Filtered tasks based on task filter
+  const filteredTasks = taskFilter === "all" ? tasks : tasks.filter(t => t.id === taskFilter);
+
   // Group tasks by assigned user name
   const getTasksForUser = (userName: string): TaskData[] => {
-    return tasks.filter(t => t.assigned_coordinator_name === userName);
+    return filteredTasks.filter(t => t.assigned_coordinator_name === userName);
   };
 
   // Get checklist progress for a task
@@ -492,14 +496,30 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Users className="h-5 w-5 text-primary" />
           <h2 className="text-xl sm:text-2xl font-bold">Collaborator Management</h2>
+          <Badge variant="outline" className="text-xs">
+            {consolidated.length + usersWithoutRoles.length} users
+          </Badge>
         </div>
-        <Badge variant="outline" className="text-xs">
-          {consolidated.length + usersWithoutRoles.length} users
-        </Badge>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground whitespace-nowrap">Filter by Task:</span>
+          <Select value={taskFilter} onValueChange={setTaskFilter}>
+            <SelectTrigger className="h-8 w-[180px] text-xs">
+              <SelectValue placeholder="All Tasks" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Tasks</SelectItem>
+              {tasks.map(t => (
+                <SelectItem key={t.id} value={t.id}>
+                  {t.title}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* ====== THE RUSTIC GRAPH — 5-COLUMN TABLE ====== */}
