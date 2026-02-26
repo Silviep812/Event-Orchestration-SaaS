@@ -1474,13 +1474,16 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                       placeholder="Enter collaborator name (optional)"
                       value={(newTask as any).assigned_coordinator_name || ""}
                       onChange={(e) => {
-                        setNewTask({
-                          ...newTask,
-                          assigned_coordinator_name: e.target.value || undefined
-                        } as any);
+                        const val = e.target.value;
+                        if (val.length <= 100) {
+                          setNewTask({
+                            ...newTask,
+                            assigned_coordinator_name: val || undefined
+                          } as any);
+                        }
                       }}
-                      className="flex-1" />
-
+                      maxLength={100}
+                      className={`flex-1 ${((newTask as any).assigned_coordinator_name?.length || 0) >= 90 ? 'border-destructive focus-visible:ring-destructive' : ''}`} />
                     {(newTask as any).assigned_coordinator_name &&
                     <Button
                       type="button"
@@ -1493,11 +1496,15 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                           description: "Collaborator assignment cleared"
                         });
                       }}>
-
                         <X className="h-4 w-4" />
                       </Button>
                     }
                   </div>
+                  {((newTask as any).assigned_coordinator_name?.length || 0) >= 90 && (
+                    <p className="text-xs text-destructive">
+                      {100 - ((newTask as any).assigned_coordinator_name?.length || 0)} characters remaining (max 100)
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
