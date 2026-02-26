@@ -142,6 +142,7 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
   const [changeRequests, setChangeRequests] = useState<ChangeRequest[]>([]);
   const [tasks, setTasks] = useState<TaskData[]>([]);
   const [taskFilter, setTaskFilter] = useState<string>("all");
+  const [permissionFilter, setPermissionFilter] = useState<string>("all");
   const [rejectDialog, setRejectDialog] = useState<{ open: boolean; requestId: string | null }>({ open: false, requestId: null });
   const [rejectionReason, setRejectionReason] = useState("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -504,21 +505,37 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
             {consolidated.length + usersWithoutRoles.length} users
           </Badge>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground whitespace-nowrap">Filter by Task:</span>
-          <Select value={taskFilter} onValueChange={setTaskFilter}>
-            <SelectTrigger className="h-8 w-[180px] text-xs">
-              <SelectValue placeholder="All Tasks" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Tasks</SelectItem>
-              {tasks.map(t => (
-                <SelectItem key={t.id} value={t.id}>
-                  {t.title}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="flex items-center gap-4 flex-wrap">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground whitespace-nowrap">Permission:</span>
+            <Select value={permissionFilter} onValueChange={setPermissionFilter}>
+              <SelectTrigger className="h-8 w-[160px] text-xs">
+                <SelectValue placeholder="All Levels" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Levels</SelectItem>
+                <SelectItem value="admin">Owner/Admin (CRUD)</SelectItem>
+                <SelectItem value="coordinator">Read & Update (RU)</SelectItem>
+                <SelectItem value="viewer">Read Only (R)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground whitespace-nowrap">Task:</span>
+            <Select value={taskFilter} onValueChange={setTaskFilter}>
+              <SelectTrigger className="h-8 w-[180px] text-xs">
+                <SelectValue placeholder="All Tasks" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Tasks</SelectItem>
+                {tasks.map(t => (
+                  <SelectItem key={t.id} value={t.id}>
+                    {t.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
@@ -539,7 +556,7 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
               </TableHeader>
               <TableBody>
                 {/* OWNER/ADMIN ROWS */}
-                {consolidated.filter(cu => cu.highestPermission === 'admin').map((cu) => {
+                {(permissionFilter === 'all' || permissionFilter === 'admin') && consolidated.filter(cu => cu.highestPermission === 'admin').map((cu) => {
                   const userInfo = getUserInfo(cu.user_id);
                   const userTasks = getTasksForUser(userInfo.name);
                   const userCRs = changeRequests.filter(cr => cr.requested_by === cu.user_id || isEventOwner());
@@ -565,7 +582,7 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
                 })}
 
                 {/* COLLABORATOR (COORDINATOR) ROWS */}
-                {consolidated.filter(cu => cu.highestPermission === 'coordinator').map((cu) => {
+                {(permissionFilter === 'all' || permissionFilter === 'coordinator') && consolidated.filter(cu => cu.highestPermission === 'coordinator').map((cu) => {
                   const userInfo = getUserInfo(cu.user_id);
                   const userTasks = getTasksForUser(userInfo.name);
                   return (
@@ -586,7 +603,7 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
                 })}
 
                 {/* VIEWER ROWS */}
-                {consolidated.filter(cu => cu.highestPermission === 'viewer').map((cu) => {
+                {(permissionFilter === 'all' || permissionFilter === 'viewer') && consolidated.filter(cu => cu.highestPermission === 'viewer').map((cu) => {
                   const userInfo = getUserInfo(cu.user_id);
                   const userTasks = getTasksForUser(userInfo.name);
                   return (
@@ -618,7 +635,7 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
 
           {/* Mobile Card Layout */}
           <div className="lg:hidden space-y-0 divide-y">
-            {consolidated.filter(cu => cu.highestPermission === 'admin').map((cu) => {
+            {(permissionFilter === 'all' || permissionFilter === 'admin') && consolidated.filter(cu => cu.highestPermission === 'admin').map((cu) => {
               const userInfo = getUserInfo(cu.user_id);
               const userTasks = getTasksForUser(userInfo.name);
               return (
@@ -644,7 +661,7 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
                 />
               );
             })}
-            {consolidated.filter(cu => cu.highestPermission === 'coordinator').map((cu) => {
+            {(permissionFilter === 'all' || permissionFilter === 'coordinator') && consolidated.filter(cu => cu.highestPermission === 'coordinator').map((cu) => {
               const userInfo = getUserInfo(cu.user_id);
               const userTasks = getTasksForUser(userInfo.name);
               return (
@@ -670,7 +687,7 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
                 />
               );
             })}
-            {consolidated.filter(cu => cu.highestPermission === 'viewer').map((cu) => {
+            {(permissionFilter === 'all' || permissionFilter === 'viewer') && consolidated.filter(cu => cu.highestPermission === 'viewer').map((cu) => {
               const userInfo = getUserInfo(cu.user_id);
               const userTasks = getTasksForUser(userInfo.name);
               return (
