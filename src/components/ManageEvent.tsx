@@ -1307,6 +1307,13 @@ const ManageEvent = () => {
                       </Badge>
                     )}
                   </TabsTrigger>
+                  <TabsTrigger
+                    value="assignments"
+                    className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
+                  >
+                    <ClipboardList className="h-4 w-4" />
+                    <span className="hidden sm:inline">Assignments</span>
+                  </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="details" className="space-y-4">

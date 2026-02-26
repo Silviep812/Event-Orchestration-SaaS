@@ -596,7 +596,6 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
         </DialogContent>
       </Dialog>
 
-      <TeamMemberTaskAssignments />
     </div>
   );
 }
