@@ -1629,7 +1629,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         </div> :
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {tasks.map((task) => {
+          {tasks.filter((task) => !(task.change_request_id && task.status === 'completed')).map((task) => {
           const StatusIcon = statusIcons[task.status];
           return (
             <Card
