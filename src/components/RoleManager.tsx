@@ -439,7 +439,7 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
 
   const handleUpdateTaskStatus = async (taskId: string, newStatus: string) => {
     try {
-      const { error } = await supabase.from('tasks').update({ status: newStatus, updated_at: new Date().toISOString() }).eq('id', taskId);
+      const { error } = await supabase.from('tasks').update({ status: newStatus as "not_started" | "in_progress" | "completed" | "on_hold" | "cancelled", updated_at: new Date().toISOString() }).eq('id', taskId);
       if (error) throw error;
       toast({ title: 'Task Updated', description: `Task status updated to ${newStatus.replace(/_/g, ' ')}.` });
       await fetchTasks();
