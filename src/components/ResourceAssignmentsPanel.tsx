@@ -228,61 +228,128 @@ function ResourceCard({
 
       </div>
 
-      {/* Checklist */}
+      {/* Checklist Drawer */}
       {checklist.length > 0 &&
       <div onClick={(e) => e.stopPropagation()}>
-          <Collapsible open={checklistOpen} onOpenChange={setChecklistOpen}>
-            <CollapsibleTrigger asChild>
-              <Button
-              variant="ghost"
+        <Sheet open={checklistOpen} onOpenChange={setChecklistOpen}>
+          <SheetTrigger asChild>
+            <Button
+              variant="outline"
               size="sm"
-              className="w-full flex items-center justify-between h-8 px-2 hover:bg-muted/50 mb-1">
+              className="flex items-center gap-1.5 h-7 text-xs rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <ClipboardList className="h-3 w-3" />
+              Open Checklist
+              <Badge variant="secondary" className="text-[10px] h-4 px-1 ml-0.5 rounded-full">
+                {completedCount}/{checklist.length}
+              </Badge>
+            </Button>
+          </SheetTrigger>
+          <SheetContent
+            className="w-[340px] sm:w-[420px] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <SheetHeader>
+              <SheetTitle className="text-lg flex items-center gap-2">
+                <ClipboardList className="h-5 w-5 text-primary" />
+                Resource Checklist
+              </SheetTitle>
+              <Badge variant="outline" className="w-fit text-xs rounded-full">
+                {category}
+              </Badge>
+            </SheetHeader>
 
-                <div className="flex items-center gap-1.5">
-                  <ClipboardList className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="text-xs font-medium text-black">Checklist</span>
-                  <Badge variant="secondary" className="text-[10px] h-4 px-1">
-                    {completedCount}/{checklist.length}
-                  </Badge>
-                </div>
-                {checklistOpen ?
-              <ChevronUp className="h-3 w-3" /> :
+            {/* Circular Progress */}
+            <div className="mt-5 flex flex-col items-center gap-3">
+              <CircularProgress percent={checklist.length > 0 ? Math.round((completedCount / checklist.length) * 100) : 0} />
+              <p className="text-xs text-muted-foreground">
+                {completedCount} of {checklist.length} items completed
+              </p>
+            </div>
 
-              <ChevronDown className="h-3 w-3" />
-              }
+            {/* Linear progress bar */}
+            <div className="mt-3 px-1">
+              <Progress value={checklist.length > 0 ? Math.round((completedCount / checklist.length) * 100) : 0} className="h-2" />
+            </div>
+
+            {/* Checklist Items */}
+            <div className="mt-6 space-y-1">
+              {checklist.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={`w-full flex items-start gap-3 p-3 rounded-xl transition-colors text-left hover:bg-muted/50 ${
+                    item.completed ? "opacity-70" : ""
+                  }`}
+                  onClick={() => handleChecklistToggle(item.id, !item.completed)}
+                >
+                  {item.completed ? (
+                    <CheckCircle2 className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                  ) : (
+                    <Circle className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+                  )}
+                  <span
+                    className={`text-sm leading-snug ${
+                      item.completed
+                        ? "line-through text-muted-foreground"
+                        : "text-foreground"
+                    }`}
+                  >
+                    {item.label}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            {/* Add custom item */}
+            <div className="mt-4 flex items-center gap-2">
+              <Input
+                placeholder="Add a checklist item…"
+                value={newItemLabel}
+                onChange={(e) => setNewItemLabel(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && newItemLabel.trim()) {
+                    const newItem: ChecklistItem = {
+                      id: `custom_${Date.now()}`,
+                      label: newItemLabel.trim(),
+                      completed: false,
+                    };
+                    onUpdate({ ...assignment, checklist: [...checklist, newItem] });
+                    setNewItemLabel("");
+                  }
+                }}
+                className="h-9 text-sm rounded-lg"
+              />
+              <Button
+                size="sm"
+                variant="outline"
+                className="shrink-0 h-9 rounded-lg"
+                disabled={!newItemLabel.trim()}
+                onClick={() => {
+                  const newItem: ChecklistItem = {
+                    id: `custom_${Date.now()}`,
+                    label: newItemLabel.trim(),
+                    completed: false,
+                  };
+                  onUpdate({ ...assignment, checklist: [...checklist, newItem] });
+                  setNewItemLabel("");
+                }}
+              >
+                <Plus className="h-4 w-4" />
               </Button>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <div className="space-y-1.5 pl-1">
-                {checklist.map((item) =>
-              <div key={item.id} className="flex items-start gap-2">
-                    <Checkbox
-                  id={`checklist-${category}-${item.id}`}
-                  checked={item.completed}
-                  onCheckedChange={(checked) => handleChecklistToggle(item.id, !!checked)}
-                  className="mt-0.5" />
+            </div>
 
-                    <label
-                  htmlFor={`checklist-${category}-${item.id}`}
-                  className={`text-xs cursor-pointer leading-snug ${
-                  item.completed ? "line-through text-muted-foreground" : "text-foreground"}`
-                  }>
-
-                      {item.label}
-                    </label>
-                  </div>
-              )}
+            {/* Completion celebration */}
+            {completedCount === checklist.length && checklist.length > 0 && (
+              <div className="mt-6 p-4 rounded-xl bg-primary/10 border border-primary/20 flex items-center gap-3">
+                <PartyPopper className="h-6 w-6 text-primary shrink-0" />
+                <p className="text-sm font-medium text-foreground">All items complete! 🎉</p>
               </div>
-              {/* Progress bar */}
-              <div className="mt-2 h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                <div
-                className="h-full bg-primary rounded-full transition-all duration-300"
-                style={{ width: `${checklist.length > 0 ? completedCount / checklist.length * 100 : 0}%` }} />
-
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
-        </div>
+            )}
+          </SheetContent>
+        </Sheet>
+      </div>
       }
     </div>);
 
