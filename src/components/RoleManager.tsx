@@ -505,21 +505,37 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
             {consolidated.length + usersWithoutRoles.length} users
           </Badge>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground whitespace-nowrap">Filter by Task:</span>
-          <Select value={taskFilter} onValueChange={setTaskFilter}>
-            <SelectTrigger className="h-8 w-[180px] text-xs">
-              <SelectValue placeholder="All Tasks" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Tasks</SelectItem>
-              {tasks.map(t => (
-                <SelectItem key={t.id} value={t.id}>
-                  {t.title}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="flex items-center gap-4 flex-wrap">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground whitespace-nowrap">Permission:</span>
+            <Select value={permissionFilter} onValueChange={setPermissionFilter}>
+              <SelectTrigger className="h-8 w-[160px] text-xs">
+                <SelectValue placeholder="All Levels" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Levels</SelectItem>
+                <SelectItem value="admin">Owner/Admin (CRUD)</SelectItem>
+                <SelectItem value="coordinator">Read & Update (RU)</SelectItem>
+                <SelectItem value="viewer">Read Only (R)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground whitespace-nowrap">Task:</span>
+            <Select value={taskFilter} onValueChange={setTaskFilter}>
+              <SelectTrigger className="h-8 w-[180px] text-xs">
+                <SelectValue placeholder="All Tasks" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Tasks</SelectItem>
+                {tasks.map(t => (
+                  <SelectItem key={t.id} value={t.id}>
+                    {t.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
