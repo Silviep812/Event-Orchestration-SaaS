@@ -1112,6 +1112,7 @@ function CollaboratorRow({ consolidated, userInfo, events, permissionMappings, d
                       <SelectItem value="not_started" className="text-xs">Not Started</SelectItem>
                       <SelectItem value="in_progress" className="text-xs">In Progress</SelectItem>
                       <SelectItem value="completed" className="text-xs">Completed</SelectItem>
+                      <SelectItem value="on_hold" className="text-xs">On Hold</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
