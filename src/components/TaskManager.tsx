@@ -1484,13 +1484,6 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                       }}
                       maxLength={100}
                       className={`flex-1 ${((newTask as any).assigned_coordinator_name?.length || 0) >= 90 ? 'border-destructive focus-visible:ring-destructive' : ''}`} />
-                  </div>
-                  {((newTask as any).assigned_coordinator_name?.length || 0) >= 90 && (
-                    <p className="text-xs text-destructive">
-                      {100 - ((newTask as any).assigned_coordinator_name?.length || 0)} characters remaining (max 100)
-                    </p>
-                  )}
-
                     {(newTask as any).assigned_coordinator_name &&
                     <Button
                       type="button"
@@ -1503,11 +1496,15 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                           description: "Collaborator assignment cleared"
                         });
                       }}>
-
                         <X className="h-4 w-4" />
                       </Button>
                     }
                   </div>
+                  {((newTask as any).assigned_coordinator_name?.length || 0) >= 90 && (
+                    <p className="text-xs text-destructive">
+                      {100 - ((newTask as any).assigned_coordinator_name?.length || 0)} characters remaining (max 100)
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
