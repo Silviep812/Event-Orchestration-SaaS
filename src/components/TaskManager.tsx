@@ -1471,7 +1471,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                   <div className="flex gap-2">
                     <Input
                       id="coordinator-name"
-                      placeholder="Enter collaborator name (optional)"
+                      placeholder="Enter collaborator name"
                       value={(newTask as any).assigned_coordinator_name || ""}
                       onChange={(e) => {
                         const val = e.target.value;
@@ -1480,10 +1480,17 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                             ...newTask,
                             assigned_coordinator_name: val || undefined
                           } as any);
+                          if (validationErrors.assigned_coordinator_name && val.trim()) {
+                            setValidationErrors((prev) => {
+                              const next = { ...prev };
+                              delete next.assigned_coordinator_name;
+                              return next;
+                            });
+                          }
                         }
                       }}
                       maxLength={100}
-                      className={`flex-1 ${((newTask as any).assigned_coordinator_name?.length || 0) >= 90 ? 'border-destructive focus-visible:ring-destructive' : ''}`} />
+                      className={`flex-1 ${validationErrors.assigned_coordinator_name ? 'border-destructive focus-visible:ring-destructive' : ((newTask as any).assigned_coordinator_name?.length || 0) >= 90 ? 'border-destructive focus-visible:ring-destructive' : ''}`} />
                     {(newTask as any).assigned_coordinator_name &&
                     <Button
                       type="button"
