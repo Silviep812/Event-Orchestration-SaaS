@@ -141,6 +141,7 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
   const [dataTimestamp, setDataTimestamp] = useState(Date.now());
   const [changeRequests, setChangeRequests] = useState<ChangeRequest[]>([]);
   const [tasks, setTasks] = useState<TaskData[]>([]);
+  const [taskFilter, setTaskFilter] = useState<string>("all");
   const [rejectDialog, setRejectDialog] = useState<{ open: boolean; requestId: string | null }>({ open: false, requestId: null });
   const [rejectionReason, setRejectionReason] = useState("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
