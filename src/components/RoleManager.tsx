@@ -1278,7 +1278,7 @@ function MobileRow({ consolidated, userInfo, permissionType, tasks, changeReques
                     <Button size="sm" variant="outline" className="h-6 text-[10px] px-2" onClick={() => onInitiateCR(t.id, t.title)}>
                       <Plus className="h-3 w-3 mr-0.5" />CR
                     </Button>
-                    <Select onValueChange={(status) => onUpdateTaskStatus(t.id, status)}>
+                    <Select onValueChange={(status: string) => onUpdateTaskStatus(t.id, status as "not_started" | "in_progress" | "completed" | "on_hold" | "cancelled")}>
                       <SelectTrigger className="h-6 text-[10px] w-[90px]">
                         <SelectValue placeholder="Status" />
                       </SelectTrigger>
