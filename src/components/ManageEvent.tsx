@@ -1083,7 +1083,8 @@ const ManageEvent = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Events List */}
-        <Card className="lg:col-span-1 shadow-lg border-0 bg-card/50 backdrop-blur-sm">
+        <div className="lg:col-span-1 space-y-6">
+        <Card className="shadow-lg border-0 bg-card/50 backdrop-blur-sm">
           <CardHeader className="border-b border-border/50 bg-gradient-to-r from-muted/50 to-transparent">
             <CardTitle className="flex items-center gap-2 text-lg">
               <div className="p-1.5 rounded-md bg-primary/10">
