@@ -917,7 +917,7 @@ function OwnerAdminRow({ consolidated, userInfo, events, selectedEvent, permissi
                     </div>
                   )}
                   <div className="flex gap-1.5">
-                    <Button size="sm" className="h-6 text-[10px] px-2 bg-emerald-600 hover:bg-emerald-700 text-white" disabled={actionLoading === cr.id} onClick={() => onApprove(cr.id)}>
+                    <Button size="sm" className="h-6 text-[10px] px-2 bg-primary hover:bg-primary/90 text-primary-foreground" disabled={actionLoading === cr.id} onClick={() => onApprove(cr.id)}>
                       <CheckCircle2 className="h-3 w-3 mr-0.5" />Approve
                     </Button>
                     <Button size="sm" variant="outline" className="h-6 text-[10px] px-2 text-destructive border-destructive/30" disabled={actionLoading === cr.id} onClick={() => onReject(cr.id)}>
