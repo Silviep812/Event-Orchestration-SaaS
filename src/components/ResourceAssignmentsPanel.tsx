@@ -38,6 +38,21 @@ interface ResourceCardProps {
   onDatesSave?: (dates: {due_date?: string;start_date?: string;end_date?: string;}) => void;
 }
 
+function CircularProgress({ percent, size = 72, strokeWidth = 6 }: { percent: number; size?: number; strokeWidth?: number }) {
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (percent / 100) * circumference;
+  return (
+    <div className="relative inline-flex items-center justify-center">
+      <svg width={size} height={size} className="-rotate-90">
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="hsl(var(--muted))" strokeWidth={strokeWidth} />
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="hsl(var(--primary))" strokeWidth={strokeWidth} strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round" className="transition-all duration-500" />
+      </svg>
+      <span className="absolute text-sm font-bold text-foreground">{percent}%</span>
+    </div>
+  );
+}
+
 function ResourceCard({
   category,
   assignment,
