@@ -1318,7 +1318,7 @@ function MobileRow({ consolidated, userInfo, permissionType, tasks, changeReques
                   </div>
                 )}
                 <div className="flex gap-1.5">
-                  <Button size="sm" className="h-6 text-[10px] px-2 bg-emerald-600 hover:bg-emerald-700 text-white" disabled={actionLoading === cr.id} onClick={() => onApprove(cr.id)}>
+                  <Button size="sm" className="h-6 text-[10px] px-2 bg-primary hover:bg-primary/90 text-primary-foreground" disabled={actionLoading === cr.id} onClick={() => onApprove(cr.id)}>
                     Approve
                   </Button>
                   <Button size="sm" variant="outline" className="h-6 text-[10px] px-2 text-destructive" disabled={actionLoading === cr.id} onClick={() => onReject(cr.id)}>
