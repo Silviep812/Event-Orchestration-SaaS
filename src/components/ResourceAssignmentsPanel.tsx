@@ -52,6 +52,7 @@ function ResourceCard({
   const [localStartDate, setLocalStartDate] = useState(assignment.start_date || "");
   const [localEndDate, setLocalEndDate] = useState(assignment.end_date || "");
   const [checklistOpen, setChecklistOpen] = useState(false);
+  const [newItemLabel, setNewItemLabel] = useState("");
 
   // Initialize checklist from assignment or defaults
   const checklist: ChecklistItem[] = assignment.checklist && assignment.checklist.length > 0 ?
