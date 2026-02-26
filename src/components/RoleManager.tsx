@@ -637,15 +637,22 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
                   );
                 })}
 
-                {consolidated.length === 0 && usersWithoutRoles.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center py-12">
-                      <Shield className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
-                      <p className="text-sm font-semibold mb-1">No users found</p>
-                      <p className="text-xs text-muted-foreground">Invite team members to get started.</p>
-                    </TableCell>
-                  </TableRow>
-                )}
+                {(() => {
+                  const roleMatch = (cu: ConsolidatedUser) => roleFilter === 'all' || cu.roles.some(r => r.role === roleFilter);
+                  const hasAdmin = (permissionFilter === 'all' || permissionFilter === 'admin') && consolidated.some(cu => cu.highestPermission === 'admin' && roleMatch(cu));
+                  const hasCoord = (permissionFilter === 'all' || permissionFilter === 'coordinator') && consolidated.some(cu => cu.highestPermission === 'coordinator' && roleMatch(cu));
+                  const hasViewer = (permissionFilter === 'all' || permissionFilter === 'viewer') && consolidated.some(cu => cu.highestPermission === 'viewer' && roleMatch(cu));
+                  if (!hasAdmin && !hasCoord && !hasViewer) return (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-12">
+                        <Users className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
+                        <p className="text-sm font-semibold mb-1">No collaborators found</p>
+                        <p className="text-xs text-muted-foreground">Try adjusting the filters or invite team members to get started.</p>
+                      </TableCell>
+                    </TableRow>
+                  );
+                  return null;
+                })()}
               </TableBody>
             </Table>
           </div>
@@ -730,13 +737,20 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
                 />
               );
             })}
-            {consolidated.length === 0 && usersWithoutRoles.length === 0 && (
-              <div className="text-center py-12 px-4">
-                <Shield className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
-                <p className="text-sm font-semibold mb-1">No users found</p>
-                <p className="text-xs text-muted-foreground">Invite team members to get started.</p>
-              </div>
-            )}
+            {(() => {
+              const roleMatch = (cu: ConsolidatedUser) => roleFilter === 'all' || cu.roles.some(r => r.role === roleFilter);
+              const hasAdmin = (permissionFilter === 'all' || permissionFilter === 'admin') && consolidated.some(cu => cu.highestPermission === 'admin' && roleMatch(cu));
+              const hasCoord = (permissionFilter === 'all' || permissionFilter === 'coordinator') && consolidated.some(cu => cu.highestPermission === 'coordinator' && roleMatch(cu));
+              const hasViewer = (permissionFilter === 'all' || permissionFilter === 'viewer') && consolidated.some(cu => cu.highestPermission === 'viewer' && roleMatch(cu));
+              if (!hasAdmin && !hasCoord && !hasViewer) return (
+                <div className="text-center py-12 px-4">
+                  <Users className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
+                  <p className="text-sm font-semibold mb-1">No collaborators found</p>
+                  <p className="text-xs text-muted-foreground">Try adjusting the filters or invite team members to get started.</p>
+                </div>
+              );
+              return null;
+            })()}
           </div>
         </CardContent>
       </Card>
