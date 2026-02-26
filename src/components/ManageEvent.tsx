@@ -17,6 +17,7 @@ import { format } from "date-fns";
 import TimelineView from "@/components/timeline/TimelineView";
 import ResourceManager from "@/components/ResourceManager";
 import Analytics from "@/components/Analytics";
+import { TeamMemberTaskAssignments } from "@/components/TeamMemberTaskAssignments";
 
 interface ManageEventData {
   id?: string;
