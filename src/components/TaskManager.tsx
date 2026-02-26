@@ -1507,9 +1507,9 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                       </Button>
                     }
                   </div>
-                  {((newTask as any).assigned_coordinator_name?.length || 0) >= 90 && (
-                    <p className="text-xs text-destructive">
-                      {100 - ((newTask as any).assigned_coordinator_name?.length || 0)} characters remaining (max 100)
+                  {validationErrors.assigned_coordinator_name && (
+                    <p className="text-sm font-medium text-destructive">
+                      {validationErrors.assigned_coordinator_name}
                     </p>
                   )}
                 </div>
