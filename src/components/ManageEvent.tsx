@@ -1220,7 +1220,6 @@ const ManageEvent = () => {
           </CardContent>
         </Card>
 
-        <TeamMemberTaskAssignments />
         </div>
 
         {/* Event Details & Change Logs */}
