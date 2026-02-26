@@ -143,6 +143,7 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
   const [tasks, setTasks] = useState<TaskData[]>([]);
   const [taskFilter, setTaskFilter] = useState<string>("all");
   const [permissionFilter, setPermissionFilter] = useState<string>("all");
+  const [roleFilter, setRoleFilter] = useState<string>("all");
   const [rejectDialog, setRejectDialog] = useState<{ open: boolean; requestId: string | null }>({ open: false, requestId: null });
   const [rejectionReason, setRejectionReason] = useState("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -507,6 +508,22 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
         </div>
         <div className="flex items-center gap-4 flex-wrap">
           <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground whitespace-nowrap">Role:</span>
+            <Select value={roleFilter} onValueChange={setRoleFilter}>
+              <SelectTrigger className="h-8 w-[150px] text-xs">
+                <SelectValue placeholder="All Roles" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Roles</SelectItem>
+                {ROLES.map(r => (
+                  <SelectItem key={r.value} value={r.value}>
+                    {r.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground whitespace-nowrap">Permission:</span>
             <Select value={permissionFilter} onValueChange={setPermissionFilter}>
               <SelectTrigger className="h-8 w-[160px] text-xs">
@@ -556,7 +573,7 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
               </TableHeader>
               <TableBody>
                 {/* OWNER/ADMIN ROWS */}
-                {(permissionFilter === 'all' || permissionFilter === 'admin') && consolidated.filter(cu => cu.highestPermission === 'admin').map((cu) => {
+                {(permissionFilter === 'all' || permissionFilter === 'admin') && consolidated.filter(cu => cu.highestPermission === 'admin' && (roleFilter === 'all' || cu.roles.some(r => r.role === roleFilter))).map((cu) => {
                   const userInfo = getUserInfo(cu.user_id);
                   const userTasks = getTasksForUser(userInfo.name);
                   const userCRs = changeRequests.filter(cr => cr.requested_by === cu.user_id || isEventOwner());
@@ -582,7 +599,7 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
                 })}
 
                 {/* COLLABORATOR (COORDINATOR) ROWS */}
-                {(permissionFilter === 'all' || permissionFilter === 'coordinator') && consolidated.filter(cu => cu.highestPermission === 'coordinator').map((cu) => {
+                {(permissionFilter === 'all' || permissionFilter === 'coordinator') && consolidated.filter(cu => cu.highestPermission === 'coordinator' && (roleFilter === 'all' || cu.roles.some(r => r.role === roleFilter))).map((cu) => {
                   const userInfo = getUserInfo(cu.user_id);
                   const userTasks = getTasksForUser(userInfo.name);
                   return (
@@ -603,7 +620,7 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
                 })}
 
                 {/* VIEWER ROWS */}
-                {(permissionFilter === 'all' || permissionFilter === 'viewer') && consolidated.filter(cu => cu.highestPermission === 'viewer').map((cu) => {
+                {(permissionFilter === 'all' || permissionFilter === 'viewer') && consolidated.filter(cu => cu.highestPermission === 'viewer' && (roleFilter === 'all' || cu.roles.some(r => r.role === roleFilter))).map((cu) => {
                   const userInfo = getUserInfo(cu.user_id);
                   const userTasks = getTasksForUser(userInfo.name);
                   return (
@@ -635,7 +652,7 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
 
           {/* Mobile Card Layout */}
           <div className="lg:hidden space-y-0 divide-y">
-            {(permissionFilter === 'all' || permissionFilter === 'admin') && consolidated.filter(cu => cu.highestPermission === 'admin').map((cu) => {
+            {(permissionFilter === 'all' || permissionFilter === 'admin') && consolidated.filter(cu => cu.highestPermission === 'admin' && (roleFilter === 'all' || cu.roles.some(r => r.role === roleFilter))).map((cu) => {
               const userInfo = getUserInfo(cu.user_id);
               const userTasks = getTasksForUser(userInfo.name);
               return (
@@ -661,7 +678,7 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
                 />
               );
             })}
-            {(permissionFilter === 'all' || permissionFilter === 'coordinator') && consolidated.filter(cu => cu.highestPermission === 'coordinator').map((cu) => {
+            {(permissionFilter === 'all' || permissionFilter === 'coordinator') && consolidated.filter(cu => cu.highestPermission === 'coordinator' && (roleFilter === 'all' || cu.roles.some(r => r.role === roleFilter))).map((cu) => {
               const userInfo = getUserInfo(cu.user_id);
               const userTasks = getTasksForUser(userInfo.name);
               return (
@@ -687,7 +704,7 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
                 />
               );
             })}
-            {(permissionFilter === 'all' || permissionFilter === 'viewer') && consolidated.filter(cu => cu.highestPermission === 'viewer').map((cu) => {
+            {(permissionFilter === 'all' || permissionFilter === 'viewer') && consolidated.filter(cu => cu.highestPermission === 'viewer' && (roleFilter === 'all' || cu.roles.some(r => r.role === roleFilter))).map((cu) => {
               const userInfo = getUserInfo(cu.user_id);
               const userTasks = getTasksForUser(userInfo.name);
               return (
