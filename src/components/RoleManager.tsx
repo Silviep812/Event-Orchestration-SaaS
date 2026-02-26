@@ -458,9 +458,12 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
   const pendingRequests = changeRequests.filter(cr => cr.status === 'pending');
   const consolidated = consolidateUserRoles(userRoles);
 
+  // Filtered tasks based on task filter
+  const filteredTasks = taskFilter === "all" ? tasks : tasks.filter(t => t.id === taskFilter);
+
   // Group tasks by assigned user name
   const getTasksForUser = (userName: string): TaskData[] => {
-    return tasks.filter(t => t.assigned_coordinator_name === userName);
+    return filteredTasks.filter(t => t.assigned_coordinator_name === userName);
   };
 
   // Get checklist progress for a task
