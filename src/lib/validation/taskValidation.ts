@@ -23,8 +23,8 @@ export const createTaskSchema = z.object({
   dependencies: z.array(z.string()).optional(),
   assigned_coordinator_name: z.string()
     .trim()
+    .min(1, { message: "Collaborator name is required" })
     .max(100, { message: "Coordinator name must be less than 100 characters" })
-    .optional()
 });
 
 export const updateTaskSchema = z.object({
