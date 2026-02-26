@@ -2056,9 +2056,9 @@ const ManageEvent = () => {
           )}
         </div>
       </div>
-      </div>
 
       <TeamMemberTaskAssignments />
+    </div>
   );
 };
 
