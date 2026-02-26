@@ -620,7 +620,7 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
                 })}
 
                 {/* VIEWER ROWS */}
-                {(permissionFilter === 'all' || permissionFilter === 'viewer') && consolidated.filter(cu => cu.highestPermission === 'viewer').map((cu) => {
+                {(permissionFilter === 'all' || permissionFilter === 'viewer') && consolidated.filter(cu => cu.highestPermission === 'viewer' && (roleFilter === 'all' || cu.roles.some(r => r.role === roleFilter))).map((cu) => {
                   const userInfo = getUserInfo(cu.user_id);
                   const userTasks = getTasksForUser(userInfo.name);
                   return (
