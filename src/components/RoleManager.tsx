@@ -902,7 +902,7 @@ function OwnerAdminRow({ consolidated, userInfo, events, selectedEvent, permissi
               return (
                 <div key={cr.id} className="p-2.5 rounded-lg border bg-background/80 space-y-2">
                   <div className="flex items-center gap-1.5">
-                    <Badge className="bg-purple-100 text-purple-800 border-purple-200 text-[9px] rounded-full px-1.5">CR</Badge>
+                    <Badge className="bg-accent text-accent-foreground border-accent text-[9px] rounded-full px-1.5">CR</Badge>
                     <Badge variant="outline" className={`text-[9px] rounded-full px-1.5 ${cr.priority === 'high' || cr.priority === 'critical' ? 'border-destructive/50 text-destructive' : ''}`}>{cr.priority}</Badge>
                   </div>
                   <p className="text-[11px] font-medium leading-tight">{cr.title}</p>
