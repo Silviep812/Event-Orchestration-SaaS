@@ -179,9 +179,9 @@ export function TeamMemberTaskAssignments() {
       setTeamMembers(teamMembersData);
     } catch (error) {
 
+
       // Error fetching task assignments
-    } finally {setLoading(false);
-    }
+    } finally {setLoading(false);}
   };
 
   const getStatusIcon = (member: TeamMemberWithTasks) => {
@@ -294,75 +294,75 @@ export function TeamMemberTaskAssignments() {
       <div className="space-y-4">
           <h3 className="text-lg font-semibold">Unassigned Tasks ({unassignedTasksCount})</h3>
           <Card>
-            <CardContent className="p-6">
-              <div className="space-y-2">
-                {unassignedTasks.map((task) =>
-              <div key={task.taskId} className="p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <p className="font-medium text-sm">{task.taskTitle}</p>
-                          {task.taskCategory &&
-                      <Badge className="bg-primary text-primary-foreground font-semibold">{task.taskCategory}</Badge>
-                      }
-                        </div>
-                        {task.eventTitle &&
-                    <p className="text-xs text-muted-foreground mt-1">Event: {task.eventTitle}</p>
-                    }
-                        {task.taskDueDate &&
-                    <p className="text-xs text-muted-foreground mt-1">
-                            Due: {format(new Date(task.taskDueDate), 'MMM d, yyyy')}
-                          </p>
-                    }
-                      </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <Select
-                      value={pendingAssignments[task.taskId] || ""}
-                      onValueChange={(userId) => setPendingAssignments({ ...pendingAssignments, [task.taskId]: userId })}>
+            
 
-                          <SelectTrigger className="w-[180px]">
-                            <SelectValue placeholder="Select user..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {allUsers.map((user) =>
-                        <SelectItem key={user.id} value={user.id}>
-                                {user.name}
-                              </SelectItem>
-                        )}
-                          </SelectContent>
-                        </Select>
-                        <Button
-                      size="sm"
-                      onClick={() => {
-                        if (pendingAssignments[task.taskId]) {
-                          assignTask(task.taskId, pendingAssignments[task.taskId]);
-                          setPendingAssignments({ ...pendingAssignments, [task.taskId]: undefined });
-                        }
-                      }}
-                      disabled={!pendingAssignments[task.taskId]}
-                      className="h-9 gap-2">
 
-                          <Check className="h-4 w-4" />
-                          <span>Save</span>
-                        </Button>
-                        <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        setPendingAssignments({ ...pendingAssignments, [task.taskId]: undefined });
-                      }}
-                      disabled={!pendingAssignments[task.taskId]}
-                      className="h-9 gap-2">
 
-                          <X className="h-4 w-4" />
-                          <span>Cancel</span>
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-              )}
-              </div>
-            </CardContent>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           </Card>
         </div>
       }
