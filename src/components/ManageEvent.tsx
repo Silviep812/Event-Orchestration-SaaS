@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions } from "@/lib/permissions";
-import { Bell, Clock, Plus, Save, AlertCircle, History, Eye, Trash2, Calendar as CalendarIcon, Package, BarChart3, MapPin, DollarSign, Tag, Sparkles, CheckCircle2, XCircle, Loader2, TrendingUp, RefreshCw, Edit, ClipboardList } from "lucide-react";
+import { Bell, Clock, Plus, Save, AlertCircle, History, Eye, Trash2, Calendar as CalendarIcon, Package, BarChart3, MapPin, DollarSign, Tag, Sparkles, CheckCircle2, XCircle, Loader2, TrendingUp, RefreshCw, Edit, ClipboardList, Archive } from "lucide-react";
 import { format } from "date-fns";
 import TimelineView from "@/components/timeline/TimelineView";
 import ResourceManager from "@/components/ResourceManager";
@@ -75,6 +75,7 @@ const ManageEvent = () => {
   const [eventTypes, setEventTypes] = useState<EventType[]>([]);
   const [statusFilters, setStatusFilters] = useState<('pending' | 'in_progress' | 'completed' | 'cancelled' | 'all')[]>(['pending', 'in_progress']);
   const [hasEventsInDb, setHasEventsInDb] = useState(false);
+  const [eventListTab, setEventListTab] = useState<'active' | 'archive'>('active');
   const { toast } = useToast();
   const { user } = useAuth();
   const { isAdmin, isCoordinator, isViewer, hasMinPermission } = usePermissions();
@@ -314,9 +315,20 @@ const ManageEvent = () => {
     }
   };
 
-  // Events are already filtered and sorted from fetchEvents
-  // The selected event is already included in the events array if it exists
-  const filteredEvents = events;
+  // Split events into active and archived (2025 end/start dates go to archive)
+  const archivedEvents = events.filter(event => {
+    const dateToCheck = event.end_date || event.start_date;
+    if (!dateToCheck) return false;
+    return new Date(dateToCheck).getFullYear() <= 2025;
+  });
+
+  const activeEvents = events.filter(event => {
+    const dateToCheck = event.end_date || event.start_date;
+    if (!dateToCheck) return true; // events with no date stay in active
+    return new Date(dateToCheck).getFullYear() > 2025;
+  });
+
+  const filteredEvents = eventListTab === 'archive' ? archivedEvents : activeEvents;
 
   const handleStatusFilterToggle = (status: 'pending' | 'in_progress' | 'completed' | 'cancelled' | 'all') => {
     if (status === 'all') {
@@ -1085,8 +1097,8 @@ const ManageEvent = () => {
         {/* Events List */}
         <div className="lg:col-span-1 space-y-6">
         <Card className="shadow-lg border-0 bg-card/50 backdrop-blur-sm">
-          <CardHeader className="border-b border-border/50 bg-gradient-to-r from-muted/50 to-transparent">
-            <CardTitle className="flex items-center gap-2 text-lg">
+          <CardHeader className="border-b border-border/50 bg-gradient-to-r from-muted/50 to-transparent pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg mb-3">
               <div className="p-1.5 rounded-md bg-primary/10">
                 <Clock className="h-4 w-4 text-primary" />
               </div>
@@ -1095,6 +1107,32 @@ const ManageEvent = () => {
                 {filteredEvents.length}
               </Badge>
             </CardTitle>
+            <div className="flex gap-1 bg-muted/50 rounded-lg p-1">
+              <Button
+                variant={eventListTab === 'active' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setEventListTab('active')}
+                className="h-7 text-xs flex-1 gap-1.5"
+              >
+                <CalendarIcon className="h-3 w-3" />
+                Active
+                <Badge variant={eventListTab === 'active' ? 'secondary' : 'outline'} className="text-[10px] px-1.5 py-0 ml-1">
+                  {activeEvents.length}
+                </Badge>
+              </Button>
+              <Button
+                variant={eventListTab === 'archive' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setEventListTab('archive')}
+                className="h-7 text-xs flex-1 gap-1.5"
+              >
+                <Archive className="h-3 w-3" />
+                Archive
+                <Badge variant={eventListTab === 'archive' ? 'secondary' : 'outline'} className="text-[10px] px-1.5 py-0 ml-1">
+                  {archivedEvents.length}
+                </Badge>
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="p-0">
             {/* Loading State */}
