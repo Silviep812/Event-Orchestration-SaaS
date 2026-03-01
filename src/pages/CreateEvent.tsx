@@ -575,10 +575,27 @@ export default function CreateEvent() {
                 <Label>Event Dates *</Label>
                 <DatePickerWithRange
                   date={dateRange}
-                  onDateChange={setDateRange}
+                  onDateChange={(range) => {
+                    const minDate = new Date(2026, 6, 1);
+                    if (range?.from && range.from < minDate) {
+                      setDateError("Please select a date on or after 7/01/2026.");
+                      setDateRange(undefined);
+                      return;
+                    }
+                    if (range?.to && range.to < minDate) {
+                      setDateError("Please select a date on or after 7/01/2026.");
+                      setDateRange(undefined);
+                      return;
+                    }
+                    setDateError(null);
+                    setDateRange(range);
+                  }}
                   className="w-full"
                   disabled={(date) => date < new Date(2026, 6, 1)}
                 />
+                {dateError && (
+                  <p className="text-sm text-destructive mt-1">{dateError}</p>
+                )}
               </div>
 
               <div className="grid grid-cols-1 gap-4">
