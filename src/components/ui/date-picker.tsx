@@ -16,6 +16,7 @@ interface DatePickerWithRangeProps {
   date: DateRange | undefined
   onDateChange: (date: DateRange | undefined) => void
   className?: string
+  disabled?: (date: Date) => boolean
 }
 
 export function DatePickerWithRange({
