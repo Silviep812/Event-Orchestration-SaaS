@@ -576,17 +576,6 @@ export default function CreateEvent() {
                 <DatePickerWithRange
                   date={dateRange}
                   onDateChange={(range) => {
-                    const minDate = new Date(2026, 6, 1);
-                    if (range?.from && range.from < minDate) {
-                      setDateError("Please select a date on or after 7/01/2026.");
-                      setDateRange(undefined);
-                      return;
-                    }
-                    if (range?.to && range.to < minDate) {
-                      setDateError("Please select a date on or after 7/01/2026.");
-                      setDateRange(undefined);
-                      return;
-                    }
                     setDateError(null);
                     setDateRange(range);
                   }}
