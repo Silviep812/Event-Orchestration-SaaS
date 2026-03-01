@@ -591,7 +591,7 @@ export default function CreateEvent() {
                     setDateRange(range);
                   }}
                   className="w-full"
-                  disabled={(date) => date < new Date(new Date().setHours(0,0,0,0)) || date < new Date(2026, 6, 1)}
+                  disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))}
                 />
                 {dateError && (
                   <p className="text-sm text-destructive mt-1">{dateError}</p>
