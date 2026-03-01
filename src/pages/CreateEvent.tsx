@@ -59,6 +59,7 @@ const formatVenueLocation = (venue: VenueProfile) => {
 
 export default function CreateEvent() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [dateError, setDateError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
