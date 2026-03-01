@@ -2053,7 +2053,7 @@ const ManageEvent = () => {
                 </Button>
               </CardContent>
             </Card>
-          ) : null}
+          )}
         </div>
       </div>
 
