@@ -1209,7 +1209,7 @@ const ManageEvent = () => {
                       {event.budget && (
                         <div className="flex items-center gap-1.5">
                           <DollarSign className="h-3 w-3" />
-                          ${Number(event.budget).toLocaleString()}
+                          {'$'}{Number(event.budget).toLocaleString()}
                         </div>
                       )}
                     </div>
