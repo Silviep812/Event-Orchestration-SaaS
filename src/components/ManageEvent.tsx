@@ -75,6 +75,7 @@ const ManageEvent = () => {
   const [eventTypes, setEventTypes] = useState<EventType[]>([]);
   const [statusFilters, setStatusFilters] = useState<('pending' | 'in_progress' | 'completed' | 'cancelled' | 'all')[]>(['pending', 'in_progress']);
   const [hasEventsInDb, setHasEventsInDb] = useState(false);
+  const [eventListTab, setEventListTab] = useState<'active' | 'archive'>('active');
   const { toast } = useToast();
   const { user } = useAuth();
   const { isAdmin, isCoordinator, isViewer, hasMinPermission } = usePermissions();
