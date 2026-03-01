@@ -297,6 +297,7 @@ export default function CreateEvent() {
 
   const onSubmit = async (data: EventFormData) => {
     if (!dateRange?.from) {
+      setDateError("Event date is required. Please select a date range.");
       toast({
         title: "Date Required",
         description: "Please select at least a start date for your event.",
@@ -576,17 +577,6 @@ export default function CreateEvent() {
                 <DatePickerWithRange
                   date={dateRange}
                   onDateChange={(range) => {
-                    const minDate = new Date(2026, 6, 1);
-                    if (range?.from && range.from < minDate) {
-                      setDateError("Please select a date on or after 7/01/2026.");
-                      setDateRange(undefined);
-                      return;
-                    }
-                    if (range?.to && range.to < minDate) {
-                      setDateError("Please select a date on or after 7/01/2026.");
-                      setDateRange(undefined);
-                      return;
-                    }
                     setDateError(null);
                     setDateRange(range);
                   }}
