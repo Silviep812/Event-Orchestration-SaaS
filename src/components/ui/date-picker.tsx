@@ -23,6 +23,7 @@ export function DatePickerWithRange({
   date,
   onDateChange,
   className,
+  disabled,
 }: DatePickerWithRangeProps) {
   return (
     <div className={cn("grid gap-2", className)}>
