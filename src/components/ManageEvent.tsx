@@ -1154,7 +1154,7 @@ const ManageEvent = () => {
             )}
 
             {/* Events List or Empty State */}
-            {!loading &&  (
+            {!loading && filteredEvents.length === 0 ? (
               <div className="p-8 text-center">
                 <CalendarIcon className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
                 <p className="text-sm text-muted-foreground mb-4">
@@ -1209,7 +1209,7 @@ const ManageEvent = () => {
                       {event.budget && (
                         <div className="flex items-center gap-1.5">
                           <DollarSign className="h-3 w-3" />
-                          ${Number(event.budget).toLocaleString()}
+                          {'$'}{Number(event.budget).toLocaleString()}
                         </div>
                       )}
                     </div>
