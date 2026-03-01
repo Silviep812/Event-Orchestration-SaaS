@@ -315,9 +315,20 @@ const ManageEvent = () => {
     }
   };
 
-  // Events are already filtered and sorted from fetchEvents
-  // The selected event is already included in the events array if it exists
-  const filteredEvents = events;
+  // Split events into active and archived (2025 end/start dates go to archive)
+  const archivedEvents = events.filter(event => {
+    const dateToCheck = event.end_date || event.start_date;
+    if (!dateToCheck) return false;
+    return new Date(dateToCheck).getFullYear() <= 2025;
+  });
+
+  const activeEvents = events.filter(event => {
+    const dateToCheck = event.end_date || event.start_date;
+    if (!dateToCheck) return true; // events with no date stay in active
+    return new Date(dateToCheck).getFullYear() > 2025;
+  });
+
+  const filteredEvents = eventListTab === 'archive' ? archivedEvents : activeEvents;
 
   const handleStatusFilterToggle = (status: 'pending' | 'in_progress' | 'completed' | 'cancelled' | 'all') => {
     if (status === 'all') {
