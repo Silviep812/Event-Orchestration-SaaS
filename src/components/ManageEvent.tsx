@@ -1097,8 +1097,8 @@ const ManageEvent = () => {
         {/* Events List */}
         <div className="lg:col-span-1 space-y-6">
         <Card className="shadow-lg border-0 bg-card/50 backdrop-blur-sm">
-          <CardHeader className="border-b border-border/50 bg-gradient-to-r from-muted/50 to-transparent">
-            <CardTitle className="flex items-center gap-2 text-lg">
+          <CardHeader className="border-b border-border/50 bg-gradient-to-r from-muted/50 to-transparent pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg mb-3">
               <div className="p-1.5 rounded-md bg-primary/10">
                 <Clock className="h-4 w-4 text-primary" />
               </div>
@@ -1107,6 +1107,32 @@ const ManageEvent = () => {
                 {filteredEvents.length}
               </Badge>
             </CardTitle>
+            <div className="flex gap-1 bg-muted/50 rounded-lg p-1">
+              <Button
+                variant={eventListTab === 'active' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setEventListTab('active')}
+                className="h-7 text-xs flex-1 gap-1.5"
+              >
+                <CalendarIcon className="h-3 w-3" />
+                Active
+                <Badge variant={eventListTab === 'active' ? 'secondary' : 'outline'} className="text-[10px] px-1.5 py-0 ml-1">
+                  {activeEvents.length}
+                </Badge>
+              </Button>
+              <Button
+                variant={eventListTab === 'archive' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setEventListTab('archive')}
+                className="h-7 text-xs flex-1 gap-1.5"
+              >
+                <Archive className="h-3 w-3" />
+                Archive
+                <Badge variant={eventListTab === 'archive' ? 'secondary' : 'outline'} className="text-[10px] px-1.5 py-0 ml-1">
+                  {archivedEvents.length}
+                </Badge>
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="p-0">
             {/* Loading State */}
