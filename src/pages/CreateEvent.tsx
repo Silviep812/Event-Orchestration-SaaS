@@ -297,6 +297,7 @@ export default function CreateEvent() {
 
   const onSubmit = async (data: EventFormData) => {
     if (!dateRange?.from) {
+      setDateError("Event date is required. Please select a date range.");
       toast({
         title: "Date Required",
         description: "Please select at least a start date for your event.",
