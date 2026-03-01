@@ -2034,7 +2034,7 @@ const ManageEvent = () => {
 
               </Tabs>
             </>
-          ) : !hasEventsInDb ? (
+          ) : (
             <Card className="shadow-lg border-0 bg-card/50 backdrop-blur-sm border-dashed">
               <CardContent className="p-16 text-center">
                 <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-muted/50 mb-6">
@@ -2053,7 +2053,7 @@ const ManageEvent = () => {
                 </Button>
               </CardContent>
             </Card>
-          ) : null}
+          )}
         </div>
       </div>
 
