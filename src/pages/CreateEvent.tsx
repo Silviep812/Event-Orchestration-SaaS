@@ -576,6 +576,7 @@ export default function CreateEvent() {
                   date={dateRange}
                   onDateChange={setDateRange}
                   className="w-full"
+                  disabled={(date) => date < new Date(2026, 6, 1)}
                 />
               </div>
 
