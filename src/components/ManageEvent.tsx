@@ -1949,6 +1949,7 @@ const ManageEvent = () => {
 
                 <TabsContent value="analytics">
                   <Analytics
+                    eventId={selectedEvent?.id}
                     onInteractionTrack={(interaction) => {
                       console.log('User interaction tracked:', interaction);
                     }}
