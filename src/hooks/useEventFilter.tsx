@@ -17,19 +17,24 @@ export function useEventFilter() {
   useEffect(() => {
     const fetchUserEvents = async () => {
       if (!user) return;
-      
+
       setEventsLoading(true);
       try {
         const { data, error } = await supabase
-          .from('events')
-          .select('id, title, start_date')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false });
-        
+          .from("events")
+          .select("id, title, start_date")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false });
+
         if (error) throw error;
-        setEvents(data || []);
+        // Filter out archived (2025 and older) events — they belong in Manage Event's Archive tab
+        const activeEvents = (data || []).filter((e) => {
+          if (!e.start_date) return true;
+          return new Date(e.start_date).getFullYear() > 2025;
+        });
+        setEvents(activeEvents);
       } catch (error) {
-        console.error('Error fetching events:', error);
+        console.error("Error fetching events:", error);
       } finally {
         setEventsLoading(false);
       }
@@ -40,18 +45,18 @@ export function useEventFilter() {
     // Set up real-time subscription for events
     if (user) {
       const channel = supabase
-        .channel('events-changes')
+        .channel("events-changes")
         .on(
-          'postgres_changes',
+          "postgres_changes",
           {
-            event: '*',
-            schema: 'public',
-            table: 'events',
-            filter: `user_id=eq.${user.id}`
+            event: "*",
+            schema: "public",
+            table: "events",
+            filter: `user_id=eq.${user.id}`,
           },
           () => {
             fetchUserEvents();
-          }
+          },
         )
         .subscribe();
 
@@ -63,9 +68,9 @@ export function useEventFilter() {
 
   const applyEventFilter = (query: any, eventId?: string) => {
     if (eventId) {
-      return query.eq('event_id', eventId);
+      return query.eq("event_id", eventId);
     } else if (selectedEventFilter !== "all") {
-      return query.eq('event_id', selectedEventFilter);
+      return query.eq("event_id", selectedEventFilter);
     }
     return query;
   };
@@ -75,6 +80,6 @@ export function useEventFilter() {
     setSelectedEventFilter,
     events,
     eventsLoading,
-    applyEventFilter
+    applyEventFilter,
   };
 }
