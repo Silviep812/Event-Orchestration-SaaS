@@ -6,8 +6,34 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { DatePickerWithRange } from "@/components/ui/date-picker";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, Legend } from 'recharts';
-import { TrendingUp, TrendingDown, Users, Calendar, DollarSign, CheckCircle, Filter, Activity, Target, Clock, AlertCircle } from 'lucide-react';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+} from "recharts";
+import {
+  TrendingUp,
+  TrendingDown,
+  Users,
+  Calendar,
+  DollarSign,
+  CheckCircle,
+  Filter,
+  Activity,
+  Target,
+  Clock,
+  AlertCircle,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format, subDays } from "date-fns";
@@ -26,7 +52,7 @@ interface KPIData {
   change: string;
   icon: any;
   description: string;
-  trend: 'up' | 'down' | 'neutral';
+  trend: "up" | "down" | "neutral";
 }
 
 interface UserInteraction {
@@ -57,7 +83,7 @@ interface EventKPIData {
   total_tasks: number;
   completed_tasks: number;
   in_progress_tasks: number;
-  pending_tasks: number;
+  pending_tasks: number; // counts tasks with status 'not_started'
   task_completion_rate: number;
   avg_task_duration: number;
   total_task_hours: number;
@@ -74,20 +100,20 @@ export default function Analytics({ eventId, onInteractionTrack }: AnalyticsProp
   const [filters, setFilters] = useState<AnalyticsFilters>({
     dateRange: {
       from: subDays(new Date(), 30),
-      to: new Date()
+      to: new Date(),
     },
-    theme: 'all'
+    theme: "all",
   });
-  
+
   const [analyticsData, setAnalyticsData] = useState({
     kpis: [] as KPIData[],
     eventTrends: [] as any[],
     taskCompletion: [] as any[],
     resourceUtilization: [] as any[],
     conversionRates: [] as any[],
-    eventsByLocation: [] as any[]
+    eventsByLocation: [] as any[],
   });
-  
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
@@ -98,16 +124,16 @@ export default function Analytics({ eventId, onInteractionTrack }: AnalyticsProp
       id: crypto.randomUUID(),
       action,
       timestamp: new Date(),
-      user_id: 'current-user',
+      user_id: "current-user",
       event_id: eventId,
-      details
+      details,
     };
-    
+
     onInteractionTrack?.(interaction);
-    
-    const storedInteractions = JSON.parse(localStorage.getItem('analytics_interactions') || '[]');
+
+    const storedInteractions = JSON.parse(localStorage.getItem("analytics_interactions") || "[]");
     storedInteractions.push(interaction);
-    localStorage.setItem('analytics_interactions', JSON.stringify(storedInteractions.slice(-1000)));
+    localStorage.setItem("analytics_interactions", JSON.stringify(storedInteractions.slice(-1000)));
   };
 
   // Fetch analytics data filtered by eventId
@@ -120,119 +146,145 @@ export default function Analytics({ eventId, onInteractionTrack }: AnalyticsProp
     try {
       setLoading(true);
       setError(null);
-      
-      // Fetch KPI data filtered by the selected event
-      let query = (supabase
-        .from('event_kpi_view' as any)
-        .select('*') as any)
-        .eq('event_id', eventId);
 
-      const { data: kpiData, error: kpiError } = await query as { data: EventKPIData[] | null; error: any };
+      // Fetch KPI data filtered by the selected event
+      let query = (supabase.from("event_kpi_view" as any).select("*") as any).eq("event_id", eventId);
+
+      const { data: kpiData, error: kpiError } = (await query) as { data: EventKPIData[] | null; error: any };
 
       if (kpiError) throw kpiError;
 
       const eventData = kpiData?.[0] || null;
 
-      // Single-event KPIs — no hardcoded change percentages
+      // Pull all counts directly from the KPI view
       const totalTasks = eventData?.total_tasks || 0;
       const completedTasks = eventData?.completed_tasks || 0;
       const inProgressTasks = eventData?.in_progress_tasks || 0;
-      const pendingTasks = eventData?.pending_tasks || 0;
+      // 'pending_tasks' in the view counts tasks with status = 'not_started'
+      const notStartedTasks = eventData?.pending_tasks || 0;
       const avgTaskDuration = eventData?.avg_task_duration || 0;
       const totalAllocated = eventData?.allocated_resources || 0;
       const totalResources = eventData?.total_resources_count || 0;
+      const totalBudget = eventData?.total_budget || 0;
+      const totalSpent = eventData?.total_spent || 0;
 
-      const taskCompletionRate = totalTasks > 0 ? ((completedTasks / totalTasks) * 100).toFixed(1) : '0.0';
-      const resourceUtilizationRate = totalResources > 0 ? ((totalAllocated / totalResources) * 100).toFixed(1) : '0.0';
+      // Use pre-calculated rates from the view for accuracy
+      const taskCompletionRate = (eventData?.task_completion_rate || 0).toFixed(1);
+      const resourceUtilizationRate = (eventData?.resource_utilization_rate || 0).toFixed(1);
+      const budgetUtilizationRate = (eventData?.budget_utilization_rate || 0).toFixed(1);
+
+      // Derive on_hold + cancelled from what's left over
+      const onHoldAndCancelledTasks = Math.max(0, totalTasks - completedTasks - inProgressTasks - notStartedTasks);
 
       const kpis: KPIData[] = [
         {
           title: "Total Tasks",
           value: totalTasks.toString(),
-          change: `${completedTasks} done`,
+          change: `${completedTasks} completed`,
           icon: Calendar,
           description: "For this event",
-          trend: completedTasks > 0 ? 'up' : 'neutral'
+          trend: completedTasks > 0 ? "up" : "neutral",
         },
         {
-          title: "Task Completion Rate",
+          title: "Task Completion",
           value: `${taskCompletionRate}%`,
-          change: `${completedTasks}/${totalTasks}`,
+          change: `${completedTasks}/${totalTasks} done`,
           icon: CheckCircle,
           description: "Completed tasks",
-          trend: parseFloat(taskCompletionRate) >= 50 ? 'up' : parseFloat(taskCompletionRate) > 0 ? 'neutral' : 'down'
+          trend: parseFloat(taskCompletionRate) >= 50 ? "up" : parseFloat(taskCompletionRate) > 0 ? "neutral" : "down",
         },
         {
           title: "Avg Task Duration",
-          value: `${avgTaskDuration.toFixed(1)}h`,
-          change: `${(eventData?.total_task_hours || 0).toFixed(1)}h total`,
+          value: `${Number(avgTaskDuration).toFixed(1)}h`,
+          change: `${Number(eventData?.total_task_hours || 0).toFixed(1)}h total`,
           icon: Clock,
-          description: "Average hours",
-          trend: avgTaskDuration > 0 ? 'neutral' : 'neutral'
+          description: "Average hours per task",
+          trend: avgTaskDuration > 0 ? "neutral" : "neutral",
         },
         {
           title: "Resource Utilization",
           value: `${resourceUtilizationRate}%`,
-          change: `${totalAllocated}/${totalResources}`,
+          change: `${totalAllocated} of ${totalResources} allocated`,
           icon: Activity,
-          description: "Allocated / Total",
-          trend: parseFloat(resourceUtilizationRate) >= 70 ? 'up' : parseFloat(resourceUtilizationRate) > 0 ? 'neutral' : 'down'
+          description: "Allocated / Total resources",
+          trend:
+            parseFloat(resourceUtilizationRate) >= 70
+              ? "up"
+              : parseFloat(resourceUtilizationRate) > 0
+                ? "neutral"
+                : "down",
+        },
+        {
+          title: "Budget Utilization",
+          value: `${budgetUtilizationRate}%`,
+          change:
+            totalBudget > 0 ? `$${totalSpent.toLocaleString()} of $${totalBudget.toLocaleString()}` : "No budget set",
+          icon: DollarSign,
+          description: "Spent vs estimated",
+          trend:
+            parseFloat(budgetUtilizationRate) <= 100
+              ? parseFloat(budgetUtilizationRate) > 0
+                ? "up"
+                : "neutral"
+              : "down",
         },
       ];
 
-      // Task completion breakdown for pie chart
+      // Task completion breakdown for pie chart — maps to actual task_status enum values
+      // (not_started, in_progress, completed, on_hold, cancelled)
       const taskCompletion = [
-        { status: 'Completed', value: completedTasks, color: '#22c55e' },
-        { status: 'In Progress', value: inProgressTasks, color: '#f59e0b' },
-        { status: 'Pending', value: pendingTasks, color: '#ef4444' },
-        { status: 'On Hold', value: Math.max(0, totalTasks - completedTasks - inProgressTasks - pendingTasks), color: '#6b7280' },
+        { status: "Completed", value: completedTasks, color: "#22c55e" },
+        { status: "In Progress", value: inProgressTasks, color: "#3b82f6" },
+        { status: "Not Started", value: notStartedTasks, color: "#f59e0b" },
+        { status: "On Hold / Cancelled", value: onHoldAndCancelledTasks, color: "#6b7280" },
       ];
 
       // Event trend — single event shows its task breakdown over time
-      // Fetch tasks for this event grouped by month
+      // Fetch non-archived tasks for this event grouped by month
       const { data: tasksData } = await supabase
-        .from('tasks')
-        .select('id, status, created_at, due_date, estimated_hours, actual_hours')
-        .eq('event_id', eventId);
+        .from("tasks")
+        .select("id, status, created_at, due_date, estimated_hours, actual_hours")
+        .eq("event_id", eventId)
+        .eq("archived", false);
 
-      const eventTrends = (tasksData || []).reduce((acc: any[], task) => {
-        const month = format(new Date(task.created_at), 'MMM');
-        const existing = acc.find(item => item.month === month);
-        if (existing) {
-          existing.tasks += 1;
-        } else {
-          acc.push({ month, tasks: 1 });
-        }
-        return acc;
-      }, []);
+      const eventTrends = (tasksData || [])
+        .reduce((acc: any[], task) => {
+          const month = format(new Date(task.created_at), "MMM yyyy");
+          const existing = acc.find((item) => item.month === month);
+          if (existing) {
+            existing.tasks += 1;
+          } else {
+            acc.push({ month, tasks: 1 });
+          }
+          return acc;
+        }, [])
+        .sort((a: any, b: any) => new Date(a.month).getTime() - new Date(b.month).getTime());
 
       // Location data — single event
-      const eventsByLocation = eventData?.location
-        ? [{ location: eventData.location, count: 1 }]
-        : [];
+      const eventsByLocation = eventData?.location ? [{ location: eventData.location, count: 1 }] : [];
 
-      // Resource utilization breakdown
+      // Resource utilization breakdown per individual resource
       const { data: resourcesData } = await supabase
-        .from('resources')
-        .select('name, allocated, total, location')
-        .eq('event_id', eventId);
+        .from("resources")
+        .select("name, allocated, total")
+        .eq("event_id", eventId);
 
-      const resourceUtilization = (resourcesData || []).map(r => ({
-        name: r.name || 'Unknown',
+      const resourceUtilization = (resourcesData || []).map((r) => ({
+        name: r.name || "Unknown",
         utilization: r.total > 0 ? Math.round((r.allocated / r.total) * 100) : 0,
         allocated: r.allocated,
-        total: r.total
+        total: r.total,
       }));
 
-      // Budget data
+      // Budget data grouped by category
       const { data: budgetData } = await supabase
-        .from('budget_items')
-        .select('category, estimated_cost, actual_cost')
-        .eq('event_id', eventId)
-        .eq('archived', false);
+        .from("budget_items")
+        .select("category, estimated_cost, actual_cost")
+        .eq("event_id", eventId)
+        .eq("archived", false);
 
       const budgetByCategory = (budgetData || []).reduce((acc: any[], item) => {
-        const existing = acc.find(a => a.category === item.category);
+        const existing = acc.find((a) => a.category === item.category);
         if (existing) {
           existing.estimated += item.estimated_cost || 0;
           existing.actual += item.actual_cost || 0;
@@ -240,7 +292,7 @@ export default function Analytics({ eventId, onInteractionTrack }: AnalyticsProp
           acc.push({
             category: item.category,
             estimated: item.estimated_cost || 0,
-            actual: item.actual_cost || 0
+            actual: item.actual_cost || 0,
           });
         }
         return acc;
@@ -252,14 +304,13 @@ export default function Analytics({ eventId, onInteractionTrack }: AnalyticsProp
         taskCompletion,
         resourceUtilization,
         conversionRates: budgetByCategory,
-        eventsByLocation
+        eventsByLocation,
       });
 
-      trackInteraction('analytics_data_fetched', { eventId, totalTasks, taskCompletionRate });
-
+      trackInteraction("analytics_data_fetched", { eventId, totalTasks, taskCompletionRate });
     } catch (err) {
-      console.error('Error fetching analytics data:', err);
-      setError('Failed to fetch analytics data. Please try again.');
+      console.error("Error fetching analytics data:", err);
+      setError("Failed to fetch analytics data. Please try again.");
       toast({
         title: "Error",
         description: "Failed to fetch analytics data",
@@ -276,11 +327,11 @@ export default function Analytics({ eventId, onInteractionTrack }: AnalyticsProp
   }, [eventId, filters]);
 
   const handleFilterChange = (filterType: keyof AnalyticsFilters, value: any) => {
-    setFilters(prev => ({
+    setFilters((prev) => ({
       ...prev,
-      [filterType]: value
+      [filterType]: value,
     }));
-    trackInteraction('filter_applied', { filterType, value });
+    trackInteraction("filter_applied", { filterType, value });
   };
 
   // No event selected state
@@ -329,7 +380,7 @@ export default function Analytics({ eventId, onInteractionTrack }: AnalyticsProp
             Track event performance, user behavior, and scalability metrics for marketing leads.
           </p>
         </div>
-        
+
         {/* Filters */}
         <Card className="w-full lg:w-auto min-w-[300px] shadow-elegant border-0 bg-gradient-subtle">
           <CardHeader className="pb-3">
@@ -340,16 +391,20 @@ export default function Analytics({ eventId, onInteractionTrack }: AnalyticsProp
           </CardHeader>
           <CardContent className="space-y-3">
             <div>
-              <Label htmlFor="date-range" className="text-xs">Date Range</Label>
+              <Label htmlFor="date-range" className="text-xs">
+                Date Range
+              </Label>
               <DatePickerWithRange
                 date={filters.dateRange}
-                onDateChange={(dateRange) => handleFilterChange('dateRange', dateRange)}
+                onDateChange={(dateRange) => handleFilterChange("dateRange", dateRange)}
               />
             </div>
-            
+
             <div>
-              <Label htmlFor="theme-filter" className="text-xs">Theme</Label>
-              <Select value={filters.theme} onValueChange={(value) => handleFilterChange('theme', value)}>
+              <Label htmlFor="theme-filter" className="text-xs">
+                Theme
+              </Label>
+              <Select value={filters.theme} onValueChange={(value) => handleFilterChange("theme", value)}>
                 <SelectTrigger className="h-8">
                   <SelectValue placeholder="All Themes" />
                 </SelectTrigger>
@@ -367,55 +422,56 @@ export default function Analytics({ eventId, onInteractionTrack }: AnalyticsProp
       </div>
 
       {/* KPI Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         {analyticsData.kpis.map((kpi) => {
-          const Icon = kpi.icon
-          const isPositive = kpi.trend === 'up'
-          
+          const Icon = kpi.icon;
+          const isPositive = kpi.trend === "up";
+
           return (
-            <Card key={kpi.title} className="shadow-elegant border-0 bg-gradient-subtle hover:shadow-lg transition-shadow">
+            <Card
+              key={kpi.title}
+              className="shadow-elegant border-0 bg-gradient-subtle hover:shadow-lg transition-shadow"
+            >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  {kpi.title}
-                </CardTitle>
+                <CardTitle className="text-sm font-medium">{kpi.title}</CardTitle>
                 <Icon className="h-4 w-4 text-primary" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{kpi.value}</div>
                 <div className="flex items-center space-x-2">
-                  <div className={`flex items-center text-xs ${
-                    isPositive ? 'text-green-600' : kpi.trend === 'down' ? 'text-red-600' : 'text-muted-foreground'
-                  }`}>
+                  <div
+                    className={`flex items-center text-xs ${
+                      isPositive ? "text-green-600" : kpi.trend === "down" ? "text-red-600" : "text-muted-foreground"
+                    }`}
+                  >
                     {isPositive ? (
                       <TrendingUp className="h-3 w-3 mr-1" />
-                    ) : kpi.trend === 'down' ? (
+                    ) : kpi.trend === "down" ? (
                       <TrendingDown className="h-3 w-3 mr-1" />
                     ) : null}
                     {kpi.change}
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    {kpi.description}
-                  </p>
+                  <p className="text-xs text-muted-foreground">{kpi.description}</p>
                 </div>
               </CardContent>
             </Card>
-          )
+          );
         })}
       </div>
 
       {/* Analytics Tabs */}
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="overview" onClick={() => trackInteraction('tab_viewed', { tab: 'overview' })}>
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="overview" onClick={() => trackInteraction("tab_viewed", { tab: "overview" })}>
             Overview
           </TabsTrigger>
-          <TabsTrigger value="events" onClick={() => trackInteraction('tab_viewed', { tab: 'events' })}>
-            Events
+          <TabsTrigger value="events" onClick={() => trackInteraction("tab_viewed", { tab: "events" })}>
+            Budget
           </TabsTrigger>
-          <TabsTrigger value="tasks" onClick={() => trackInteraction('tab_viewed', { tab: 'tasks' })}>
+          <TabsTrigger value="tasks" onClick={() => trackInteraction("tab_viewed", { tab: "tasks" })}>
             Tasks
           </TabsTrigger>
-          <TabsTrigger value="behavior" onClick={() => trackInteraction('tab_viewed', { tab: 'behavior' })}>
+          <TabsTrigger value="behavior" onClick={() => trackInteraction("tab_viewed", { tab: "behavior" })}>
             User Behavior
           </TabsTrigger>
         </TabsList>
@@ -437,17 +493,19 @@ export default function Analytics({ eventId, onInteractionTrack }: AnalyticsProp
                       <XAxis dataKey="month" />
                       <YAxis />
                       <Tooltip />
-                      <Line 
-                        type="monotone" 
-                        dataKey="tasks" 
-                        stroke="hsl(var(--primary))" 
+                      <Line
+                        type="monotone"
+                        dataKey="tasks"
+                        stroke="hsl(var(--primary))"
                         strokeWidth={3}
                         dot={{ fill: "hsl(var(--primary))", strokeWidth: 2, r: 4 }}
                       />
                     </LineChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="flex items-center justify-center h-[300px] text-muted-foreground text-sm">No task data available</div>
+                  <div className="flex items-center justify-center h-[300px] text-muted-foreground text-sm">
+                    No task data available
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -460,11 +518,11 @@ export default function Analytics({ eventId, onInteractionTrack }: AnalyticsProp
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {analyticsData.taskCompletion.some(t => t.value > 0) ? (
+                {analyticsData.taskCompletion.some((t) => t.value > 0) ? (
                   <ResponsiveContainer width="100%" height={300}>
                     <PieChart>
                       <Pie
-                        data={analyticsData.taskCompletion.filter(t => t.value > 0)}
+                        data={analyticsData.taskCompletion.filter((t) => t.value > 0)}
                         cx="50%"
                         cy="50%"
                         labelLine={false}
@@ -474,15 +532,19 @@ export default function Analytics({ eventId, onInteractionTrack }: AnalyticsProp
                         dataKey="value"
                         nameKey="status"
                       >
-                        {analyticsData.taskCompletion.filter(t => t.value > 0).map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
+                        {analyticsData.taskCompletion
+                          .filter((t) => t.value > 0)
+                          .map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
                       </Pie>
                       <Tooltip />
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="flex items-center justify-center h-[300px] text-muted-foreground text-sm">No tasks yet</div>
+                  <div className="flex items-center justify-center h-[300px] text-muted-foreground text-sm">
+                    No tasks yet
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -507,7 +569,9 @@ export default function Analytics({ eventId, onInteractionTrack }: AnalyticsProp
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="flex items-center justify-center h-[300px] text-muted-foreground text-sm">No resources allocated</div>
+                <div className="flex items-center justify-center h-[300px] text-muted-foreground text-sm">
+                  No resources allocated
+                </div>
               )}
             </CardContent>
           </Card>
@@ -535,7 +599,9 @@ export default function Analytics({ eventId, onInteractionTrack }: AnalyticsProp
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="flex items-center justify-center h-[300px] text-muted-foreground text-sm">No budget items</div>
+                  <div className="flex items-center justify-center h-[300px] text-muted-foreground text-sm">
+                    No budget items
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -551,12 +617,16 @@ export default function Analytics({ eventId, onInteractionTrack }: AnalyticsProp
                 {analyticsData.eventsByLocation.length > 0 ? (
                   <div className="flex items-center justify-center h-[300px]">
                     <div className="text-center space-y-2">
-                      <div className="text-3xl font-bold text-primary">{analyticsData.eventsByLocation[0].location}</div>
+                      <div className="text-3xl font-bold text-primary">
+                        {analyticsData.eventsByLocation[0].location}
+                      </div>
                       <div className="text-sm text-muted-foreground">Event Location</div>
                     </div>
                   </div>
                 ) : (
-                  <div className="flex items-center justify-center h-[300px] text-muted-foreground text-sm">No location set</div>
+                  <div className="flex items-center justify-center h-[300px] text-muted-foreground text-sm">
+                    No location set
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -584,7 +654,9 @@ export default function Analytics({ eventId, onInteractionTrack }: AnalyticsProp
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="flex items-center justify-center h-[300px] text-muted-foreground text-sm">No tasks yet</div>
+                  <div className="flex items-center justify-center h-[300px] text-muted-foreground text-sm">
+                    No tasks yet
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -605,10 +677,7 @@ export default function Analytics({ eventId, onInteractionTrack }: AnalyticsProp
                         <span>{task.status}</span>
                         <span>{task.value} tasks</span>
                       </div>
-                      <Progress 
-                        value={total > 0 ? (task.value / total) * 100 : 0} 
-                        className="h-2" 
-                      />
+                      <Progress value={total > 0 ? (task.value / total) * 100 : 0} className="h-2" />
                     </div>
                   );
                 })}
@@ -629,19 +698,31 @@ export default function Analytics({ eventId, onInteractionTrack }: AnalyticsProp
               <div className="grid gap-4 md:grid-cols-3">
                 <div className="text-center p-4 bg-surface/50 rounded-lg">
                   <div className="text-2xl font-bold text-primary">
-                    {JSON.parse(localStorage.getItem('analytics_interactions') || '[]').filter((i: any) => i.event_id === eventId).length}
+                    {
+                      JSON.parse(localStorage.getItem("analytics_interactions") || "[]").filter(
+                        (i: any) => i.event_id === eventId,
+                      ).length
+                    }
                   </div>
                   <div className="text-sm text-muted-foreground">Interactions</div>
                 </div>
                 <div className="text-center p-4 bg-surface/50 rounded-lg">
                   <div className="text-2xl font-bold text-primary">
-                    {JSON.parse(localStorage.getItem('analytics_interactions') || '[]').filter((i: any) => i.event_id === eventId && i.action === 'filter_applied').length}
+                    {
+                      JSON.parse(localStorage.getItem("analytics_interactions") || "[]").filter(
+                        (i: any) => i.event_id === eventId && i.action === "filter_applied",
+                      ).length
+                    }
                   </div>
                   <div className="text-sm text-muted-foreground">Filter Applications</div>
                 </div>
                 <div className="text-center p-4 bg-surface/50 rounded-lg">
                   <div className="text-2xl font-bold text-primary">
-                    {JSON.parse(localStorage.getItem('analytics_interactions') || '[]').filter((i: any) => i.event_id === eventId && i.action === 'tab_viewed').length}
+                    {
+                      JSON.parse(localStorage.getItem("analytics_interactions") || "[]").filter(
+                        (i: any) => i.event_id === eventId && i.action === "tab_viewed",
+                      ).length
+                    }
                   </div>
                   <div className="text-sm text-muted-foreground">Tab Views</div>
                 </div>
@@ -667,20 +748,23 @@ export default function Analytics({ eventId, onInteractionTrack }: AnalyticsProp
                   <div className="text-4xl font-bold text-primary mb-2">
                     {analyticsData.conversionRates.length > 0
                       ? (() => {
-                          const totalEst = analyticsData.conversionRates.reduce((s: number, i: any) => s + i.estimated, 0);
+                          const totalEst = analyticsData.conversionRates.reduce(
+                            (s: number, i: any) => s + i.estimated,
+                            0,
+                          );
                           const totalAct = analyticsData.conversionRates.reduce((s: number, i: any) => s + i.actual, 0);
-                          return totalEst > 0 ? `${((totalAct / totalEst) * 100).toFixed(1)}%` : '0%';
+                          return totalEst > 0 ? `${((totalAct / totalEst) * 100).toFixed(1)}%` : "0%";
                         })()
-                      : '0%'}
+                      : "0%"}
                   </div>
                   <div className="text-sm text-muted-foreground mb-4">Budget spent vs estimated</div>
-                  <Progress 
+                  <Progress
                     value={(() => {
                       const totalEst = analyticsData.conversionRates.reduce((s: number, i: any) => s + i.estimated, 0);
                       const totalAct = analyticsData.conversionRates.reduce((s: number, i: any) => s + i.actual, 0);
                       return totalEst > 0 ? (totalAct / totalEst) * 100 : 0;
                     })()}
-                    className="h-3" 
+                    className="h-3"
                   />
                 </div>
               </CardContent>
@@ -696,12 +780,15 @@ export default function Analytics({ eventId, onInteractionTrack }: AnalyticsProp
               <CardContent>
                 <div className="text-center p-6">
                   <div className="text-4xl font-bold text-primary mb-2">
-                    {analyticsData.kpis.find(k => k.title === 'Resource Utilization')?.value || '0%'}
+                    {analyticsData.kpis.find((k) => k.title === "Resource Utilization")?.value || "0%"}
                   </div>
                   <div className="text-sm text-muted-foreground mb-4">Current utilization</div>
-                  <Progress 
-                    value={parseFloat(analyticsData.kpis.find(k => k.title === 'Resource Utilization')?.value?.replace('%', '') || '0')} 
-                    className="h-3" 
+                  <Progress
+                    value={parseFloat(
+                      analyticsData.kpis.find((k) => k.title === "Resource Utilization")?.value?.replace("%", "") ||
+                        "0",
+                    )}
+                    className="h-3"
                   />
                 </div>
               </CardContent>
