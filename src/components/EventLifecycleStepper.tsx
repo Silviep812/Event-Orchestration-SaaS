@@ -15,10 +15,16 @@ const steps = [
 function getStepIndex(status?: string): number {
   if (!status) return 0;
   const map: Record<string, number> = {
-    planning: 0, pending: 0, draft: 0,
-    resource_booking: 1, in_progress: 1, active: 1,
-    execution: 2, ongoing: 2,
-    completed: 3, done: 3,
+    planning: 0,
+    pending: 0,
+    draft: 0,
+    resource_booking: 1,
+    in_progress: 1,
+    active: 1,
+    execution: 2,
+    ongoing: 2,
+    completed: 3,
+    done: 3,
   };
   return map[status.toLowerCase()] ?? 0;
 }
@@ -33,7 +39,7 @@ export function EventLifecycleStepper({ currentStep }: EventLifecycleStepperProp
         <div className="absolute top-5 left-0 right-0 h-0.5 bg-border mx-10" />
         <div
           className="absolute top-5 left-0 h-0.5 bg-primary mx-10 transition-all duration-500"
-          style={{ width: `${(activeIdx / (steps.length - 1)) * 100}%`, maxWidth: 'calc(100% - 5rem)' }}
+          style={{ width: `${(activeIdx / (steps.length - 1)) * 100}%`, maxWidth: "calc(100% - 5rem)" }}
         />
 
         {steps.map((step, idx) => {
@@ -49,25 +55,11 @@ export function EventLifecycleStepper({ currentStep }: EventLifecycleStepperProp
                   "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 border-2",
                   isComplete && "bg-primary border-primary text-primary-foreground shadow-md",
                   isActive && "bg-primary/10 border-primary text-primary ring-4 ring-primary/20",
-                  isFuture && "bg-muted border-border text-muted-foreground"
+                  isFuture && "bg-muted border-border text-muted-foreground",
                 )}
               >
-                {isComplete ? (
-                  <CheckCircle2 className="h-5 w-5" />
-                ) : (
-                  <StepIcon className="h-4 w-4" />
-                )}
+                {isComplete ? <CheckCircle2 className="h-5 w-5" /> : <StepIcon className="h-4 w-4" />}
               </div>
-              <span
-                className={cn(
-                  "text-[10px] sm:text-xs font-medium mt-1.5 text-center whitespace-nowrap",
-                  isActive && "text-primary font-semibold",
-                  isComplete && "text-primary",
-                  isFuture && "text-muted-foreground"
-                )}
-              >
-                {step.label}
-              </span>
             </div>
           );
         })}
