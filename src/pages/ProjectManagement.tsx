@@ -150,18 +150,21 @@ export default function ProjectManagement() {
             className="flex items-center justify-center gap-2 text-sm rounded-lg data-[state=active]:shadow-sm"
           >
             <CheckCircle2 className="h-4 w-4" />
+            <span className="hidden sm:inline">Task</span>
           </TabsTrigger>
           <TabsTrigger
             value="budget"
             className="flex items-center justify-center gap-2 text-sm rounded-lg data-[state=active]:shadow-sm"
           >
             <DollarSign className="h-4 w-4" />
+            <span className="hidden sm:inline">Budget</span>
           </TabsTrigger>
           <TabsTrigger
             value="roles"
             className="flex items-center justify-center gap-2 text-sm rounded-lg data-[state=active]:shadow-sm"
           >
             <Users className="h-4 w-4" />
+            <span className="hidden sm:inline">Collaborator</span>
           </TabsTrigger>
         </TabsList>
 
