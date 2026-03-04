@@ -25,7 +25,15 @@ interface TaskChecklistSheetProps {
 }
 
 // Circular Progress Ring component
-function CircularProgress({ percent, size = 72, strokeWidth = 6 }: { percent: number; size?: number; strokeWidth?: number }) {
+function CircularProgress({
+  percent,
+  size = 72,
+  strokeWidth = 6,
+}: {
+  percent: number;
+  size?: number;
+  strokeWidth?: number;
+}) {
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (percent / 100) * circumference;
@@ -76,55 +84,43 @@ export function TaskChecklistSheet({
   const categoryMap = templates ? groupTemplatesByCategory(templates) : {};
   const availableCategories = Object.keys(categoryMap);
 
-  const effectiveAssignmentType = (() => {
-    if (assignmentType && availableCategories.includes(assignmentType)) return assignmentType;
-    if (resourceCategories && resourceCategories.length > 0) {
-      return resourceCategories.find((cat) =>
-        availableCategories.some((ac) => ac.trim() === cat.trim())
-      ) || null;
+  // Get all template items for all active categories
+  const allTemplateItems = (() => {
+    const activeCategories: string[] = [];
+    if (assignmentType && availableCategories.includes(assignmentType)) {
+      activeCategories.push(assignmentType);
     }
-    return null;
-  })();
+    if (resourceCategories && resourceCategories.length > 0) {
+      resourceCategories.forEach((cat) => {
+        if (availableCategories.includes(cat) && !activeCategories.includes(cat)) {
+          activeCategories.push(cat);
+        }
+      });
+    }
 
-  if (!effectiveAssignmentType) return null;
-
-  const matchedCategoryKey = availableCategories.find(
-    (ac) => ac.trim() === effectiveAssignmentType.trim()
-  ) || effectiveAssignmentType;
-
-  const items = categoryMap[matchedCategoryKey] || [];
-  if (items.length === 0 && !isLoading) return null;
-
-  const defaultItems: TaskChecklistItem[] = items.map((label, index) => ({
-    id: `${matchedCategoryKey.toLowerCase().replace(/[^a-z0-9]/g, "_")}_${index}`,
-    label,
-    completed: false,
-  }));
-
-  const currentChecklist: TaskChecklistItem[] = (() => {
-    const merged = defaultItems.map((defaultItem) => {
-      const saved = checklist?.find((c) => c.id === defaultItem.id);
-      return saved ? { ...defaultItem, completed: saved.completed } : defaultItem;
+    const items: { label: string; category: string }[] = [];
+    activeCategories.forEach((cat) => {
+      (categoryMap[cat] || []).forEach((label) => {
+        items.push({ label, category: cat });
+      });
     });
-    const templateIds = new Set(defaultItems.map((d) => d.id));
-    const customItems = (checklist || []).filter((c) => !templateIds.has(c.id));
-    return [...merged, ...customItems];
+    return items;
   })();
+
+  const currentChecklist: TaskChecklistItem[] = checklist || [];
 
   const totalItems = currentChecklist.length;
   const completedItems = currentChecklist.filter((i) => i.completed).length;
   const progressPercent = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
 
   const handleToggle = async (itemId: string, checked: boolean) => {
-    const updated = currentChecklist.map((item) =>
-      item.id === itemId ? { ...item, completed: checked } : item
-    );
+    const updated = currentChecklist.map((item) => (item.id === itemId ? { ...item, completed: checked } : item));
 
     await onChecklistSave(updated);
 
     toast({
       title: checked ? "Item completed" : "Item unchecked",
-      description: `Checklist progress: ${updated.filter(i => i.completed).length}/${totalItems}`,
+      description: `Checklist progress: ${updated.filter((i) => i.completed).length}/${totalItems}`,
     });
 
     const allCompleted = updated.every((item) => item.completed);
@@ -152,17 +148,20 @@ export function TaskChecklistSheet({
     }
   };
 
-  const handleAddItem = async () => {
-    const label = newItemLabel.trim();
-    if (!label) return;
+  const handleAddItem = async (label: string) => {
+    if (!label.trim()) return;
     const newItem: TaskChecklistItem = {
-      id: `custom_${Date.now()}`,
-      label,
+      id: `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      label: label.trim(),
       completed: false,
     };
     const updated = [...currentChecklist, newItem];
     setNewItemLabel("");
     await onChecklistSave(updated);
+  };
+
+  const isItemInChecklist = (label: string) => {
+    return currentChecklist.some((item) => item.label.trim().toLowerCase() === label.trim().toLowerCase());
   };
 
   return (
@@ -181,19 +180,25 @@ export function TaskChecklistSheet({
           </Badge>
         </Button>
       </SheetTrigger>
-      <SheetContent
-        className="w-[340px] sm:w-[420px] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <SheetContent className="w-[340px] sm:w-[420px] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <SheetHeader>
           <SheetTitle className="text-lg flex items-center gap-2">
             <ClipboardList className="h-5 w-5 text-primary" />
             Task Checklist
           </SheetTitle>
           <p className="text-sm text-muted-foreground truncate">{taskTitle}</p>
-          <Badge variant="outline" className="w-fit text-xs rounded-full">
-            {effectiveAssignmentType}
-          </Badge>
+          <div className="flex flex-wrap gap-1 mt-1">
+            {assignmentType && (
+              <Badge variant="outline" className="text-[10px] rounded-full">
+                {assignmentType}
+              </Badge>
+            )}
+            {resourceCategories?.map((cat) => (
+              <Badge key={cat} variant="secondary" className="text-[10px] rounded-full">
+                {cat}
+              </Badge>
+            ))}
+          </div>
         </SheetHeader>
 
         {isLoading ? (
@@ -216,44 +221,49 @@ export function TaskChecklistSheet({
               <Progress value={progressPercent} className="h-2" />
             </div>
 
-            {/* Checklist Items */}
+            {/* Current Checklist Items */}
             <div className="mt-6 space-y-1">
-              {currentChecklist.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  className={`w-full flex items-start gap-3 p-3 rounded-xl transition-colors text-left hover:bg-muted/50 ${
-                    item.completed ? "opacity-70" : ""
-                  }`}
-                  onClick={() => handleToggle(item.id, !item.completed)}
-                >
-                  {item.completed ? (
-                    <CheckCircle2 className="h-5 w-5 text-primary mt-0.5 shrink-0" />
-                  ) : (
-                    <Circle className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
-                  )}
-                  <span
-                    className={`text-sm leading-snug ${
-                      item.completed
-                        ? "line-through text-muted-foreground"
-                        : "text-foreground"
+              <h3 className="text-sm font-semibold mb-2 px-1">Active Checklist</h3>
+              {currentChecklist.length === 0 ? (
+                <p className="text-xs text-muted-foreground px-1 py-4 text-center border border-dashed rounded-lg">
+                  No items in checklist. Select from templates below or add custom items.
+                </p>
+              ) : (
+                currentChecklist.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={`w-full flex items-start gap-3 p-3 rounded-xl transition-colors text-left hover:bg-muted/50 ${
+                      item.completed ? "opacity-70" : ""
                     }`}
+                    onClick={() => handleToggle(item.id, !item.completed)}
                   >
-                    {item.label}
-                  </span>
-                </button>
-              ))}
+                    {item.completed ? (
+                      <CheckCircle2 className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                    ) : (
+                      <Circle className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+                    )}
+                    <span
+                      className={`text-sm leading-snug ${
+                        item.completed ? "line-through text-muted-foreground" : "text-foreground"
+                      }`}
+                    >
+                      {item.label}
+                    </span>
+                  </button>
+                ))
+              )}
             </div>
 
             {/* Add custom checklist item */}
-            <div className="mt-4 flex items-center gap-2">
+            <div className="mt-8 flex items-center gap-2 border-t pt-4">
               <Input
-                placeholder="Add a checklist item…"
+                placeholder="Add custom item…"
                 value={newItemLabel}
                 onChange={(e) => setNewItemLabel(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && newItemLabel.trim()) {
-                    handleAddItem();
+                    handleAddItem(newItemLabel);
                   }
                 }}
                 className="h-9 text-sm rounded-lg"
@@ -263,14 +273,14 @@ export function TaskChecklistSheet({
                 variant="outline"
                 className="shrink-0 h-9 rounded-lg"
                 disabled={!newItemLabel.trim()}
-                onClick={handleAddItem}
+                onClick={() => handleAddItem(newItemLabel)}
               >
                 <Plus className="h-4 w-4" />
               </Button>
             </div>
 
             {/* Completion celebration */}
-            {progressPercent === 100 && (
+            {progressPercent === 100 && currentChecklist.length > 0 && (
               <div className="mt-6 p-4 rounded-xl bg-primary/10 border border-primary/20 flex items-center gap-3">
                 <PartyPopper className="h-6 w-6 text-primary shrink-0" />
                 <div className="space-y-1">
