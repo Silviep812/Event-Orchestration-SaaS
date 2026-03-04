@@ -36,8 +36,11 @@ import {
   ResourceAssignment,
   ResourceColumn,
   RESOURCE_CATEGORIES,
+  RESOURCE_DEPENDENCIES,
+  ROLES,
   getEmptyResourceAssignments,
   getSelectedCategories,
+  getDefaultChecklist,
 } from "@/components/ResourceColumn";
 import { ResourceCard } from "@/components/ResourceCard";
 import { ResourceAssignmentsPanel } from "@/components/ResourceAssignmentsPanel";
@@ -868,8 +871,10 @@ export function TaskManager({ eventId, selectedEventFilter, searchQuery }: TaskM
         category: getSelectedCategories(resourceAssignments).join(", ") || null,
         assigned_to: null, // Removed user assignment dropdown, only using coordinator assignment
         assigned_coordinator_name: (newTask as any).assigned_coordinator_name || null,
+        assigned_role: newTask.assigned_role || null,
         resource_assignments: resourceAssignments as unknown as Record<string, unknown>,
         assignment_type: (newTask as any).assignment_type || null,
+        checklist: (newTask as any).checklist || null,
       };
 
       const { data: createdTask, error } = await supabase
@@ -1202,6 +1207,11 @@ export function TaskManager({ eventId, selectedEventFilter, searchQuery }: TaskM
         end_date: taskToUpdate.end_date,
         start_time: taskToUpdate.start_time,
         end_time: taskToUpdate.end_time,
+        assignment_type: taskToUpdate.assignment_type,
+        assigned_coordinator_name: taskToUpdate.assigned_coordinator_name,
+        assigned_role: taskToUpdate.assigned_role,
+        resource_assignments: editResourceAssignments,
+        checklist: taskToUpdate.checklist,
       };
 
       // Handle assigned_to separately if assigned_user_id is provided
@@ -1268,6 +1278,10 @@ export function TaskManager({ eventId, selectedEventFilter, searchQuery }: TaskM
         start_time: taskToUpdate.start_time,
         end_time: taskToUpdate.end_time,
         assignment_type: taskToUpdate.assignment_type,
+        assigned_coordinator_name: taskToUpdate.assigned_coordinator_name,
+        assigned_role: taskToUpdate.assigned_role,
+        resource_assignments: editResourceAssignments,
+        checklist: taskToUpdate.checklist,
       });
 
       // Save dependencies
@@ -1522,7 +1536,30 @@ export function TaskManager({ eventId, selectedEventFilter, searchQuery }: TaskM
                   <Select
                     value={(newTask as any).assignment_type || ""}
                     onValueChange={(value) => {
-                      setNewTask({ ...newTask, assignment_type: value } as any);
+                      const checklist = getDefaultChecklist(value);
+                      setNewTask({
+                        ...newTask,
+                        assignment_type: value,
+                        checklist: checklist,
+                      } as any);
+
+                      // Auto-select in resource assignments panel
+                      setResourceAssignments((prev) => {
+                        const next = { ...prev };
+                        if (next[value]) {
+                          next[value] = {
+                            ...next[value],
+                            selected: true,
+                            checklist: checklist,
+                          };
+                        }
+                        return next;
+                      });
+
+                      if (!selectedCollaboratorTypes.includes(value)) {
+                        setSelectedCollaboratorTypes([...selectedCollaboratorTypes, value]);
+                      }
+
                       if (validationErrors.assignment_type) {
                         setValidationErrors((prev) => {
                           const next = { ...prev };
@@ -1538,20 +1575,35 @@ export function TaskManager({ eventId, selectedEventFilter, searchQuery }: TaskM
                       <SelectValue placeholder="Select assignment type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Bookings">Bookings</SelectItem>
-                      <SelectItem value="Venues">Venues</SelectItem>
-                      <SelectItem value="Hospitality">Hospitality</SelectItem>
-                      <SelectItem value="Transportation">Transportation</SelectItem>
-                      <SelectItem value="Vendors">Vendors</SelectItem>
-                      <SelectItem value="Vendor Service Rental/Buy">Vendor Service Rental/Buy</SelectItem>
-                      <SelectItem value="Service Vendor">Service Vendor</SelectItem>
-                      <SelectItem value="Suppliers">Suppliers</SelectItem>
-                      <SelectItem value="Entertainment">Entertainment</SelectItem>
+                      {RESOURCE_CATEGORIES.map((category) => (
+                        <SelectItem key={category} value={category}>
+                          {category}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   {validationErrors.assignment_type && (
                     <p className="text-sm font-medium text-destructive">{validationErrors.assignment_type}</p>
                   )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="assigned_role">Role Selection</Label>
+                  <Select
+                    value={newTask.assigned_role || ""}
+                    onValueChange={(value) => setNewTask({ ...newTask, assigned_role: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select collaborator role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ROLES.map((role) => (
+                        <SelectItem key={role.value} value={role.value}>
+                          {role.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Resource Category Assignments - Expandable Panel */}
@@ -1731,7 +1783,9 @@ export function TaskManager({ eventId, selectedEventFilter, searchQuery }: TaskM
                     selected_event_id: "",
                     dependencies: [] as string[],
                     assigned_role: "",
-                  });
+                    checklist: [],
+                  } as any);
+                  setResourceAssignments(getEmptyResourceAssignments());
                   setSelectedCollaboratorTypes([]);
                   setValidationErrors({});
                   setShouldPreserveForm(false);
@@ -1901,153 +1955,194 @@ export function TaskManager({ eventId, selectedEventFilter, searchQuery }: TaskM
                       </div>
                     )}
 
-                    {/* Resource Category Assignments - Expandable Panel */}
-                    <ResourceAssignmentsPanel
-                      taskId={task.id}
-                      assignments={task.resource_assignments || getEmptyResourceAssignments()}
-                      availableTasks={availableTasks.filter((t) => t.id !== task.id)}
-                      isExpanded={expandedResourceTaskId === task.id}
-                      onToggle={() => setExpandedResourceTaskId(expandedResourceTaskId === task.id ? null : task.id)}
-                      onAssignmentChange={async (category, newAssignment) => {
-                        const updatedAssignments = {
-                          ...(task.resource_assignments || getEmptyResourceAssignments()),
-                          [category]: newAssignment,
-                        };
+                    {/* Resource Category Assignments - Only show if has active resources */}
+                    {task.resource_assignments &&
+                      Object.values(task.resource_assignments).some((a: any) => a.selected) && (
+                        <>
+                          <ResourceAssignmentsPanel
+                            taskId={task.id}
+                            assignments={task.resource_assignments || getEmptyResourceAssignments()}
+                            availableTasks={availableTasks.filter((t) => t.id !== task.id)}
+                            isExpanded={expandedResourceTaskId === task.id}
+                            onToggle={() =>
+                              setExpandedResourceTaskId(expandedResourceTaskId === task.id ? null : task.id)
+                            }
+                            onAssignmentChange={async (category, newAssignment) => {
+                              const updatedAssignments = {
+                                ...(task.resource_assignments || getEmptyResourceAssignments()),
+                                [category]: newAssignment,
+                              };
 
-                        setTasks((prevTasks) =>
-                          prevTasks.map((t) =>
-                            t.id === task.id ? { ...t, resource_assignments: updatedAssignments } : t,
-                          ),
-                        );
+                              setTasks((prevTasks) =>
+                                prevTasks.map((t) =>
+                                  t.id === task.id ? { ...t, resource_assignments: updatedAssignments } : t,
+                                ),
+                              );
 
-                        try {
-                          console.log("Saving resource assignments:", updatedAssignments);
-                          const { error, data } = await supabase
-                            .from("tasks")
-                            .update({ resource_assignments: JSON.parse(JSON.stringify(updatedAssignments)) })
-                            .eq("id", task.id)
-                            .select();
+                              try {
+                                console.log("Saving resource assignments:", updatedAssignments);
+                                const { error, data } = await supabase
+                                  .from("tasks")
+                                  .update({ resource_assignments: JSON.parse(JSON.stringify(updatedAssignments)) })
+                                  .eq("id", task.id)
+                                  .select();
 
-                          if (error) {
-                            console.error("Supabase error:", error);
-                            throw error;
-                          }
+                                if (error) {
+                                  console.error("Supabase error:", error);
+                                  throw error;
+                                }
 
-                          console.log("Save successful:", data);
-                          toast({
-                            title: "Resource updated",
-                            description: `${category} assignment updated successfully.`,
-                          });
-                        } catch (error) {
-                          console.error("Error updating resource assignment:", error);
-                          toast({
-                            title: "Error",
-                            description: "Failed to update resource. Please try again.",
-                            variant: "destructive",
-                          });
-                          fetchTasks();
-                        }
-                      }}
-                      onCollaboratorSave={async (category, collaboratorName) => {
-                        const currentAssignment = task.resource_assignments?.[category] || {
-                          selected: false,
-                          status: "pending" as const,
-                          confirmed: false,
-                          collaborator_name: "",
-                          due_date: "",
-                          start_date: "",
-                          end_date: "",
-                          dependencies: [],
-                          checklist: [],
-                        };
-                        const updatedAssignments = {
-                          ...(task.resource_assignments || getEmptyResourceAssignments()),
-                          [category]: {
-                            ...currentAssignment,
-                            collaborator_name: collaboratorName,
-                          },
-                        };
+                                console.log("Save successful:", data);
+                                toast({
+                                  title: "Resource updated",
+                                  description: `${category} assignment updated successfully.`,
+                                });
+                              } catch (error) {
+                                console.error("Error updating resource assignment:", error);
+                                toast({
+                                  title: "Error",
+                                  description: "Failed to update resource. Please try again.",
+                                  variant: "destructive",
+                                });
+                                fetchTasks();
+                              }
+                            }}
+                            onCollaboratorSave={async (category, collaboratorName) => {
+                              const currentAssignment = task.resource_assignments?.[category] || {
+                                selected: false,
+                                status: "pending" as const,
+                                confirmed: false,
+                                collaborator_name: "",
+                                due_date: "",
+                                start_date: "",
+                                end_date: "",
+                                dependencies: [],
+                                checklist: [],
+                              };
+                              const updatedAssignments = {
+                                ...(task.resource_assignments || getEmptyResourceAssignments()),
+                                [category]: {
+                                  ...currentAssignment,
+                                  collaborator_name: collaboratorName,
+                                },
+                              };
 
-                        setTasks((prevTasks) =>
-                          prevTasks.map((t) =>
-                            t.id === task.id ? { ...t, resource_assignments: updatedAssignments } : t,
-                          ),
-                        );
+                              setTasks((prevTasks) =>
+                                prevTasks.map((t) =>
+                                  t.id === task.id ? { ...t, resource_assignments: updatedAssignments } : t,
+                                ),
+                              );
 
-                        try {
-                          const { error } = await supabase
-                            .from("tasks")
-                            .update({ resource_assignments: JSON.parse(JSON.stringify(updatedAssignments)) })
-                            .eq("id", task.id);
+                              try {
+                                const { error } = await supabase
+                                  .from("tasks")
+                                  .update({ resource_assignments: JSON.parse(JSON.stringify(updatedAssignments)) })
+                                  .eq("id", task.id);
 
-                          if (error) throw error;
+                                if (error) throw error;
 
-                          toast({
-                            title: "Collaborator saved",
-                            description: `${category} collaborator updated.`,
-                          });
-                        } catch (error) {
-                          console.error("Error saving collaborator:", error);
-                          toast({
-                            title: "Error",
-                            description: "Failed to save collaborator.",
-                            variant: "destructive",
-                          });
-                          fetchTasks();
-                        }
-                      }}
-                      onDatesSave={async (category, dates) => {
-                        const currentAssignment = task.resource_assignments?.[category] || {
-                          selected: false,
-                          status: "pending" as const,
-                          confirmed: false,
-                          collaborator_name: "",
-                          due_date: "",
-                          start_date: "",
-                          end_date: "",
-                          dependencies: [],
-                          checklist: [],
-                        };
-                        const updatedAssignments = {
-                          ...(task.resource_assignments || getEmptyResourceAssignments()),
-                          [category]: {
-                            ...currentAssignment,
-                            ...dates,
-                          },
-                        };
+                                toast({
+                                  title: "Collaborator saved",
+                                  description: `${category} collaborator updated.`,
+                                });
+                              } catch (error) {
+                                console.error("Error saving collaborator:", error);
+                                toast({
+                                  title: "Error",
+                                  description: "Failed to save collaborator.",
+                                  variant: "destructive",
+                                });
+                                fetchTasks();
+                              }
+                            }}
+                            onDatesSave={async (category, dates) => {
+                              const currentAssignment = task.resource_assignments?.[category] || {
+                                selected: false,
+                                status: "pending" as const,
+                                confirmed: false,
+                                collaborator_name: "",
+                                due_date: "",
+                                start_date: "",
+                                end_date: "",
+                                dependencies: [],
+                                checklist: [],
+                              };
+                              const updatedAssignments = {
+                                ...(task.resource_assignments || getEmptyResourceAssignments()),
+                                [category]: {
+                                  ...currentAssignment,
+                                  ...dates,
+                                },
+                              };
 
-                        setTasks((prevTasks) =>
-                          prevTasks.map((t) =>
-                            t.id === task.id ? { ...t, resource_assignments: updatedAssignments } : t,
-                          ),
-                        );
+                              setTasks((prevTasks) =>
+                                prevTasks.map((t) =>
+                                  t.id === task.id ? { ...t, resource_assignments: updatedAssignments } : t,
+                                ),
+                              );
 
-                        try {
-                          const { error } = await supabase
-                            .from("tasks")
-                            .update({ resource_assignments: JSON.parse(JSON.stringify(updatedAssignments)) })
-                            .eq("id", task.id);
+                              try {
+                                const { error } = await supabase
+                                  .from("tasks")
+                                  .update({ resource_assignments: JSON.parse(JSON.stringify(updatedAssignments)) })
+                                  .eq("id", task.id);
 
-                          if (error) throw error;
+                                if (error) throw error;
 
-                          toast({
-                            title: "Dates saved",
-                            description: `${category} timeline updated.`,
-                          });
-                        } catch (error) {
-                          console.error("Error saving dates:", error);
-                          toast({
-                            title: "Error",
-                            description: "Failed to save dates.",
-                            variant: "destructive",
-                          });
-                          fetchTasks();
-                        }
-                      }}
-                      onSaveAll={async () => {
-                        await saveAllResourceAssignments(task.id, task.resource_assignments);
-                      }}
-                    />
+                                toast({
+                                  title: "Dates saved",
+                                  description: `${category} timeline updated.`,
+                                });
+                              } catch (error) {
+                                console.error("Error saving dates:", error);
+                                toast({
+                                  title: "Error",
+                                  description: "Failed to save dates.",
+                                  variant: "destructive",
+                                });
+                                fetchTasks();
+                              }
+                            }}
+                            onSaveAll={async () => {
+                              await saveAllResourceAssignments(task.id, task.resource_assignments);
+                            }}
+                          />
+
+                          <div className="flex items-center gap-2 pt-1 flex-wrap" onClick={(e) => e.stopPropagation()}>
+                            <TaskChecklistSheet
+                              taskId={task.id}
+                              taskTitle={task.title}
+                              assignmentType={task.assignment_type}
+                              resourceCategories={
+                                task.resource_assignments
+                                  ? Object.keys(task.resource_assignments).filter(
+                                      (k) => task.resource_assignments![k]?.selected,
+                                    )
+                                  : []
+                              }
+                              checklist={task.checklist}
+                              onChecklistSave={async (updatedChecklist) => {
+                                setTasks((prev) =>
+                                  prev.map((t) => (t.id === task.id ? { ...t, checklist: updatedChecklist } : t)),
+                                );
+                                try {
+                                  await supabase
+                                    .from("tasks")
+                                    .update({ checklist: updatedChecklist as any })
+                                    .eq("id", task.id);
+                                } catch (err) {
+                                  console.error("Failed to save checklist:", err);
+                                  fetchTasks();
+                                }
+                              }}
+                              onStatusChange={async (status) => {
+                                await updateTask(task.id, { status });
+                                fetchTasks();
+                              }}
+                            />
+                          </div>
+                        </>
+                      )}
 
                     {/* Timeline Row */}
                     {(task.start_date || task.end_date || task.due_date) && (
@@ -2081,11 +2176,6 @@ export function TaskManager({ eventId, selectedEventFilter, searchQuery }: TaskM
                       </div>
                     )}
 
-                    {task.estimated_hours &&
-                      !task.assigned_user_name &&
-                      !task.assigned_role &&
-                      !task.assigned_coordinator_name}
-
                     {task.dependencies && task.dependencies.length > 0 && (
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <Link className="h-3 w-3" />
@@ -2096,37 +2186,6 @@ export function TaskManager({ eventId, selectedEventFilter, searchQuery }: TaskM
                     )}
 
                     <div className="flex items-center gap-2 pt-1 flex-wrap" onClick={(e) => e.stopPropagation()}>
-                      <TaskChecklistSheet
-                        taskId={task.id}
-                        taskTitle={task.title}
-                        assignmentType={task.assignment_type}
-                        resourceCategories={
-                          task.resource_assignments
-                            ? Object.keys(task.resource_assignments).filter(
-                                (k) => task.resource_assignments![k]?.selected,
-                              )
-                            : []
-                        }
-                        checklist={task.checklist}
-                        onChecklistSave={async (updatedChecklist) => {
-                          setTasks((prev) =>
-                            prev.map((t) => (t.id === task.id ? { ...t, checklist: updatedChecklist } : t)),
-                          );
-                          try {
-                            await supabase
-                              .from("tasks")
-                              .update({ checklist: updatedChecklist as any })
-                              .eq("id", task.id);
-                          } catch (err) {
-                            console.error("Failed to save checklist:", err);
-                            fetchTasks();
-                          }
-                        }}
-                        onStatusChange={async (status) => {
-                          await updateTask(task.id, { status });
-                          fetchTasks();
-                        }}
-                      />
                       {!isReadOnly && (
                         <Button
                           variant="outline"
@@ -2230,15 +2289,11 @@ export function TaskManager({ eventId, selectedEventFilter, searchQuery }: TaskM
                       <SelectValue placeholder="Select assignment type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Bookings">Bookings</SelectItem>
-                      <SelectItem value="Venues">Venues</SelectItem>
-                      <SelectItem value="Hospitality">Hospitality</SelectItem>
-                      <SelectItem value="Transportation">Transportation</SelectItem>
-                      <SelectItem value="Vendors">Vendors</SelectItem>
-                      <SelectItem value="Vendor Service Rental/Buy">Vendor Service Rental/Buy</SelectItem>
-                      <SelectItem value="Service Vendor">Service Vendor</SelectItem>
-                      <SelectItem value="Suppliers">Suppliers</SelectItem>
-                      <SelectItem value="Entertainment">Entertainment</SelectItem>
+                      {RESOURCE_CATEGORIES.map((category) => (
+                        <SelectItem key={category} value={category}>
+                          {category}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -2272,18 +2327,6 @@ export function TaskManager({ eventId, selectedEventFilter, searchQuery }: TaskM
                     checklist={selectedTask.checklist}
                     onChecklistSave={async (updatedChecklist) => {
                       setSelectedTask({ ...selectedTask, checklist: updatedChecklist });
-                      setTasks((prev) =>
-                        prev.map((t) => (t.id === selectedTask.id ? { ...t, checklist: updatedChecklist } : t)),
-                      );
-                      try {
-                        await supabase
-                          .from("tasks")
-                          .update({ checklist: updatedChecklist as any })
-                          .eq("id", selectedTask.id);
-                      } catch (err) {
-                        console.error("Failed to save checklist:", err);
-                        fetchTasks();
-                      }
                     }}
                     onStatusChange={async (status) => {
                       await updateTask(selectedTask.id, { status });
@@ -2295,6 +2338,37 @@ export function TaskManager({ eventId, selectedEventFilter, searchQuery }: TaskM
 
               {/* Right column */}
               <div className="space-y-4">
+                <div className="space-y-2 p-3 border border-primary/20 rounded-lg bg-primary/5">
+                  <Label htmlFor="edit-coordinator-name" className="text-base font-semibold">
+                    Assign Collaborator Task To
+                  </Label>
+                  <Input
+                    id="edit-coordinator-name"
+                    placeholder="Enter collaborator name"
+                    value={selectedTask.assigned_coordinator_name || ""}
+                    onChange={(e) => setSelectedTask({ ...selectedTask, assigned_coordinator_name: e.target.value })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-assigned-role">Role Selection</Label>
+                  <Select
+                    value={selectedTask.assigned_role || ""}
+                    onValueChange={(value) => setSelectedTask({ ...selectedTask, assigned_role: value })}
+                  >
+                    <SelectTrigger id="edit-assigned-role">
+                      <SelectValue placeholder="Select collaborator role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ROLES.map((role) => (
+                        <SelectItem key={role.value} value={role.value}>
+                          {role.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="edit-hours">Estimated Hours</Label>
                   <Input
@@ -2384,6 +2458,22 @@ export function TaskManager({ eventId, selectedEventFilter, searchQuery }: TaskM
                     <p className="text-sm text-muted-foreground">
                       Select all tasks that must be completed before this task can start:
                     </p>
+
+                    {selectedTask?.assignment_type && RESOURCE_DEPENDENCIES[selectedTask.assignment_type] && (
+                      <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg my-2">
+                        <p className="text-sm font-semibold text-blue-800 flex items-center gap-2 mb-1">
+                          <AlertCircle className="h-4 w-4" />
+                          Required Dependencies for {selectedTask.assignment_type}:
+                        </p>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {RESOURCE_DEPENDENCIES[selectedTask.assignment_type].map((dep, idx) => (
+                            <Badge key={idx} variant="secondary" className="bg-blue-100 text-blue-700 border-blue-200">
+                              {dep}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     <Input
                       placeholder="Search by title, description, or assignee..."
                       value={dependencySearchTerm}
@@ -2503,6 +2593,25 @@ export function TaskManager({ eventId, selectedEventFilter, searchQuery }: TaskM
           </DialogHeader>
 
           <div className="space-y-4">
+            {taskForDependencies?.assignment_type && RESOURCE_DEPENDENCIES[taskForDependencies.assignment_type] && (
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm font-semibold text-blue-800 flex items-center gap-2 mb-1">
+                  <AlertCircle className="h-4 w-4" />
+                  Required Dependencies for {taskForDependencies.assignment_type}:
+                </p>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {RESOURCE_DEPENDENCIES[taskForDependencies.assignment_type].map((dep, idx) => (
+                    <Badge key={idx} variant="secondary" className="bg-blue-100 text-blue-700 border-blue-200">
+                      {dep}
+                    </Badge>
+                  ))}
+                </div>
+                <p className="text-[10px] text-blue-600 mt-2">
+                  * Select existing tasks that represent these requirements.
+                </p>
+              </div>
+            )}
+
             {availableTasks.filter((task) => task.id !== taskForDependencies?.id).length > 0 ? (
               <>
                 <div className="space-y-2">
