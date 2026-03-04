@@ -91,16 +91,7 @@ interface TaskData {
 }
 
 // ====== CONSTANTS ======
-const ROLES = [
-  { value: "organizer", label: "Organizer", description: "Organize and coordinate event details" },
-  { value: "event_planner", label: "Event Planner", description: "Plan and execute event logistics" },
-  { value: "partner", label: "Partner", description: "Collaborate on event planning and execution" },
-  { value: "host", label: "Host", description: "Host and manage events" },
-  { value: "venue_owner", label: "Venue Owner", description: "Own and manage venue operations" },
-  { value: "venue_manager", label: "Venue Manager", description: "Manage venue-related information" },
-  { value: "sponsor", label: "Sponsor", description: "Sponsor events and track sponsorship details" },
-  { value: "stakeholder", label: "Stakeholder", description: "Stakeholder interested in event data" },
-];
+import { ROLES, roleColors, getDefaultChecklist } from "./ResourceColumn";
 
 const PERMISSION_LEVELS: Record<
   string,
@@ -127,16 +118,6 @@ const PERMISSION_LEVELS: Record<
     color: "bg-muted-foreground/10 text-muted-foreground border-muted-foreground/20",
     description: "View-only access to events and data",
   },
-};
-
-const roleColors: Record<string, string> = {
-  organizer: "bg-accent/50 text-accent-foreground",
-  event_planner: "bg-secondary/50 text-secondary-foreground",
-  partner: "bg-primary/10 text-primary",
-  host: "bg-primary/20 text-primary",
-  venue_owner: "bg-muted text-muted-foreground",
-  venue_manager: "bg-muted text-muted-foreground",
-  sponsor: "bg-accent/30 text-accent-foreground",
 };
 
 // ====== HELPERS ======
@@ -276,7 +257,14 @@ export function RoleManager({
       if (error) throw error;
 
       if (eventsData && eventsData.length > 0) {
-        const userIds = eventsData.map((e) => e.user_id).filter(Boolean);
+        // Filter out 'cc' and '2025' events per user request
+        const filteredEvents = eventsData.filter((e) => {
+          const titleLower = (e.title || "").toLowerCase();
+          const dateStr = e.start_date || "";
+          return !titleLower.includes("cc") && !titleLower.includes("2025") && !dateStr.includes("2025");
+        });
+
+        const userIds = filteredEvents.map((e) => e.user_id).filter(Boolean);
         let profilesMap = new Map<string, string>();
         if (userIds.length > 0) {
           const { data: profilesData } = await supabase
@@ -286,7 +274,7 @@ export function RoleManager({
           profilesMap = new Map(profilesData?.map((p) => [p.user_id, p.display_name || ""]) || []);
         }
         setEvents(
-          eventsData.map((event) => ({
+          filteredEvents.map((event) => ({
             ...event,
             organizer_name: profilesMap.get(event.user_id) || "Unknown",
           })),
@@ -324,14 +312,30 @@ export function RoleManager({
       if (usersError) throw usersError;
 
       const allUsers =
-        usersResponse?.users?.map((u: any) => ({
-          id: u.id,
-          name: u.name,
-          email: u.email,
-          status: "online",
-          joinedAt: u.created_at || new Date().toISOString(),
-          avatar: u.avatar,
-        })) || [];
+        usersResponse?.users
+          ?.map((u: any) => ({
+            id: u.id,
+            name: u.name,
+            email: u.email,
+            status: "online",
+            joinedAt: u.created_at || new Date().toISOString(),
+            avatar: u.avatar,
+          }))
+          .filter((u: any) => {
+            const nameLower = (u.name || "").toLowerCase();
+            const emailLower = (u.email || "").toLowerCase();
+            // Strict filter: No "cc", placeholder names, or "2025"
+            return (
+              nameLower !== "" &&
+              nameLower !== "cc" &&
+              !nameLower.includes("cc") &&
+              !nameLower.includes("carbon copy") &&
+              !nameLower.includes("2025") &&
+              !emailLower.includes("2025") &&
+              !nameLower.includes("unknown") &&
+              !nameLower.includes("placeholder")
+            );
+          }) || [];
 
       const usersWithRoles = allUsers.map((u: any) => {
         const userRole = userRolesData?.find((role) => role.user_id === u.id);
@@ -374,7 +378,21 @@ export function RoleManager({
       }
       const { data, error } = await query.order("created_at", { ascending: false });
       if (error) throw error;
-      setChangeRequests(data || []);
+
+      // Filter out 'cc' and '2025' change requests
+      const filteredCRs = (data || []).filter((cr) => {
+        const titleLower = (cr.title || "").toLowerCase();
+        const descLower = (cr.description || "").toLowerCase();
+        const dateStr = cr.created_at || "";
+        return (
+          !titleLower.includes("cc") &&
+          !titleLower.includes("2025") &&
+          !descLower.includes("cc") &&
+          !descLower.includes("2025") &&
+          !dateStr.includes("2025")
+        );
+      });
+      setChangeRequests(filteredCRs);
     } catch (error) {
       console.error("Error fetching change requests:", error);
     }
@@ -393,11 +411,11 @@ export function RoleManager({
       }
       const { data, error } = await query;
       if (error) throw error;
-      // Filter out tasks with '2025' in title or dates per user request
+      // Filter out tasks with 'cc' or '2025' in title or dates per user request
       const filtered = (data || []).filter((t) => {
-        const titleMatch = t.title?.toLowerCase().includes("2025");
+        const titleLower = (t.title || "").toLowerCase();
         const dateMatch = t.due_date?.includes("2025");
-        return !titleMatch && !dateMatch;
+        return !titleLower.includes("cc") && !titleLower.includes("2025") && !dateMatch;
       });
       setTasks(filtered);
     } catch (error) {
@@ -568,26 +586,48 @@ export function RoleManager({
   const rawConsolidated = consolidateUserRoles(userRoles);
   const consolidated = rawConsolidated.filter((cu) => {
     const info = getUserInfo(cu.user_id);
-    const nameLower = info.name.toLowerCase();
+    const nameLower = (info.name || "").toLowerCase();
+    const emailLower = (info.email || "").toLowerCase();
 
-    // Filter out 'cc' and '2025' data per user request
-    if (nameLower === "cc") return false;
-    if (nameLower.includes("2025")) return false;
-    if (info.email?.toLowerCase().includes("2025")) return false;
+    // Filter out 'cc', 'carbon copy' and '2025' data per user request
+    if (nameLower.includes("cc") || nameLower.includes("carbon copy") || nameLower.includes("2025")) return false;
+    if (emailLower.includes("cc") || emailLower.includes("2025")) return false;
+
+    // Requirement: "Nothing should be in this area unless it is first created in PM/Task Assigned to"
+    // Check if user has an assigned task by ID or by Name (coordinator assignment)
+    const hasTask = tasks.some(
+      (t) =>
+        t.assigned_to === cu.user_id ||
+        (t.assigned_coordinator_name && t.assigned_coordinator_name.toLowerCase() === nameLower),
+    );
+
+    // Strict requirement: Only show users with assigned tasks.
+    if (!hasTask) return false;
 
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
-    return (
-      info.name.toLowerCase().includes(q) ||
-      info.email?.toLowerCase().includes(q) ||
-      cu.roles.some((r) => r.role.toLowerCase().includes(q))
-    );
+    return nameLower.includes(q) || emailLower.includes(q) || cu.roles.some((r) => r.role.toLowerCase().includes(q));
   });
 
   const filteredUsersWithoutRoles = usersWithoutRoles.filter((u) => {
+    const nameLower = (u.name || "").toLowerCase();
+    const emailLower = (u.email || "").toLowerCase();
+
+    // Strict filter for unassigned users as well
+    if (nameLower.includes("cc") || nameLower.includes("carbon copy") || nameLower.includes("2025")) return false;
+    if (emailLower.includes("cc") || emailLower.includes("2025")) return false;
+
+    // Must have a task assignment to appear in the management view
+    const hasTask = tasks.some(
+      (t) =>
+        t.assigned_to === u.id ||
+        (t.assigned_coordinator_name && t.assigned_coordinator_name.toLowerCase() === nameLower),
+    );
+    if (!hasTask) return false;
+
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
-    return u.name.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q);
+    return nameLower.includes(q) || emailLower.includes(q);
   });
 
   // Filtered tasks based on task filter
@@ -674,9 +714,9 @@ export function RoleManager({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Levels</SelectItem>
-                <SelectItem value="admin">Owner/Admin (CRUD)</SelectItem>
-                <SelectItem value="coordinator">Read & Update (RU)</SelectItem>
-                <SelectItem value="viewer">Read Only (R)</SelectItem>
+                <SelectItem value="admin">CRUD</SelectItem>
+                <SelectItem value="coordinator">CRU</SelectItem>
+                <SelectItem value="viewer">R</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -1449,7 +1489,11 @@ function CollaboratorRow({
 
       {/* PERMISSION LEVEL */}
       <TableCell className="py-4">
-        <Badge className={`${PERMISSION_LEVELS.coordinator.color} text-[10px] font-bold border`}>✏️ CRU</Badge>
+        <Badge
+          className={`${PERMISSION_LEVELS.coordinator.color} text-[10px] font-bold border uppercase tracking-widest`}
+        >
+          ✏️ CRU
+        </Badge>
       </TableCell>
 
       {/* TASK CHECKLIST */}
@@ -1525,8 +1569,8 @@ function CollaboratorRow({
                 <div className="flex flex-wrap gap-1">
                   <Button
                     size="sm"
-                    variant="outline"
-                    className="h-6 text-[10px] px-2"
+                    variant="default"
+                    className="h-6 text-[10px] px-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm font-bold"
                     onClick={() => onInitiateCR(t.id, t.title)}
                   >
                     <Plus className="h-3 w-3 mr-0.5" />
@@ -1625,7 +1669,7 @@ function ViewerRow({
       {/* PERMISSION LEVEL */}
       <TableCell className="py-4">
         <Badge className={`${PERMISSION_LEVELS.viewer.color} text-[10px] font-bold border uppercase tracking-widest`}>
-          👁️ READ ONLY
+          👁️ R
         </Badge>
       </TableCell>
 
@@ -1708,7 +1752,7 @@ function MobileRow({
           </div>
         </div>
         <Badge className={`${permInfo.color} text-[10px] font-bold border uppercase tracking-widest`}>
-          {permissionType === "coordinator" ? "CRU" : permissionType === "viewer" ? "READ ONLY" : permInfo.shortLabel}
+          {permissionType === "coordinator" ? "CRU" : permissionType === "viewer" ? "R" : permInfo.shortLabel}
         </Badge>
       </div>
 
