@@ -20,6 +20,7 @@ export type Database = {
           description: string | null
           id: number
           name: string
+          price: number | null
           updated_at: string
         }
         Insert: {
@@ -27,6 +28,7 @@ export type Database = {
           description?: string | null
           id?: number
           name: string
+          price?: number | null
           updated_at?: string
         }
         Update: {
@@ -34,6 +36,7 @@ export type Database = {
           description?: string | null
           id?: number
           name?: string
+          price?: number | null
           updated_at?: string
         }
         Relationships: []
@@ -43,6 +46,14 @@ export type Database = {
           create_password: string | null
           create_userid: string | null
           created_at: string
+          magic_link_enabled: boolean | null
+          magic_link_expires_at: string | null
+          magic_link_request_count: number | null
+          magic_link_requested_ip: string | null
+          magic_link_sent_at: string | null
+          magic_link_token: string | null
+          magic_link_used: boolean | null
+          magic_link_used_at: string | null
           pass_word: string | null
           reset_pw: string | null
           sign_in: string
@@ -52,6 +63,14 @@ export type Database = {
           create_password?: string | null
           create_userid?: string | null
           created_at?: string
+          magic_link_enabled?: boolean | null
+          magic_link_expires_at?: string | null
+          magic_link_request_count?: number | null
+          magic_link_requested_ip?: string | null
+          magic_link_sent_at?: string | null
+          magic_link_token?: string | null
+          magic_link_used?: boolean | null
+          magic_link_used_at?: string | null
           pass_word?: string | null
           reset_pw?: string | null
           sign_in: string
@@ -61,6 +80,14 @@ export type Database = {
           create_password?: string | null
           create_userid?: string | null
           created_at?: string
+          magic_link_enabled?: boolean | null
+          magic_link_expires_at?: string | null
+          magic_link_request_count?: number | null
+          magic_link_requested_ip?: string | null
+          magic_link_sent_at?: string | null
+          magic_link_token?: string | null
+          magic_link_used?: boolean | null
+          magic_link_used_at?: string | null
           pass_word?: string | null
           reset_pw?: string | null
           sign_in?: string
@@ -105,6 +132,7 @@ export type Database = {
         Row: {
           actual_cost: number | null
           archived: boolean
+          budget_credit: number | null
           category: Database["public"]["Enums"]["budget_category"]
           created_at: string
           created_by: string
@@ -124,6 +152,7 @@ export type Database = {
         Insert: {
           actual_cost?: number | null
           archived?: boolean
+          budget_credit?: number | null
           category: Database["public"]["Enums"]["budget_category"]
           created_at?: string
           created_by: string
@@ -143,6 +172,7 @@ export type Database = {
         Update: {
           actual_cost?: number | null
           archived?: boolean
+          budget_credit?: number | null
           category?: Database["public"]["Enums"]["budget_category"]
           created_at?: string
           created_by?: string
@@ -235,6 +265,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      "Check Lists": {
+        Row: {
+          assigned_to: string | null
+          category: string | null
+          checked: boolean | null
+          completed_at: string | null
+          created_at: string
+          due_date: string | null
+          entity_id: string
+          entity_type: string
+          id: string
+          label: string
+          notes: string | null
+          sort_order: number | null
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          category?: string | null
+          checked?: boolean | null
+          completed_at?: string | null
+          created_at?: string
+          due_date?: string | null
+          entity_id: string
+          entity_type: string
+          id?: string
+          label: string
+          notes?: string | null
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          category?: string | null
+          checked?: boolean | null
+          completed_at?: string | null
+          created_at?: string
+          due_date?: string | null
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          label?: string
+          notes?: string | null
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       checklist_templates: {
         Row: {
@@ -517,7 +595,10 @@ export type Database = {
           collab_type: string
           created_at: string
           entertainment_assign_to: string | null
+          external_vendor_assign_to_text: string | null
           hospitality_assign_to: string | null
+          marketing_assign_to_text: string | null
+          service_rental_buy_assign_to_text: string | null
           services_assign_to: string | null
           suppliers_assign_to: string | null
           transportation_assign_to: string | null
@@ -529,7 +610,10 @@ export type Database = {
           collab_type: string
           created_at?: string
           entertainment_assign_to?: string | null
+          external_vendor_assign_to_text?: string | null
           hospitality_assign_to?: string | null
+          marketing_assign_to_text?: string | null
+          service_rental_buy_assign_to_text?: string | null
           services_assign_to?: string | null
           suppliers_assign_to?: string | null
           transportation_assign_to?: string | null
@@ -541,7 +625,10 @@ export type Database = {
           collab_type?: string
           created_at?: string
           entertainment_assign_to?: string | null
+          external_vendor_assign_to_text?: string | null
           hospitality_assign_to?: string | null
+          marketing_assign_to_text?: string | null
+          service_rental_buy_assign_to_text?: string | null
           services_assign_to?: string | null
           suppliers_assign_to?: string | null
           transportation_assign_to?: string | null
@@ -632,6 +719,7 @@ export type Database = {
           contact_phone_nbr: number | null
           created_at: string
           email: string | null
+          entertainment_type: string[] | null
           event_budget: number | null
           event_collaborators: string[] | null
           event_description: string | null
@@ -642,18 +730,23 @@ export type Database = {
           event_start_time: string | null
           event_theme: string[] | null
           Hospitality_Location: number | null
+          hospitality_type_arr: string[] | null
           is_booking_available: boolean | null
           is_service_rental_available: boolean | null
           is_service_type_availabe: boolean | null
+          is_service_vendor: boolean | null
           is_supply_available: boolean | null
           is_transportation_available: boolean | null
           is_venue_available: boolean | null
+          marketing_type_arr: string[] | null
           notification: string | null
           priority: string[] | null
+          resource_cost: number | null
           resources: string[] | null
           service_rental_type: string | null
           supplier_type: string[] | null
           transportation_type: string | null
+          transportation_type_arr: string[] | null
           userid: string
           Venue_Location: string[] | null
           venue_type: string[] | null
@@ -664,6 +757,7 @@ export type Database = {
           contact_phone_nbr?: number | null
           created_at?: string
           email?: string | null
+          entertainment_type?: string[] | null
           event_budget?: number | null
           event_collaborators?: string[] | null
           event_description?: string | null
@@ -674,18 +768,23 @@ export type Database = {
           event_start_time?: string | null
           event_theme?: string[] | null
           Hospitality_Location?: number | null
+          hospitality_type_arr?: string[] | null
           is_booking_available?: boolean | null
           is_service_rental_available?: boolean | null
           is_service_type_availabe?: boolean | null
+          is_service_vendor?: boolean | null
           is_supply_available?: boolean | null
           is_transportation_available?: boolean | null
           is_venue_available?: boolean | null
+          marketing_type_arr?: string[] | null
           notification?: string | null
           priority?: string[] | null
+          resource_cost?: number | null
           resources?: string[] | null
           service_rental_type?: string | null
           supplier_type?: string[] | null
           transportation_type?: string | null
+          transportation_type_arr?: string[] | null
           userid: string
           Venue_Location?: string[] | null
           venue_type?: string[] | null
@@ -696,6 +795,7 @@ export type Database = {
           contact_phone_nbr?: number | null
           created_at?: string
           email?: string | null
+          entertainment_type?: string[] | null
           event_budget?: number | null
           event_collaborators?: string[] | null
           event_description?: string | null
@@ -706,18 +806,23 @@ export type Database = {
           event_start_time?: string | null
           event_theme?: string[] | null
           Hospitality_Location?: number | null
+          hospitality_type_arr?: string[] | null
           is_booking_available?: boolean | null
           is_service_rental_available?: boolean | null
           is_service_type_availabe?: boolean | null
+          is_service_vendor?: boolean | null
           is_supply_available?: boolean | null
           is_transportation_available?: boolean | null
           is_venue_available?: boolean | null
+          marketing_type_arr?: string[] | null
           notification?: string | null
           priority?: string[] | null
+          resource_cost?: number | null
           resources?: string[] | null
           service_rental_type?: string | null
           supplier_type?: string[] | null
           transportation_type?: string | null
+          transportation_type_arr?: string[] | null
           userid?: string
           Venue_Location?: string[] | null
           venue_type?: string[] | null
@@ -802,71 +907,6 @@ export type Database = {
         }
         Relationships: []
       }
-      entertainment_profiles: {
-        Row: {
-          business_name: string
-          city: string | null
-          contact_name: string | null
-          created_at: string
-          description: string | null
-          email: string | null
-          ent_type_id: number | null
-          id: string
-          instagram_url: string | null
-          linkedin_url: string | null
-          phone_number: string | null
-          price: number | null
-          rating: number | null
-          state: string | null
-          updated_at: string
-          zip: string | null
-        }
-        Insert: {
-          business_name: string
-          city?: string | null
-          contact_name?: string | null
-          created_at?: string
-          description?: string | null
-          email?: string | null
-          ent_type_id?: number | null
-          id?: string
-          instagram_url?: string | null
-          linkedin_url?: string | null
-          phone_number?: string | null
-          price?: number | null
-          rating?: number | null
-          state?: string | null
-          updated_at?: string
-          zip?: string | null
-        }
-        Update: {
-          business_name?: string
-          city?: string | null
-          contact_name?: string | null
-          created_at?: string
-          description?: string | null
-          email?: string | null
-          ent_type_id?: number | null
-          id?: string
-          instagram_url?: string | null
-          linkedin_url?: string | null
-          phone_number?: string | null
-          price?: number | null
-          rating?: number | null
-          state?: string | null
-          updated_at?: string
-          zip?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "entertainment_profiles_ent_type_id_fkey"
-            columns: ["ent_type_id"]
-            isOneToOne: false
-            referencedRelation: "entertainment_types"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       entertainment_types: {
         Row: {
           created_at: string
@@ -887,6 +927,87 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      entertainments: {
+        Row: {
+          business_name: string
+          checklist: Json | null
+          checklist_completed_count: number | null
+          city: string | null
+          contact_name: string | null
+          created_at: string
+          description: string | null
+          email: string | null
+          ent_type_id: number | null
+          entertainment_directory_id: number | null
+          id: string
+          instagram_url: string | null
+          linkedin_url: string | null
+          phone_number: string | null
+          price: number | null
+          rating: number | null
+          state: string | null
+          updated_at: string
+          zip: string | null
+        }
+        Insert: {
+          business_name: string
+          checklist?: Json | null
+          checklist_completed_count?: number | null
+          city?: string | null
+          contact_name?: string | null
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          ent_type_id?: number | null
+          entertainment_directory_id?: number | null
+          id?: string
+          instagram_url?: string | null
+          linkedin_url?: string | null
+          phone_number?: string | null
+          price?: number | null
+          rating?: number | null
+          state?: string | null
+          updated_at?: string
+          zip?: string | null
+        }
+        Update: {
+          business_name?: string
+          checklist?: Json | null
+          checklist_completed_count?: number | null
+          city?: string | null
+          contact_name?: string | null
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          ent_type_id?: number | null
+          entertainment_directory_id?: number | null
+          id?: string
+          instagram_url?: string | null
+          linkedin_url?: string | null
+          phone_number?: string | null
+          price?: number | null
+          rating?: number | null
+          state?: string | null
+          updated_at?: string
+          zip?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entertainments_directory_id_fkey"
+            columns: ["entertainment_directory_id"]
+            isOneToOne: false
+            referencedRelation: "Entertainment Directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entertainments_ent_type_id_fkey"
+            columns: ["ent_type_id"]
+            isOneToOne: false
+            referencedRelation: "entertainment_types"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       "Event Analytics": {
         Row: {
@@ -931,6 +1052,23 @@ export type Database = {
           event_description: string | null
           event_end_date: string | null
           event_end_time: string | null
+          event_entertain_biz_name: string | null
+          event_entertain_collab_name: string | null
+          event_entertain_contact_name: string | null
+          event_entertain_contact_nbr: number | null
+          event_entertain_cost: number | null
+          event_entertain_email: string | null
+          event_entertain_end_date: string | null
+          event_entertain_location: string | null
+          event_entertain_start_date: string | null
+          event_entertain_type: string | null
+          event_ext_vendor_biz_name: string | null
+          event_ext_vendor_collab_name: string | null
+          event_ext_vendor_contact_name: string | null
+          event_ext_vendor_contact_nbr: number | null
+          event_ext_vendor_cost: number | null
+          event_ext_vendor_email: string | null
+          event_ext_vendor_type: string | null
           event_hosp_biz_name: string | null
           event_hosp_check_in_date: string | null
           event_hosp_check_out_date: string | null
@@ -940,12 +1078,29 @@ export type Database = {
           event_hosp_location: string | null
           event_hosp_type: string | null
           event_location: string | null
+          event_market_biz_name: string | null
+          event_market_collab_name: string | null
+          event_market_contact_name: string | null
+          event_market_contact_nbr: number | null
+          event_market_cost: number | null
+          event_market_email: string | null
+          event_market_type: string | null
           event_priority: string | null
           event_start_date: string | null
           event_start_time: string | null
           event_status: string | null
           event_theme: string | null
           event_total_cost: number | null
+          event_transport_biz_name: string | null
+          event_transport_collab_name: string | null
+          event_transport_contact_name: string | null
+          event_transport_contact_nbr: number | null
+          event_transport_cost: number | null
+          event_transport_email: string | null
+          event_transport_end_date: string | null
+          event_transport_location: string | null
+          event_transport_start_date: string | null
+          event_transport_type: string | null
           event_type: string | null
           event_vend_biz_name: string | null
           event_vend_collab_name: string | null
@@ -982,6 +1137,23 @@ export type Database = {
           event_description?: string | null
           event_end_date?: string | null
           event_end_time?: string | null
+          event_entertain_biz_name?: string | null
+          event_entertain_collab_name?: string | null
+          event_entertain_contact_name?: string | null
+          event_entertain_contact_nbr?: number | null
+          event_entertain_cost?: number | null
+          event_entertain_email?: string | null
+          event_entertain_end_date?: string | null
+          event_entertain_location?: string | null
+          event_entertain_start_date?: string | null
+          event_entertain_type?: string | null
+          event_ext_vendor_biz_name?: string | null
+          event_ext_vendor_collab_name?: string | null
+          event_ext_vendor_contact_name?: string | null
+          event_ext_vendor_contact_nbr?: number | null
+          event_ext_vendor_cost?: number | null
+          event_ext_vendor_email?: string | null
+          event_ext_vendor_type?: string | null
           event_hosp_biz_name?: string | null
           event_hosp_check_in_date?: string | null
           event_hosp_check_out_date?: string | null
@@ -991,12 +1163,29 @@ export type Database = {
           event_hosp_location?: string | null
           event_hosp_type?: string | null
           event_location?: string | null
+          event_market_biz_name?: string | null
+          event_market_collab_name?: string | null
+          event_market_contact_name?: string | null
+          event_market_contact_nbr?: number | null
+          event_market_cost?: number | null
+          event_market_email?: string | null
+          event_market_type?: string | null
           event_priority?: string | null
           event_start_date?: string | null
           event_start_time?: string | null
           event_status?: string | null
           event_theme?: string | null
           event_total_cost?: number | null
+          event_transport_biz_name?: string | null
+          event_transport_collab_name?: string | null
+          event_transport_contact_name?: string | null
+          event_transport_contact_nbr?: number | null
+          event_transport_cost?: number | null
+          event_transport_email?: string | null
+          event_transport_end_date?: string | null
+          event_transport_location?: string | null
+          event_transport_start_date?: string | null
+          event_transport_type?: string | null
           event_type?: string | null
           event_vend_biz_name?: string | null
           event_vend_collab_name?: string | null
@@ -1035,6 +1224,23 @@ export type Database = {
           event_description?: string | null
           event_end_date?: string | null
           event_end_time?: string | null
+          event_entertain_biz_name?: string | null
+          event_entertain_collab_name?: string | null
+          event_entertain_contact_name?: string | null
+          event_entertain_contact_nbr?: number | null
+          event_entertain_cost?: number | null
+          event_entertain_email?: string | null
+          event_entertain_end_date?: string | null
+          event_entertain_location?: string | null
+          event_entertain_start_date?: string | null
+          event_entertain_type?: string | null
+          event_ext_vendor_biz_name?: string | null
+          event_ext_vendor_collab_name?: string | null
+          event_ext_vendor_contact_name?: string | null
+          event_ext_vendor_contact_nbr?: number | null
+          event_ext_vendor_cost?: number | null
+          event_ext_vendor_email?: string | null
+          event_ext_vendor_type?: string | null
           event_hosp_biz_name?: string | null
           event_hosp_check_in_date?: string | null
           event_hosp_check_out_date?: string | null
@@ -1044,12 +1250,29 @@ export type Database = {
           event_hosp_location?: string | null
           event_hosp_type?: string | null
           event_location?: string | null
+          event_market_biz_name?: string | null
+          event_market_collab_name?: string | null
+          event_market_contact_name?: string | null
+          event_market_contact_nbr?: number | null
+          event_market_cost?: number | null
+          event_market_email?: string | null
+          event_market_type?: string | null
           event_priority?: string | null
           event_start_date?: string | null
           event_start_time?: string | null
           event_status?: string | null
           event_theme?: string | null
           event_total_cost?: number | null
+          event_transport_biz_name?: string | null
+          event_transport_collab_name?: string | null
+          event_transport_contact_name?: string | null
+          event_transport_contact_nbr?: number | null
+          event_transport_cost?: number | null
+          event_transport_email?: string | null
+          event_transport_end_date?: string | null
+          event_transport_location?: string | null
+          event_transport_start_date?: string | null
+          event_transport_type?: string | null
           event_type?: string | null
           event_vend_biz_name?: string | null
           event_vend_collab_name?: string | null
@@ -1083,32 +1306,44 @@ export type Database = {
       }
       "Event Resources": {
         Row: {
+          booking_types_text: string | null
           created_at: string
+          entertainment_types_text: string | null
           event_id: number
           hospitality_types: string | null
+          marketing_types_text: string | null
           service_rental_type: string | null
           service_vendor_type: string | null
           supply_type: string | null
+          transportation_types_text: string | null
           vendor_types: string | null
           venue_types: string | null
         }
         Insert: {
+          booking_types_text?: string | null
           created_at?: string
+          entertainment_types_text?: string | null
           event_id?: number
           hospitality_types?: string | null
+          marketing_types_text?: string | null
           service_rental_type?: string | null
           service_vendor_type?: string | null
           supply_type?: string | null
+          transportation_types_text?: string | null
           vendor_types?: string | null
           venue_types?: string | null
         }
         Update: {
+          booking_types_text?: string | null
           created_at?: string
+          entertainment_types_text?: string | null
           event_id?: number
           hospitality_types?: string | null
+          marketing_types_text?: string | null
           service_rental_type?: string | null
           service_vendor_type?: string | null
           supply_type?: string | null
+          transportation_types_text?: string | null
           vendor_types?: string | null
           venue_types?: string | null
         }
@@ -1116,28 +1351,55 @@ export type Database = {
       }
       event_themes: {
         Row: {
+          celebration_types: string[] | null
           created_at: string
           description: string | null
+          dining_types: string[] | null
+          festival_types: string[] | null
+          health_wellness_types: string[] | null
+          holiday_types: string[] | null
           id: number
           name: string
+          personal_types: string[] | null
           premium: boolean
+          retreat_types: string[] | null
+          reunion_types: string[] | null
           tags: string[] | null
+          wedding_types: string[] | null
         }
         Insert: {
+          celebration_types?: string[] | null
           created_at?: string
           description?: string | null
+          dining_types?: string[] | null
+          festival_types?: string[] | null
+          health_wellness_types?: string[] | null
+          holiday_types?: string[] | null
           id?: number
           name: string
+          personal_types?: string[] | null
           premium?: boolean
+          retreat_types?: string[] | null
+          reunion_types?: string[] | null
           tags?: string[] | null
+          wedding_types?: string[] | null
         }
         Update: {
+          celebration_types?: string[] | null
           created_at?: string
           description?: string | null
+          dining_types?: string[] | null
+          festival_types?: string[] | null
+          health_wellness_types?: string[] | null
+          holiday_types?: string[] | null
           id?: number
           name?: string
+          personal_types?: string[] | null
           premium?: boolean
+          retreat_types?: string[] | null
+          reunion_types?: string[] | null
           tags?: string[] | null
+          wedding_types?: string[] | null
         }
         Relationships: []
       }
@@ -1361,6 +1623,8 @@ export type Database = {
         Row: {
           business_name: string
           capacity: number | null
+          checklist: Json | null
+          checklist_completed_count: number | null
           city: string | null
           contact_name: string | null
           cost: number | null
@@ -1381,6 +1645,8 @@ export type Database = {
         Insert: {
           business_name: string
           capacity?: number | null
+          checklist?: Json | null
+          checklist_completed_count?: number | null
           city?: string | null
           contact_name?: string | null
           cost?: number | null
@@ -1401,6 +1667,8 @@ export type Database = {
         Update: {
           business_name?: string
           capacity?: number | null
+          checklist?: Json | null
+          checklist_completed_count?: number | null
           city?: string | null
           contact_name?: string | null
           cost?: number | null
@@ -1451,7 +1719,9 @@ export type Database = {
       }
       "Manage Event": {
         Row: {
+          bookings_type: string[] | null
           created_at: string
+          entertainment_type: string[] | null
           event_budget_cost: number[] | null
           event_contact_email: string | null
           event_contact_name: string | null
@@ -1462,6 +1732,7 @@ export type Database = {
           event_time: string | null
           event_type: string | null
           event_user_id: string
+          external_vendor_type: string[] | null
           hosp_biz_name: string | null
           hosp_booking_date: string | null
           hosp_booking_time: string | null
@@ -1475,7 +1746,9 @@ export type Database = {
           service_delivery_date: string | null
           service_delivery_location: string | null
           service_delivery_time: string | null
+          service_rental_type: string[] | null
           service_type: string[] | null
+          service_vendor_type: string[] | null
           set_priority: string | null
           supplier_biz_name: string | null
           supplier_contact_name: string | null
@@ -1486,6 +1759,7 @@ export type Database = {
           supply_delivery_time: string | null
           supply_type: string[] | null
           task_status: string | null
+          transportation_type: string[] | null
           vendor_biz_name: string | null
           vendor_contact_name: string | null
           vendor_contact_nbr: number | null
@@ -1501,7 +1775,9 @@ export type Database = {
           venue_type: string | null
         }
         Insert: {
+          bookings_type?: string[] | null
           created_at?: string
+          entertainment_type?: string[] | null
           event_budget_cost?: number[] | null
           event_contact_email?: string | null
           event_contact_name?: string | null
@@ -1512,6 +1788,7 @@ export type Database = {
           event_time?: string | null
           event_type?: string | null
           event_user_id: string
+          external_vendor_type?: string[] | null
           hosp_biz_name?: string | null
           hosp_booking_date?: string | null
           hosp_booking_time?: string | null
@@ -1525,7 +1802,9 @@ export type Database = {
           service_delivery_date?: string | null
           service_delivery_location?: string | null
           service_delivery_time?: string | null
+          service_rental_type?: string[] | null
           service_type?: string[] | null
+          service_vendor_type?: string[] | null
           set_priority?: string | null
           supplier_biz_name?: string | null
           supplier_contact_name?: string | null
@@ -1536,6 +1815,7 @@ export type Database = {
           supply_delivery_time?: string | null
           supply_type?: string[] | null
           task_status?: string | null
+          transportation_type?: string[] | null
           vendor_biz_name?: string | null
           vendor_contact_name?: string | null
           vendor_contact_nbr?: number | null
@@ -1551,7 +1831,9 @@ export type Database = {
           venue_type?: string | null
         }
         Update: {
+          bookings_type?: string[] | null
           created_at?: string
+          entertainment_type?: string[] | null
           event_budget_cost?: number[] | null
           event_contact_email?: string | null
           event_contact_name?: string | null
@@ -1562,6 +1844,7 @@ export type Database = {
           event_time?: string | null
           event_type?: string | null
           event_user_id?: string
+          external_vendor_type?: string[] | null
           hosp_biz_name?: string | null
           hosp_booking_date?: string | null
           hosp_booking_time?: string | null
@@ -1575,7 +1858,9 @@ export type Database = {
           service_delivery_date?: string | null
           service_delivery_location?: string | null
           service_delivery_time?: string | null
+          service_rental_type?: string[] | null
           service_type?: string[] | null
+          service_vendor_type?: string[] | null
           set_priority?: string | null
           supplier_biz_name?: string | null
           supplier_contact_name?: string | null
@@ -1586,6 +1871,7 @@ export type Database = {
           supply_delivery_time?: string | null
           supply_type?: string[] | null
           task_status?: string | null
+          transportation_type?: string[] | null
           vendor_biz_name?: string | null
           vendor_contact_name?: string | null
           vendor_contact_nbr?: number | null
@@ -1638,6 +1924,192 @@ export type Database = {
           task_completion_time_update?: string | null
           task_modified_date?: string | null
           task_update?: string[] | null
+        }
+        Relationships: []
+      }
+      "Marketing Directory": {
+        Row: {
+          created_at: string
+          "Digital Ads": string | null
+          "Email Marketing": string | null
+          "Event Promo": string | null
+          id: number
+          Influencer: string | null
+          Other: string | null
+          "PR / Press": string | null
+          "Print Media": string | null
+          "Social Media": string | null
+        }
+        Insert: {
+          created_at?: string
+          "Digital Ads"?: string | null
+          "Email Marketing"?: string | null
+          "Event Promo"?: string | null
+          id?: number
+          Influencer?: string | null
+          Other?: string | null
+          "PR / Press"?: string | null
+          "Print Media"?: string | null
+          "Social Media"?: string | null
+        }
+        Update: {
+          created_at?: string
+          "Digital Ads"?: string | null
+          "Email Marketing"?: string | null
+          "Event Promo"?: string | null
+          id?: number
+          Influencer?: string | null
+          Other?: string | null
+          "PR / Press"?: string | null
+          "Print Media"?: string | null
+          "Social Media"?: string | null
+        }
+        Relationships: []
+      }
+      marketing_profiles: {
+        Row: {
+          address: string | null
+          budget_range_max: number | null
+          budget_range_min: number | null
+          business_name: string
+          campaign_types: string[] | null
+          checklist: Json | null
+          checklist_completed_count: number | null
+          city: string | null
+          contact_name: string | null
+          created_at: string
+          description: string | null
+          email: string | null
+          facebook_url: string | null
+          id: string
+          instagram_url: string | null
+          is_active: boolean | null
+          linkedin_url: string | null
+          marketing_directory_id: number | null
+          marketing_type_id: number | null
+          phone_number: string | null
+          platforms: string[] | null
+          portfolio_url: string | null
+          price: number | null
+          price_unit: string | null
+          rating: number | null
+          specialization: string | null
+          state: string | null
+          target_audience: string | null
+          total_reviews: number | null
+          twitter_url: string | null
+          updated_at: string
+          website: string | null
+          zip: string | null
+        }
+        Insert: {
+          address?: string | null
+          budget_range_max?: number | null
+          budget_range_min?: number | null
+          business_name: string
+          campaign_types?: string[] | null
+          checklist?: Json | null
+          checklist_completed_count?: number | null
+          city?: string | null
+          contact_name?: string | null
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          facebook_url?: string | null
+          id?: string
+          instagram_url?: string | null
+          is_active?: boolean | null
+          linkedin_url?: string | null
+          marketing_directory_id?: number | null
+          marketing_type_id?: number | null
+          phone_number?: string | null
+          platforms?: string[] | null
+          portfolio_url?: string | null
+          price?: number | null
+          price_unit?: string | null
+          rating?: number | null
+          specialization?: string | null
+          state?: string | null
+          target_audience?: string | null
+          total_reviews?: number | null
+          twitter_url?: string | null
+          updated_at?: string
+          website?: string | null
+          zip?: string | null
+        }
+        Update: {
+          address?: string | null
+          budget_range_max?: number | null
+          budget_range_min?: number | null
+          business_name?: string
+          campaign_types?: string[] | null
+          checklist?: Json | null
+          checklist_completed_count?: number | null
+          city?: string | null
+          contact_name?: string | null
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          facebook_url?: string | null
+          id?: string
+          instagram_url?: string | null
+          is_active?: boolean | null
+          linkedin_url?: string | null
+          marketing_directory_id?: number | null
+          marketing_type_id?: number | null
+          phone_number?: string | null
+          platforms?: string[] | null
+          portfolio_url?: string | null
+          price?: number | null
+          price_unit?: string | null
+          rating?: number | null
+          specialization?: string | null
+          state?: string | null
+          target_audience?: string | null
+          total_reviews?: number | null
+          twitter_url?: string | null
+          updated_at?: string
+          website?: string | null
+          zip?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_profiles_marketing_directory_id_fkey"
+            columns: ["marketing_directory_id"]
+            isOneToOne: false
+            referencedRelation: "Marketing Directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_profiles_marketing_type_id_fkey"
+            columns: ["marketing_type_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_types: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: number
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: number
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: number
+          name?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -1886,7 +2358,7 @@ export type Database = {
             foreignKeyName: "reservation_submissions_venue_profile_id_fkey"
             columns: ["venue_id"]
             isOneToOne: false
-            referencedRelation: "venue_profiles"
+            referencedRelation: "venues"
             referencedColumns: ["id"]
           },
         ]
@@ -2154,6 +2626,8 @@ export type Database = {
       serv_vendor_suppliers: {
         Row: {
           business_name: string
+          checklist: Json | null
+          checklist_completed_count: number | null
           city: string | null
           contact_name: string | null
           created_at: string
@@ -2172,6 +2646,8 @@ export type Database = {
         }
         Insert: {
           business_name: string
+          checklist?: Json | null
+          checklist_completed_count?: number | null
           city?: string | null
           contact_name?: string | null
           created_at?: string
@@ -2190,6 +2666,8 @@ export type Database = {
         }
         Update: {
           business_name?: string
+          checklist?: Json | null
+          checklist_completed_count?: number | null
           city?: string | null
           contact_name?: string | null
           created_at?: string
@@ -2532,6 +3010,8 @@ export type Database = {
         Row: {
           business_name: string
           category_id: number | null
+          checklist: Json | null
+          checklist_completed_count: number | null
           city: string | null
           contact_name: string | null
           created_at: string
@@ -2545,6 +3025,7 @@ export type Database = {
           price: number | null
           rating: number | null
           state: string | null
+          supplier_cost: number | null
           type_id: number | null
           updated_at: string
           zip: string | null
@@ -2552,6 +3033,8 @@ export type Database = {
         Insert: {
           business_name: string
           category_id?: number | null
+          checklist?: Json | null
+          checklist_completed_count?: number | null
           city?: string | null
           contact_name?: string | null
           created_at?: string
@@ -2565,6 +3048,7 @@ export type Database = {
           price?: number | null
           rating?: number | null
           state?: string | null
+          supplier_cost?: number | null
           type_id?: number | null
           updated_at?: string
           zip?: string | null
@@ -2572,6 +3056,8 @@ export type Database = {
         Update: {
           business_name?: string
           category_id?: number | null
+          checklist?: Json | null
+          checklist_completed_count?: number | null
           city?: string | null
           contact_name?: string | null
           created_at?: string
@@ -2585,6 +3071,7 @@ export type Database = {
           price?: number | null
           rating?: number | null
           state?: string | null
+          supplier_cost?: number | null
           type_id?: number | null
           updated_at?: string
           zip?: string | null
@@ -2606,14 +3093,63 @@ export type Database = {
           },
         ]
       }
+      task_collaborator_assignments: {
+        Row: {
+          created_at: string
+          id: number
+          is_collaborator: boolean
+          is_viewer: boolean
+          team_admin: boolean
+          team_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          is_collaborator?: boolean
+          is_viewer?: boolean
+          team_admin?: boolean
+          team_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          is_collaborator?: boolean
+          is_viewer?: boolean
+          team_admin?: boolean
+          team_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_assignments_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           actual_hours: number | null
           archived: boolean
+          assign_hospitality: string | null
+          assign_transportation: string | null
+          assigned_bookings_role: string | null
           assigned_coordinator_name: string | null
+          assigned_entertainment_role: string | null
+          assigned_external_vendor_role: string | null
+          assigned_hospitality_role: string | null
+          assigned_service_rental_role: string | null
           assigned_service_vendor_role: string | null
           assigned_supplier_vendor_role: string | null
           assigned_to: string | null
+          assigned_transportation_role: string | null
           assigned_venue_role: string | null
           assignment_type: string | null
           assined_vendor_role: string | null
@@ -2640,10 +3176,18 @@ export type Database = {
         Insert: {
           actual_hours?: number | null
           archived?: boolean
+          assign_hospitality?: string | null
+          assign_transportation?: string | null
+          assigned_bookings_role?: string | null
           assigned_coordinator_name?: string | null
+          assigned_entertainment_role?: string | null
+          assigned_external_vendor_role?: string | null
+          assigned_hospitality_role?: string | null
+          assigned_service_rental_role?: string | null
           assigned_service_vendor_role?: string | null
           assigned_supplier_vendor_role?: string | null
           assigned_to?: string | null
+          assigned_transportation_role?: string | null
           assigned_venue_role?: string | null
           assignment_type?: string | null
           assined_vendor_role?: string | null
@@ -2670,10 +3214,18 @@ export type Database = {
         Update: {
           actual_hours?: number | null
           archived?: boolean
+          assign_hospitality?: string | null
+          assign_transportation?: string | null
+          assigned_bookings_role?: string | null
           assigned_coordinator_name?: string | null
+          assigned_entertainment_role?: string | null
+          assigned_external_vendor_role?: string | null
+          assigned_hospitality_role?: string | null
+          assigned_service_rental_role?: string | null
           assigned_service_vendor_role?: string | null
           assigned_supplier_vendor_role?: string | null
           assigned_to?: string | null
+          assigned_transportation_role?: string | null
           assigned_venue_role?: string | null
           assignment_type?: string | null
           assined_vendor_role?: string | null
@@ -2698,6 +3250,20 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "tasks_assign_hospitality_fkey"
+            columns: ["assign_hospitality"]
+            isOneToOne: false
+            referencedRelation: "hospitality_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_assign_transportation_fkey"
+            columns: ["assign_transportation"]
+            isOneToOne: false
+            referencedRelation: "transportation_profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "tasks_change_request_id_fkey"
             columns: ["change_request_id"]
@@ -2804,47 +3370,6 @@ export type Database = {
             columns: ["task_id"]
             isOneToOne: false
             referencedRelation: "tasks"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      team_assignments: {
-        Row: {
-          created_at: string
-          id: number
-          is_coordinator: boolean
-          is_viewer: boolean
-          team_admin: boolean
-          team_id: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: number
-          is_coordinator?: boolean
-          is_viewer?: boolean
-          team_admin?: boolean
-          team_id: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: number
-          is_coordinator?: boolean
-          is_viewer?: boolean
-          team_admin?: boolean
-          team_id?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "team_assignments_team_id_fkey"
-            columns: ["team_id"]
-            isOneToOne: false
-            referencedRelation: "teams"
             referencedColumns: ["id"]
           },
         ]
@@ -3094,14 +3619,28 @@ export type Database = {
       transportation_profiles: {
         Row: {
           amenities: string[] | null
+          amenities_notes: string | null
+          amenity_ids: number[] | null
           business_name: string
           capacity: number | null
+          checklist: Json | null
+          checklist_completed_count: number | null
           city: string | null
           contact_name: string | null
           created_at: string
           description: string | null
           email: string | null
+          has_ac: boolean | null
+          has_entertainment_system: boolean | null
+          has_gps_tracking: boolean | null
+          has_luggage_storage: boolean | null
+          has_refreshments: boolean | null
+          has_wheelchair_access: boolean | null
+          has_wifi: boolean | null
           id: string
+          is_child_seat_available: boolean | null
+          is_pet_friendly: boolean | null
+          passenger_capacity: number | null
           phone_number: string | null
           price: number | null
           seating_capacity: number | null
@@ -3113,14 +3652,28 @@ export type Database = {
         }
         Insert: {
           amenities?: string[] | null
+          amenities_notes?: string | null
+          amenity_ids?: number[] | null
           business_name: string
           capacity?: number | null
+          checklist?: Json | null
+          checklist_completed_count?: number | null
           city?: string | null
           contact_name?: string | null
           created_at?: string
           description?: string | null
           email?: string | null
+          has_ac?: boolean | null
+          has_entertainment_system?: boolean | null
+          has_gps_tracking?: boolean | null
+          has_luggage_storage?: boolean | null
+          has_refreshments?: boolean | null
+          has_wheelchair_access?: boolean | null
+          has_wifi?: boolean | null
           id?: string
+          is_child_seat_available?: boolean | null
+          is_pet_friendly?: boolean | null
+          passenger_capacity?: number | null
           phone_number?: string | null
           price?: number | null
           seating_capacity?: number | null
@@ -3132,14 +3685,28 @@ export type Database = {
         }
         Update: {
           amenities?: string[] | null
+          amenities_notes?: string | null
+          amenity_ids?: number[] | null
           business_name?: string
           capacity?: number | null
+          checklist?: Json | null
+          checklist_completed_count?: number | null
           city?: string | null
           contact_name?: string | null
           created_at?: string
           description?: string | null
           email?: string | null
+          has_ac?: boolean | null
+          has_entertainment_system?: boolean | null
+          has_gps_tracking?: boolean | null
+          has_luggage_storage?: boolean | null
+          has_refreshments?: boolean | null
+          has_wheelchair_access?: boolean | null
+          has_wifi?: boolean | null
           id?: string
+          is_child_seat_available?: boolean | null
+          is_pet_friendly?: boolean | null
+          passenger_capacity?: number | null
           phone_number?: string | null
           price?: number | null
           seating_capacity?: number | null
@@ -3430,22 +3997,31 @@ export type Database = {
         Row: {
           Agri_Location: string | null
           "Agri-Farming": string | null
+          Business: string | null
           Business_Location: string | null
           created_at: string
+          Hospitality: string | null
           Hospitality_Location: string | null
           id: number
+          Local_Govern: string | null
           Local_Govern_Location: string | null
           Market_Location: string | null
           Market_Place: string | null
           Other: string | null
+          Other_Location: string | null
           Private_Club: string | null
           Private_Club_Location: string | null
+          Private_Residence_Location: string | null
           Private_Resident: string | null
+          Recreation: string | null
           Recreation_Location: string | null
+          Resort: string | null
           Resort_Location: string | null
+          Restaurant: string | null
           Restaurant_Location: string | null
           Sporting_Facility: string | null
           Sporting_Facility_Location: string | null
+          State_Govern: string | null
           State_Govern_Location: string | null
           Warehouse: string | null
           Warehouse_Location: string | null
@@ -3453,22 +4029,31 @@ export type Database = {
         Insert: {
           Agri_Location?: string | null
           "Agri-Farming"?: string | null
+          Business?: string | null
           Business_Location?: string | null
           created_at?: string
+          Hospitality?: string | null
           Hospitality_Location?: string | null
           id?: number
+          Local_Govern?: string | null
           Local_Govern_Location?: string | null
           Market_Location?: string | null
           Market_Place?: string | null
           Other?: string | null
+          Other_Location?: string | null
           Private_Club?: string | null
           Private_Club_Location?: string | null
+          Private_Residence_Location?: string | null
           Private_Resident?: string | null
+          Recreation?: string | null
           Recreation_Location?: string | null
+          Resort?: string | null
           Resort_Location?: string | null
+          Restaurant?: string | null
           Restaurant_Location?: string | null
           Sporting_Facility?: string | null
           Sporting_Facility_Location?: string | null
+          State_Govern?: string | null
           State_Govern_Location?: string | null
           Warehouse?: string | null
           Warehouse_Location?: string | null
@@ -3476,22 +4061,31 @@ export type Database = {
         Update: {
           Agri_Location?: string | null
           "Agri-Farming"?: string | null
+          Business?: string | null
           Business_Location?: string | null
           created_at?: string
+          Hospitality?: string | null
           Hospitality_Location?: string | null
           id?: number
+          Local_Govern?: string | null
           Local_Govern_Location?: string | null
           Market_Location?: string | null
           Market_Place?: string | null
           Other?: string | null
+          Other_Location?: string | null
           Private_Club?: string | null
           Private_Club_Location?: string | null
+          Private_Residence_Location?: string | null
           Private_Resident?: string | null
+          Recreation?: string | null
           Recreation_Location?: string | null
+          Resort?: string | null
           Resort_Location?: string | null
+          Restaurant?: string | null
           Restaurant_Location?: string | null
           Sporting_Facility?: string | null
           Sporting_Facility_Location?: string | null
+          State_Govern?: string | null
           State_Govern_Location?: string | null
           Warehouse?: string | null
           Warehouse_Location?: string | null
@@ -3540,80 +4134,6 @@ export type Database = {
         }
         Relationships: []
       }
-      venue_profiles: {
-        Row: {
-          amenities: string[]
-          business_name: string
-          capacity: number | null
-          city: string | null
-          contact_name: string | null
-          cost: number | null
-          created_at: string
-          email: string | null
-          id: string
-          instagram_url: string | null
-          linkedin_url: string | null
-          phone_number: string | null
-          rating: number | null
-          state: string | null
-          updated_at: string
-          user_id: string | null
-          venue_images: string | null
-          venue_type_id: number | null
-          zip: string | null
-        }
-        Insert: {
-          amenities?: string[]
-          business_name: string
-          capacity?: number | null
-          city?: string | null
-          contact_name?: string | null
-          cost?: number | null
-          created_at?: string
-          email?: string | null
-          id?: string
-          instagram_url?: string | null
-          linkedin_url?: string | null
-          phone_number?: string | null
-          rating?: number | null
-          state?: string | null
-          updated_at?: string
-          user_id?: string | null
-          venue_images?: string | null
-          venue_type_id?: number | null
-          zip?: string | null
-        }
-        Update: {
-          amenities?: string[]
-          business_name?: string
-          capacity?: number | null
-          city?: string | null
-          contact_name?: string | null
-          cost?: number | null
-          created_at?: string
-          email?: string | null
-          id?: string
-          instagram_url?: string | null
-          linkedin_url?: string | null
-          phone_number?: string | null
-          rating?: number | null
-          state?: string | null
-          updated_at?: string
-          user_id?: string | null
-          venue_images?: string | null
-          venue_type_id?: number | null
-          zip?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "venue_profiles_venue_type_id_fkey"
-            columns: ["venue_type_id"]
-            isOneToOne: false
-            referencedRelation: "venue_types"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       venue_types: {
         Row: {
           created_at: string
@@ -3634,6 +4154,123 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      venues: {
+        Row: {
+          amenities: string[]
+          amenities_notes: string | null
+          amenity_ids: number[] | null
+          business_name: string
+          capacity: number | null
+          checklist: Json | null
+          checklist_completed_count: number | null
+          city: string | null
+          contact_name: string | null
+          cost: number | null
+          created_at: string
+          email: string | null
+          has_accessibility: boolean | null
+          has_av_equipment: boolean | null
+          has_catering: boolean | null
+          has_outdoor_space: boolean | null
+          has_parking: boolean | null
+          has_wifi: boolean | null
+          id: string
+          instagram_url: string | null
+          linkedin_url: string | null
+          phone_number: string | null
+          price: number | null
+          rating: number | null
+          state: string | null
+          updated_at: string
+          user_id: string | null
+          venue_directory_id: number | null
+          venue_images: string | null
+          venue_type_id: number | null
+          zip: string | null
+        }
+        Insert: {
+          amenities?: string[]
+          amenities_notes?: string | null
+          amenity_ids?: number[] | null
+          business_name: string
+          capacity?: number | null
+          checklist?: Json | null
+          checklist_completed_count?: number | null
+          city?: string | null
+          contact_name?: string | null
+          cost?: number | null
+          created_at?: string
+          email?: string | null
+          has_accessibility?: boolean | null
+          has_av_equipment?: boolean | null
+          has_catering?: boolean | null
+          has_outdoor_space?: boolean | null
+          has_parking?: boolean | null
+          has_wifi?: boolean | null
+          id?: string
+          instagram_url?: string | null
+          linkedin_url?: string | null
+          phone_number?: string | null
+          price?: number | null
+          rating?: number | null
+          state?: string | null
+          updated_at?: string
+          user_id?: string | null
+          venue_directory_id?: number | null
+          venue_images?: string | null
+          venue_type_id?: number | null
+          zip?: string | null
+        }
+        Update: {
+          amenities?: string[]
+          amenities_notes?: string | null
+          amenity_ids?: number[] | null
+          business_name?: string
+          capacity?: number | null
+          checklist?: Json | null
+          checklist_completed_count?: number | null
+          city?: string | null
+          contact_name?: string | null
+          cost?: number | null
+          created_at?: string
+          email?: string | null
+          has_accessibility?: boolean | null
+          has_av_equipment?: boolean | null
+          has_catering?: boolean | null
+          has_outdoor_space?: boolean | null
+          has_parking?: boolean | null
+          has_wifi?: boolean | null
+          id?: string
+          instagram_url?: string | null
+          linkedin_url?: string | null
+          phone_number?: string | null
+          price?: number | null
+          rating?: number | null
+          state?: string | null
+          updated_at?: string
+          user_id?: string | null
+          venue_directory_id?: number | null
+          venue_images?: string | null
+          venue_type_id?: number | null
+          zip?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "venues_directory_id_fkey"
+            columns: ["venue_directory_id"]
+            isOneToOne: false
+            referencedRelation: "Venue Directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "venues_venue_type_id_fkey"
+            columns: ["venue_type_id"]
+            isOneToOne: false
+            referencedRelation: "venue_types"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       workflow_types: {
         Row: {
@@ -3664,44 +4301,59 @@ export type Database = {
       }
       workflows: {
         Row: {
+          bookings_id: string | null
           created_at: string
+          entertainment_id: string | null
           event_id: string
+          external_vendor_id: string | null
           hospitality_id: string | null
           id: string
+          serv_vendor_id: string | null
           serv_vendor_rent_id: string | null
-          serv_vendor_sup_id: string | null
           supplier_id: string | null
           theme_id: number | null
+          transportation_id: string | null
           updated_at: string
           user_id: string
+          vendor_id: string | null
           venue_id: string | null
           workflow_type_id: number | null
         }
         Insert: {
+          bookings_id?: string | null
           created_at?: string
+          entertainment_id?: string | null
           event_id: string
+          external_vendor_id?: string | null
           hospitality_id?: string | null
           id?: string
+          serv_vendor_id?: string | null
           serv_vendor_rent_id?: string | null
-          serv_vendor_sup_id?: string | null
           supplier_id?: string | null
           theme_id?: number | null
+          transportation_id?: string | null
           updated_at?: string
           user_id: string
+          vendor_id?: string | null
           venue_id?: string | null
           workflow_type_id?: number | null
         }
         Update: {
+          bookings_id?: string | null
           created_at?: string
+          entertainment_id?: string | null
           event_id?: string
+          external_vendor_id?: string | null
           hospitality_id?: string | null
           id?: string
+          serv_vendor_id?: string | null
           serv_vendor_rent_id?: string | null
-          serv_vendor_sup_id?: string | null
           supplier_id?: string | null
           theme_id?: number | null
+          transportation_id?: string | null
           updated_at?: string
           user_id?: string
+          vendor_id?: string | null
           venue_id?: string | null
           workflow_type_id?: number | null
         }
@@ -3736,7 +4388,7 @@ export type Database = {
           },
           {
             foreignKeyName: "workflows_serv_vendor_sup_id_fkey"
-            columns: ["serv_vendor_sup_id"]
+            columns: ["serv_vendor_id"]
             isOneToOne: false
             referencedRelation: "serv_vendor_suppliers"
             referencedColumns: ["id"]
@@ -3759,7 +4411,7 @@ export type Database = {
             foreignKeyName: "workflows_venue_profile_id_fkey"
             columns: ["venue_id"]
             isOneToOne: false
-            referencedRelation: "venue_profiles"
+            referencedRelation: "venues"
             referencedColumns: ["id"]
           },
           {
@@ -4041,6 +4693,7 @@ export type Database = {
         }[]
       }
       execute_raw_sql: { Args: { query: string }; Returns: Json }
+      generate_magic_link: { Args: { user_email: string }; Returns: string }
       get_my_events_safe: {
         Args: never
         Returns: {
@@ -4174,6 +4827,14 @@ export type Database = {
       update_resource_utilization: {
         Args: { p_allocated: number; p_resource_id: string; p_total: number }
         Returns: Json
+      }
+      validate_magic_link: {
+        Args: { input_token: string }
+        Returns: {
+          is_valid: boolean
+          reason: string
+          user_email: string
+        }[]
       }
     }
     Enums: {
