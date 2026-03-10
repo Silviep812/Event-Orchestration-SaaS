@@ -911,7 +911,7 @@ export function TaskManager({ eventId, selectedEventFilter, searchQuery }: TaskM
       await fetchAvailableTasks();
 
       // Open dependency dialog with the new task
-      setTaskForDependencies({ id: createdTask.id, title: newTask.title });
+      setTaskForDependencies({ id: createdTask.id, title: newTask.title, assignment_type: newTask.assignment_type });
       setShouldPreserveForm(true);
       setShowDependencyDialog(true);
 
