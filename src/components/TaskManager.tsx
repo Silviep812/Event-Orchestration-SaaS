@@ -131,7 +131,7 @@ export function TaskManager({ eventId, selectedEventFilter, searchQuery }: TaskM
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [shouldPreserveForm, setShouldPreserveForm] = useState(false);
   const [showDependencyDialog, setShowDependencyDialog] = useState(false);
-  const [taskForDependencies, setTaskForDependencies] = useState<{ id: string; title: string } | null>(null);
+  const [taskForDependencies, setTaskForDependencies] = useState<{ id: string; title: string; assignment_type?: string } | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [selectedDependencies, setSelectedDependencies] = useState<string[]>([]);
