@@ -14,7 +14,7 @@ const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 interface AssignRoleRequest {
@@ -25,7 +25,6 @@ interface AssignRoleRequest {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -51,14 +50,19 @@ serve(async (req) => {
 
     const actorId = userData.user.id;
 
-    // Optionally, enforce that only certain roles can assign roles.
-    // For now, allow any authenticated user. If you want restrictions, uncomment below and adapt:
-    // const { data: actorRoles } = await supabase
-    //   .from('user_roles')
-    //   .select('role')
-    //   .eq('user_id', actorId);
-    // const allowed = actorRoles?.some(r => ['admin','event_manager'].includes(r.role));
-    // if (!allowed) { return new Response(JSON.stringify({ success:false, error:'Forbidden' }), { status: 403, headers: { 'Content-Type': 'application/json', ...corsHeaders } }) }
+    // Enforce that only admin users can assign roles
+    const { data: actorRoles } = await supabase
+      .from('user_roles')
+      .select('permission_level')
+      .eq('user_id', actorId);
+
+    const isAdmin = actorRoles?.some(r => r.permission_level === 'admin');
+    if (!isAdmin) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Forbidden: only admins can assign roles' }),
+        { status: 403, headers: { 'Content-Type': 'application/json', ...corsHeaders } },
+      );
+    }
 
     const body = (await req.json()) as AssignRoleRequest;
     if (!body?.userId || !body?.role) {

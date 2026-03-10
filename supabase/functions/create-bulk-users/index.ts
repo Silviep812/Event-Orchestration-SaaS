@@ -3,18 +3,15 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.53.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    console.log('Starting bulk user creation...');
-    
     // Create Supabase admin client
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -27,31 +24,73 @@ serve(async (req) => {
       }
     );
 
+    // Verify caller is authenticated and is an admin
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Missing Authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: userData, error: userError } = await supabaseAdmin.auth.getUser(token);
+    if (userError || !userData?.user) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Verify the caller has admin permission_level
+    const { data: callerRoles } = await supabaseAdmin
+      .from('user_roles')
+      .select('permission_level')
+      .eq('user_id', userData.user.id);
+
+    const isAdmin = callerRoles?.some(r => r.permission_level === 'admin');
+    if (!isAdmin) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Forbidden: admin role required' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const body = await req.json();
+    const users = body?.users;
+    if (!Array.isArray(users) || users.length === 0) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Request body must include a "users" array with email/password entries' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`Admin ${userData.user.email} creating ${users.length} users...`);
+
     const results = [];
     const errors = [];
 
-    // Create users 3 through 8
-    for (let i = 3; i <= 8; i++) {
-      const email = `user${i}@test.com`;
-      const password = 'TestPassword123!'; // Default password for testing
-      
-      console.log(`Creating user: ${email}`);
-      
+    for (const u of users) {
+      if (!u.email || !u.password) {
+        errors.push({ email: u.email || 'unknown', error: 'Missing email or password' });
+        continue;
+      }
+
       const { data, error } = await supabaseAdmin.auth.admin.createUser({
-        email,
-        password,
-        email_confirm: true, // Auto-confirm the user
+        email: u.email,
+        password: u.password,
+        email_confirm: true,
         user_metadata: {
-          display_name: 'User'
+          display_name: u.display_name || 'User'
         }
       });
 
       if (error) {
-        console.error(`Error creating ${email}:`, error);
-        errors.push({ email, error: error.message });
+        console.error(`Error creating ${u.email}:`, error);
+        errors.push({ email: u.email, error: error.message });
       } else {
-        console.log(`Successfully created ${email}`, data);
-        results.push({ email, user_id: data.user?.id });
+        console.log(`Successfully created ${u.email}`);
+        results.push({ email: u.email, user_id: data.user?.id });
       }
     }
 
