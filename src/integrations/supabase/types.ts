@@ -4692,7 +4692,6 @@ export type Database = {
           task_title: string
         }[]
       }
-      execute_raw_sql: { Args: { query: string }; Returns: Json }
       generate_magic_link: { Args: { user_email: string }; Returns: string }
       get_my_events_safe: {
         Args: never
