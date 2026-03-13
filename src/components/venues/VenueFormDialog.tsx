@@ -64,7 +64,7 @@ export const VenueFormDialog = ({ open, onOpenChange, venueTypes, onVenueAdded }
         : [],
     };
 
-    const { data, error } = await supabase.from('venue_profiles').insert(venueData).select().single();
+    const { data, error } = await (supabase.from as any)('venue_profiles').insert(venueData).select().single();
     if (error) {
       toast({ title: 'Error', description: 'Failed to add venue', variant: 'destructive' });
     } else {

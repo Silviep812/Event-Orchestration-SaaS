@@ -192,7 +192,7 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
           category:resource_categories!category_id(name),
           status:resource_status!status_id(name)
         `).eq(eventId ? 'event_id' : 'id', eventId || '').order('name'),
-        supabase.from('venue_profiles').select('id, business_name, city, state, rating, capacity, cost, contact_name, email'),
+        (supabase.from as any)('venue_profiles').select('id, business_name, city, state, rating, capacity, cost, contact_name, email'),
         supabase.from('hospitality_profiles').select('id, business_name, city, state, rating, capacity, cost, contact_name, email'),
         supabase.from('serv_vendor_suppliers').select('id, business_name, city, state, rating, price, contact_name, email'),
         // Check which resources are linked to tasks

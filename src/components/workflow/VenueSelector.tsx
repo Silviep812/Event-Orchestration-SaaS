@@ -75,7 +75,7 @@ export const VenueSelector = ({ onSelectVenue, selectedVenue }: VenueSelectorPro
       
       // Fetch both venues and venue types
       const [venuesResponse, typesResponse] = await Promise.all([
-        supabase.from('venue_profiles').select('*'),
+        (supabase.from as any)('venue_profiles').select('*'),
         supabase.from('venue_types').select('*')
       ]);
 
