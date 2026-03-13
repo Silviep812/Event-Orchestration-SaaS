@@ -267,8 +267,7 @@ export default function Collaborate() {
         const activitiesData: Activity[] = [];
 
         // Fetch all teams the user is part of
-        const { data: userTeamAssignments } = await supabase
-          .from('team_assignments')
+        const { data: userTeamAssignments } = await (supabase.from as any)('team_assignments')
           .select('team_id')
           .eq('user_id', user.id);
 
