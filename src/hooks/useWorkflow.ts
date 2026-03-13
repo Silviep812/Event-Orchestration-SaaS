@@ -130,8 +130,7 @@ export const useWorkflow = () => {
           return false;
         }
 
-        const { data, error } = await supabase
-          .from('workflows')
+        const { data, error } = await (supabase.from as any)('workflows')
           .insert({ 
             user_id: user.id,
             event_id: updates.event_id,
