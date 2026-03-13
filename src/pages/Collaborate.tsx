@@ -368,8 +368,7 @@ export default function Collaborate() {
           console.log(`Fetching members for team ${teamName} (${teamId})`);
           
           // Get all members for this team (excluding current user)
-          const { data: memberAssignments } = await supabase
-            .from('team_assignments')
+          const { data: memberAssignments } = await (supabase.from as any)('team_assignments')
             .select('user_id, team_admin')
             .eq('team_id', teamId)
             .neq('user_id', user.id);
