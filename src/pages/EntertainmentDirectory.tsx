@@ -29,8 +29,7 @@ const EntertainmentDirectory = () => {
         if (typesError) throw typesError;
 
         // Fetch entertainment profiles with their types
-        const { data: profilesData, error: profilesError } = await supabase
-          .from('entertainment_profiles')
+        const { data: profilesData, error: profilesError } = await (supabase.from as any)('entertainment_profiles')
           .select(`
             *,
             entertainment_types(*)

@@ -133,7 +133,7 @@ export default function WorkflowDashboard() {
           if (workflow.theme_id) setSelectedTheme(workflow.theme_id);
           if (workflow.hospitality_id) setSelectedHospitality(workflow.hospitality_id);
           if (workflow.venue_id) setSelectedVenue(workflow.venue_id);
-          if (workflow.serv_vendor_sup_id) setSelectedServiceVendor(workflow.serv_vendor_sup_id);
+          if ((workflow as any).serv_vendor_sup_id) setSelectedServiceVendor((workflow as any).serv_vendor_sup_id);
           if (workflow.serv_vendor_rent_id) setSelectedServiceRental(workflow.serv_vendor_rent_id);
           if (workflow.supplier_id) setSelectedSupplier({ id: workflow.supplier_id });
         }

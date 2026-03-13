@@ -136,8 +136,7 @@ export default function Collaborate() {
       if (!user) return;
 
       try {
-        const { data: teamAssignments, error } = await supabase
-          .from('team_assignments')
+        const { data: teamAssignments, error } = await (supabase.from as any)('team_assignments')
           .select('team_id, team_admin, teams(id, name)')
           .eq('user_id', user.id)
           .eq('team_admin', true)
@@ -164,8 +163,7 @@ export default function Collaborate() {
 
       try {
         // Get team members from team_assignments table
-        const { data: assignments, error: assignmentsError } = await supabase
-          .from('team_assignments')
+        const { data: assignments, error: assignmentsError } = await (supabase.from as any)('team_assignments')
           .select('user_id, team_admin, is_coordinator, is_viewer')
           .eq('team_id', userTeam.id);
 
@@ -269,8 +267,7 @@ export default function Collaborate() {
         const activitiesData: Activity[] = [];
 
         // Fetch all teams the user is part of
-        const { data: userTeamAssignments } = await supabase
-          .from('team_assignments')
+        const { data: userTeamAssignments } = await (supabase.from as any)('team_assignments')
           .select('team_id')
           .eq('user_id', user.id);
 
@@ -282,8 +279,7 @@ export default function Collaborate() {
         const teamIds = userTeamAssignments.map(ta => ta.team_id);
 
         // Fetch all team assignments for these teams
-        const { data: allAssignments } = await supabase
-          .from('team_assignments')
+        const { data: allAssignments } = await (supabase.from as any)('team_assignments')
           .select('user_id, created_at, team_id')
           .in('team_id', teamIds)
           .order('created_at', { ascending: false });
@@ -352,8 +348,7 @@ export default function Collaborate() {
         console.log('Fetching teams for user:', user.id);
         
         // Get all team assignments for the user
-        const { data: assignments, error: assignmentsError } = await supabase
-          .from('team_assignments')
+        const { data: assignments, error: assignmentsError } = await (supabase.from as any)('team_assignments')
           .select('team_id, team_admin, teams(id, name)')
           .eq('user_id', user.id);
         
@@ -373,8 +368,7 @@ export default function Collaborate() {
           console.log(`Fetching members for team ${teamName} (${teamId})`);
           
           // Get all members for this team (excluding current user)
-          const { data: memberAssignments } = await supabase
-            .from('team_assignments')
+          const { data: memberAssignments } = await (supabase.from as any)('team_assignments')
             .select('user_id, team_admin')
             .eq('team_id', teamId)
             .neq('user_id', user.id);
@@ -738,8 +732,7 @@ export default function Collaborate() {
       }
 
       // Create team assignment with current user as admin
-      const { error: assignmentError } = await supabase
-        .from('team_assignments')
+      const { error: assignmentError } = await (supabase.from as any)('team_assignments')
         .insert({
           team_id: teamData.id,
           user_id: user.id,

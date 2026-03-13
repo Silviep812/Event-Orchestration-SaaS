@@ -33,7 +33,7 @@ const VenueDirectory = () => {
       
       // Fetch both venues and venue types
       const results = await Promise.all([
-        supabase.from('venue_profiles').select('*'),
+        (supabase.from as any)('venue_profiles').select('*'),
         supabase.from('venue_types').select('*')
       ]);
       const venuesResponse = results[0];
