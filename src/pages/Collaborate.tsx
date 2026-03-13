@@ -279,8 +279,7 @@ export default function Collaborate() {
         const teamIds = userTeamAssignments.map(ta => ta.team_id);
 
         // Fetch all team assignments for these teams
-        const { data: allAssignments } = await supabase
-          .from('team_assignments')
+        const { data: allAssignments } = await (supabase.from as any)('team_assignments')
           .select('user_id, created_at, team_id')
           .in('team_id', teamIds)
           .order('created_at', { ascending: false });
