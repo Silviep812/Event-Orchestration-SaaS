@@ -117,8 +117,7 @@ export default function WorkflowDashboard() {
       
       // Load existing workflow data for this event
       const loadExistingWorkflow = async () => {
-        const { data: workflow } = await supabase
-          .from('workflows')
+        const { data: workflow } = await (supabase.from as any)('workflows')
           .select('*')
           .eq('event_id', eventId)
           .maybeSingle();
@@ -193,15 +192,13 @@ export default function WorkflowDashboard() {
   const handleEventSelection = async (eventId: string) => {
     setSelectedEvent(eventId);
     
-    const { data: existingWorkflow } = await supabase
-      .from('workflows')
+    const { data: existingWorkflow } = await (supabase.from as any)('workflows')
       .select('id')
       .eq('event_id', eventId)
       .maybeSingle();
     
     if (!existingWorkflow) {
-      const { data: newWorkflow } = await supabase
-        .from('workflows')
+      const { data: newWorkflow } = await (supabase.from as any)('workflows')
         .insert({ 
           event_id: eventId, 
           user_id: user?.id 

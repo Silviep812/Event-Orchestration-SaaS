@@ -44,8 +44,7 @@ export const useWorkflow = () => {
       const workflow_type_id = getUserTypeId(userType);
       
       // Check if workflow already exists for this user (ordered by most recent)
-      const { data: existingWorkflow } = await supabase
-        .from('workflows')
+      const { data: existingWorkflow } = await (supabase.from as any)('workflows')
         .select('id, workflow_type_id')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
@@ -62,8 +61,7 @@ export const useWorkflow = () => {
       }
 
       // Update existing workflow with workflow type
-      const { data, error } = await supabase
-        .from('workflows')
+      const { data, error } = await (supabase.from as any)('workflows')
         .update({ workflow_type_id })
         .eq('id', existingWorkflow.id)
         .select()
@@ -132,8 +130,7 @@ export const useWorkflow = () => {
           return false;
         }
 
-        const { data, error } = await supabase
-          .from('workflows')
+        const { data, error } = await (supabase.from as any)('workflows')
           .insert({ 
             user_id: user.id,
             event_id: updates.event_id,
@@ -173,15 +170,13 @@ export const useWorkflow = () => {
       }
 
       // Fetch current workflow data to compare changes
-      const { data: currentWorkflow } = await supabase
-        .from('workflows')
+      const { data: currentWorkflow } = await (supabase.from as any)('workflows')
         .select('*')
         .eq('id', effectiveWorkflowId)
         .single();
 
       // Update existing workflow
-      const { error } = await supabase
-        .from('workflows')
+      const { error } = await (supabase.from as any)('workflows')
         .update(updates)
         .eq('id', effectiveWorkflowId)
         .eq('user_id', user.id);
@@ -246,8 +241,7 @@ export const useWorkflow = () => {
     const loadWorkflow = async () => {
       if (!user?.id) return;
 
-      const { data } = await supabase
-        .from('workflows')
+      const { data } = await (supabase.from as any)('workflows')
         .select('id')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
