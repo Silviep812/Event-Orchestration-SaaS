@@ -61,8 +61,7 @@ export const useWorkflow = () => {
       }
 
       // Update existing workflow with workflow type
-      const { data, error } = await supabase
-        .from('workflows')
+      const { data, error } = await (supabase.from as any)('workflows')
         .update({ workflow_type_id })
         .eq('id', existingWorkflow.id)
         .select()
