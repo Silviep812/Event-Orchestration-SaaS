@@ -117,8 +117,7 @@ export default function WorkflowDashboard() {
       
       // Load existing workflow data for this event
       const loadExistingWorkflow = async () => {
-        const { data: workflow } = await supabase
-          .from('workflows')
+        const { data: workflow } = await (supabase.from as any)('workflows')
           .select('*')
           .eq('event_id', eventId)
           .maybeSingle();
