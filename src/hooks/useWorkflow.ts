@@ -170,8 +170,7 @@ export const useWorkflow = () => {
       }
 
       // Fetch current workflow data to compare changes
-      const { data: currentWorkflow } = await supabase
-        .from('workflows')
+      const { data: currentWorkflow } = await (supabase.from as any)('workflows')
         .select('*')
         .eq('id', effectiveWorkflowId)
         .single();
