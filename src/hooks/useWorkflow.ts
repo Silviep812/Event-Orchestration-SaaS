@@ -176,8 +176,7 @@ export const useWorkflow = () => {
         .single();
 
       // Update existing workflow
-      const { error } = await supabase
-        .from('workflows')
+      const { error } = await (supabase.from as any)('workflows')
         .update(updates)
         .eq('id', effectiveWorkflowId)
         .eq('user_id', user.id);
