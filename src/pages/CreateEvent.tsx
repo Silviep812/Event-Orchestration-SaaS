@@ -145,8 +145,7 @@ export default function CreateEvent() {
       setVenueTypes(typesData || []);
 
       // Fetch venues with their types
-      const { data: venuesData, error: venuesError } = await supabase
-        .from('venue_profiles')
+      const { data: venuesData, error: venuesError } = await (supabase.from as any)('venue_profiles')
         .select('id, business_name, venue_type_id, city, state, zip, venue_types(name)')
         .order('business_name');
 

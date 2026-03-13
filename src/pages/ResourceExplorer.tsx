@@ -93,7 +93,7 @@ const ResourceExplorer = () => {
       setLoading(true);
       try {
         const [venuesRes, vendorsRes, suppliersRes, hospRes, entRes] = await Promise.all([
-          supabase.from("venue_profiles").select("*, venue_types(name)"),
+          (supabase.from as any)("venue_profiles").select("*, venue_types(name)"),
           supabase.from("serv_vendor_suppliers").select("*, vendor_supplier_types(name)"),
           supabase.from("suppliers").select("*, supplier_types(name), supplier_categories(name)"),
           supabase.from("hospitality_profiles").select("*, hospitality_types(name)"),

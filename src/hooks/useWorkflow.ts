@@ -335,8 +335,7 @@ export const useWorkflow = () => {
     if (!user?.id) return null;
 
     try {
-      const { data, error } = await supabase
-        .from('workflows')
+      const { data, error } = await (supabase.from as any)('workflows')
         .select(`
           id,
           workflow_type_id,

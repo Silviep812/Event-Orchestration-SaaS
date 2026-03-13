@@ -732,8 +732,7 @@ export default function Collaborate() {
       }
 
       // Create team assignment with current user as admin
-      const { error: assignmentError } = await supabase
-        .from('team_assignments')
+      const { error: assignmentError } = await (supabase.from as any)('team_assignments')
         .insert({
           team_id: teamData.id,
           user_id: user.id,
