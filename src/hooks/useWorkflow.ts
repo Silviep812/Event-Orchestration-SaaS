@@ -44,8 +44,7 @@ export const useWorkflow = () => {
       const workflow_type_id = getUserTypeId(userType);
       
       // Check if workflow already exists for this user (ordered by most recent)
-      const { data: existingWorkflow } = await supabase
-        .from('workflows')
+      const { data: existingWorkflow } = await (supabase.from as any)('workflows')
         .select('id, workflow_type_id')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
