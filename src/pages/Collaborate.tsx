@@ -136,8 +136,7 @@ export default function Collaborate() {
       if (!user) return;
 
       try {
-        const { data: teamAssignments, error } = await supabase
-          .from('team_assignments')
+        const { data: teamAssignments, error } = await (supabase.from as any)('team_assignments')
           .select('team_id, team_admin, teams(id, name)')
           .eq('user_id', user.id)
           .eq('team_admin', true)
