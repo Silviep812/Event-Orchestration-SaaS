@@ -348,8 +348,7 @@ export default function Collaborate() {
         console.log('Fetching teams for user:', user.id);
         
         // Get all team assignments for the user
-        const { data: assignments, error: assignmentsError } = await supabase
-          .from('team_assignments')
+        const { data: assignments, error: assignmentsError } = await (supabase.from as any)('team_assignments')
           .select('team_id, team_admin, teams(id, name)')
           .eq('user_id', user.id);
         
