@@ -163,8 +163,7 @@ export default function Collaborate() {
 
       try {
         // Get team members from team_assignments table
-        const { data: assignments, error: assignmentsError } = await supabase
-          .from('team_assignments')
+        const { data: assignments, error: assignmentsError } = await (supabase.from as any)('team_assignments')
           .select('user_id, team_admin, is_coordinator, is_viewer')
           .eq('team_id', userTeam.id);
 
