@@ -192,8 +192,7 @@ export default function WorkflowDashboard() {
   const handleEventSelection = async (eventId: string) => {
     setSelectedEvent(eventId);
     
-    const { data: existingWorkflow } = await supabase
-      .from('workflows')
+    const { data: existingWorkflow } = await (supabase.from as any)('workflows')
       .select('id')
       .eq('event_id', eventId)
       .maybeSingle();
