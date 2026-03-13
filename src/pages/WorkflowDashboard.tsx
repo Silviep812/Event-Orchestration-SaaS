@@ -198,8 +198,7 @@ export default function WorkflowDashboard() {
       .maybeSingle();
     
     if (!existingWorkflow) {
-      const { data: newWorkflow } = await supabase
-        .from('workflows')
+      const { data: newWorkflow } = await (supabase.from as any)('workflows')
         .insert({ 
           event_id: eventId, 
           user_id: user?.id 

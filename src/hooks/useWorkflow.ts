@@ -241,8 +241,7 @@ export const useWorkflow = () => {
     const loadWorkflow = async () => {
       if (!user?.id) return;
 
-      const { data } = await supabase
-        .from('workflows')
+      const { data } = await (supabase.from as any)('workflows')
         .select('id')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })

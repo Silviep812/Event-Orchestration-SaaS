@@ -76,8 +76,7 @@ export function EventSelector({ onSelectEvent, selectedEvent }: EventSelectorPro
 
   const handleSelectEvent = async (eventId: string) => {
     // Check if workflow exists for this event (regardless of user)
-    const { data: existingWorkflow } = await supabase
-      .from('workflows')
+    const { data: existingWorkflow } = await (supabase.from as any)('workflows')
       .select('id')
       .eq('event_id', eventId)
       .maybeSingle();
