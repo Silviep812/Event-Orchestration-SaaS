@@ -101,9 +101,8 @@ serve(async (req) => {
       { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } },
     );
   } catch (e: any) {
-    console.error("assign-user-role error", e);
     return new Response(
-      JSON.stringify({ success: false, error: e?.message || "Unknown error" }),
+      JSON.stringify({ success: false, error: "Failed to assign role" }),
       { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } },
     );
   }
