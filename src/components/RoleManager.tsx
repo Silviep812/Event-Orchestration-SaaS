@@ -691,20 +691,6 @@ export function RoleManager({
         </div>
         <div className="flex items-center gap-4 flex-wrap">
           <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground whitespace-nowrap">Permission:</span>
-            <Select value={permissionFilter} onValueChange={setPermissionFilter}>
-              <SelectTrigger className="h-8 w-[160px] text-xs">
-                <SelectValue placeholder="All Levels" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Levels</SelectItem>
-                <SelectItem value="admin">CRUD</SelectItem>
-                <SelectItem value="coordinator">CRU</SelectItem>
-                <SelectItem value="viewer">R</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground whitespace-nowrap">Task:</span>
             <Select value={taskFilter} onValueChange={setTaskFilter}>
               <SelectTrigger className="h-8 w-[180px] text-xs">
@@ -750,7 +736,20 @@ export function RoleManager({
                     </div>
                   </TableHead>
                   <TableHead className="font-bold text-[11px] uppercase tracking-wider w-[20%]">
-                    Permission Level
+                    <div className="flex items-center gap-2">
+                      <span>Permission Level</span>
+                      <Select value={permissionFilter} onValueChange={setPermissionFilter}>
+                        <SelectTrigger className="h-7 w-[130px] text-[10px] font-normal normal-case tracking-normal">
+                          <SelectValue placeholder="All Levels" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Levels</SelectItem>
+                          <SelectItem value="admin">CRUD</SelectItem>
+                          <SelectItem value="coordinator">CRU</SelectItem>
+                          <SelectItem value="viewer">R</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </TableHead>
                   <TableHead className="font-bold text-[11px] uppercase tracking-wider w-[25%]">
                     Task Checklist
