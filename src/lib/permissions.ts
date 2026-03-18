@@ -19,8 +19,15 @@ interface PermissionsResult {
   loading: boolean;
 }
 
-// Cache permission mappings to avoid repeated queries
+const levelPriority: Record<PermissionLevel, number> = {
+  admin: 3,
+  coordinator: 2,
+  viewer: 1,
+};
+
 let cachedMappings: Map<string, PermissionLevel> | null = null;
+let cachedPermissionByUser = new Map<string, PermissionLevel | null>();
+let inFlightPermissionRequests = new Map<string, Promise<PermissionLevel | null>>();
 
 async function fetchPermissionMappings(): Promise<Map<string, PermissionLevel>> {
   if (cachedMappings) {
@@ -37,17 +44,55 @@ async function fetchPermissionMappings(): Promise<Map<string, PermissionLevel>> 
   }
 
   cachedMappings = new Map(
-    (data as RolePermissionMapping[]).map(mapping => [
-      mapping.role,
-      mapping.permission_group
-    ])
+    (data as RolePermissionMapping[]).map((mapping) => [mapping.role, mapping.permission_group])
   );
 
   return cachedMappings;
 }
 
+async function fetchHighestPermission(userId: string): Promise<PermissionLevel | null> {
+  if (cachedPermissionByUser.has(userId)) {
+    return cachedPermissionByUser.get(userId) ?? null;
+  }
+
+  const existingRequest = inFlightPermissionRequests.get(userId);
+  if (existingRequest) {
+    return existingRequest;
+  }
+
+  const request: Promise<PermissionLevel | null> = (async () => {
+    try {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('permission_level')
+        .eq('user_id', userId);
+
+      if (error) {
+        throw error;
+      }
+
+      let highestLevel: PermissionLevel | null = null;
+
+      for (const roleData of data || []) {
+        const level = roleData.permission_level as PermissionLevel | null;
+        if (level && (!highestLevel || levelPriority[level] > levelPriority[highestLevel])) {
+          highestLevel = level;
+        }
+      }
+
+      cachedPermissionByUser.set(userId, highestLevel);
+      return highestLevel;
+    } finally {
+      inFlightPermissionRequests.delete(userId);
+    }
+  })();
+
+  inFlightPermissionRequests.set(userId, request);
+  return request;
+}
+
 export function usePermissions(): PermissionsResult {
-  const { userRoles, loading: authLoading } = useAuth();
+  const { user, userRoles, loading: authLoading } = useAuth();
   const [permissionLevel, setPermissionLevel] = useState<PermissionLevel | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -57,38 +102,14 @@ export function usePermissions(): PermissionsResult {
         return;
       }
 
-      if (!userRoles || userRoles.length === 0) {
+      if (!user?.id || !userRoles || userRoles.length === 0) {
         setPermissionLevel(null);
         setLoading(false);
         return;
       }
 
       try {
-        // Query user_roles table to get permission_level directly
-        const userResult = await supabase.auth.getUser();
-        const userId = userResult.data.user?.id;
-        const { data, error } = await supabase
-          .from('user_roles')
-          .select('permission_level')
-          .eq('user_id', userId);
-
-        if (error) {
-          throw error;
-        }
-
-        // Find highest permission level from user's roles
-        let highestLevel: PermissionLevel | null = null;
-        const levelPriority = { admin: 3, coordinator: 2, viewer: 1 };
-
-        for (const roleData of data || []) {
-          const level = roleData.permission_level as PermissionLevel;
-          if (level) {
-            if (!highestLevel || levelPriority[level] > levelPriority[highestLevel]) {
-              highestLevel = level;
-            }
-          }
-        }
-
+        const highestLevel = await fetchHighestPermission(user.id);
         setPermissionLevel(highestLevel);
       } catch (error) {
         console.error('Error loading permission level:', error);
@@ -99,16 +120,12 @@ export function usePermissions(): PermissionsResult {
     }
 
     loadPermissionLevel();
-  }, [userRoles, authLoading]);
+  }, [user?.id, userRoles, authLoading]);
 
-  const hasPermission = (level: PermissionLevel): boolean => {
-    return permissionLevel === level;
-  };
+  const hasPermission = (level: PermissionLevel): boolean => permissionLevel === level;
 
   const hasMinPermission = (level: PermissionLevel): boolean => {
     if (!permissionLevel) return false;
-    
-    const levelPriority = { admin: 3, coordinator: 2, viewer: 1 };
     return levelPriority[permissionLevel] >= levelPriority[level];
   };
 
