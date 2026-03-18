@@ -691,22 +691,6 @@ export function RoleManager({
         </div>
         <div className="flex items-center gap-4 flex-wrap">
           <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground whitespace-nowrap">Role:</span>
-            <Select value={roleFilter} onValueChange={setRoleFilter}>
-              <SelectTrigger className="h-8 w-[150px] text-xs">
-                <SelectValue placeholder="All Roles" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Roles</SelectItem>
-                {ROLES.map((r) => (
-                  <SelectItem key={r.value} value={r.value}>
-                    {r.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground whitespace-nowrap">Permission:</span>
             <Select value={permissionFilter} onValueChange={setPermissionFilter}>
               <SelectTrigger className="h-8 w-[160px] text-xs">
