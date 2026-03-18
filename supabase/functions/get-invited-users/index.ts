@@ -41,7 +41,7 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error('Unauthorized');
     }
 
-    console.log("Fetching invited users for inviter:", user.id);
+    
 
     // Fetch users that were invited by this user
     const { data: users, error: usersError } = await supabase.auth.admin.listUsers();
