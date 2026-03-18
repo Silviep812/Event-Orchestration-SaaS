@@ -736,7 +736,21 @@ export function RoleManager({
                     </div>
                   </TableHead>
                   <TableHead className="font-bold text-[11px] uppercase tracking-wider w-[25%]">
-                    Task Checklist
+                    <div className="flex items-center gap-2">
+                      <span>Task</span>
+                      <Select value={taskFilter} onValueChange={setTaskFilter}>
+                        <SelectTrigger className="h-7 w-[130px] text-[10px] font-normal normal-case tracking-normal">
+                          <SelectValue placeholder="Select Task" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {tasks.map((t) => (
+                            <SelectItem key={t.id} value={t.id} className="text-xs">
+                              {t.title}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </TableHead>
                   <TableHead className="font-bold text-[11px] uppercase tracking-wider w-[30%]">
                     Change Request
