@@ -12,19 +12,26 @@ serve(async (req) => {
   }
 
   try {
-    // Optional: Verify JWT if provided (for logging/auditing)
+    // Mandatory JWT authentication
     const authHeader = req.headers.get('Authorization');
-    if (authHeader) {
-      const token = authHeader.replace('Bearer ', '');
-      const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-      const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
-      const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
-      const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
-      if (authError) {
-        console.warn('JWT verification failed, but continuing with service role:', authError.message);
-      } else {
-        console.log('Authenticated user:', user?.id);
-      }
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+      );
     }
 
     // Use service role for admin operations
@@ -61,12 +68,12 @@ serve(async (req) => {
     const uniqueUserIds = [...new Set(profiles.map(p => p.user_id))];
 
     // Get auth users only for those with profiles
-    const { data: { users }, error: authError } = await supabaseAdmin.auth.admin.listUsers();
-    if (authError) throw authError;
+    const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers();
+    if (listError) throw listError;
 
     // Combine user data - only include users that have profiles
     const usersWithData = profiles
-      .filter((profile: any) => uniqueUserIds.includes(profile.user_id)) // Ensure uniqueness
+      .filter((profile: any) => uniqueUserIds.includes(profile.user_id))
       .map((profile: any) => {
         const authUser = users.find((u: any) => u.id === profile.user_id);
         return {
@@ -77,7 +84,6 @@ serve(async (req) => {
           created_at: profile.created_at
         };
       })
-      // Remove duplicates by user_id
       .filter((user: any, index: number, self: any[]) => 
         index === self.findIndex((u: any) => u.id === user.id)
       );
@@ -90,8 +96,8 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('Error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'An error occurred';
+    console.error('Error in get-users-for-roles:', errorMessage);
     return new Response(
       JSON.stringify({ error: errorMessage }),
       { 
