@@ -18,7 +18,7 @@ const corsHeaders = {
 };
 
 const handler = async (req: Request): Promise<Response> => {
-  console.log("Get invited users function called");
+  // Handle function call
 
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
