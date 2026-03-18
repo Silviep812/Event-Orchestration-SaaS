@@ -736,7 +736,20 @@ export function RoleManager({
                     </div>
                   </TableHead>
                   <TableHead className="font-bold text-[11px] uppercase tracking-wider w-[20%]">
-                    Permission Level
+                    <div className="flex items-center gap-2">
+                      <span>Permission Level</span>
+                      <Select value={permissionFilter} onValueChange={setPermissionFilter}>
+                        <SelectTrigger className="h-7 w-[130px] text-[10px] font-normal normal-case tracking-normal">
+                          <SelectValue placeholder="All Levels" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Levels</SelectItem>
+                          <SelectItem value="admin">CRUD</SelectItem>
+                          <SelectItem value="coordinator">CRU</SelectItem>
+                          <SelectItem value="viewer">R</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </TableHead>
                   <TableHead className="font-bold text-[11px] uppercase tracking-wider w-[25%]">
                     Task Checklist
