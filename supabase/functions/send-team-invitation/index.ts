@@ -29,9 +29,6 @@ interface TeamInvitationRequest {
 }
 
 const handler = async (req: Request): Promise<Response> => {
-  console.log("Team invitation function called");
-
-  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -48,15 +45,10 @@ const handler = async (req: Request): Promise<Response> => {
       collaboratorTypes,
     }: TeamInvitationRequest = await req.json();
 
-    console.log("Sending team invitation to:", email);
-    console.log("Role:", role);
-    console.log("Inviter:", inviterName);
-
     // First, check if user already exists by email
     const { data: existingUsers, error: checkError } = await supabase.auth.admin.listUsers();
     
     if (checkError) {
-      console.error("Error checking existing users:", checkError);
       throw checkError;
     }
 
@@ -64,9 +56,6 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (existingUser) {
       // User already exists, add them directly to the team
-      console.log("User already exists, adding to team directly:", existingUser.id);
-      
-      // Store the role in user_roles table
       const { error: roleError } = await supabase
         .from('user_roles')
         .upsert({
@@ -77,9 +66,7 @@ const handler = async (req: Request): Promise<Response> => {
         });
 
       if (roleError) {
-        console.error("Error storing role in database:", roleError);
-      } else {
-        console.log("Role stored in database for existing user:", existingUser.id);
+        // Role assignment failed but continue
       }
 
       // Create team_assignments record if teamId provided
@@ -97,16 +84,14 @@ const handler = async (req: Request): Promise<Response> => {
           });
 
         if (teamError) {
-          console.error("Error creating team assignment:", teamError);
-        } else {
-          console.log("Team assignment created for existing user:", existingUser.id);
+          // Team assignment failed but continue
         }
       }
 
       return new Response(
         JSON.stringify({
           success: true,
-          message: `User ${email} added to team successfully`,
+          message: `User added to team successfully`,
           isExistingUser: true,
         }),
         {
@@ -145,9 +130,7 @@ const handler = async (req: Request): Promise<Response> => {
         });
 
       if (roleError) {
-        console.error("Error storing role in database:", roleError);
-      } else {
-        console.log("Role stored in database for user:", data.user.id);
+        // Role assignment failed but continue
       }
 
       // Create team_assignments record with attributes if teamId provided
@@ -163,19 +146,15 @@ const handler = async (req: Request): Promise<Response> => {
           });
 
         if (teamError) {
-          console.error("Error creating team assignment:", teamError);
-        } else {
-          console.log("Team assignment created for user:", data.user.id);
+          // Team assignment failed but continue
         }
       }
     }
 
-    console.log("Invitation sent successfully:", data);
-
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Team invitation sent successfully to ${email}`,
+        message: `Team invitation sent successfully`,
         isExistingUser: false,
         data,
       }),
@@ -188,11 +167,10 @@ const handler = async (req: Request): Promise<Response> => {
       }
     );
   } catch (error: any) {
-    console.error("Error in send-team-invitation function:", error);
     return new Response(
       JSON.stringify({ 
         success: false,
-        error: error.message 
+        error: "Failed to process invitation" 
       }),
       {
         status: 500,

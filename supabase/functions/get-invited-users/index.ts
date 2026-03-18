@@ -18,7 +18,7 @@ const corsHeaders = {
 };
 
 const handler = async (req: Request): Promise<Response> => {
-  console.log("Get invited users function called");
+  // Handle function call
 
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -41,7 +41,7 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error('Unauthorized');
     }
 
-    console.log("Fetching invited users for inviter:", user.id);
+    
 
     // Fetch users that were invited by this user
     const { data: users, error: usersError } = await supabase.auth.admin.listUsers();
@@ -83,7 +83,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     const allTeamMembers = [...invitedUsers, ...confirmedUsers];
 
-    console.log("Found team members:", allTeamMembers.length);
+    
 
     return new Response(
       JSON.stringify({
@@ -99,11 +99,10 @@ const handler = async (req: Request): Promise<Response> => {
       }
     );
   } catch (error: any) {
-    console.error("Error in get-invited-users function:", error);
     return new Response(
       JSON.stringify({ 
         success: false,
-        error: error.message 
+        error: "Failed to fetch invited users"
       }),
       {
         status: 500,

@@ -89,7 +89,7 @@ serve(async (req) => {
       .insert(insertData as any);
 
     if (insertError) {
-      console.error("assign-user-role insert error", insertError);
+      
       return new Response(
         JSON.stringify({ success: false, error: insertError.message }),
         { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } },
@@ -101,9 +101,8 @@ serve(async (req) => {
       { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } },
     );
   } catch (e: any) {
-    console.error("assign-user-role error", e);
     return new Response(
-      JSON.stringify({ success: false, error: e?.message || "Unknown error" }),
+      JSON.stringify({ success: false, error: "Failed to assign role" }),
       { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } },
     );
   }
