@@ -60,11 +60,13 @@ async function fetchHighestPermission(userId: string): Promise<PermissionLevel |
     return existingRequest;
   }
 
-  const request = supabase
-    .from('user_roles')
-    .select('permission_level')
-    .eq('user_id', userId)
-    .then(({ data, error }) => {
+  const request: Promise<PermissionLevel | null> = (async () => {
+    try {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('permission_level')
+        .eq('user_id', userId);
+
       if (error) {
         throw error;
       }
@@ -80,10 +82,10 @@ async function fetchHighestPermission(userId: string): Promise<PermissionLevel |
 
       cachedPermissionByUser.set(userId, highestLevel);
       return highestLevel;
-    })
-    .finally(() => {
+    } finally {
       inFlightPermissionRequests.delete(userId);
-    });
+    }
+  })();
 
   inFlightPermissionRequests.set(userId, request);
   return request;
