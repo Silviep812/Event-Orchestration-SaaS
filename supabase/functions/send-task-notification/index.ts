@@ -21,9 +21,6 @@ interface TaskNotificationRequest {
 }
 
 const handler = async (req: Request): Promise<Response> => {
-  console.log("Task notification function called");
-
-  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -36,9 +33,6 @@ const handler = async (req: Request): Promise<Response> => {
       coordinatorEmails,
       changeDescription,
     }: TaskNotificationRequest = await req.json();
-
-    console.log("Sending notification for task:", taskTitle);
-    console.log("Recipients:", coordinatorEmails);
 
     const subject = `Task Estimate Updated: ${taskTitle}`;
     const htmlContent = `
@@ -90,15 +84,6 @@ const handler = async (req: Request): Promise<Response> => {
     );
 
     const results = await Promise.allSettled(emailPromises);
-    
-    // Log results
-    results.forEach((result, index) => {
-      if (result.status === 'fulfilled') {
-        console.log(`Email sent successfully to ${coordinatorEmails[index]}`);
-      } else {
-        console.error(`Failed to send email to ${coordinatorEmails[index]}:`, result.reason);
-      }
-    });
 
     const successCount = results.filter(r => r.status === 'fulfilled').length;
     const failureCount = results.length - successCount;
@@ -118,9 +103,8 @@ const handler = async (req: Request): Promise<Response> => {
       }
     );
   } catch (error: any) {
-    console.error("Error in send-task-notification function:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: "Failed to send notification" }),
       {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },

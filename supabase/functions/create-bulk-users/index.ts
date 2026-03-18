@@ -65,8 +65,6 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Admin ${userData.user.email} creating ${users.length} users...`);
-
     const results = [];
     const errors = [];
 
@@ -86,10 +84,8 @@ serve(async (req) => {
       });
 
       if (error) {
-        console.error(`Error creating ${u.email}:`, error);
         errors.push({ email: u.email, error: error.message });
       } else {
-        console.log(`Successfully created ${u.email}`);
         results.push({ email: u.email, user_id: data.user?.id });
       }
     }
@@ -109,12 +105,10 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('Error in create-bulk-users function:', error);
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: errorMessage 
+        error: 'An unexpected error occurred' 
       }),
       {
         status: 500,
