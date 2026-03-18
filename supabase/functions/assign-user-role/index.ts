@@ -89,7 +89,7 @@ serve(async (req) => {
       .insert(insertData as any);
 
     if (insertError) {
-      console.error("assign-user-role insert error", insertError);
+      
       return new Response(
         JSON.stringify({ success: false, error: insertError.message }),
         { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } },
