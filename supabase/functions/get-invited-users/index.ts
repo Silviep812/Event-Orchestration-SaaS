@@ -83,7 +83,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     const allTeamMembers = [...invitedUsers, ...confirmedUsers];
 
-    console.log("Found team members:", allTeamMembers.length);
+    
 
     return new Response(
       JSON.stringify({
