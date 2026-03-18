@@ -690,22 +690,6 @@ export function RoleManager({
           )}
         </div>
         <div className="flex items-center gap-4 flex-wrap">
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground whitespace-nowrap">Task:</span>
-            <Select value={taskFilter} onValueChange={setTaskFilter}>
-              <SelectTrigger className="h-8 w-[180px] text-xs">
-                <SelectValue placeholder="All Tasks" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Tasks</SelectItem>
-                {tasks.map((t) => (
-                  <SelectItem key={t.id} value={t.id}>
-                    {t.title}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
         </div>
       </div>
 
