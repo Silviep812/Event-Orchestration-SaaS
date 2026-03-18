@@ -671,7 +671,7 @@ export function RoleManager({
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Users className="h-5 w-5 text-primary" />
-          <h2 className="text-xl sm:text-2xl font-bold">Collaborator Management</h2>
+          <h2 className="text-xl sm:text-2xl font-bold">Collaborator Workspace</h2>
           {selectedEvent ? (
             <div className="flex flex-col">
               <Badge variant="secondary" className="text-[10px] font-bold w-fit">
