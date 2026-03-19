@@ -1,0 +1,1 @@
+UPDATE event_themes SET description = 'Ideal for meeting like minded people to create a community experience' WHERE name = 'Meetup';
