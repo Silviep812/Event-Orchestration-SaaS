@@ -1,0 +1,1 @@
+UPDATE event_themes SET retreat_types = ARRAY['Skill Building', 'Development', 'Community', 'Support', 'Hybrid'] WHERE id = 2;
