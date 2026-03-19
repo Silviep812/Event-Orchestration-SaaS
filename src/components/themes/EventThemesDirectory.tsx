@@ -150,6 +150,8 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
   const [spiritualEventTypes, setSpiritualEventTypes] = useState<{id: number; name: string}[]>([]);
   const [rejuvenatingEventTypes, setRejuvenatingEventTypes] = useState<{id: number; name: string}[]>([]);
   const [holisticEventTypes, setHolisticEventTypes] = useState<{id: number; name: string}[]>([]);
+  const [wellnessEventTypes, setWellnessEventTypes] = useState<{id: number; name: string}[]>([]);
+  const [mindfulnessEventTypes, setMindfulnessEventTypes] = useState<{id: number; name: string}[]>([]);
   const [meetupCommunityEventTypes, setMeetupCommunityEventTypes] = useState<{id: number; name: string}[]>([]);
   const [meetupInclusiveEventTypes, setMeetupInclusiveEventTypes] = useState<{id: number; name: string}[]>([]);
   const [retreatTypes, setRetreatTypes] = useState<{id: number; name: string}[]>([]);
@@ -530,6 +532,42 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
         console.error('Holistic parent not found or error:', holisticParentError);
       }
 
+      // Fetch Wellness types
+      const { data: wellnessParent } = await supabase
+        .from('event_types')
+        .select('id')
+        .eq('name', 'Wellness')
+        .eq('parent_id', 16)
+        .eq('theme_id', 8)
+        .single();
+      
+      if (wellnessParent) {
+        const { data: wellnessData } = await supabase
+          .from('event_types')
+          .select('id, name')
+          .eq('parent_id', wellnessParent.id)
+          .order('name');
+        setWellnessEventTypes(wellnessData || []);
+      }
+
+      // Fetch Mindfulness types
+      const { data: mindfulnessParent } = await supabase
+        .from('event_types')
+        .select('id')
+        .eq('name', 'Mindfulness')
+        .eq('parent_id', 16)
+        .eq('theme_id', 8)
+        .single();
+      
+      if (mindfulnessParent) {
+        const { data: mindfulnessData } = await supabase
+          .from('event_types')
+          .select('id, name')
+          .eq('parent_id', mindfulnessParent.id)
+          .order('name');
+        setMindfulnessEventTypes(mindfulnessData || []);
+      }
+
       console.log('Fetching Meetup Community parent...');
       const { data: meetupCommunityParent, error: meetupCommunityParentError } = await supabase
         .from('event_types')
@@ -695,6 +733,8 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
       'Health and Wellness-Spiritual': { types: spiritualEventTypes, themeName: 'Health and Wellness', tagName: 'Spiritual' },
       'Health and Wellness-Rejuvenating': { types: rejuvenatingEventTypes, themeName: 'Health and Wellness', tagName: 'Rejuvenating' },
       'Health and Wellness-Holistic': { types: holisticEventTypes, themeName: 'Health and Wellness', tagName: 'Holistic' },
+      'Health and Wellness-Wellness': { types: wellnessEventTypes, themeName: 'Health and Wellness', tagName: 'Wellness' },
+      'Health and Wellness-Mindfulness': { types: mindfulnessEventTypes, themeName: 'Health and Wellness', tagName: 'Mindfulness' },
       'Meetup-Community': { types: meetupCommunityEventTypes, themeName: 'Meetup', tagName: 'Community' },
       'Meetup-Inclusive': { types: meetupInclusiveEventTypes, themeName: 'Meetup', tagName: 'Inclusive' },
     };
