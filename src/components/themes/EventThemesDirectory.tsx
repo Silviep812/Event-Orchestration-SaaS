@@ -189,14 +189,18 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
             
             // For Retreat theme, use retreat_types as tags instead of generic tags
             let themeTags = theme?.tags || [];
-            if (theme.name === 'Retreat' && theme.retreat_types && (theme.retreat_types as string[]).length > 0) {
-              themeTags = theme.retreat_types as string[];
+            let themeDescription = theme.description;
+            if (theme.name === 'Retreat') {
+              if (theme.retreat_types && (theme.retreat_types as string[]).length > 0) {
+                themeTags = theme.retreat_types as string[];
+              }
+              themeDescription = "Perfect for Building Personal and Community Relationships";
             }
             
             return {
               id: theme.id,
               name: theme.name,
-              description: theme.description || getThemeDescription(category),
+              description: themeDescription || getThemeDescription(category),
               category,
               tags: themeTags,
               icon: getThemeIcon(theme.name),
