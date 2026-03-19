@@ -201,6 +201,17 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
             };
           });
 
+        // Extract retreat types from the Retreat theme
+        const retreatTheme = data.find(t => t.name === 'Retreat');
+        if (retreatTheme && retreatTheme.retreat_types) {
+          const retreatTypeItems = (retreatTheme.retreat_types as string[]).map((name, idx) => ({
+            id: idx + 1,
+            name,
+          }));
+          setRetreatTypes(retreatTypeItems);
+          console.log('Retreat types loaded:', retreatTypeItems);
+        }
+
         console.log('Transformed themes:', transformedThemes);
         setThemes(transformedThemes);
       } catch (error) {
