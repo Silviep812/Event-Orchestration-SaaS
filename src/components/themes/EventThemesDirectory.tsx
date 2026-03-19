@@ -733,6 +733,8 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
       'Health and Wellness-Spiritual': { types: spiritualEventTypes, themeName: 'Health and Wellness', tagName: 'Spiritual' },
       'Health and Wellness-Rejuvenating': { types: rejuvenatingEventTypes, themeName: 'Health and Wellness', tagName: 'Rejuvenating' },
       'Health and Wellness-Holistic': { types: holisticEventTypes, themeName: 'Health and Wellness', tagName: 'Holistic' },
+      'Health and Wellness-Wellness': { types: wellnessEventTypes, themeName: 'Health and Wellness', tagName: 'Wellness' },
+      'Health and Wellness-Mindfulness': { types: mindfulnessEventTypes, themeName: 'Health and Wellness', tagName: 'Mindfulness' },
       'Meetup-Community': { types: meetupCommunityEventTypes, themeName: 'Meetup', tagName: 'Community' },
       'Meetup-Inclusive': { types: meetupInclusiveEventTypes, themeName: 'Meetup', tagName: 'Inclusive' },
     };
