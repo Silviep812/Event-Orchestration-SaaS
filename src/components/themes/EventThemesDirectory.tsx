@@ -162,7 +162,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
         console.log('Fetching themes from event_themes table...');
         const { data, error } = await supabase
           .from('event_themes')
-          .select('id, name, description, tags, premium, created_at')
+          .select('id, name, description, tags, premium, created_at, retreat_types')
           .order('name');
 
         console.log('Supabase response:', { data, error });
