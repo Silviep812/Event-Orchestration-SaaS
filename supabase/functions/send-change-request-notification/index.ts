@@ -27,6 +27,30 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    // Authenticate the caller
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
     const payload: ChangeRequestNotificationRequest = await req.json();
     const {
       change_request_id,
@@ -52,8 +76,7 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Get additional details from Supabase if needed
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+    // Use service role for DB queries
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
     const supabase = createClient(supabaseUrl, supabaseKey);
 
@@ -182,14 +205,7 @@ const handler = async (req: Request): Promise<Response> => {
         </div>
         
         <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e2e8f0; color: #64748b; font-size: 14px;">
-          <p>Change Request ID: ${change_request_id}</p>
           <p>This is an automated notification from your Event Planning System.</p>
-          <p style="margin-top: 10px;">
-            <a href="${Deno.env.get("APP_URL") || "https://your-app.com"}/dashboard/change-requests/${change_request_id}" 
-               style="color: #4f46e5; text-decoration: none; font-weight: bold;">
-              View Change Request →
-            </a>
-          </p>
         </div>
       </div>
     `;
@@ -213,7 +229,6 @@ const handler = async (req: Request): Promise<Response> => {
       JSON.stringify({
         success: true,
         message: `Notifications sent: ${successCount} successful, ${failureCount} failed`,
-        results,
       }),
       {
         status: 200,

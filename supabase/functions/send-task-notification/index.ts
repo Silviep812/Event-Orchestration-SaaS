@@ -26,6 +26,30 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    // Authenticate the caller
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
     const {
       taskTitle,
       oldEstimate,
@@ -33,6 +57,14 @@ const handler = async (req: Request): Promise<Response> => {
       coordinatorEmails,
       changeDescription,
     }: TaskNotificationRequest = await req.json();
+
+    // Validate coordinatorEmails is an array of strings
+    if (!Array.isArray(coordinatorEmails) || coordinatorEmails.length === 0) {
+      return new Response(
+        JSON.stringify({ error: "coordinatorEmails must be a non-empty array" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
 
     const subject = `Task Estimate Updated: ${taskTitle}`;
     const htmlContent = `
@@ -92,7 +124,6 @@ const handler = async (req: Request): Promise<Response> => {
       JSON.stringify({
         success: true,
         message: `Notifications sent: ${successCount} successful, ${failureCount} failed`,
-        results,
       }),
       {
         status: 200,
