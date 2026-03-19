@@ -152,6 +152,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
   const [holisticEventTypes, setHolisticEventTypes] = useState<{id: number; name: string}[]>([]);
   const [meetupCommunityEventTypes, setMeetupCommunityEventTypes] = useState<{id: number; name: string}[]>([]);
   const [meetupInclusiveEventTypes, setMeetupInclusiveEventTypes] = useState<{id: number; name: string}[]>([]);
+  const [retreatTypes, setRetreatTypes] = useState<{id: number; name: string}[]>([]);
 
   // Fetch themes from Supabase
   useEffect(() => {
@@ -161,7 +162,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
         console.log('Fetching themes from event_themes table...');
         const { data, error } = await supabase
           .from('event_themes')
-          .select('id, name, description, tags, premium, created_at')
+          .select('id, name, description, tags, premium, created_at, retreat_types')
           .order('name');
 
         console.log('Supabase response:', { data, error });
@@ -186,12 +187,18 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
             const styles = getThemeStyles(category);
             console.log('Transforming theme:', theme.name, 'Category:', category, 'Styles:', styles);
             
+            // For Retreat theme, use retreat_types as tags instead of generic tags
+            let themeTags = theme?.tags || [];
+            if (theme.name === 'Retreat' && theme.retreat_types && (theme.retreat_types as string[]).length > 0) {
+              themeTags = theme.retreat_types as string[];
+            }
+            
             return {
               id: theme.id,
               name: theme.name,
               description: theme.description || getThemeDescription(category),
               category,
-              tags: theme?.tags || [],
+              tags: themeTags,
               icon: getThemeIcon(theme.name),
               color: styles.color,
               bgColor: styles.bgColor,
@@ -199,6 +206,17 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
               premium: theme.premium,
             };
           });
+
+        // Extract retreat types from the Retreat theme
+        const retreatTheme = data.find(t => t.name === 'Retreat');
+        if (retreatTheme && retreatTheme.retreat_types) {
+          const retreatTypeItems = (retreatTheme.retreat_types as string[]).map((name, idx) => ({
+            id: idx + 1,
+            name,
+          }));
+          setRetreatTypes(retreatTypeItems);
+          console.log('Retreat types loaded:', retreatTypeItems);
+        }
 
         console.log('Transformed themes:', transformedThemes);
         setThemes(transformedThemes);
