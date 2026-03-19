@@ -1,0 +1,1 @@
+UPDATE event_themes SET description = 'Perfect for elegant and rememberable organization events' WHERE name = 'Special Events';
