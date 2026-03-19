@@ -1,0 +1,1 @@
+UPDATE event_themes SET description = 'Ideal for Holidays and Personal events' WHERE name = 'Celebration';
