@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ChefHat, Camera, Utensils, Cake, Truck, Flower, Package, Car, PersonStanding, Mail, Phone, Search, Store } from "lucide-react";
+import { ChefHat, Camera, Utensils, Cake, Truck, Flower, Package, Car, User, Mail, Phone, Search, Store } from "lucide-react";
 
 const VendorsDirectory = () => {
   const [vendorTypes, setVendorTypes] = useState<any[]>([]);
