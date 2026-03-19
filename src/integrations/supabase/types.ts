@@ -43,8 +43,6 @@ export type Database = {
       }
       Authorization: {
         Row: {
-          create_password: string | null
-          create_userid: string | null
           created_at: string
           magic_link_enabled: boolean | null
           magic_link_expires_at: string | null
@@ -54,14 +52,10 @@ export type Database = {
           magic_link_token: string | null
           magic_link_used: boolean | null
           magic_link_used_at: string | null
-          pass_word: string | null
-          reset_pw: string | null
           sign_in: string
           sign_out: string | null
         }
         Insert: {
-          create_password?: string | null
-          create_userid?: string | null
           created_at?: string
           magic_link_enabled?: boolean | null
           magic_link_expires_at?: string | null
@@ -71,14 +65,10 @@ export type Database = {
           magic_link_token?: string | null
           magic_link_used?: boolean | null
           magic_link_used_at?: string | null
-          pass_word?: string | null
-          reset_pw?: string | null
           sign_in: string
           sign_out?: string | null
         }
         Update: {
-          create_password?: string | null
-          create_userid?: string | null
           created_at?: string
           magic_link_enabled?: boolean | null
           magic_link_expires_at?: string | null
@@ -88,8 +78,6 @@ export type Database = {
           magic_link_token?: string | null
           magic_link_used?: boolean | null
           magic_link_used_at?: string | null
-          pass_word?: string | null
-          reset_pw?: string | null
           sign_in?: string
           sign_out?: string | null
         }
