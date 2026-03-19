@@ -198,6 +198,9 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
               }
               themeDescription = "Perfect for Building Personal and Community Relationships";
             }
+            if (theme.name === 'Reunion') {
+              themeDescription = "Great for reconnecting with Family and Friends";
+            }
             
             return {
               id: theme.id,
