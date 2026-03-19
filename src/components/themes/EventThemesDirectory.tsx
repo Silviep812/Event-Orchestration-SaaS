@@ -201,6 +201,9 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
             if (theme.name === 'Reunion') {
               themeDescription = "Great for reconnecting with Family and Friends";
             }
+            if (theme.name === 'Meetup') {
+              themeDescription = "Ideal for meeting like minded people to create a community experience";
+            }
             
             return {
               id: theme.id,
