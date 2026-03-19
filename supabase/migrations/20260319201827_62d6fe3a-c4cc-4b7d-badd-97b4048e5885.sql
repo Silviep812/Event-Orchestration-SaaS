@@ -1,0 +1,1 @@
+UPDATE event_themes SET description = 'Perfect for cultural and social cuisine events' WHERE name = 'Dining';
