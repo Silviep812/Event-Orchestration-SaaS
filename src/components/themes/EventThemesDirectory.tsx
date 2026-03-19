@@ -673,7 +673,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
     );
   }, [filteredAndSortedThemes]);
 
-  // Helper function to render dropdown for specific tags
+  // Helper function to render tags and sub-type selectors
   const renderTagDropdown = (theme: ThemeDetails, tag: string, index: number) => {
     const dropdownConfig: Record<string, { types: {id: number; name: string}[]; themeName: string; tagName: string }> = {
       'Celebration-Holidays': { types: holidayEventTypes, themeName: 'Celebration', tagName: 'Holidays' },
@@ -695,6 +695,26 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
       'Meetup-Inclusive': { types: meetupInclusiveEventTypes, themeName: 'Meetup', tagName: 'Inclusive' },
     };
 
+    if (theme.name === 'Retreat') {
+      const isActiveSubType = selectedSubTypes[theme.id] === tag;
+
+      return (
+        <button
+          key={index}
+          type="button"
+          className="inline-flex"
+          onClick={() => {
+            setSelectedSubTypes((prev) => ({ ...prev, [theme.id]: tag }));
+            onSelectTheme(theme.id, theme.name, tag);
+          }}
+        >
+          <Badge variant={isActiveSubType ? 'default' : 'outline'} className="text-xs cursor-pointer transition-colors">
+            {tag}
+          </Badge>
+        </button>
+      );
+    }
+
     const configKey = `${theme.name}-${tag}`;
     const config = dropdownConfig[configKey];
 
@@ -702,7 +722,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
       return (
         <Popover key={index}>
           <PopoverTrigger asChild>
-            <button className="inline-flex items-center gap-1">
+            <button type="button" className="inline-flex items-center gap-1">
               <Badge 
                 variant="outline" 
                 className="text-xs cursor-pointer hover:bg-primary/10 transition-colors inline-flex items-center gap-1"
@@ -722,11 +742,11 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                 config.types.map((item) => (
                   <button
                     key={item.id}
+                    type="button"
                     className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
                     onClick={() => {
                       setSelectedSubTypes(prev => ({ ...prev, [theme.id]: item.name }));
                       onSelectTheme(theme.id, theme.name, item.name);
-                      console.log(`Selected ${tag} type:`, item.name);
                     }}
                   >
                     {item.name}
