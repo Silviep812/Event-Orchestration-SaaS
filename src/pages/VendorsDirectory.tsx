@@ -91,7 +91,7 @@ const VendorsDirectory = () => {
       'delivery': Package,
       'transport': Truck,
       'security': Car,
-      'volunteer': PersonStanding,
+      'volunteer': User,
     };
 
     const lowerName = typeName.toLowerCase();
