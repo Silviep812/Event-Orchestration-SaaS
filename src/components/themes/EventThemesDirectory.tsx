@@ -152,6 +152,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
   const [holisticEventTypes, setHolisticEventTypes] = useState<{id: number; name: string}[]>([]);
   const [meetupCommunityEventTypes, setMeetupCommunityEventTypes] = useState<{id: number; name: string}[]>([]);
   const [meetupInclusiveEventTypes, setMeetupInclusiveEventTypes] = useState<{id: number; name: string}[]>([]);
+  const [retreatTypes, setRetreatTypes] = useState<{id: number; name: string}[]>([]);
 
   // Fetch themes from Supabase
   useEffect(() => {
