@@ -1,0 +1,1 @@
+UPDATE event_themes SET description = 'Perfect community based place to sell or buy goods' WHERE name = 'Marketplace';
