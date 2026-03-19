@@ -200,7 +200,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
             return {
               id: theme.id,
               name: theme.name,
-              description: theme.description || getThemeDescription(category),
+              description: themeDescription || getThemeDescription(category),
               category,
               tags: themeTags,
               icon: getThemeIcon(theme.name),
