@@ -532,6 +532,42 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
         console.error('Holistic parent not found or error:', holisticParentError);
       }
 
+      // Fetch Wellness types
+      const { data: wellnessParent } = await supabase
+        .from('event_types')
+        .select('id')
+        .eq('name', 'Wellness')
+        .eq('parent_id', 16)
+        .eq('theme_id', 8)
+        .single();
+      
+      if (wellnessParent) {
+        const { data: wellnessData } = await supabase
+          .from('event_types')
+          .select('id, name')
+          .eq('parent_id', wellnessParent.id)
+          .order('name');
+        setWellnessEventTypes(wellnessData || []);
+      }
+
+      // Fetch Mindfulness types
+      const { data: mindfulnessParent } = await supabase
+        .from('event_types')
+        .select('id')
+        .eq('name', 'Mindfulness')
+        .eq('parent_id', 16)
+        .eq('theme_id', 8)
+        .single();
+      
+      if (mindfulnessParent) {
+        const { data: mindfulnessData } = await supabase
+          .from('event_types')
+          .select('id, name')
+          .eq('parent_id', mindfulnessParent.id)
+          .order('name');
+        setMindfulnessEventTypes(mindfulnessData || []);
+      }
+
       console.log('Fetching Meetup Community parent...');
       const { data: meetupCommunityParent, error: meetupCommunityParentError } = await supabase
         .from('event_types')
