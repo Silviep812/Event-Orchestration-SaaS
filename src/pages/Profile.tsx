@@ -15,12 +15,6 @@ const Profile = () => {
   const { user, resetPassword, loading } = useAuth();
   const { toast } = useToast();
 
-  // Debug logging
-  console.log("Profile component rendering, user:", user);
-  console.log("Profile component user email:", user?.email);
-  console.log("Profile component user id:", user?.id);
-  console.log("Profile component loading:", loading);
-
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
