@@ -7,6 +7,7 @@ import { Calendar, Users, BarChart3, Plus, Settings, Palette, CheckSquare, Trend
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import Analytics from "@/components/Analytics";
 
 const DashboardHome = () => {
@@ -25,18 +26,26 @@ const DashboardHome = () => {
     type: 'task' | 'analytics' | 'resource';
   }>>([]);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   // Fetch real-time analytics data
   useEffect(() => {
     const fetchDashboardAnalytics = async () => {
       try {
         setLoading(true);
-        
-        // Get current user
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error('User not authenticated');
 
-        const userId = user.id as string;
+        if (!user?.id) {
+          setAnalytics({
+            totalEvents: 0,
+            taskCompletionRate: 0,
+            resourceUtilization: 0,
+            leadConversion: 0,
+            recentEvents: []
+          });
+          return;
+        }
+
+        const userId = user.id;
 
         // Fetch events data for current user only
         const { data: events, error: eventsError } = await supabase
@@ -102,14 +111,16 @@ const DashboardHome = () => {
     };
 
     fetchDashboardAnalytics();
-  }, [toast]);
+  }, [toast, user?.id]);
 
   // Fetch real activity data
   useEffect(() => {
     const fetchActivities = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        if (!user?.id) {
+          setActivities([]);
+          return;
+        }
 
         const activitiesData: Array<{
           id: string;
@@ -259,7 +270,7 @@ const DashboardHome = () => {
     };
 
     fetchActivities();
-  }, []);
+  }, [user?.id]);
 
   const stats = [
     {

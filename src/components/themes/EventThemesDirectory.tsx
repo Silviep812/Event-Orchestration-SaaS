@@ -47,6 +47,13 @@ interface ThemeDetails {
   premium: boolean;
 }
 
+type EventTypeOption = { id: number; name: string };
+
+type EventTypeRecord = EventTypeOption & {
+  parent_id: number | null;
+  theme_id: number | null;
+};
+
 // Theme icon mapping
 const getThemeIcon = (themeName: string) => {
   const iconMap: { [key: string]: any } = {
@@ -246,390 +253,43 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
   // Fetch holiday, personal, cultural, and community event types
   useEffect(() => {
     const fetchEventTypes = async () => {
-      const { data: holidaysData } = await supabase
+      const { data, error } = await supabase
         .from('event_types')
-        .select('id, name')
-        .eq('parent_id', 2)
+        .select('id, name, parent_id, theme_id')
         .order('name');
-      
-      const { data: personalData } = await supabase
-        .from('event_types')
-        .select('id, name')
-        .eq('parent_id', 3)
-        .order('name');
-      
-      const { data: culturalParent } = await supabase
-        .from('event_types')
-        .select('id')
-        .eq('name', 'Cultural')
-        .eq('theme_id', 4)
-        .single();
-      
-      if (culturalParent) {
-        const { data: culturalData } = await supabase
-          .from('event_types')
-          .select('id, name')
-          .eq('parent_id', culturalParent.id)
-          .order('name');
-        
-        setCulturalEventTypes(culturalData || []);
-        console.log('Cultural event types:', culturalData);
-      }
-      
-      const { data: communityParent } = await supabase
-        .from('event_types')
-        .select('id')
-        .eq('name', 'Community')
-        .eq('theme_id', 4)
-        .single();
-      
-      if (communityParent) {
-        const { data: communityData } = await supabase
-          .from('event_types')
-          .select('id, name')
-          .eq('parent_id', communityParent.id)
-          .order('name');
-        
-        setCommunityEventTypes(communityData || []);
-        console.log('Community event types:', communityData);
-      }
-      
-      const { data: artisansParent } = await supabase
-        .from('event_types')
-        .select('id')
-        .eq('name', 'Artisans')
-        .eq('theme_id', 11)
-        .single();
-      
-      if (artisansParent) {
-        const { data: artisansData } = await supabase
-          .from('event_types')
-          .select('id, name')
-          .eq('parent_id', artisansParent.id)
-          .order('name');
-        
-        setArtisanEventTypes(artisansData || []);
-        console.log('Artisan event types:', artisansData);
-      }
-      
-      const { data: foodParent } = await supabase
-        .from('event_types')
-        .select('id')
-        .eq('name', 'Food')
-        .eq('theme_id', 11)
-        .single();
-      
-      if (foodParent) {
-        const { data: foodData } = await supabase
-          .from('event_types')
-          .select('id, name')
-          .eq('parent_id', foodParent.id)
-          .order('name');
-        
-        setFoodEventTypes(foodData || []);
-        console.log('Food event types:', foodData);
-      }
-      
-      const { data: vendorsParent } = await supabase
-        .from('event_types')
-        .select('id')
-        .eq('name', 'Vendors')
-        .eq('theme_id', 11)
-        .single();
-      
-      if (vendorsParent) {
-        const { data: vendorsData } = await supabase
-          .from('event_types')
-          .select('id, name')
-          .eq('parent_id', vendorsParent.id)
-          .order('name');
-        
-        setVendorEventTypes(vendorsData || []);
-        console.log('Vendor event types:', vendorsData);
-      }
-      
-      const { data: vintageParent } = await supabase
-        .from('event_types')
-        .select('id')
-        .eq('name', 'Vintage')
-        .eq('theme_id', 11)
-        .single();
-      
-      if (vintageParent) {
-        const { data: vintageData } = await supabase
-          .from('event_types')
-          .select('id, name')
-          .eq('parent_id', vintageParent.id)
-          .order('name');
-        
-        setVintageEventTypes(vintageData || []);
-        console.log('Vintage event types:', vintageData);
-      }
-      
-      const { data: contemporaryParent } = await supabase
-        .from('event_types')
-        .select('id')
-        .eq('name', 'Contemporary')
-        .eq('theme_id', 7)
-        .single();
-      
-      if (contemporaryParent) {
-        const { data: contemporaryData } = await supabase
-          .from('event_types')
-          .select('id, name')
-          .eq('parent_id', contemporaryParent.id)
-          .order('name');
-        
-        setContemporaryEventTypes(contemporaryData || []);
-        console.log('Contemporary event types:', contemporaryData);
-      }
-      
-      console.log('Fetching Buffet parent...');
-      const { data: buffetParent, error: buffetParentError } = await supabase
-        .from('event_types')
-        .select('id')
-        .eq('name', 'Buffet')
-        .eq('theme_id', 7)
-        .single();
-      
-      console.log('Buffet parent result:', { buffetParent, buffetParentError });
-      
-      if (buffetParent) {
-        console.log('Fetching buffet types for parent id:', buffetParent.id);
-        const { data: buffetData, error: buffetDataError } = await supabase
-          .from('event_types')
-          .select('id, name')
-          .eq('parent_id', buffetParent.id)
-          .order('name');
-        
-        console.log('Buffet data result:', { buffetData, buffetDataError });
-        setBuffetEventTypes(buffetData || []);
-        console.log('Buffet event types set to:', buffetData);
-      } else {
-        console.error('Buffet parent not found or error:', buffetParentError);
+
+      if (error) {
+        console.error('Error fetching event types:', error);
+        return;
       }
 
-      console.log('Fetching Fine Dining parent...');
-      const { data: fineDiningParent, error: fineDiningParentError } = await supabase
-        .from('event_types')
-        .select('id')
-        .eq('name', 'Fine Dining')
-        .eq('theme_id', 7)
-        .single();
-      
-      console.log('Fine Dining parent result:', { fineDiningParent, fineDiningParentError });
-      
-      if (fineDiningParent) {
-        console.log('Fetching fine dining types for parent id:', fineDiningParent.id);
-        const { data: fineDiningData, error: fineDiningDataError } = await supabase
-          .from('event_types')
-          .select('id, name')
-          .eq('parent_id', fineDiningParent.id)
-          .order('name');
-        
-        console.log('Fine Dining data result:', { fineDiningData, fineDiningDataError });
-        setFineDiningEventTypes(fineDiningData || []);
-        console.log('Fine Dining event types set to:', fineDiningData);
-      } else {
-        console.error('Fine Dining parent not found or error:', fineDiningParentError);
-      }
+      const eventTypes = (data || []) as EventTypeRecord[];
+      const toOptions = (items: EventTypeRecord[]): EventTypeOption[] =>
+        items.map(({ id, name }) => ({ id, name }));
+      const getParentId = (name: string, themeId: number, parentId: number | null = null) =>
+        eventTypes.find((item) => item.name === name && item.theme_id === themeId && item.parent_id === parentId)?.id;
+      const getChildren = (parentId?: number) =>
+        parentId ? toOptions(eventTypes.filter((item) => item.parent_id === parentId)) : [];
 
-      console.log('Fetching Peaceful parent...');
-      const { data: peacefulParent, error: peacefulParentError } = await supabase
-        .from('event_types')
-        .select('id')
-        .eq('name', 'Peaceful')
-        .eq('parent_id', 16)
-        .eq('theme_id', 8)
-        .single();
-      
-      console.log('Peaceful parent result:', { peacefulParent, peacefulParentError });
-      
-      if (peacefulParent) {
-        console.log('Fetching peaceful types for parent id:', peacefulParent.id);
-        const { data: peacefulData, error: peacefulDataError } = await supabase
-          .from('event_types')
-          .select('id, name')
-          .eq('parent_id', peacefulParent.id)
-          .order('name');
-        
-        console.log('Peaceful data result:', { peacefulData, peacefulDataError });
-        setPeacefulEventTypes(peacefulData || []);
-        console.log('Peaceful event types set to:', peacefulData);
-      } else {
-        console.error('Peaceful parent not found or error:', peacefulParentError);
-      }
-
-      console.log('Fetching Spiritual parent...');
-      const { data: spiritualParent, error: spiritualParentError } = await supabase
-        .from('event_types')
-        .select('id')
-        .eq('name', 'Spiritual')
-        .eq('parent_id', 16)
-        .eq('theme_id', 8)
-        .single();
-      
-      console.log('Spiritual parent result:', { spiritualParent, spiritualParentError });
-      
-      if (spiritualParent) {
-        console.log('Fetching spiritual types for parent id:', spiritualParent.id);
-        const { data: spiritualData, error: spiritualDataError } = await supabase
-          .from('event_types')
-          .select('id, name')
-          .eq('parent_id', spiritualParent.id)
-          .order('name');
-        
-        console.log('Spiritual data result:', { spiritualData, spiritualDataError });
-        setSpiritualEventTypes(spiritualData || []);
-        console.log('Spiritual event types set to:', spiritualData);
-      } else {
-        console.error('Spiritual parent not found or error:', spiritualParentError);
-      }
-
-      console.log('Fetching Rejuvenating parent...');
-      const { data: rejuvenatingParent, error: rejuvenatingParentError } = await supabase
-        .from('event_types')
-        .select('id')
-        .eq('name', 'Rejuvenating')
-        .eq('parent_id', 16)
-        .eq('theme_id', 8)
-        .single();
-      
-      console.log('Rejuvenating parent result:', { rejuvenatingParent, rejuvenatingParentError });
-      
-      if (rejuvenatingParent) {
-        console.log('Fetching rejuvenating types for parent id:', rejuvenatingParent.id);
-        const { data: rejuvenatingData, error: rejuvenatingDataError } = await supabase
-          .from('event_types')
-          .select('id, name')
-          .eq('parent_id', rejuvenatingParent.id)
-          .order('name');
-        
-        console.log('Rejuvenating data result:', { rejuvenatingData, rejuvenatingDataError });
-        setRejuvenatingEventTypes(rejuvenatingData || []);
-        console.log('Rejuvenating event types set to:', rejuvenatingData);
-      } else {
-        console.error('Rejuvenating parent not found or error:', rejuvenatingParentError);
-      }
-
-      console.log('Fetching Holistic parent...');
-      const { data: holisticParent, error: holisticParentError } = await supabase
-        .from('event_types')
-        .select('id')
-        .eq('name', 'Holistic')
-        .eq('parent_id', 16)
-        .eq('theme_id', 8)
-        .single();
-      
-      console.log('Holistic parent result:', { holisticParent, holisticParentError });
-      
-      if (holisticParent) {
-        console.log('Fetching holistic types for parent id:', holisticParent.id);
-        const { data: holisticData, error: holisticDataError } = await supabase
-          .from('event_types')
-          .select('id, name')
-          .eq('parent_id', holisticParent.id)
-          .order('name');
-        
-        console.log('Holistic data result:', { holisticData, holisticDataError });
-        setHolisticEventTypes(holisticData || []);
-        console.log('Holistic event types set to:', holisticData);
-      } else {
-        console.error('Holistic parent not found or error:', holisticParentError);
-      }
-
-      // Fetch Wellness types
-      const { data: wellnessParent } = await supabase
-        .from('event_types')
-        .select('id')
-        .eq('name', 'Wellness')
-        .eq('parent_id', 16)
-        .eq('theme_id', 8)
-        .single();
-      
-      if (wellnessParent) {
-        const { data: wellnessData } = await supabase
-          .from('event_types')
-          .select('id, name')
-          .eq('parent_id', wellnessParent.id)
-          .order('name');
-        setWellnessEventTypes(wellnessData || []);
-      }
-
-      // Fetch Mindfulness types
-      const { data: mindfulnessParent } = await supabase
-        .from('event_types')
-        .select('id')
-        .eq('name', 'Mindfulness')
-        .eq('parent_id', 16)
-        .eq('theme_id', 8)
-        .single();
-      
-      if (mindfulnessParent) {
-        const { data: mindfulnessData } = await supabase
-          .from('event_types')
-          .select('id, name')
-          .eq('parent_id', mindfulnessParent.id)
-          .order('name');
-        setMindfulnessEventTypes(mindfulnessData || []);
-      }
-
-      console.log('Fetching Meetup Community parent...');
-      const { data: meetupCommunityParent, error: meetupCommunityParentError } = await supabase
-        .from('event_types')
-        .select('id')
-        .eq('name', 'Community')
-        .eq('theme_id', 1)
-        .is('parent_id', null)
-        .single();
-      
-      console.log('Meetup Community parent result:', { meetupCommunityParent, meetupCommunityParentError });
-      
-      if (meetupCommunityParent) {
-        console.log('Fetching meetup community types for parent id:', meetupCommunityParent.id);
-        const { data: meetupCommunityData, error: meetupCommunityDataError } = await supabase
-          .from('event_types')
-          .select('id, name')
-          .eq('parent_id', meetupCommunityParent.id)
-          .order('name');
-        
-        console.log('Meetup Community data result:', { meetupCommunityData, meetupCommunityDataError });
-        setMeetupCommunityEventTypes(meetupCommunityData || []);
-        console.log('Meetup Community event types set to:', meetupCommunityData);
-      } else {
-        console.error('Meetup Community parent not found or error:', meetupCommunityParentError);
-      }
-
-      console.log('Fetching Meetup Inclusive parent...');
-      const { data: meetupInclusiveParent, error: meetupInclusiveParentError } = await supabase
-        .from('event_types')
-        .select('id')
-        .eq('name', 'Inclusive')
-        .eq('theme_id', 1)
-        .is('parent_id', null)
-        .single();
-      
-      console.log('Meetup Inclusive parent result:', { meetupInclusiveParent, meetupInclusiveParentError });
-      
-      if (meetupInclusiveParent) {
-        console.log('Fetching meetup inclusive types for parent id:', meetupInclusiveParent.id);
-        const { data: meetupInclusiveData, error: meetupInclusiveDataError } = await supabase
-          .from('event_types')
-          .select('id, name')
-          .eq('parent_id', meetupInclusiveParent.id)
-          .order('name');
-        
-        console.log('Meetup Inclusive data result:', { meetupInclusiveData, meetupInclusiveDataError });
-        setMeetupInclusiveEventTypes(meetupInclusiveData || []);
-        console.log('Meetup Inclusive event types set to:', meetupInclusiveData);
-      } else {
-        console.error('Meetup Inclusive parent not found or error:', meetupInclusiveParentError);
-      }
-      
-      setHolidayEventTypes(holidaysData || []);
-      setPersonalEventTypes(personalData || []);
-      console.log('Holiday event types:', holidaysData);
-      console.log('Personal event types:', personalData);
+      setHolidayEventTypes(toOptions(eventTypes.filter((item) => item.parent_id === 2)));
+      setPersonalEventTypes(toOptions(eventTypes.filter((item) => item.parent_id === 3)));
+      setCulturalEventTypes(getChildren(getParentId('Cultural', 4)));
+      setCommunityEventTypes(getChildren(getParentId('Community', 4)));
+      setArtisanEventTypes(getChildren(getParentId('Artisans', 11)));
+      setFoodEventTypes(getChildren(getParentId('Food', 11)));
+      setVendorEventTypes(getChildren(getParentId('Vendors', 11)));
+      setVintageEventTypes(getChildren(getParentId('Vintage', 11)));
+      setContemporaryEventTypes(getChildren(getParentId('Contemporary', 7)));
+      setBuffetEventTypes(getChildren(getParentId('Buffet', 7)));
+      setFineDiningEventTypes(getChildren(getParentId('Fine Dining', 7)));
+      setPeacefulEventTypes(getChildren(getParentId('Peaceful', 8, 16)));
+      setSpiritualEventTypes(getChildren(getParentId('Spiritual', 8, 16)));
+      setRejuvenatingEventTypes(getChildren(getParentId('Rejuvenating', 8, 16)));
+      setHolisticEventTypes(getChildren(getParentId('Holistic', 8, 16)));
+      setWellnessEventTypes(getChildren(getParentId('Wellness', 8, 16)));
+      setMindfulnessEventTypes(getChildren(getParentId('Mindfulness', 8, 16)));
+      setMeetupCommunityEventTypes(getChildren(getParentId('Community', 1, null)));
+      setMeetupInclusiveEventTypes(getChildren(getParentId('Inclusive', 1, null)));
     };
 
     fetchEventTypes();
