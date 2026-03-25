@@ -1,4 +1,4 @@
-import React, { useState, useEffect, createContext, useContext } from "react";
+import React, { useState, useEffect, createContext, useContext, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 
@@ -21,38 +21,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [userRoles, setUserRoles] = useState<string[]>([]);
+  const hasHydratedSessionRef = useRef(false);
+  const rolesRequestRef = useRef(0);
 
   const fetchUserRoles = async (userId: string) => {
+    const requestId = ++rolesRequestRef.current;
+
     try {
       const { data, error } = await supabase.from("user_roles").select("role").eq("user_id", userId);
 
       if (error) {
-        setUserRoles([]);
+        if (requestId === rolesRequestRef.current) {
+          setUserRoles([]);
+        }
         return;
       }
 
-      setUserRoles(data?.map((item) => item.role) || []);
-    } catch (error) {
-      setUserRoles([]);
+      if (requestId === rolesRequestRef.current) {
+        setUserRoles(data?.map((item) => item.role) || []);
+      }
+    } catch {
+      if (requestId === rolesRequestRef.current) {
+        setUserRoles([]);
+      }
     }
   };
 
   useEffect(() => {
     let cancelled = false;
 
-    const applySession = async (nextSession: Session | null) => {
+    const syncSessionState = (nextSession: Session | null) => {
       if (cancelled) return;
 
       setSession(nextSession);
       setUser(nextSession?.user ?? null);
 
       if (nextSession?.user) {
-        await fetchUserRoles(nextSession.user.id);
+        void fetchUserRoles(nextSession.user.id);
       } else {
+        rolesRequestRef.current += 1;
         setUserRoles([]);
       }
 
-      if (!cancelled) {
+      if (!cancelled && hasHydratedSessionRef.current) {
         setLoading(false);
       }
     };
@@ -60,7 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      void applySession(nextSession);
+      syncSessionState(nextSession);
     });
 
     void supabase.auth
@@ -68,15 +79,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .then(({ data: { session }, error }) => {
         if (error) {
           if (!cancelled) {
+            hasHydratedSessionRef.current = true;
             setLoading(false);
           }
           return;
         }
 
-        return applySession(session);
+        hasHydratedSessionRef.current = true;
+        syncSessionState(session);
       })
       .catch(() => {
         if (!cancelled) {
+          hasHydratedSessionRef.current = true;
           setLoading(false);
         }
       });

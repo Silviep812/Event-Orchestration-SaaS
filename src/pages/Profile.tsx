@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Navigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Upload } from "lucide-react";
 
@@ -68,10 +67,7 @@ const Profile = () => {
     );
   }
 
-  // Redirect if not authenticated
-  if (!user) {
-    return <Navigate to="/auth" replace />;
-  }
+  if (!user) return null;
 
   const loadUserProfile = async () => {
     if (!user?.id) return;
