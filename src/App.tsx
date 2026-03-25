@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const ComingSoon = lazy(() => import("./pages/ComingSoon"));
 const Auth = lazy(() => import("./pages/Auth"));
@@ -50,53 +51,55 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <Suspense
-          fallback={
-            <div className="min-h-screen flex items-center justify-center bg-background">
-              <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
-            </div>
-          }
-        >
-          <Routes>
-            <Route path="/" element={<ComingSoon />} />
-            <Route path="/auth" element={withAuthProvider(<Auth />)} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/dashboard" element={withAuthProvider(<Dashboard />)}>
-              <Route index element={<DashboardHome />} />
-              <Route path="workflow-dashboard" element={<WorkflowDashboard />} />
-              <Route path="themes" element={<ThemesDirectory />} />
-              <Route path="project-management" element={<ProjectManagement />} />
-              <Route path="planning-assets" element={<PlanningAssets />} />
-              <Route path="planning-assets/:templateId" element={<EditTemplate />} />
-              <Route path="analytics" element={<Analytics />} />
-              <Route path="calendar" element={<EventCalendar />} />
-              <Route path="create-event" element={<CreateEvent />} />
-              <Route path="manage-event" element={<ManageEventPage />} />
-              <Route path="collaborate" element={<Collaborate />} />
-              <Route path="track-progress" element={<TrackProgress />} />
-              <Route path="reports" element={<Reports />} />
-              <Route path="change-requests" element={<ChangeRequests />} />
-              <Route path="change-requests/:id" element={<ChangeRequestDetail />} />
-              <Route path="notification" element={<Notifications />} />
-              <Route path="comments" element={<Comments />} />
-              <Route path="bookings" element={<BookingsDirectory />} />
-              <Route path="venue" element={<VenueDirectory />} />
-              <Route path="hospitality" element={<HospitalityDirectory />} />
-              <Route path="vendor-service" element={<VendorServiceDirectory />} />
-              <Route path="service-vendor" element={<ServiceVendorDirectory />} />
-              <Route path="transportation" element={<TransportationDirectory />} />
-              <Route path="entertainment" element={<EntertainmentDirectory />} />
-              <Route path="supplier" element={<SupplierDirectory />} />
-              <Route path="vendors" element={<VendorsDirectory />} />
-              <Route path="marketing" element={<Marketing />} />
-              <Route path="resource-explorer" element={<ResourceExplorer />} />
-              <Route path="profile" element={<Profile />} />
-            </Route>
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Suspense>
-      </BrowserRouter>
+      <ErrorBoundary fallbackTitle="The app ran into a rendering error">
+        <BrowserRouter>
+          <Suspense
+            fallback={
+              <div className="min-h-screen flex items-center justify-center bg-background">
+                <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
+              </div>
+            }
+          >
+            <Routes>
+              <Route path="/" element={<ComingSoon />} />
+              <Route path="/auth" element={withAuthProvider(<Auth />)} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/dashboard" element={withAuthProvider(<Dashboard />)}>
+                <Route index element={<DashboardHome />} />
+                <Route path="workflow-dashboard" element={<WorkflowDashboard />} />
+                <Route path="themes" element={<ThemesDirectory />} />
+                <Route path="project-management" element={<ProjectManagement />} />
+                <Route path="planning-assets" element={<PlanningAssets />} />
+                <Route path="planning-assets/:templateId" element={<EditTemplate />} />
+                <Route path="analytics" element={<Analytics />} />
+                <Route path="calendar" element={<EventCalendar />} />
+                <Route path="create-event" element={<CreateEvent />} />
+                <Route path="manage-event" element={<ManageEventPage />} />
+                <Route path="collaborate" element={<Collaborate />} />
+                <Route path="track-progress" element={<TrackProgress />} />
+                <Route path="reports" element={<Reports />} />
+                <Route path="change-requests" element={<ChangeRequests />} />
+                <Route path="change-requests/:id" element={<ChangeRequestDetail />} />
+                <Route path="notification" element={<Notifications />} />
+                <Route path="comments" element={<Comments />} />
+                <Route path="bookings" element={<BookingsDirectory />} />
+                <Route path="venue" element={<VenueDirectory />} />
+                <Route path="hospitality" element={<HospitalityDirectory />} />
+                <Route path="vendor-service" element={<VendorServiceDirectory />} />
+                <Route path="service-vendor" element={<ServiceVendorDirectory />} />
+                <Route path="transportation" element={<TransportationDirectory />} />
+                <Route path="entertainment" element={<EntertainmentDirectory />} />
+                <Route path="supplier" element={<SupplierDirectory />} />
+                <Route path="vendors" element={<VendorsDirectory />} />
+                <Route path="marketing" element={<Marketing />} />
+                <Route path="resource-explorer" element={<ResourceExplorer />} />
+                <Route path="profile" element={<Profile />} />
+              </Route>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
+        </BrowserRouter>
+      </ErrorBoundary>
     </TooltipProvider>
   </QueryClientProvider>
 );
