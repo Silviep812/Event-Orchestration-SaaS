@@ -7,14 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { useNavigate } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Upload } from "lucide-react";
 
 const Profile = () => {
   const { user, resetPassword, loading } = useAuth();
   const { toast } = useToast();
-  const navigate = useNavigate();
 
   // Debug logging
   console.log("Profile component rendering, user:", user);
@@ -48,8 +47,7 @@ const Profile = () => {
 
   // Redirect if not authenticated
   if (!user) {
-    navigate('/auth');
-    return null;
+    return <Navigate to="/auth" replace />;
   }
 
   // Load user profile
@@ -79,7 +77,7 @@ const Profile = () => {
       document.head.appendChild(canonical);
     }
     canonical.setAttribute("href", window.location.href);
-  }, [user, navigate]);
+  }, [user]);
 
   const loadUserProfile = async () => {
     if (!user?.id) return;

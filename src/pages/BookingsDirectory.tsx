@@ -28,13 +28,6 @@ const BookingsDirectory = () => {
     qrCode: 0,
   });
 
-  // Redirect to auth if not logged in
-  useEffect(() => {
-    if (!user) {
-      navigate('/auth');
-    }
-  }, [user, navigate]);
-
   // Extract venue data from navigation state
   const venueData = location.state as {
     venueId?: string;
