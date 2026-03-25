@@ -3,7 +3,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Calendar, CheckCircle, Clock, QrCode } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -15,7 +15,6 @@ import QRCodeForm from "@/components/QRCodeForm";
 
 const BookingsDirectory = () => {
   const location = useLocation();
-  const navigate = useNavigate();
   const { user } = useAuth();
   const [bookings, setBookings] = useState<any[]>([]);
   const [selectedBookingTypes, setSelectedBookingTypes] = useState<string[]>([]);

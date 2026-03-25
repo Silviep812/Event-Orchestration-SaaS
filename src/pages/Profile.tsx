@@ -36,20 +36,6 @@ const Profile = () => {
   });
   const [avatarUploading, setAvatarUploading] = useState(false);
 
-  // Show loading while auth is initializing
-  if (loading) {
-    return (
-      <main className="mx-auto max-w-3xl space-y-6">
-        <div className="text-center">Loading...</div>
-      </main>
-    );
-  }
-
-  // Redirect if not authenticated
-  if (!user) {
-    return <Navigate to="/auth" replace />;
-  }
-
   // Load user profile
   useEffect(() => {
     if (user?.id) {
@@ -78,6 +64,20 @@ const Profile = () => {
     }
     canonical.setAttribute("href", window.location.href);
   }, [user]);
+
+  // Show loading while auth is initializing
+  if (loading) {
+    return (
+      <main className="mx-auto max-w-3xl space-y-6">
+        <div className="text-center">Loading...</div>
+      </main>
+    );
+  }
+
+  // Redirect if not authenticated
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
 
   const loadUserProfile = async () => {
     if (!user?.id) return;
