@@ -88,6 +88,7 @@ export function TeamMemberTaskAssignments() {
         'Vendor Service Rental/Buy',
         'Hospitality',
         'Supplier',
+        'Suppliers',
         'Entertainment',
         'Bookings'
       ];

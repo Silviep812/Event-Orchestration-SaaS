@@ -107,7 +107,7 @@ export default function TrackProgress() {
           
           if (assigned_user_id) {
             const { data: profileData } = await supabase
-              .from('profiles')
+              .from('user_profiles_teammate_view')
               .select('display_name')
               .eq('user_id', assigned_user_id)
               .maybeSingle();

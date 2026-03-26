@@ -104,7 +104,7 @@ const Reports = () => {
       const userIds = Array.from(new Set(changeLogs.map(log => log.changed_by)));
       if (userIds.length === 0) return;
       const { data } = await supabase
-        .from('profiles')
+        .from('user_profiles_teammate_view')
         .select('user_id, display_name')
         .in('user_id', userIds);
       const nameMap: Record<string, string> = {};

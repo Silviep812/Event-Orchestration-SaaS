@@ -408,7 +408,7 @@ export const WorkflowDashboard = ({ userType, selectedTheme, workflowId, setCurr
             .eq('id', workflowData.supplier_id)
             .limit(1)
             .maybeSingle();
-          newSelections.supplier = supplier?.business_name || `Supplier ${workflowData.supplier_id}`;
+          newSelections.supplier = supplier?.business_name || `External vendor ${workflowData.supplier_id}`;
         }
 
         // Fetch service vendor name
@@ -575,7 +575,7 @@ export const WorkflowDashboard = ({ userType, selectedTheme, workflowId, setCurr
                 },
                 {
                   type: "supplier",
-                  title: "Supplier",
+                  title: "External vendor",
                   description: "Supplies and materials provider",
                   value: selections.supplier || "Not selected",
                   icon: Package,

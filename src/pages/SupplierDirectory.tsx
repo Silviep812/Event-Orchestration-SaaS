@@ -44,7 +44,7 @@ export default function SupplierDirectory() {
         `);
 
       if (error) {
-        console.error('Error fetching suppliers:', error);
+        console.error('Error fetching external vendors:', error);
       } else {
         setSuppliers(data || []);
       }
@@ -92,21 +92,21 @@ export default function SupplierDirectory() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Supplier Directory</h1>
+        <h1 className="text-3xl font-bold">External Vendor Directory</h1>
         <p className="text-muted-foreground">
-          Browse and select suppliers for your event needs
+          Browse and select external vendors for your event needs
         </p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Select Supplier Categories</CardTitle>
+          <CardTitle>Select External Vendor Categories</CardTitle>
           <CardDescription>
-            Choose all supplier categories that apply to your event requirements
+            Choose all external vendor categories that apply to your event requirements
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Supplier Categories */}
+          {/* External vendor categories */}
           <div className="space-y-2">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {supplierCategoryOptions.map((option) => {
@@ -147,7 +147,7 @@ export default function SupplierDirectory() {
           {(selectedCategories.length > 0 || locationFilter) && (
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
-                Showing {filteredSuppliers.length} of {suppliers.length} suppliers
+                Showing {filteredSuppliers.length} of {suppliers.length} external vendors
               </p>
               <Button
                 variant="outline"
@@ -171,13 +171,13 @@ export default function SupplierDirectory() {
                 ).filter(Boolean).join(', ')} ({filteredSuppliers.length})
               </>
             ) : (
-              <>Supplier Profiles ({filteredSuppliers.length})</>
+              <>External Vendor Profiles ({filteredSuppliers.length})</>
             )}
           </CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-muted-foreground">Loading supplier profiles...</p>
+            <p className="text-muted-foreground">Loading external vendor profiles...</p>
           ) : filteredSuppliers.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredSuppliers.map((supplier) => (
@@ -228,9 +228,14 @@ export default function SupplierDirectory() {
                           </p>
                         )}
                       </div>
-                      <Button className="w-full mt-3" size="sm">
-                        Place Order
-                      </Button>
+                      <div className="flex gap-2 mt-3">
+                        <Button className="flex-1" size="sm" onClick={() => supplier.email && window.open(`mailto:${supplier.email}`)} disabled={!supplier.email}>
+                          <Mail className="h-4 w-4" />
+                        </Button>
+                        <Button className="flex-1" size="sm" onClick={() => supplier.phone_number && window.open(`tel:${supplier.phone_number}`)} disabled={!supplier.phone_number}>
+                          <Phone className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -239,7 +244,7 @@ export default function SupplierDirectory() {
           ) : (
             <div className="text-center py-8 text-muted-foreground">
               <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No suppliers found matching your criteria.</p>
+              <p>No external vendors found matching your criteria.</p>
               <p className="text-sm">Try adjusting your filters.</p>
             </div>
           )}

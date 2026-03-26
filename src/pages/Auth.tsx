@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
+import { getAuthErrorDescription } from '@/lib/authErrors';
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 
 export default function Auth() {
@@ -61,7 +62,7 @@ export default function Auth() {
       toast({
         variant: "destructive",
         title: "Sign up failed",
-        description: error.message,
+        description: getAuthErrorDescription(error),
       });
     } else {
       toast({
@@ -83,7 +84,7 @@ export default function Auth() {
       toast({
         variant: "destructive",
         title: "Password reset failed",
-        description: error.message,
+        description: getAuthErrorDescription(error),
       });
     } else {
       toast({
@@ -106,7 +107,7 @@ export default function Auth() {
       toast({
         variant: "destructive",
         title: "Magic link failed",
-        description: error.message,
+        description: getAuthErrorDescription(error),
       });
     } else {
       toast({
@@ -292,11 +293,4 @@ export default function Auth() {
                     {loading ? "Sending..." : "Send Reset Link"}
                   </Button>
                 </form>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  );
-}
+              <                                                                                                                

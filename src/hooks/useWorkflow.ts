@@ -201,7 +201,7 @@ export const useWorkflow = () => {
           theme_id: 'Event Theme',
           hospitality_id: 'Hospitality Selection',
           venue_id: 'Venue Selection',
-          supplier_id: 'Supplier Selection',
+          supplier_id: 'External vendor selection',
           serv_vendor_sup_id: 'Service Vendor Selection',
           serv_vendor_rent_id: 'Service Rental Selection',
           event_id: 'Event Selection',

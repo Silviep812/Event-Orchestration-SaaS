@@ -4,8 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Music, Mic, Users, MessageCircle, Presentation, Theater, HelpCircle } from "lucide-react";
-import { toast } from "sonner";
+import { Music, Mic, Users, MessageCircle, Presentation, Theater, HelpCircle, Mail, Phone } from "lucide-react";
 
 const EntertainmentDirectory = () => {
   const [entertainmentTypes, setEntertainmentTypes] = useState<any[]>([]);
@@ -14,7 +13,6 @@ const EntertainmentDirectory = () => {
   const [locationFilter, setLocationFilter] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [confirmedEntertainment, setConfirmedEntertainment] = useState<string[]>([]);
 
   // Fetch entertainment types and profiles from Supabase
   useEffect(() => {
@@ -92,16 +90,6 @@ const EntertainmentDirectory = () => {
       }
     }
     return HelpCircle;
-  };
-
-  const handleConfirmEntertainment = (profileId: string, businessName: string) => {
-    if (confirmedEntertainment.includes(profileId)) {
-      setConfirmedEntertainment(confirmedEntertainment.filter(id => id !== profileId));
-      toast.success(`Removed ${businessName} from confirmed selections`);
-    } else {
-      setConfirmedEntertainment([...confirmedEntertainment, profileId]);
-      toast.success(`Confirmed ${businessName} for your event`);
-    }
   };
 
   return (
@@ -255,13 +243,14 @@ const EntertainmentDirectory = () => {
                         <p className="text-sm text-muted-foreground">{profile.description}</p>
                       )}
                       
-                      <Button 
-                        onClick={() => handleConfirmEntertainment(profile.id, profile.business_name)}
-                        variant={confirmedEntertainment.includes(profile.id) ? "default" : "outline"}
-                        className="w-full mt-2 bg-primary text-primary-foreground hover:bg-primary/90"
-                      >
-                        {confirmedEntertainment.includes(profile.id) ? "Confirmed" : "Confirm Selection"}
-                      </Button>
+                      <div className="flex gap-2 mt-2">
+                        <Button className="flex-1" size="sm" onClick={() => profile.email && window.open(`mailto:${profile.email}`)} disabled={!profile.email}>
+                          <Mail className="h-4 w-4" />
+                        </Button>
+                        <Button className="flex-1" size="sm" onClick={() => profile.phone_number && window.open(`tel:${profile.phone_number}`)} disabled={!profile.phone_number}>
+                          <Phone className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </CardContent>
                   </Card>
                 );

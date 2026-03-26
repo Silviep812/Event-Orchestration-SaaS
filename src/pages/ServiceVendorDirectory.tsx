@@ -103,7 +103,7 @@ const ServiceVendorDirectory = () => {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Service Vendor Directory</h1>
         <p className="text-muted-foreground">
-          Manage service vendors and suppliers
+          Manage service vendors and external vendors
         </p>
       </div>
 

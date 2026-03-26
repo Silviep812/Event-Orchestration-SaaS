@@ -275,7 +275,7 @@ const HospitalityDirectory = () => {
           {(selectedHospitalityTypes.length > 0 || locationFilter) && (
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
-                Showing {filteredProfiles.length} of {hospitalityProfiles.length} suppliers
+                Showing {filteredProfiles.length} of {hospitalityProfiles.length} external vendors
               </p>
               <Button
                 variant="outline"

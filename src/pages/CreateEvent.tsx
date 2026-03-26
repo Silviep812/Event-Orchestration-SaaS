@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DatePickerWithRange } from "@/components/ui/date-picker";
-import { Plus, X, Calendar, MapPin, Users, DollarSign } from "lucide-react";
+import { Plus, X, Calendar, MapPin, Users, DollarSign, ArrowLeft } from "lucide-react";
 import { DateRange } from "react-day-picker";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,12 +36,24 @@ export default function CreateEvent() {
   const [eventThemes, setEventThemes] = useState<{ id: number; name: string; premium: boolean }[]>([]);
   const [eventTypes, setEventTypes] = useState<{ id: number; name: string; theme_id: number; parent_id: number | null }[]>([]);
   const [subEventTypes, setSubEventTypes] = useState<{ id: number; name: string; theme_id: number; parent_id: number | null }[]>([]);
-  const [venueProfiles, setVenueProfiles] = useState<{ id: string; business_name: string; venue_type: string; venue_type_id: number }[]>([]);
+  const [venueProfiles, setVenueProfiles] = useState<
+    {
+      id: string;
+      business_name: string;
+      venue_type: string;
+      venue_type_id: number;
+      city?: string | null;
+      state?: string | null;
+      zip?: string | null;
+    }[]
+  >([]);
   const [venueTypes, setVenueTypes] = useState<{ id: number; name: string }[]>([]);
   const [selectedVenueType, setSelectedVenueType] = useState<number | null>(null);
   const selectedThemeId = watch("theme_id");
   const selectedEventType = watch("type");
   const selectedSubType = watch("subType");
+  const venueName = watch("venue");
+  const selectedVenueDetail = venueProfiles.find((v) => v.business_name === venueName);
 
   const [themesLoaded, setThemesLoaded] = useState(false);
   const [budgetInput, setBudgetInput] = useState('');
@@ -83,7 +95,7 @@ export default function CreateEvent() {
       // Fetch venues with their types
       const { data: venuesData, error: venuesError } = await supabase
         .from('venues')
-        .select('id, business_name, venue_type_id, venue_types(name)')
+        .select('id, business_name, venue_type_id, city, state, zip, venue_types(name)')
         .order('business_name');
 
       if (venuesError) {
@@ -96,7 +108,10 @@ export default function CreateEvent() {
         id: v.id, 
         business_name: v.business_name,
         venue_type_id: v.venue_type_id,
-        venue_type: v.venue_types?.name || 'Other'
+        venue_type: v.venue_types?.name || 'Other',
+        city: v.city,
+        state: v.state,
+        zip: v.zip
       })) || [];
       
       setVenueProfiles(profiles);
@@ -368,11 +383,25 @@ export default function CreateEvent() {
 
   return (
     <div className="container mx-auto p-6 max-w-4xl">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Create New Event</h1>
-        <p className="text-muted-foreground">
-          Fill in the details below to create your event. All fields marked with * are required.
-        </p>
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4 min-w-0">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="shrink-0 w-fit"
+            onClick={() => navigate("/dashboard")}
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Dashboard
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Create New Event</h1>
+            <p className="text-muted-foreground">
+              Fill in the details below to create your event. All fields marked with * are required.
+            </p>
+          </div>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -581,6 +610,20 @@ export default function CreateEvent() {
                 {errors.venue && (
                   <p className="text-sm text-destructive mt-1">{errors.venue.message}</p>
                 )}
+                {selectedVenueDetail &&
+                  (selectedVenueDetail.city ||
+                    selectedVenueDetail.state ||
+                    selectedVenueDetail.zip) && (
+                    <p className="text-sm text-muted-foreground mt-2 flex items-start gap-2">
+                      <MapPin className="h-4 w-4 shrink-0 mt-0.5" />
+                      <span>
+                        <span className="font-medium text-foreground">Location: </span>
+                        {[selectedVenueDetail.city, selectedVenueDetail.state, selectedVenueDetail.zip]
+                          .filter(Boolean)
+                          .join(", ")}
+                      </span>
+                    </p>
+                  )}
               </div>
 
               <div>
@@ -611,55 +654,4 @@ export default function CreateEvent() {
                   onBlur={() => {
                     if (budgetInput) {
                       const formatted = parseFloat(budgetInput).toFixed(2);
-                      setBudgetInput(formatted);
-                      setValue('budget', formatted);
-                    }
-                  }}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') {
-                      (e.target as HTMLInputElement).blur();
-                    }
-                  }}
-                  placeholder="Enter budget amount"
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex justify-end gap-4 pt-6">
-          <Button type="button" variant="outline" onClick={() => {
-            // Set flag to prevent URL params from repopulating the form
-            setIsFormCleared(true);
-            
-            // Reset all form fields
-            reset({
-              title: "",
-              theme_id: undefined,
-              type: "",
-              subType: "",
-              venue: "",
-              budget: "",
-              expectedAttendees: "",
-              description: ""
-            });
-            setDateRange(undefined);
-            setBudgetInput('');
-            setSubEventTypes([]);
-            setEventTypes([]);
-            setSelectedVenueType(null);
-            
-            // Clear URL parameters to prevent form repopulation
-            navigate('/dashboard/create-event', { replace: true });
-          }}>
-            Clear Form
-          </Button>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Creating Event..." : "Create Event"}
-          </Button>
-        </div>
-      </form>
-    </div>
-  );
-}
+                      setBudgetInput(formatted                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              

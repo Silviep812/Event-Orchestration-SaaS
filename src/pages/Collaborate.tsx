@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -67,6 +67,18 @@ interface Activity {
   type: 'task' | 'comment' | 'file' | 'member';
 }
 
+/** Stored values must stay stable for existing tasks/config; labels follow client markup naming. */
+const COLLABORATOR_TYPE_OPTIONS: { value: string; label: string }[] = [
+  { value: 'Bookings', label: 'Bookings' },
+  { value: 'Venue', label: 'Venue' },
+  { value: 'Vendor Service Rental/Buy', label: 'Vendor Service Rental/Buy' },
+  { value: 'Hospitality', label: 'Hospitality' },
+  { value: 'Service Vendor', label: 'Service Vendor' },
+  { value: 'Transportation', label: 'Transportation' },
+  { value: 'Entertainment', label: 'Entertainment' },
+  { value: 'Suppliers', label: 'External Vendor' },
+];
+
 export default function Collaborate() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -93,6 +105,23 @@ export default function Collaborate() {
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [activeTeamId, setActiveTeamId] = useState<string | null>(null);
+
+  const inviteTeamId = activeTeamId ?? userTeam?.id ?? null;
+  const isInviteTeamAdmin = useMemo(() => {
+    if (!inviteTeamId) return false;
+    return userTeams.some((t) => t.id === inviteTeamId && t.isAdmin);
+  }, [inviteTeamId, userTeams]);
+
+  useEffect(() => {
+    if (inviteRole === "admin" && !isInviteTeamAdmin) {
+      setInviteRole("");
+    }
+  }, [inviteRole, isInviteTeamAdmin]);
+
+  const openInviteDialog = (teamId?: string | null) => {
+    setActiveTeamId(teamId ?? userTeam?.id ?? null);
+    setIsInviteDialogOpen(true);
+  };
 
   // Fetch event participants for invitation dropdown
   useEffect(() => {
@@ -179,37 +208,24 @@ export default function Collaborate() {
           return;
         }
 
-        // Get user details from profiles table
+        // Teammate-safe profile fields (name, role) via view — not public."User Profile"
         const userIds = assignments.map(a => a.user_id);
         const { data: usersData, error: usersError } = await supabase
-          .from('profiles')
-          .select('user_id, display_name, avatar_url')
+          .from('user_profiles_teammate_view')
+          .select('user_id, display_name, avatar_url, role')
           .in('user_id', userIds);
 
         if (usersError) {
           console.error('Error fetching user details:', usersError);
         }
 
-        // Get roles from user_roles table
-        const { data: userRolesData, error: rolesError } = await supabase
-          .from('user_roles')
-          .select('user_id, role')
-          .in('user_id', userIds);
-
-        if (rolesError) {
-          console.error('Error fetching user roles:', rolesError);
-        }
-
-        // Create maps for quick lookup
         const usersMap = new Map(usersData?.map(u => [u.user_id, u]) || []);
-        const rolesMap = new Map(userRolesData?.map(r => [r.user_id, r.role]) || []);
 
         // Combine data
         const members: TeamMember[] = assignments.map(assignment => {
           const userDetails = usersMap.get(assignment.user_id);
-          const role = rolesMap.get(assignment.user_id);
           
-          let roleDisplay = role || 'Member';
+          let roleDisplay = userDetails?.role || 'Member';
           if (assignment.team_admin) {
             roleDisplay = 'Admin';
           } else if (assignment.is_coordinator) {
@@ -292,7 +308,7 @@ export default function Collaborate() {
           // Get user details for all assignments
           const userIds = allAssignments.map(a => a.user_id);
           const { data: usersData } = await supabase
-            .from('profiles')
+            .from('user_profiles_teammate_view')
             .select('user_id, display_name')
             .in('user_id', userIds);
 
@@ -384,7 +400,7 @@ export default function Collaborate() {
           let usersMap: Record<string, { id: string; name: string; email: string; avatar_url?: string }> = {};
           if (userIds.length > 0) {
             const { data: profilesData } = await supabase
-              .from('profiles')
+              .from('user_profiles_teammate_view')
               .select('user_id, display_name, avatar_url')
               .in('user_id', userIds);
 
@@ -477,6 +493,15 @@ export default function Collaborate() {
       toast({
         title: "Error",
         description: "Please select a role and at least one collaborator type.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (inviteRole === "admin" && !isInviteTeamAdmin) {
+      toast({
+        title: "Not allowed",
+        description: "Only team admins can assign the Admin role.",
         variant: "destructive"
       });
       return;
@@ -818,21 +843,21 @@ export default function Collaborate() {
               <div>
                 <label className="text-sm font-medium">Collaborator Types (select all that apply)</label>
                 <div className="mt-2 max-h-48 overflow-y-auto space-y-2 border rounded-md p-3 bg-background">
-                  {['Bookings', 'Venue', 'Vendor Service Rental/Buy', 'Hospitality', 'Service Vendor', 'Transportation', 'Entertainment', 'Suppliers'].map((type) => (
-                    <label key={type} className="flex items-center gap-2 cursor-pointer hover:bg-accent/50 p-2 rounded">
+                  {COLLABORATOR_TYPE_OPTIONS.map(({ value, label }) => (
+                    <label key={value} className="flex items-center gap-2 cursor-pointer hover:bg-accent/50 p-2 rounded">
                       <input
                         type="checkbox"
-                        checked={teamCollaboratorTypes.includes(type)}
+                        checked={teamCollaboratorTypes.includes(value)}
                         onChange={(e) => {
                           if (e.target.checked) {
-                            setTeamCollaboratorTypes([...teamCollaboratorTypes, type]);
+                            setTeamCollaboratorTypes([...teamCollaboratorTypes, value]);
                           } else {
-                            setTeamCollaboratorTypes(teamCollaboratorTypes.filter(t => t !== type));
+                            setTeamCollaboratorTypes(teamCollaboratorTypes.filter(t => t !== value));
                           }
                         }}
                         className="w-4 h-4"
                       />
-                      <span className="text-sm">{type}</span>
+                      <span className="text-sm">{label}</span>
                     </label>
                   ))}
                 </div>
@@ -938,7 +963,9 @@ export default function Collaborate() {
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="admin">Admin</SelectItem>
+                    {isInviteTeamAdmin && (
+                      <SelectItem value="admin">Admin</SelectItem>
+                    )}
                     <SelectItem value="organizer">Organizer</SelectItem>
                     <SelectItem value="coordinator">Coordinator</SelectItem>
                     <SelectItem value="vendor">Vendor</SelectItem>
@@ -950,21 +977,21 @@ export default function Collaborate() {
               <div>
                 <label className="text-sm font-medium">Collaborator Types (select all that apply)</label>
                 <div className="mt-2 max-h-48 overflow-y-auto space-y-2 border rounded-md p-3 bg-background">
-                  {['Bookings', 'Venue', 'Vendor Service Rental/Buy', 'Hospitality', 'Service Vendor', 'Transportation', 'Entertainment', 'Suppliers'].map((type) => (
-                    <label key={type} className="flex items-center gap-2 cursor-pointer hover:bg-accent/50 p-2 rounded">
+                  {COLLABORATOR_TYPE_OPTIONS.map(({ value, label }) => (
+                    <label key={value} className="flex items-center gap-2 cursor-pointer hover:bg-accent/50 p-2 rounded">
                       <input
                         type="checkbox"
-                        checked={selectedCollaboratorTypes.includes(type)}
+                        checked={selectedCollaboratorTypes.includes(value)}
                         onChange={(e) => {
                           if (e.target.checked) {
-                            setSelectedCollaboratorTypes([...selectedCollaboratorTypes, type]);
+                            setSelectedCollaboratorTypes([...selectedCollaboratorTypes, value]);
                           } else {
-                            setSelectedCollaboratorTypes(selectedCollaboratorTypes.filter(t => t !== type));
+                            setSelectedCollaboratorTypes(selectedCollaboratorTypes.filter(t => t !== value));
                           }
                         }}
                         className="w-4 h-4"
                       />
-                      <span className="text-sm">{type}</span>
+                      <span className="text-sm">{label}</span>
                     </label>
                   ))}
                 </div>
@@ -1017,20 +1044,14 @@ export default function Collaborate() {
                       userTeam={userTeam}
                       userTeams={userTeams}
                       onCreateTeam={() => setIsCreateTeamDialogOpen(true)}
-                      onInviteMember={() => {
-                        setActiveTeamId(team.id);
-                        setIsInviteDialogOpen(true);
-                      }}
+                      onInviteMember={() => openInviteDialog(team.id)}
                     />
                   ) : (
                     <>
                       {team.isAdmin && (
                         <div className="py-4">
                           <Button 
-                            onClick={() => {
-                              setActiveTeamId(team.id);
-                              setIsInviteDialogOpen(true);
-                            }}
+                            onClick={() => openInviteDialog(team.id)}
                             className="bg-gradient-to-r from-primary to-secondary"
                           >
                             <UserPlus className="w-4 h-4 mr-2" />
@@ -1079,7 +1100,7 @@ export default function Collaborate() {
               userTeam={userTeam}
               userTeams={userTeams}
               onCreateTeam={() => setIsCreateTeamDialogOpen(true)}
-              onInviteMember={() => setIsInviteDialogOpen(true)}
+              onInviteMember={() => openInviteDialog()}
             />
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

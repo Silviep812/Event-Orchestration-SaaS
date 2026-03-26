@@ -82,6 +82,16 @@ const statusIcons = {
   cancelled: AlertCircle
 };
 
+const COLLABORATOR_TYPE_OPTIONS: { value: string; label: string }[] = [
+  { value: 'Bookings', label: 'Bookings' },
+  { value: 'Venue', label: 'Venue' },
+  { value: 'Vendor Service Rental/Buy', label: 'Vendor Service Rental/Buy' },
+  { value: 'Hospitality', label: 'Hospitality' },
+  { value: 'Service Vendor', label: 'Service Vendor' },
+  { value: 'Transportation', label: 'Transportation' },
+  { value: 'Entertainment', label: 'Entertainment' },
+  { value: 'Suppliers', label: 'External Vendor' },
+];
 
 export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -193,7 +203,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         const uniqueUserIds = [...new Set(userRoles.map(role => role.user_id))];
         
         const { data: profilesData, error: profilesError } = await supabase
-          .from('profiles')
+          .from('user_profiles_teammate_view')
           .select('user_id, display_name')
           .in('user_id', uniqueUserIds);
         
@@ -271,7 +281,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
           
           if (assigned_user_id) {
             const { data: profileData } = await supabase
-              .from('profiles')
+              .from('user_profiles_teammate_view')
               .select('display_name')
               .eq('user_id', assigned_user_id)
               .single();
@@ -336,7 +346,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
           
           if (assigned_user_id) {
             const { data: profileData } = await supabase
-              .from('profiles')
+              .from('user_profiles_teammate_view')
               .select('display_name')
               .eq('user_id', assigned_user_id)
               .single();
@@ -1175,32 +1185,23 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                 <div className="space-y-2">
                   <Label>Task Assignments</Label>
                   <div className="max-h-48 overflow-y-auto space-y-2 border rounded-md p-2">
-                    {[
-                      'Bookings',
-                      'Venue',
-                      'Vendor Service Rental/Buy',
-                      'Hospitality',
-                      'Service Vendor',
-                      'Transportation',
-                      'Entertainment',
-                      'Suppliers'
-                    ].map((type) => (
-                      <div key={type} className="flex items-center space-x-2">
+                    {COLLABORATOR_TYPE_OPTIONS.map(({ value, label }) => (
+                      <div key={value} className="flex items-center space-x-2">
                         <Checkbox
-                          id={`collab-${type}`}
-                          checked={selectedCollaboratorTypes.includes(type)}
+                          id={`collab-${value}`}
+                          checked={selectedCollaboratorTypes.includes(value)}
                           onCheckedChange={(checked) => {
                             if (checked) {
-                              setSelectedCollaboratorTypes([...selectedCollaboratorTypes, type]);
+                              setSelectedCollaboratorTypes([...selectedCollaboratorTypes, value]);
                             } else {
-                              setSelectedCollaboratorTypes(selectedCollaboratorTypes.filter(t => t !== type));
+                              setSelectedCollaboratorTypes(selectedCollaboratorTypes.filter(t => t !== value));
                             }
                             // Clear assignment when collaborator types change
                             setNewTask({ ...newTask, assigned_user_id: "" });
                           }}
                         />
-                        <label htmlFor={`collab-${type}`} className="text-sm font-medium leading-none cursor-pointer">
-                          {type}
+                        <label htmlFor={`collab-${value}`} className="text-sm font-medium leading-none cursor-pointer">
+                          {label}
                         </label>
                       </div>
                     ))}

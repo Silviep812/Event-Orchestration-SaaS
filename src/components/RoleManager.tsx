@@ -164,7 +164,7 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
         
         if (userIds.length > 0) {
           const { data: profilesData, error: profilesError } = await supabase
-            .from('profiles')
+            .from('user_profiles_teammate_view')
             .select('user_id, display_name')
             .in('user_id', userIds);
 

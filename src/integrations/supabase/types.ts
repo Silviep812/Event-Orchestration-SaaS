@@ -3657,6 +3657,30 @@ export type Database = {
         }
         Relationships: []
       }
+      user_profiles_teammate_view: {
+        Row: {
+          user_id: string
+          full_name: string | null
+          display_name: string | null
+          role: string | null
+          avatar_url: string | null
+        }
+        Insert: {
+          user_id?: never
+          full_name?: never
+          display_name?: never
+          role?: never
+          avatar_url?: never
+        }
+        Update: {
+          user_id?: never
+          full_name?: never
+          display_name?: never
+          role?: never
+          avatar_url?: never
+        }
+        Relationships: []
+      }
       unified_audit_events: {
         Row: {
           created_at: string | null

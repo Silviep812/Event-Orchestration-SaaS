@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, FileText, CheckSquare, Package, Copy, Edit } from "lucide-react";
+import { Plus, FileText, CheckSquare, Package, Copy, Edit, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -189,10 +189,22 @@ const PlanningAssets = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold">Planning Assets</h2>
-          <p className="text-muted-foreground">Reusable templates for your events</p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4 min-w-0">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="shrink-0 w-fit"
+            onClick={() => navigate("/dashboard")}
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Dashboard
+          </Button>
+          <div>
+            <h2 className="text-2xl font-bold">Planning Assets</h2>
+            <p className="text-muted-foreground">Reusable templates for your events</p>
+          </div>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
@@ -231,11 +243,21 @@ const PlanningAssets = () => {
         </div>
       ) : templates.length === 0 ? (
         <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-muted-foreground text-center">
-              You don't have any saved templates yet. Create your first template to get started!
+          <CardContent className="flex flex-col items-center justify-center py-12 gap-4">
+            <FileText className="h-12 w-12 text-muted-foreground" />
+            <p className="text-muted-foreground text-center max-w-md">
+              You don&apos;t have any saved templates yet. Create your first template to get started, or return to the dashboard.
             </p>
+            <div className="flex flex-wrap gap-2 justify-center">
+              <Button type="button" variant="secondary" onClick={() => navigate("/dashboard")}>
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Return to Dashboard
+              </Button>
+              <Button type="button" onClick={() => setIsDialogOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Create Template
+              </Button>
+            </div>
           </CardContent>
         </Card>
       ) : (
@@ -309,36 +331,4 @@ const PlanningAssets = () => {
                         <CardHeader className="p-4">
                           <CardTitle className="text-base">{event.title}</CardTitle>
                           {event.start_date && (
-                            <CardDescription>
-                              {new Date(event.start_date).toLocaleDateString()}
-                            </CardDescription>
-                          )}
-                        </CardHeader>
-                      </Card>
-                    ))}
-                  </div>
-                </ScrollArea>
-                <div className="flex justify-end gap-2">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setUseTemplateDialogOpen(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button 
-                    onClick={handleApplyTemplate}
-                    disabled={!selectedEventId}
-                  >
-                    Apply Template
-                  </Button>
-                </div>
-              </>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-    </div>        
-  );
-};
-
-export default PlanningAssets;
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   

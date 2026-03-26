@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Building, Home, Utensils, MapPin, Trees, Dumbbell, Warehouse, Users, Building2, Hotel, ShoppingBag, HelpCircle, Calendar } from "lucide-react";
+import { Building, Home, Utensils, MapPin, Trees, Dumbbell, Warehouse, Users, Building2, Hotel, ShoppingBag, HelpCircle, Calendar, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -70,15 +70,16 @@ const VenueDirectory = () => {
     }
   };
 
-  // Get venue type by ID
-  const getVenueTypeById = (typeId: string) => {
-    return venueTypes.find(type => type.id === typeId);
+  // Get venue type by ID (IDs may be number from DB; RadioGroup values are strings)
+  const getVenueTypeById = (typeId: string | number | undefined) => {
+    return venueTypes.find(type => String(type.id) === String(typeId));
   };
 
   // Filter profiles based on selected venue type, location, and user_id
   const filteredProfiles = venueProfiles.filter(profile => {
     const matchesUser = !profile.user_id || (user && profile.user_id === user.id);
-    const matchesType = !selectedVenueType || profile.venue_type_id === selectedVenueType;
+    const matchesType =
+      !selectedVenueType || String(profile.venue_type_id ?? "") === selectedVenueType;
     
     const matchesLocation = !locationFilter || 
       profile.city?.toLowerCase().includes(locationFilter.toLowerCase()) ||
@@ -120,18 +121,29 @@ const VenueDirectory = () => {
   };
 
   const venueTypeOptions = venueTypes.map(type => ({
-    value: type.id,
+    value: String(type.id),
     label: type.name,
     icon: getIconForType(type.name)
   }));
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Venue Directory</h1>
-        <p className="text-muted-foreground">
-          Browse and manage event venues
-        </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Venue Directory</h1>
+          <p className="text-muted-foreground">
+            Browse and manage event venues
+          </p>
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          className="w-fit shrink-0"
+          onClick={() => navigate("/dashboard")}
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Dashboard
+        </Button>
       </div>
 
       <Card>
@@ -160,11 +172,11 @@ const VenueDirectory = () => {
                     <div key={option.value} className="relative">
                       <RadioGroupItem
                         value={option.value}
-                        id={option.value}
+                        id={`venue-type-${option.value}`}
                         className="peer sr-only"
                       />
                       <Label
-                        htmlFor={option.value}
+                        htmlFor={`venue-type-${option.value}`}
                         className={`flex items-center gap-3 p-3 border-2 rounded-lg cursor-pointer transition-all ${
                           isSelected
                             ? "border-primary bg-primary/5 shadow-sm"
@@ -230,7 +242,9 @@ const VenueDirectory = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredProfiles.map((profile) => {
                 const venueType = getVenueTypeById(profile.venue_type_id);
-                const typeOption = venueTypeOptions.find(opt => opt.value === profile.venue_type_id);
+                const typeOption = venueTypeOptions.find(
+                  opt => opt.value === String(profile.venue_type_id ?? "")
+                );
                 const IconComponent = typeOption?.icon || HelpCircle;
                 
                 return (
@@ -290,25 +304,4 @@ const VenueDirectory = () => {
                                 }
                               });
                               console.log('Navigation initiated');
-                            } catch (error) {
-                              console.error('Navigation error:', error);
-                            }
-                          }}
-                        >
-                          <Calendar className="w-4 h-4 mr-2" />
-                          Make Reservation
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
-};
-
-export default VenueDirectory;
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    

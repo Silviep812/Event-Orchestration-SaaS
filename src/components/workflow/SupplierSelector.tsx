@@ -69,7 +69,7 @@ export function SupplierSelector({ onSelectSupplier, selectedSupplier }: Supplie
         `);
 
       if (error) {
-        console.error('Error fetching suppliers:', error);
+        console.error('Error fetching external vendors:', error);
       } else {
         setSuppliers(data || []);
       }
@@ -100,7 +100,7 @@ export function SupplierSelector({ onSelectSupplier, selectedSupplier }: Supplie
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Package className="h-5 w-5" />
-            Select Suppliers
+            Select External Vendors
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -116,7 +116,7 @@ export function SupplierSelector({ onSelectSupplier, selectedSupplier }: Supplie
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="supplier-type">Filter by Supply Type</Label>
+              <Label htmlFor="supplier-type">Filter by external vendor supply type</Label>
               <Input
                 id="supplier-type"
                 placeholder="Enter supply type"
@@ -159,9 +159,9 @@ export function SupplierSelector({ onSelectSupplier, selectedSupplier }: Supplie
             </div>
           </div>
 
-          {/* Supplier Categories */}
+          {/* External vendor categories */}
           <div className="space-y-2">
-            <Label>Supplier Categories:</Label>
+            <Label>External vendor categories:</Label>
             <div className="flex flex-wrap gap-2">
               {categories.map((category) => (
                 <Badge 
@@ -179,12 +179,12 @@ export function SupplierSelector({ onSelectSupplier, selectedSupplier }: Supplie
             </div>
           </div>
 
-          {/* Supplier List */}
+          {/* External vendor list */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto">
             {loading ? (
               <div className="col-span-2 text-center py-8 text-muted-foreground">
                 <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Loading suppliers...</p>
+                <p>Loading external vendors...</p>
               </div>
             ) : filteredSuppliers.map((supplier) => {
               const location = [supplier.city, supplier.state, supplier.zip].filter(Boolean).join(', ');
@@ -252,14 +252,14 @@ export function SupplierSelector({ onSelectSupplier, selectedSupplier }: Supplie
           {!loading && filteredSuppliers.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
               <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No suppliers found matching your criteria.</p>
+              <p>No external vendors found matching your criteria.</p>
               <p className="text-sm">Try adjusting your filters.</p>
             </div>
           )}
 
           {selectedSupplier && (
             <div className="mt-6 p-4 bg-primary/10 rounded-lg">
-              <h4 className="font-semibold text-primary mb-2">Selected Supplier</h4>
+              <h4 className="font-semibold text-primary mb-2">Selected external vendor</h4>
               <div className="text-sm">
                 <p><strong>{selectedSupplier.business_name}</strong></p>
                 {selectedSupplier.supplier_types?.name && (

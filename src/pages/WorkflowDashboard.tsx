@@ -341,7 +341,7 @@ export default function WorkflowDashboard() {
                         {currentStep === "hospitality" && "Select Hospitality Services"}
                         {currentStep === "venue" && "Choose Venue Location"}
                         {currentStep === "services" && "Choose Services"}
-                        {currentStep === "suppliers" && "Select Suppliers"}
+                        {currentStep === "suppliers" && "Select External Vendors"}
                       </CardTitle>
                       <p className="text-sm text-muted-foreground mt-1">
                         Step {
