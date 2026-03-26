@@ -2140,6 +2140,27 @@ export type Database = {
         }
         Relationships: []
       }
+      private_profiles: {
+        Row: {
+          email: string | null
+          pay_method: string | null
+          phone: string | null
+          user_id: string
+        }
+        Insert: {
+          email?: string | null
+          pay_method?: string | null
+          phone?: string | null
+          user_id: string
+        }
+        Update: {
+          email?: string | null
+          pay_method?: string | null
+          phone?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       private_residence_responses: {
         Row: {
           created_at: string
@@ -2203,6 +2224,27 @@ export type Database = {
           updated_at?: string
           user_id?: string
           username?: string | null
+        }
+        Relationships: []
+      }
+      public_profiles: {
+        Row: {
+          avatar_url: string | null
+          display_name: string | null
+          role: string | null
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          display_name?: string | null
+          role?: string | null
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          display_name?: string | null
+          role?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -4557,6 +4599,29 @@ export type Database = {
         }
         Relationships: []
       }
+      team_admins: {
+        Row: {
+          team_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          team_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          team_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_assignments_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       unified_audit_events: {
         Row: {
           created_at: string | null
@@ -4640,6 +4705,30 @@ export type Database = {
         }
         Relationships: []
       }
+      user_profiles_teammate_view: {
+        Row: {
+          avatar_url: string | null
+          display_name: string | null
+          full_name: string | null
+          role: string | null
+          user_id: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          display_name?: string | null
+          full_name?: never
+          role?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          display_name?: string | null
+          full_name?: never
+          role?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       apply_change_request: {
@@ -4679,6 +4768,10 @@ export type Database = {
           task_id: string
           task_title: string
         }[]
+      }
+      cm_are_team_members: {
+        Args: { u1: string; u2: string }
+        Returns: boolean
       }
       generate_magic_link: { Args: { user_email: string }; Returns: string }
       get_my_events_safe: {
@@ -4740,6 +4833,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_current_user_team_admin: { Args: { team: string }; Returns: boolean }
       is_team_admin: {
         Args: { _team_id: string; _user_id: string }
         Returns: boolean
@@ -4810,6 +4904,10 @@ export type Database = {
           p_rejection_reason: string
         }
         Returns: Json
+      }
+      tca_insert_allowed: {
+        Args: { p_team_admin: boolean; p_team_id: string; p_user_id: string }
+        Returns: boolean
       }
       update_resource_utilization: {
         Args: { p_allocated: number; p_resource_id: string; p_total: number }
