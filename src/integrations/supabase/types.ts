@@ -1425,14 +1425,17 @@ export type Database = {
       }
       events: {
         Row: {
+          archived: boolean
           budget: number | null
           created_at: string
           description: string | null
           end_date: string | null
           end_time: string | null
+          entertainment_id: string | null
           expected_attendees: number | null
           id: string
           location: string | null
+          serv_vendor_rental_id: string | null
           start_date: string
           start_time: string | null
           status: Database["public"]["Enums"]["event_status_enum"] | null
@@ -1444,14 +1447,17 @@ export type Database = {
           venue: string
         }
         Insert: {
+          archived?: boolean
           budget?: number | null
           created_at?: string
           description?: string | null
           end_date?: string | null
           end_time?: string | null
+          entertainment_id?: string | null
           expected_attendees?: number | null
           id?: string
           location?: string | null
+          serv_vendor_rental_id?: string | null
           start_date: string
           start_time?: string | null
           status?: Database["public"]["Enums"]["event_status_enum"] | null
@@ -1463,14 +1469,17 @@ export type Database = {
           venue: string
         }
         Update: {
+          archived?: boolean
           budget?: number | null
           created_at?: string
           description?: string | null
           end_date?: string | null
           end_time?: string | null
+          entertainment_id?: string | null
           expected_attendees?: number | null
           id?: string
           location?: string | null
+          serv_vendor_rental_id?: string | null
           start_date?: string
           start_time?: string | null
           status?: Database["public"]["Enums"]["event_status_enum"] | null
@@ -1482,6 +1491,20 @@ export type Database = {
           venue?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "events_entertainment_id_fkey"
+            columns: ["entertainment_id"]
+            isOneToOne: false
+            referencedRelation: "entertainments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_serv_vendor_rental_id_fkey"
+            columns: ["serv_vendor_rental_id"]
+            isOneToOne: false
+            referencedRelation: "serv_vendor_rentals"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "events_type_id_fkey"
             columns: ["type_id"]
@@ -3179,6 +3202,7 @@ export type Database = {
           assigned_service_vendor_role: string | null
           assigned_supplier_vendor_role: string | null
           assigned_to: string | null
+          assigned_to_display_name: string | null
           assigned_transportation_role: string | null
           assigned_venue_role: string | null
           assignment_type: string | null
@@ -3217,6 +3241,7 @@ export type Database = {
           assigned_service_vendor_role?: string | null
           assigned_supplier_vendor_role?: string | null
           assigned_to?: string | null
+          assigned_to_display_name?: string | null
           assigned_transportation_role?: string | null
           assigned_venue_role?: string | null
           assignment_type?: string | null
@@ -3255,6 +3280,7 @@ export type Database = {
           assigned_service_vendor_role?: string | null
           assigned_supplier_vendor_role?: string | null
           assigned_to?: string | null
+          assigned_to_display_name?: string | null
           assigned_transportation_role?: string | null
           assigned_venue_role?: string | null
           assignment_type?: string | null
