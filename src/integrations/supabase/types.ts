@@ -326,6 +326,54 @@ export type Database = {
         }
         Relationships: []
       }
+      cm_activity: {
+        Row: {
+          action: string
+          changed_by: string | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          event_id: string | null
+          id: string
+          metadata: Json | null
+        }
+        Insert: {
+          action: string
+          changed_by?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type: string
+          event_id?: string | null
+          id?: string
+          metadata?: Json | null
+        }
+        Update: {
+          action?: string
+          changed_by?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          event_id?: string | null
+          id?: string
+          metadata?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cm_activity_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event_kpi_view"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "cm_activity_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cm_audit_events: {
         Row: {
           created_at: string
@@ -3803,6 +3851,71 @@ export type Database = {
         }
         Relationships: []
       }
+      transportations: {
+        Row: {
+          business_name: string
+          capacity: number | null
+          city: string | null
+          contact_name: string | null
+          created_at: string
+          description: string | null
+          email: string | null
+          id: string
+          phone_number: string | null
+          price: number | null
+          seating_capacity: number | null
+          special_accommodations: string[] | null
+          state: string | null
+          transp_type_id: number | null
+          updated_at: string
+          zip: string | null
+        }
+        Insert: {
+          business_name: string
+          capacity?: number | null
+          city?: string | null
+          contact_name?: string | null
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          id?: string
+          phone_number?: string | null
+          price?: number | null
+          seating_capacity?: number | null
+          special_accommodations?: string[] | null
+          state?: string | null
+          transp_type_id?: number | null
+          updated_at?: string
+          zip?: string | null
+        }
+        Update: {
+          business_name?: string
+          capacity?: number | null
+          city?: string | null
+          contact_name?: string | null
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          id?: string
+          phone_number?: string | null
+          price?: number | null
+          seating_capacity?: number | null
+          special_accommodations?: string[] | null
+          state?: string | null
+          transp_type_id?: number | null
+          updated_at?: string
+          zip?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transportations_transp_type_id_fkey1"
+            columns: ["transp_type_id"]
+            isOneToOne: false
+            referencedRelation: "transportation_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       "User Profile": {
         Row: {
           Biz_Name: string | null
@@ -4366,6 +4479,7 @@ export type Database = {
           id: string
           serv_vendor_id: string | null
           serv_vendor_rent_id: string | null
+          serv_vendor_sup_id: string | null
           supplier_id: string | null
           theme_id: number | null
           transportation_id: string | null
@@ -4385,6 +4499,7 @@ export type Database = {
           id?: string
           serv_vendor_id?: string | null
           serv_vendor_rent_id?: string | null
+          serv_vendor_sup_id?: string | null
           supplier_id?: string | null
           theme_id?: number | null
           transportation_id?: string | null
@@ -4404,6 +4519,7 @@ export type Database = {
           id?: string
           serv_vendor_id?: string | null
           serv_vendor_rent_id?: string | null
+          serv_vendor_sup_id?: string | null
           supplier_id?: string | null
           theme_id?: number | null
           transportation_id?: string | null
@@ -4450,6 +4566,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "workflows_serv_vendor_sup_id_fkey1"
+            columns: ["serv_vendor_sup_id"]
+            isOneToOne: false
+            referencedRelation: "serv_vendor_suppliers"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "workflows_supplier_id_fkey"
             columns: ["supplier_id"]
             isOneToOne: false
@@ -4481,6 +4604,35 @@ export type Database = {
       }
     }
     Views: {
+      cm_activity_with_event: {
+        Row: {
+          action: string | null
+          changed_by: string | null
+          created_at: string | null
+          entity_id: string | null
+          entity_type: string | null
+          event_id: string | null
+          event_title: string | null
+          id: string | null
+          metadata: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cm_activity_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event_kpi_view"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "cm_activity_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       create_event_safe: {
         Row: {
           booking_type: string[] | null
@@ -4987,7 +5139,12 @@ export type Database = {
         | "workflow_update"
         | "note"
         | "budget"
-      event_status_enum: "pending" | "in_progress" | "completed" | "cancelled"
+      event_status_enum:
+        | "pending"
+        | "in_progress"
+        | "completed"
+        | "cancelled"
+        | "confirmed"
       permission_level: "admin" | "coordinator" | "viewer"
       task_priority: "low" | "medium" | "high" | "urgent"
       task_status:
@@ -5165,7 +5322,13 @@ export const Constants = {
         "note",
         "budget",
       ],
-      event_status_enum: ["pending", "in_progress", "completed", "cancelled"],
+      event_status_enum: [
+        "pending",
+        "in_progress",
+        "completed",
+        "cancelled",
+        "confirmed",
+      ],
       permission_level: ["admin", "coordinator", "viewer"],
       task_priority: ["low", "medium", "high", "urgent"],
       task_status: [
