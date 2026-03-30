@@ -179,6 +179,45 @@ export type Database = {
         }
         Relationships: []
       }
+      change_logs: {
+        Row: {
+          action: string
+          change_description: string | null
+          changed_by: string
+          created_at: string
+          entity_id: string
+          entity_type: string
+          field_name: string | null
+          id: string
+          new_value: string | null
+          old_value: string | null
+        }
+        Insert: {
+          action: string
+          change_description?: string | null
+          changed_by: string
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          field_name?: string | null
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+        }
+        Update: {
+          action?: string
+          change_description?: string | null
+          changed_by?: string
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          field_name?: string | null
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+        }
+        Relationships: []
+      }
       change_requests: {
         Row: {
           applied_at: string | null
@@ -5158,6 +5197,12 @@ export type Database = {
         | "sponsor"
         | "stakeholder"
         | "venue_manager"
+        | "admin"
+        | "event_manager"
+        | "vendor_coordinator"
+        | "budget_manager"
+        | "task_coordinator"
+        | "client"
       budget_category:
         | "venue"
         | "catering"
@@ -5337,6 +5382,12 @@ export const Constants = {
         "sponsor",
         "stakeholder",
         "venue_manager",
+        "admin",
+        "event_manager",
+        "vendor_coordinator",
+        "budget_manager",
+        "task_coordinator",
+        "client",
       ],
       budget_category: [
         "venue",
