@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Package, Truck, ShoppingCart, Store, Building, MapPin, Phone, Mail } from "lucide-react";
+import { DirectoryPageHeader } from "@/components/resource-directory/DirectoryPageHeader";
 
 interface Supplier {
   id: string;
@@ -91,12 +92,10 @@ export default function SupplierDirectory() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">External Vendor Directory</h1>
-        <p className="text-muted-foreground">
-          Browse and select external vendors for your event needs
-        </p>
-      </div>
+      <DirectoryPageHeader
+        title="External Vendor Directory"
+        subtitle="Filter by category, then browse vendor profiles"
+      />
 
       <Card>
         <CardHeader>

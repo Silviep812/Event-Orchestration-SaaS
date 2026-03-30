@@ -5,27 +5,50 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { useEventFilter } from "@/hooks/useEventFilter";
 import { CheckCircle2, Clock, DollarSign, Users } from "lucide-react";
 import { format } from "date-fns";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useEffect } from "react";
 
 export default function ProjectManagement() {
-  const { selectedEventFilter, setSelectedEventFilter, events } = useEventFilter();
+  const { selectedEventFilter, setSelectedEventFilter, events, eventsLoading } = useEventFilter();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // Only apply ?eventId= once events are loaded. Radix Select throws if `value` has no matching SelectItem.
+  useEffect(() => {
+    const eid = searchParams.get("eventId");
+    if (!eid || eventsLoading) return;
+    if (events.some((e) => e.id === eid)) {
+      setSelectedEventFilter(eid);
+    }
+  }, [searchParams, events, eventsLoading, setSelectedEventFilter]);
+
+  const selectFilterValue =
+    selectedEventFilter === "all" || events.some((e) => e.id === selectedEventFilter)
+      ? selectedEventFilter
+      : "all";
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold">Project Management</h1>
           <p className="text-muted-foreground">
             Manage tasks, track budgets, and assign roles for your events
           </p>
         </div>
+        <div className="flex flex-wrap items-center gap-4">
+          <Button type="button" variant="outline" onClick={() => navigate("/dashboard")}>
+            Save and exit
+          </Button>
         <div className="flex items-center gap-4">
           <Label htmlFor="event-filter" className="text-sm font-medium">
             Filter by Event:
           </Label>
-          <Select value={selectedEventFilter} onValueChange={setSelectedEventFilter}>
+          <Select value={selectFilterValue} onValueChange={setSelectedEventFilter}>
             <SelectTrigger className="w-64">
               <SelectValue placeholder="Select an event to filter" />
             </SelectTrigger>
@@ -38,6 +61,7 @@ export default function ProjectManagement() {
               ))}
             </SelectContent>
           </Select>
+        </div>
         </div>
       </div>
 

@@ -1,5 +1,5 @@
 -- Create change_logs table for tracking changes to tasks and events
-CREATE TABLE public.change_logs (
+CREATE TABLE IF NOT EXISTS public.change_logs (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   entity_type TEXT NOT NULL CHECK (entity_type IN ('task', 'event', 'budget_item')),
   entity_id UUID NOT NULL,
@@ -16,6 +16,7 @@ CREATE TABLE public.change_logs (
 ALTER TABLE public.change_logs ENABLE ROW LEVEL SECURITY;
 
 -- Create policies for change_logs
+DROP POLICY IF EXISTS "Users can view change logs for their data" ON public.change_logs;
 CREATE POLICY "Users can view change logs for their data" 
 ON public.change_logs 
 FOR SELECT 
@@ -25,13 +26,14 @@ USING (
   changed_by = auth.uid()
 );
 
+DROP POLICY IF EXISTS "System can create change logs" ON public.change_logs;
 CREATE POLICY "System can create change logs" 
 ON public.change_logs 
 FOR INSERT 
 WITH CHECK (changed_by = auth.uid());
 
 -- Create notifications table for coordinator notifications
-CREATE TABLE public.notifications (
+CREATE TABLE IF NOT EXISTS public.notifications (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   recipient_id UUID NOT NULL,
   sender_id UUID,
@@ -48,16 +50,19 @@ CREATE TABLE public.notifications (
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 
 -- Create policies for notifications
+DROP POLICY IF EXISTS "Users can view their own notifications" ON public.notifications;
 CREATE POLICY "Users can view their own notifications" 
 ON public.notifications 
 FOR SELECT 
 USING (recipient_id = auth.uid());
 
+DROP POLICY IF EXISTS "Users can create notifications" ON public.notifications;
 CREATE POLICY "Users can create notifications" 
 ON public.notifications 
 FOR INSERT 
 WITH CHECK (sender_id = auth.uid() OR sender_id IS NULL);
 
+DROP POLICY IF EXISTS "Users can update their own notifications" ON public.notifications;
 CREATE POLICY "Users can update their own notifications" 
 ON public.notifications 
 FOR UPDATE 

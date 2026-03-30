@@ -13,5 +13,8 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
-  }
+    // Email links, magic links, and OAuth return tokens in the URL; this reduces failed sessions after redirect.
+    detectSessionInUrl: true,
+    flowType: 'pkce',
+  },
 });

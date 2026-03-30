@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,7 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { getAuthErrorDescription } from '@/lib/authErrors';
-import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
+import { MarketingTopBar } from '@/components/MarketingTopBar';
 
 export default function Auth() {
   const [email, setEmail] = useState('');
@@ -121,24 +122,10 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
+    <div className="min-h-screen bg-background flex flex-col">
+      <MarketingTopBar page="auth" />
+      <div className="flex-1 flex items-center justify-center bg-muted/30 p-4">
       <div className="w-full max-w-md">
-        <div className="flex items-center gap-4 mb-6">
-          <Button variant="ghost" size="icon" asChild>
-            <Link to="/">
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
-          </Button>
-          <div className="flex items-center gap-2">
-            <img 
-              src="/lovable-uploads/e8e18250-fa27-4ae4-a4bc-867e063bcfd1.png" 
-              alt="IEP logo" 
-              className="h-8 w-8 object-contain" 
-            />
-            <span className="text-xl font-bold text-primary">IEP</span>
-          </div>
-        </div>
-
         <Card>
           <CardHeader className="text-center">
             <CardTitle className="text-2xl">Welcome to IEP</CardTitle>
@@ -293,4 +280,12 @@ export default function Auth() {
                     {loading ? "Sending..." : "Send Reset Link"}
                   </Button>
                 </form>
-              <                                                                                                                
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+      </div>
+      </div>
+    </div>
+  );
+}

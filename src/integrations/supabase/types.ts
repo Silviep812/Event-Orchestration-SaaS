@@ -230,6 +230,47 @@ export type Database = {
         }
         Relationships: []
       }
+      cm_activity: {
+        Row: {
+          action: string
+          changed_by: string | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          event_id: string | null
+          id: string
+          metadata: Json | null
+        }
+        Insert: {
+          action: string
+          changed_by?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type: string
+          event_id?: string | null
+          id?: string
+          metadata?: Json | null
+        }
+        Update: {
+          action?: string
+          changed_by?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          event_id?: string | null
+          id?: string
+          metadata?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cm_activity_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cm_audit_events: {
         Row: {
           created_at: string
@@ -1079,14 +1120,17 @@ export type Database = {
       }
       events: {
         Row: {
+          archived: boolean
           budget: number | null
           created_at: string
           description: string | null
           end_date: string | null
           end_time: string | null
+          entertainment_id: string | null
           expected_attendees: number | null
           id: string
           location: string | null
+          serv_vendor_rental_id: string | null
           start_date: string
           start_time: string | null
           status: Database["public"]["Enums"]["event_status_enum"] | null
@@ -1098,14 +1142,17 @@ export type Database = {
           venue: string
         }
         Insert: {
+          archived?: boolean
           budget?: number | null
           created_at?: string
           description?: string | null
           end_date?: string | null
           end_time?: string | null
+          entertainment_id?: string | null
           expected_attendees?: number | null
           id?: string
           location?: string | null
+          serv_vendor_rental_id?: string | null
           start_date: string
           start_time?: string | null
           status?: Database["public"]["Enums"]["event_status_enum"] | null
@@ -1117,14 +1164,17 @@ export type Database = {
           venue: string
         }
         Update: {
+          archived?: boolean
           budget?: number | null
           created_at?: string
           description?: string | null
           end_date?: string | null
           end_time?: string | null
+          entertainment_id?: string | null
           expected_attendees?: number | null
           id?: string
           location?: string | null
+          serv_vendor_rental_id?: string | null
           start_date?: string
           start_time?: string | null
           status?: Database["public"]["Enums"]["event_status_enum"] | null
@@ -1141,6 +1191,20 @@ export type Database = {
             columns: ["type_id"]
             isOneToOne: false
             referencedRelation: "event_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_entertainment_id_fkey"
+            columns: ["entertainment_id"]
+            isOneToOne: false
+            referencedRelation: "entertainments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_serv_vendor_rental_id_fkey"
+            columns: ["serv_vendor_rental_id"]
+            isOneToOne: false
+            referencedRelation: "serv_vendor_rentals"
             referencedColumns: ["id"]
           },
         ]
@@ -2480,6 +2544,7 @@ export type Database = {
           assigned_service_vendor_role: string | null
           assigned_supplier_vendor_role: string | null
           assigned_to: string | null
+          assigned_to_display_name: string | null
           assigned_venue_role: string | null
           assined_vendor_role: string | null
           category: string | null
@@ -2506,6 +2571,7 @@ export type Database = {
           assigned_service_vendor_role?: string | null
           assigned_supplier_vendor_role?: string | null
           assigned_to?: string | null
+          assigned_to_display_name?: string | null
           assigned_venue_role?: string | null
           assined_vendor_role?: string | null
           category?: string | null
@@ -2532,6 +2598,7 @@ export type Database = {
           assigned_service_vendor_role?: string | null
           assigned_supplier_vendor_role?: string | null
           assigned_to?: string | null
+          assigned_to_display_name?: string | null
           assigned_venue_role?: string | null
           assined_vendor_role?: string | null
           category?: string | null
@@ -3576,6 +3643,42 @@ export type Database = {
       }
     }
     Views: {
+      cm_activity_with_event: {
+        Row: {
+          action: string | null
+          changed_by: string | null
+          created_at: string | null
+          entity_id: string | null
+          entity_type: string | null
+          event_id: string | null
+          event_title: string | null
+          id: string | null
+          metadata: Json | null
+        }
+        Insert: {
+          action?: string | null
+          changed_by?: string | null
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          event_id?: string | null
+          event_title?: string | null
+          id?: string | null
+          metadata?: Json | null
+        }
+        Update: {
+          action?: string | null
+          changed_by?: string | null
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          event_id?: string | null
+          event_title?: string | null
+          id?: string | null
+          metadata?: Json | null
+        }
+        Relationships: []
+      }
       create_event_safe: {
         Row: {
           booking_type: string[] | null
@@ -3654,30 +3757,6 @@ export type Database = {
           supplier_type?: string[] | null
           transportation_type?: string | null
           userid?: string | null
-        }
-        Relationships: []
-      }
-      user_profiles_teammate_view: {
-        Row: {
-          user_id: string
-          full_name: string | null
-          display_name: string | null
-          role: string | null
-          avatar_url: string | null
-        }
-        Insert: {
-          user_id?: never
-          full_name?: never
-          display_name?: never
-          role?: never
-          avatar_url?: never
-        }
-        Update: {
-          user_id?: never
-          full_name?: never
-          display_name?: never
-          role?: never
-          avatar_url?: never
         }
         Relationships: []
       }
@@ -3916,7 +3995,7 @@ export type Database = {
         | "vendor_update"
         | "workflow_update"
         | "note"
-      event_status_enum: "pending" | "in_progress" | "completed" | "cancelled"
+      event_status_enum: "pending" | "in_progress" | "completed" | "cancelled" | "confirmed"
       permission_level: "admin" | "coordinator" | "viewer"
       task_priority: "low" | "medium" | "high" | "urgent"
       task_status:
@@ -4089,7 +4168,7 @@ export const Constants = {
         "workflow_update",
         "note",
       ],
-      event_status_enum: ["pending", "in_progress", "completed", "cancelled"],
+      event_status_enum: ["pending", "in_progress", "completed", "cancelled", "confirmed"],
       permission_level: ["admin", "coordinator", "viewer"],
       task_priority: ["low", "medium", "high", "urgent"],
       task_status: [

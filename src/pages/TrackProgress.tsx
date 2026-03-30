@@ -365,7 +365,7 @@ export default function TrackProgress() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{projectStats.totalTasks}</div>
-            <Progress value={(projectStats.completedTasks / projectStats.totalTasks) * 100} className="mt-2" />
+            <Progress value={projectStats.totalTasks > 0 ? (projectStats.completedTasks / projectStats.totalTasks) * 100 : 0} className="mt-2" />
             <p className="text-xs text-muted-foreground mt-1">
               {projectStats.completedTasks} completed
             </p>
@@ -393,7 +393,7 @@ export default function TrackProgress() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{projectStats.completedHours}h</div>
-            <Progress value={(projectStats.completedHours / projectStats.totalHours) * 100} className="mt-2" />
+            <Progress value={projectStats.totalHours > 0 ? (projectStats.completedHours / projectStats.totalHours) * 100 : 0} className="mt-2" />
             <p className="text-xs text-muted-foreground mt-1">
               of {projectStats.totalHours}h estimated
             </p>

@@ -10,17 +10,12 @@ import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Upload } from "lucide-react";
+import { getAuthErrorDescription } from "@/lib/authErrors";
 
 const Profile = () => {
   const { user, resetPassword, loading } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-
-  // Debug logging
-  console.log("Profile component rendering, user:", user);
-  console.log("Profile component user email:", user?.email);
-  console.log("Profile component user id:", user?.id);
-  console.log("Profile component loading:", loading);
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -36,28 +31,6 @@ const Profile = () => {
     avatar_url: ""
   });
   const [avatarUploading, setAvatarUploading] = useState(false);
-
-  // Show loading while auth is initializing
-  if (loading) {
-    return (
-      <main className="mx-auto max-w-3xl space-y-6">
-        <div className="text-center">Loading...</div>
-      </main>
-    );
-  }
-
-  // Redirect if not authenticated
-  if (!user) {
-    navigate('/auth');
-    return null;
-  }
-
-  // Load user profile
-  useEffect(() => {
-    if (user?.id) {
-      loadUserProfile();
-    }
-  }, [user?.id]);
 
   useEffect(() => {
     // Basic SEO for this page
@@ -80,6 +53,12 @@ const Profile = () => {
     }
     canonical.setAttribute("href", window.location.href);
   }, [user, navigate]);
+
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate("/auth");
+    }
+  }, [loading, user, navigate]);
 
   const loadUserProfile = async () => {
     if (!user?.id) return;
@@ -154,6 +133,12 @@ const Profile = () => {
       console.error('Error in createUserProfile:', err);
     }
   };
+
+  useEffect(() => {
+    if (user?.id) {
+      void loadUserProfile();
+    }
+  }, [user?.id]);
 
   const updateProfile = async () => {
     if (!user?.id) return;
@@ -305,7 +290,7 @@ const Profile = () => {
         console.error('Reset email error:', error);
         toast({ 
           title: "Reset failed", 
-          description: error.message || "Could not send reset email.", 
+          description: getAuthErrorDescription(error), 
           variant: "destructive" 
         });
         return;
@@ -315,15 +300,28 @@ const Profile = () => {
         title: "Reset email sent", 
         description: "Check your inbox for the password reset link. You will be redirected back to this page." 
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Reset email exception:', err);
+      const msg = err instanceof Error ? err.message : '';
       toast({ 
         title: "Error", 
-        description: "Could not send reset email. Please try again.", 
+        description: msg ? getAuthErrorDescription({ message: msg }) : getAuthErrorDescription({ message: 'Could not send reset email.' }), 
         variant: "destructive" 
       });
     }
   };
+
+  if (loading) {
+    return (
+      <main className="mx-auto max-w-3xl space-y-6">
+        <div className="text-center">Loading...</div>
+      </main>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();

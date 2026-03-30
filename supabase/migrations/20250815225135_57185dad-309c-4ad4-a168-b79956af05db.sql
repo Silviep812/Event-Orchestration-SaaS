@@ -40,6 +40,7 @@ END;
 $$;
 
 -- Create trigger to auto-sync new events
+DROP TRIGGER IF EXISTS sync_new_events_to_manage ON "Create Event";
 CREATE TRIGGER sync_new_events_to_manage
   AFTER INSERT ON "Create Event"
   FOR EACH ROW

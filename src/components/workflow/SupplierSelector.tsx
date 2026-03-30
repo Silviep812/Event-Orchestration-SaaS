@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Phone, Mail, Package, Building } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface Supplier {
   id: string;
@@ -52,6 +53,7 @@ export function SupplierSelector({ onSelectSupplier, selectedSupplier }: Supplie
   const [categoryFilter, setCategoryFilter] = useState("");
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     fetchSuppliers();
@@ -70,6 +72,12 @@ export function SupplierSelector({ onSelectSupplier, selectedSupplier }: Supplie
 
       if (error) {
         console.error('Error fetching external vendors:', error);
+        toast({
+          title: "Error loading external vendors",
+          description: error.message,
+          variant: "destructive",
+        });
+        setSuppliers([]);
       } else {
         setSuppliers(data || []);
       }

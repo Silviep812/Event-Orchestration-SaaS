@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -16,6 +17,7 @@ import { format } from "date-fns";
 import TimelineView from "@/components/timeline/TimelineView";
 import ResourceManager from "@/components/ResourceManager";
 import Analytics from "@/components/Analytics";
+import { TaskManager } from "@/components/TaskManager";
 
 interface ManageEventData {
   id?: string;
@@ -29,11 +31,15 @@ interface ManageEventData {
   location?: string;
   theme_id?: number;
   type_id?: number;
-  status?: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+  status?: 'pending' | 'in_progress' | 'confirmed' | 'completed' | 'cancelled';
   budget?: number;
+  expected_attendees?: number | null;
   created_at?: string;
   updated_at?: string;
   venue?: string;
+  entertainment_id?: string | null;
+  serv_vendor_rental_id?: string | null;
+  archived?: boolean;
 }
 
 interface EventTheme {
@@ -46,6 +52,7 @@ interface EventType {
   id: number;
   name: string;
   theme_id: number;
+  parent_id?: number | null;
 }
 
 interface ChangeLog {
@@ -68,6 +75,38 @@ interface NewRequest {
   type: 'change_request' | 'new_requirement' | 'issue';
 }
 
+/** Postgres `time` rejects ''; optional columns must be split if migration not applied. */
+function coerceTimeForDb(value: string | undefined | null): string | null {
+  if (value == null || value === "") return null;
+  const s = String(value).trim();
+  if (!s) return null;
+  if (s.includes("T")) {
+    const d = new Date(s);
+    if (!Number.isNaN(d.getTime())) return d.toTimeString().slice(0, 8);
+  }
+  return s.length > 8 ? s.slice(0, 8) : s;
+}
+
+function supabaseErrorMessage(err: unknown, fallback: string): string {
+  if (err && typeof err === "object" && "message" in err) {
+    const m = (err as { message?: string }).message;
+    if (typeof m === "string" && m.trim()) return m;
+  }
+  return fallback;
+}
+
+/** Event is considered "past" when its end date (or start date if no end) is before today (local). */
+function isPastEvent(event: { start_date?: string | null; end_date?: string | null }): boolean {
+  const raw = event.end_date || event.start_date;
+  if (!raw) return false;
+  const d = new Date(String(raw).split("T")[0] + "T12:00:00");
+  if (Number.isNaN(d.getTime())) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  d.setHours(0, 0, 0, 0);
+  return d < today;
+}
+
 const ManageEvent = () => {
   const [events, setEvents] = useState<ManageEventData[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<ManageEventData | null>(null);
@@ -85,8 +124,15 @@ const ManageEvent = () => {
   });
   const [eventThemes, setEventThemes] = useState<EventTheme[]>([]);
   const [eventTypes, setEventTypes] = useState<EventType[]>([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+  const [showPastEvents, setShowPastEvents] = useState(false);
+  /** When true, include archived events in the sidebar list (default: only active events). */
+  const [showArchivedEvents, setShowArchivedEvents] = useState(false);
+  const [entertainmentOptions, setEntertainmentOptions] = useState<{ id: string; business_name: string }[]>([]);
+  const [rentalOptions, setRentalOptions] = useState<{ id: string; business_name: string }[]>([]);
   const { toast } = useToast();
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   // Auto-save debounce
   const [saveTimeout, setSaveTimeout] = useState<NodeJS.Timeout | null>(null);
@@ -225,10 +271,17 @@ const ManageEvent = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      const transformedData = data.map(event => ({
-        ...event,
-        theme_id: event.theme_id ? Number(event.theme_id) : undefined
-      }));
+      const transformedData = (data || [])
+        .filter((event) => {
+          const ev = event as ManageEventData;
+          if (ev.archived && !showArchivedEvents) return false;
+          if (!showPastEvents && isPastEvent(ev)) return false;
+          return true;
+        })
+        .map((event) => ({
+          ...event,
+          theme_id: event.theme_id ? Number(event.theme_id) : undefined,
+        }));
       setEvents(transformedData);
     } catch (error) {
       console.error('Error fetching events:', error);
@@ -256,11 +309,26 @@ const ManageEvent = () => {
     }
   };
 
+  useEffect(() => {
+    (async () => {
+      const { data: ent } = await supabase
+        .from("entertainments")
+        .select("id, business_name")
+        .order("business_name");
+      const { data: ren } = await supabase
+        .from("serv_vendor_rentals")
+        .select("id, business_name")
+        .order("business_name");
+      setEntertainmentOptions(ent || []);
+      setRentalOptions(ren || []);
+    })();
+  }, []);
+
   const fetchEventTypes = async (themeId?: number) => {
     try {
       let query = supabase
         .from('event_types')
-        .select('id, name, theme_id')
+        .select('id, name, theme_id, parent_id')
         .order('name');
       
       if (themeId) {
@@ -327,15 +395,18 @@ const ManageEvent = () => {
     try {
       setSaving(true);
 
+      const entId = eventData.entertainment_id?.trim() || null;
+      const rentalId = eventData.serv_vendor_rental_id?.trim() || null;
+
       const { error } = await supabase
-        .from('events')
+        .from("events")
         .update({
           title: eventData.title,
           description: eventData.description,
           start_date: eventData.start_date,
           end_date: eventData.end_date,
-          start_time: eventData.start_time,
-          end_time: eventData.end_time,
+          start_time: coerceTimeForDb(eventData.start_time),
+          end_time: coerceTimeForDb(eventData.end_time),
           location: eventData.location,
           venue: eventData.venue,
           theme_id: eventData.theme_id,
@@ -344,33 +415,54 @@ const ManageEvent = () => {
           budget: eventData.budget,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', eventData.id);
+        .eq("id", eventData.id);
 
       if (error) throw error;
+
+      const { error: linkError } = await supabase
+        .from("events")
+        .update({
+          entertainment_id: entId,
+          serv_vendor_rental_id: rentalId,
+        })
+        .eq("id", eventData.id);
+
+      if (linkError) {
+        console.warn("Optional profile links not saved (run migration deliverable1_events_tasks):", linkError);
+        if (isManual) {
+          toast({
+            title: "Event saved",
+            description:
+              "Core details saved; entertainment/rental links need migration 20260327120000_deliverable1_events_tasks on Supabase.",
+            variant: "default",
+          });
+        }
+      }
 
       // Sync details to resources after successful save
       await syncDetailsToResources(eventData);
 
       if (isManual) {
-        toast({
-          title: "Success",
-          description: "Event saved successfully",
-        });
-        
-        // Log individual field changes when manually saving
+        if (!linkError) {
+          toast({
+            title: "Success",
+            description: "Event saved successfully",
+          });
+        }
+
         for (const [field, change] of Object.entries(pendingChanges)) {
-          await supabase.rpc('log_change', {
-            p_entity_type: 'event',
+          const { error: logErr } = await supabase.rpc("log_change", {
+            p_entity_type: "event",
             p_entity_id: eventData.id,
-            p_action: 'updated',
+            p_action: "updated",
             p_field_name: field,
             p_old_value: change.oldValue?.toString() || null,
             p_new_value: change.newValue?.toString() || null,
-            p_description: `Manual save: ${field} updated`
+            p_description: `Manual save: ${field} updated`,
           });
+          if (logErr) console.error("log_change RPC:", logErr);
         }
-        
-        // Clear pending changes after manual save
+
         setPendingChanges({});
       }
       
@@ -378,7 +470,7 @@ const ManageEvent = () => {
       console.error('Error saving event:', error);
       toast({
         title: "Error",
-        description: "Failed to save event",
+        description: supabaseErrorMessage(error, "Failed to save event"),
         variant: "destructive",
       });
     } finally {
@@ -391,12 +483,12 @@ const ManageEvent = () => {
 
     // Trial version date restriction
     if ((field === 'start_date' || field === 'end_date') && value) {
-      const trialEnd = new Date('2025-12-31T23:59:59');
+      const trialEnd = new Date('2026-04-30T23:59:59');
       const newDate = new Date(value);
       if (newDate > trialEnd) {
         toast({
           title: "Trial Limitation",
-          description: "The trial version doesn't allow events with dates after December 31st, 2025.",
+          description: "The trial version doesn't allow events with dates after April 30th, 2026.",
           variant: "destructive",
         });
         return;
@@ -503,36 +595,169 @@ const ManageEvent = () => {
     }
   };
 
-  const submitNewRequest = async () => {
+  /** Restore event + its tasks to active (not archived). SOW: `events.archived` column; restore is product complement to archive. */
+  const restoreArchivedEvent = async () => {
+    if (!selectedEvent?.id || !selectedEvent.archived) return;
+    if (!window.confirm("Restore this event and its tasks? They will appear in the default list again.")) return;
     try {
-      // Notify coordinators
-      await supabase.rpc('notify_coordinators', {
-        p_title: `New ${newRequest.type.replace('_', ' ')}: ${newRequest.title}`,
+      const { error: evErr } = await supabase
+        .from("events")
+        .update({ archived: false, updated_at: new Date().toISOString() })
+        .eq("id", selectedEvent.id);
+      if (evErr) throw evErr;
+      const { error: taskErr } = await supabase
+        .from("tasks")
+        .update({ archived: false })
+        .eq("event_id", selectedEvent.id);
+      if (taskErr) throw taskErr;
+      toast({
+        title: "Event restored",
+        description: `"${selectedEvent.title}" and its tasks are active again.`,
+      });
+      setSelectedEvent((prev) => (prev ? { ...prev, archived: false } : null));
+      fetchEvents();
+    } catch (e) {
+      console.error(e);
+      toast({ title: "Error", description: "Could not restore event", variant: "destructive" });
+    }
+  };
+
+  const submitNewRequest = async () => {
+    if (!user || !selectedEvent?.id) {
+      toast({
+        title: "Select an event",
+        description: "Choose an event before submitting a change request.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (selectedEvent.archived) {
+      toast({
+        title: "Event is archived",
+        description: "Restore the event before submitting a new request.",
+        variant: "destructive",
+      });
+      return;
+    }
+    try {
+      const { error: taskErr } = await supabase.from("tasks").insert({
+        title: `[${newRequest.type.replace(/_/g, " ")}] ${newRequest.title}`,
+        description: newRequest.description,
+        event_id: selectedEvent.id,
+        priority: newRequest.priority,
+        status: "not_started",
+        category: "Change Management",
+        created_by: user.id,
+      });
+      if (taskErr) throw taskErr;
+
+      await supabase.rpc("notify_coordinators", {
+        p_title: `New ${newRequest.type.replace("_", " ")}: ${newRequest.title}`,
         p_message: newRequest.description,
-        p_type: 'new_request',
-        p_entity_type: selectedEvent ? 'event' : null,
-        p_entity_id: selectedEvent?.id || null
+        p_type: "new_request",
+        p_entity_type: "event",
+        p_entity_id: selectedEvent.id,
       });
 
       toast({
         title: "Request Submitted",
-        description: "Your request has been sent to coordinators",
+        description: "Posted to Project Management tasks and coordinators notified.",
       });
 
       setNewRequestDialog(false);
       setNewRequest({
-        title: '',
-        description: '',
-        priority: 'medium',
-        type: 'change_request'
+        title: "",
+        description: "",
+        priority: "medium",
+        type: "change_request",
       });
     } catch (error) {
-      console.error('Error submitting request:', error);
+      console.error("Error submitting request:", error);
       toast({
         title: "Error",
         description: "Failed to submit request",
         variant: "destructive",
       });
+    }
+  };
+
+  // Review & Confirm: set event status to 'confirmed', log to cm_activity, send Resend notification
+  const reviewAndConfirm = async () => {
+    if (!user || !selectedEvent?.id) {
+      toast({
+        title: "Select an event",
+        description: "Choose an event before confirming.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setSaving(true);
+
+      // 1. Update event status to 'confirmed'
+      const { error: statusErr } = await supabase
+        .from("events")
+        .update({ status: "confirmed", updated_at: new Date().toISOString() })
+        .eq("id", selectedEvent.id);
+      if (statusErr) throw statusErr;
+
+      // 2. Write cm_activity entry directly (trigger also fires, this is for explicit logging)
+      const { error: actErr } = await supabase
+        .from("cm_activity" as any)
+        .insert({
+          event_id: selectedEvent.id,
+          entity_type: "event",
+          entity_id: selectedEvent.id,
+          action: "confirmed",
+          changed_by: user.id,
+          metadata: {
+            title: selectedEvent.title,
+            status: "confirmed",
+            budget: selectedEvent.budget,
+            expected_attendees: selectedEvent.expected_attendees,
+          },
+        });
+      if (actErr) console.warn("cm_activity insert (run migration 20260327160000):", actErr);
+
+      // 3. Mark open change-request tasks for this event as completed (PM sync)
+      const { error: taskSyncErr } = await supabase
+        .from("tasks")
+        .update({ status: "completed" } as any)
+        .eq("event_id", selectedEvent.id)
+        .eq("category", "Change Management")
+        .in("status", ["not_started", "in_progress"]);
+      if (taskSyncErr) console.warn("task PM sync:", taskSyncErr);
+
+      // 4. Notify via Resend (using existing notify_coordinators RPC)
+      const { error: notifyErr } = await supabase.rpc("notify_coordinators", {
+        p_title: `Event Confirmed: ${selectedEvent.title}`,
+        p_message: `Event "${selectedEvent.title}" has been reviewed and confirmed by the planner.`,
+        p_type: "event_confirmed",
+        p_entity_type: "event",
+        p_entity_id: selectedEvent.id,
+      });
+      if (notifyErr) console.warn("notify_coordinators:", notifyErr);
+
+      // 5. Update local state
+      setSelectedEvent(prev => prev ? { ...prev, status: "confirmed" } : prev);
+      setEvents(prev =>
+        prev.map(e => e.id === selectedEvent.id ? { ...e, status: "confirmed" } : e)
+      );
+
+      toast({
+        title: "Event Confirmed",
+        description: `"${selectedEvent.title}" status set to Confirmed. Notification sent.`,
+      });
+    } catch (error) {
+      console.error("Error confirming event:", error);
+      toast({
+        title: "Error",
+        description: supabaseErrorMessage(error, "Failed to confirm event"),
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -589,6 +814,10 @@ const ManageEvent = () => {
   }, [selectedEvent?.theme_id]);
 
   useEffect(() => {
+    if (user) fetchEvents();
+  }, [user, showPastEvents, showArchivedEvents]);
+
+  useEffect(() => {
     if (selectedEvent?.id) {
       fetchChangeLogs(selectedEvent.id);
     }
@@ -603,6 +832,20 @@ const ManageEvent = () => {
     }
   }, [selectedEvent?.budget]);
 
+  // Infer Event Category from type_id whenever event or types change
+  useEffect(() => {
+    if (!selectedEvent?.type_id || eventTypes.length === 0) return;
+    const currentType = eventTypes.find(t => t.id === selectedEvent.type_id);
+    if (!currentType) return;
+    if (currentType.parent_id) {
+      // It's a sub-type; category is its parent
+      setSelectedCategoryId(currentType.parent_id);
+    } else {
+      // It's a top-level category itself
+      setSelectedCategoryId(currentType.id);
+    }
+  }, [selectedEvent?.type_id, eventTypes]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -616,23 +859,54 @@ const ManageEvent = () => {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-            Manage Events
+            Manage Event
           </h1>
           <p className="text-muted-foreground">
-            Real-time event management with change tracking
+            Select an event in the list, then use tabs for details, timeline, resources, analytics, and change log. Use{" "}
+            <span className="font-medium text-foreground">Show past</span> /{" "}
+            <span className="font-medium text-foreground">Show archived</span> in the Events card to widen the list.{" "}
+            <span className="font-medium text-foreground">New Request</span> needs an active (non-archived) event. Use{" "}
+            <span className="font-medium text-foreground">Restore event</span> after turning on{" "}
+            <span className="font-medium text-foreground">Show archived</span>.
           </p>
         </div>
         
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+        <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 sm:justify-end max-w-full min-w-0">
           <Button 
-            onClick={() => window.location.href = '/dashboard/create-event'}
-            className="bg-gradient-to-r from-primary to-secondary text-primary-foreground hover:opacity-90"
+            onClick={() => navigate('/dashboard/create-event')}
+            className="bg-gradient-to-r from-primary to-secondary text-primary-foreground hover:opacity-90 shrink-0"
           >
             <Plus className="w-4 h-4 mr-2" />
-            New Managed Event
+            New Resource
           </Button>
+          {selectedEvent?.id && !selectedEvent.archived && (
+            <Button
+              type="button"
+              variant="outline"
+              className="shrink-0"
+              onClick={async () => {
+                if (!selectedEvent.id || !window.confirm("Archive this entire event and its tasks?")) return;
+                try {
+                  await supabase.from("events").update({ archived: true }).eq("id", selectedEvent.id);
+                  await supabase.from("tasks").update({ archived: true }).eq("event_id", selectedEvent.id);
+                  toast({ title: "Event archived", description: "Event and its tasks are archived." });
+                  setSelectedEvent(null);
+                  fetchEvents();
+                } catch (e) {
+                  toast({ title: "Error", description: "Could not archive event", variant: "destructive" });
+                }
+              }}
+            >
+              Archive event
+            </Button>
+          )}
+          {selectedEvent?.id && selectedEvent.archived && (
+            <Button type="button" variant="default" className="shrink-0" onClick={restoreArchivedEvent}>
+              Restore event
+            </Button>
+          )}
           
-          <div className="flex items-center gap-2 text-sm">
+          <div className="flex items-center gap-2 text-sm shrink-0">
             <input
               type="checkbox"
               id="autosave"
@@ -643,13 +917,23 @@ const ManageEvent = () => {
             <label htmlFor="autosave">Auto-save</label>
           </div>
           
+          <Button
+            type="button"
+            className="bg-gradient-primary hover:opacity-90 transition-opacity shrink-0"
+            disabled={!selectedEvent?.id || !!selectedEvent?.archived}
+            title={
+              !selectedEvent?.id
+                ? "Select an event in the list first"
+                : selectedEvent?.archived
+                  ? "Restore the event first to submit a new request"
+                  : undefined
+            }
+            onClick={() => setNewRequestDialog(true)}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            New Request
+          </Button>
           <Dialog open={newRequestDialog} onOpenChange={setNewRequestDialog}>
-            <DialogTrigger asChild>
-              <Button className="bg-gradient-primary hover:opacity-90 transition-opacity">
-                <Plus className="h-4 w-4 mr-2" />
-                New Request
-              </Button>
-            </DialogTrigger>
             <DialogContent className="w-full max-w-md mx-auto">
               <DialogHeader>
                 <DialogTitle>Submit New Request</DialogTitle>
@@ -733,34 +1017,82 @@ const ManageEvent = () => {
         {/* Events List */}
         <Card className="lg:col-span-1 shadow-elegant border-0 bg-gradient-subtle">
           <CardHeader className="border-b border-border/50">
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-primary" />
-              Events
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="h-5 w-5 text-primary" />
+                Events
+              </CardTitle>
+              <div className="flex flex-col items-end gap-1 gap-x-2 sm:flex-row sm:items-center">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs text-muted-foreground h-7 px-2"
+                  onClick={() => setShowPastEvents((prev) => !prev)}
+                >
+                  {showPastEvents ? "Hide past" : "Show past"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs text-muted-foreground h-7 px-2"
+                  onClick={() => setShowArchivedEvents((prev) => !prev)}
+                >
+                  {showArchivedEvents ? "Hide archived" : "Show archived"}
+                </Button>
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="p-0">
             <div className="max-h-96 overflow-y-auto">
-              {events.map((event, index) => (
-                <div
-                  key={event.id || index}
-                  className={`p-4 border-b border-border/30 cursor-pointer transition-all hover:bg-surface/50 ${
-                    selectedEvent?.id === event.id ? 'bg-primary/10 border-l-4 border-l-primary' : ''
-                  }`}
-                  onClick={() => setSelectedEvent(event)}
-                >
-                  <div className="font-medium text-sm truncate">
-                    {event.title || 'Unnamed Event'}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {getStatusDisplay(event.status)}
-                  </div>
-                  {event.start_date && (
-                    <div className="text-xs text-muted-foreground">
-                      {format(new Date(event.start_date + 'T00:00:00'), 'MMM dd, yyyy')}
-                    </div>
-                  )}
+              {events.length === 0 ? (
+                <div className="p-6 text-center text-sm text-muted-foreground">
+                  No events match these filters. Try{" "}
+                  <button
+                    type="button"
+                    className="text-primary underline underline-offset-2"
+                    onClick={() => {
+                      setShowPastEvents(true);
+                      setShowArchivedEvents(true);
+                    }}
+                  >
+                    show past and archived
+                  </button>
+                  , or create one with <span className="font-medium">New Resource</span>.
                 </div>
-              ))}
+              ) : (
+                events.map((event, index) => (
+                  <div
+                    key={event.id || index}
+                    className={`p-4 border-b border-border/30 cursor-pointer transition-all hover:bg-surface/50 ${
+                      selectedEvent?.id === event.id ? "bg-primary/10 border-l-4 border-l-primary" : ""
+                    }`}
+                    onClick={async () => {
+                      setSelectedEvent(event);
+                      setSelectedCategoryId(null);
+                      if (event.type_id && event.theme_id) {
+                        await fetchEventTypes(event.theme_id);
+                      }
+                    }}
+                  >
+                    <div className="font-medium text-sm truncate">{event.title || "Unnamed Event"}</div>
+                    <div className="flex flex-wrap items-center gap-1">
+                      <span className="text-xs text-muted-foreground">{getStatusDisplay(event.status)}</span>
+                      {event.archived && (
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                          Archived
+                        </Badge>
+                      )}
+                    </div>
+                    {event.start_date && (
+                      <div className="text-xs text-muted-foreground">
+                        {format(new Date(event.start_date + "T00:00:00"), "MMM dd, yyyy")}
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
             </div>
           </CardContent>
         </Card>
@@ -797,7 +1129,7 @@ const ManageEvent = () => {
                   <CardHeader className="border-b border-border/50">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                       <CardTitle>Event Details</CardTitle>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         {saving && (
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
@@ -813,6 +1145,57 @@ const ManageEvent = () => {
                           >
                             <Save className="h-4 w-4 mr-2" />
                             Save Changes
+                          </Button>
+                        )}
+                        {selectedEvent?.status !== "confirmed" && (
+                          <Button
+                            onClick={reviewAndConfirm}
+                            size="sm"
+                            disabled={saving}
+                            className="bg-green-600 hover:bg-green-700 text-white"
+                          >
+                            <AlertCircle className="h-4 w-4 mr-2" />
+                            Review & Confirm
+                          </Button>
+                        )}
+                        {selectedEvent?.status === "confirmed" && (
+                          <span className="text-xs font-medium text-green-600 border border-green-300 rounded px-2 py-1">
+                            Confirmed
+                          </span>
+                        )}
+                        {!selectedEvent.archived ? (
+                          <Button
+                            onClick={async () => {
+                              if (!selectedEvent?.id) return;
+                              if (!window.confirm("Archive this event? It will be hidden from the default list.")) return;
+                              const { error } = await supabase
+                                .from("events")
+                                .update({ archived: true, updated_at: new Date().toISOString() } as any)
+                                .eq("id", selectedEvent.id);
+                              if (error) {
+                                toast({ title: "Error", description: "Failed to archive event", variant: "destructive" });
+                              } else {
+                                await supabase.from("tasks").update({ archived: true }).eq("event_id", selectedEvent.id);
+                                toast({ title: "Archived", description: `"${selectedEvent.title}" has been archived.` });
+                                setSelectedEvent(null);
+                                fetchEvents();
+                              }
+                            }}
+                            size="sm"
+                            variant="outline"
+                            disabled={saving}
+                            className="text-muted-foreground border-muted"
+                          >
+                            Archive Event
+                          </Button>
+                        ) : (
+                          <Button
+                            type="button"
+                            onClick={restoreArchivedEvent}
+                            size="sm"
+                            disabled={saving}
+                          >
+                            Restore Event
                           </Button>
                         )}
                       </div>
@@ -843,6 +1226,7 @@ const ManageEvent = () => {
                           <SelectContent>
                             <SelectItem value="pending">Pending</SelectItem>
                             <SelectItem value="in_progress">In Progress</SelectItem>
+                            <SelectItem value="confirmed">Confirmed</SelectItem>
                             <SelectItem value="completed">Completed</SelectItem>
                             <SelectItem value="cancelled">Cancelled</SelectItem>
                           </SelectContent>
@@ -895,16 +1279,14 @@ const ManageEvent = () => {
                           value={selectedEvent.theme_id?.toString() || ''}
                           onValueChange={async (value) => {
                             const themeId = parseInt(value);
-                            // Set theme and reset type immediately
                             setSelectedEvent(prev => prev ? { ...prev, theme_id: themeId, type_id: undefined } : prev);
-                            // Fetch event types for the new theme and update eventTypes immediately
+                            setSelectedCategoryId(null);
                             try {
-                              let query = supabase
+                              const { data, error } = await supabase
                                 .from('event_types')
-                                .select('id, name, theme_id')
+                                .select('id, name, theme_id, parent_id')
+                                .eq('theme_id', themeId)
                                 .order('name');
-                              query = query.eq('theme_id', themeId);
-                              const { data, error } = await query;
                               if (!error && data) {
                                 setEventTypes(data);
                               } else {
@@ -913,6 +1295,7 @@ const ManageEvent = () => {
                             } catch (err) {
                               setEventTypes([]);
                             }
+                            handleFieldChange('theme_id', themeId);
                           }}
                         >
                           <SelectTrigger className="bg-background border-border z-50">
@@ -922,6 +1305,7 @@ const ManageEvent = () => {
                             {eventThemes.map((theme) => (
                               <SelectItem key={theme.id} value={theme.id.toString()}>
                                 {theme.name}
+                                {theme.premium ? " (Premium)" : ""}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -929,29 +1313,66 @@ const ManageEvent = () => {
                       </div>
                       
                       <div>
-                        <Label htmlFor="type">Event Type</Label>
+                        <Label htmlFor="eventCategory">Event Category</Label>
                         <Select
-                          value={selectedEvent.type_id?.toString() || ''}
-                          onValueChange={(value) => handleFieldChange('type_id', parseInt(value))}
+                          value={selectedCategoryId?.toString() || ''}
+                          onValueChange={(value) => {
+                            const catId = parseInt(value);
+                            setSelectedCategoryId(catId);
+                            // If current type_id is not a child of this category, reset it
+                            const currentType = eventTypes.find(t => t.id === selectedEvent?.type_id);
+                            if (!currentType || currentType.parent_id !== catId) {
+                              // The category itself is the type when no sub-types; pick the category as type_id
+                              setSelectedEvent(prev => prev ? { ...prev, type_id: undefined } : prev);
+                            }
+                          }}
                           disabled={!selectedEvent.theme_id}
                         >
-                          <SelectTrigger className="bg-background border-border z-50">
-                            <SelectValue 
-                              placeholder={
-                                selectedEvent.theme_id 
-                                  ? "Select event type" 
-                                  : "Select theme first"
-                              } 
+                          <SelectTrigger className="bg-background border-border z-50" id="eventCategory">
+                            <SelectValue
+                              placeholder={selectedEvent.theme_id ? "Select event category" : "Select theme first"}
                             />
                           </SelectTrigger>
                           <SelectContent className="bg-background border-border shadow-lg z-50">
                             {eventTypes
-                              .filter(type => type.theme_id === selectedEvent.theme_id)
-                              .map((type) => (
+                              .filter(t => !t.parent_id)
+                              .map((cat) => (
+                                <SelectItem key={cat.id} value={cat.id.toString()}>
+                                  {cat.name}
+                                </SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="eventType">Event Type</Label>
+                        <Select
+                          value={selectedEvent.type_id?.toString() || ''}
+                          onValueChange={(value) => handleFieldChange('type_id', parseInt(value))}
+                          disabled={!selectedCategoryId}
+                        >
+                          <SelectTrigger className="bg-background border-border z-50" id="eventType">
+                            <SelectValue
+                              placeholder={selectedCategoryId ? "Select event type" : "Select category first"}
+                            />
+                          </SelectTrigger>
+                          <SelectContent className="bg-background border-border shadow-lg z-50">
+                            {(() => {
+                              const children = eventTypes.filter(t => t.parent_id === selectedCategoryId);
+                              if (children.length === 0 && selectedCategoryId) {
+                                // Category has no sub-types: allow selecting the category itself as the type
+                                const cat = eventTypes.find(t => t.id === selectedCategoryId);
+                                return cat ? (
+                                  <SelectItem key={cat.id} value={cat.id.toString()}>{cat.name}</SelectItem>
+                                ) : null;
+                              }
+                              return children.map((type) => (
                                 <SelectItem key={type.id} value={type.id.toString()}>
                                   {type.name}
                                 </SelectItem>
-                              ))}
+                              ));
+                            })()}
                           </SelectContent>
                         </Select>
                       </div>
@@ -974,6 +1395,50 @@ const ManageEvent = () => {
                           onChange={(e) => handleFieldChange('location', e.target.value)}
                           placeholder="Enter event location"
                         />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="entertainment_id">Entertainment Profile</Label>
+                        <Select
+                          value={selectedEvent.entertainment_id || "__none__"}
+                          onValueChange={(v) =>
+                            handleFieldChange("entertainment_id", v === "__none__" ? null : v)
+                          }
+                        >
+                          <SelectTrigger id="entertainment_id">
+                            <SelectValue placeholder="Optional" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">None</SelectItem>
+                            {entertainmentOptions.map((o) => (
+                              <SelectItem key={o.id} value={o.id}>
+                                {o.business_name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="serv_vendor_rental_id">External Vendor Profile</Label>
+                        <Select
+                          value={selectedEvent.serv_vendor_rental_id || "__none__"}
+                          onValueChange={(v) =>
+                            handleFieldChange("serv_vendor_rental_id", v === "__none__" ? null : v)
+                          }
+                        >
+                          <SelectTrigger id="serv_vendor_rental_id">
+                            <SelectValue placeholder="Optional" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">None</SelectItem>
+                            {rentalOptions.map((o) => (
+                              <SelectItem key={o.id} value={o.id}>
+                                {o.business_name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                       
                       <div>
@@ -1019,10 +1484,26 @@ const ManageEvent = () => {
               <TabsContent value="timeline">
                 <Card className="shadow-elegant border-0 bg-gradient-subtle">
                   <CardHeader className="border-b border-border/50">
-                    <CardTitle>Timeline & Task Management</CardTitle>
+                    <CardTitle>Timeline and task assignment</CardTitle>
                   </CardHeader>
-                  <CardContent className="p-6">
+                  <CardContent className="p-6 space-y-6">
                     <TimelineView eventId={selectedEvent.id} />
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        onClick={() =>
+                          navigate(
+                            `/dashboard/project-management?eventId=${selectedEvent.id}&openModal=true`
+                          )
+                        }
+                      >
+                        Add task assignment (opens PM Add Task)
+                      </Button>
+                    </div>
+                    <div className="border-t pt-6">
+                      <h3 className="text-lg font-semibold mb-4">Tasks for this event</h3>
+                      <TaskManager eventId={selectedEvent.id} />
+                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -1043,9 +1524,10 @@ const ManageEvent = () => {
               </TabsContent>
 
               <TabsContent value="analytics">
-                <Analytics 
+                <Analytics
+                  eventId={selectedEvent.id}
                   onInteractionTrack={(interaction) => {
-                    console.log('User interaction tracked:', interaction);
+                    console.log("User interaction tracked:", interaction);
                   }}
                 />
               </TabsContent>

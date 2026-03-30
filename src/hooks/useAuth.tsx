@@ -24,7 +24,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchUserRoles = async (userId: string) => {
     try {
-      console.log('useAuth: Starting fetchUserRoles for user:', userId);
       const { data, error } = await supabase
         .from('user_roles')
         .select('role')
@@ -36,7 +35,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
       
-      console.log('useAuth: Fetched user roles:', data);
       setUserRoles(data?.map(item => item.role) || []);
     } catch (error) {
       console.error('useAuth: Exception in fetchUserRoles:', error);
@@ -45,18 +43,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    console.log('useAuth: Starting auth initialization');
-
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        console.log('useAuth: Auth state changed', { event, hasSession: !!session, hasUser: !!session?.user });
+      (_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         
         // Defer role fetching to avoid auth deadlock
         if (session?.user) {
-          console.log('useAuth: Deferring role fetch for user:', session.user.id);
           setTimeout(() => {
             fetchUserRoles(session.user.id);
           }, 0);
@@ -64,16 +58,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUserRoles([]);
         }
         
-        console.log('useAuth: Setting loading to false from auth state change');
         setLoading(false);
       }
     );
 
     // THEN check for existing session
-    console.log('useAuth: Checking for existing session');
     supabase.auth.getSession().then(async ({ data: { session }, error }) => {
-      console.log('useAuth: Got session result', { hasSession: !!session, hasUser: !!session?.user, error });
-      
       if (error) {
         console.error('useAuth: Error getting session:', error);
         setLoading(false);
@@ -84,14 +74,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        console.log('useAuth: Fetching user roles for existing session user:', session.user.id);
-        // Use setTimeout to prevent potential auth deadlock
         setTimeout(() => {
           fetchUserRoles(session.user.id);
         }, 0);
       }
       
-      console.log('useAuth: Setting loading to false from session check');
       setLoading(false);
     }).catch((error) => {
       console.error('useAuth: Session check failed:', error);

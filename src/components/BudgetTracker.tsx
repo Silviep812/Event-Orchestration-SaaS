@@ -82,6 +82,7 @@ export function BudgetTracker({ eventId, selectedEventFilter }: BudgetTrackerPro
 
   // Local state for editing cost fields
   const [editingCost, setEditingCost] = useState<{ [id: string]: { estimated?: string; actual?: string } }>({});
+  const [budgetAddInput, setBudgetAddInput] = useState("");
 
   useEffect(() => {
     let isMounted = true;
@@ -365,6 +366,53 @@ export function BudgetTracker({ eventId, selectedEventFilter }: BudgetTrackerPro
     }
   };
 
+  const addToEventBudget = async () => {
+    const currentEventId = eventId || selectedEventFilter;
+    if (!currentEventId || currentEventId === "all") {
+      toast({
+        title: "Select an event",
+        description: "Choose a single event in the filter before adding to its budget.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const amt = parseFloat(budgetAddInput);
+    if (Number.isNaN(amt) || amt === 0) {
+      toast({
+        title: "Invalid amount",
+        description: "Enter a positive or negative number to adjust the event budget.",
+        variant: "destructive",
+      });
+      return;
+    }
+    try {
+      const { data: row, error: fetchErr } = await supabase
+        .from("events")
+        .select("budget")
+        .eq("id", currentEventId)
+        .maybeSingle();
+      if (fetchErr) throw fetchErr;
+      const next = (row?.budget ?? 0) + amt;
+      const { error } = await supabase
+        .from("events")
+        .update({ budget: next })
+        .eq("id", currentEventId);
+      if (error) throw error;
+      setBudgetAddInput("");
+      await fetchEventBudget();
+      toast({
+        title: "Budget updated",
+        description: `Event budget is now $${next.toFixed(2)}.`,
+      });
+    } catch (e) {
+      toast({
+        title: "Error",
+        description: "Could not update event budget.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const calculateTotals = () => {
     // Start with the event budget
     const totalBudget = eventBudget ?? 0;
@@ -405,6 +453,20 @@ export function BudgetTracker({ eventId, selectedEventFilter }: BudgetTrackerPro
             {showArchived ? "Hide Archived" : "Show Archived"}
           </Button>
         </div>
+        <div className="flex flex-wrap items-center gap-4 justify-end">
+          <div className="flex flex-wrap items-center gap-2">
+            <Input
+              type="number"
+              step="0.01"
+              placeholder="Amount"
+              className="w-32"
+              value={budgetAddInput}
+              onChange={(e) => setBudgetAddInput(e.target.value)}
+            />
+            <Button type="button" variant="secondary" onClick={addToEventBudget}>
+              Add to event budget
+            </Button>
+          </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
             <Button>
@@ -530,6 +592,7 @@ export function BudgetTracker({ eventId, selectedEventFilter }: BudgetTrackerPro
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* Budget Summary */}

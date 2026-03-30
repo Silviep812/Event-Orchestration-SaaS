@@ -1,8 +1,7 @@
--- Create user roles enum
-CREATE TYPE public.app_role AS ENUM ('admin', 'event_manager', 'vendor_coordinator', 'budget_manager', 'task_coordinator', 'client');
+-- app_role enum + labels: migration 20250814071751_ensure_app_role_enum_values.sql (separate txn avoids 55P04)
 
 -- Create user roles table
-CREATE TABLE public.user_roles (
+CREATE TABLE IF NOT EXISTS public.user_roles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
     role app_role NOT NULL,
@@ -10,10 +9,8 @@ CREATE TABLE public.user_roles (
     UNIQUE (user_id, role)
 );
 
--- Enable RLS on user_roles
 ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
 
--- Create security definer function to check roles
 CREATE OR REPLACE FUNCTION public.has_role(_user_id UUID, _role app_role)
 RETURNS BOOLEAN
 LANGUAGE SQL
@@ -28,14 +25,19 @@ AS $$
   )
 $$;
 
--- Create task status enum
-CREATE TYPE public.task_status AS ENUM ('not_started', 'in_progress', 'completed', 'on_hold', 'cancelled');
+DO $$ BEGIN
+  CREATE TYPE public.task_status AS ENUM ('not_started', 'in_progress', 'completed', 'on_hold', 'cancelled');
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
 
--- Create task priority enum  
-CREATE TYPE public.task_priority AS ENUM ('low', 'medium', 'high', 'urgent');
+DO $$ BEGIN
+  CREATE TYPE public.task_priority AS ENUM ('low', 'medium', 'high', 'urgent');
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
 
--- Create tasks table
-CREATE TABLE public.tasks (
+CREATE TABLE IF NOT EXISTS public.tasks (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     event_id UUID,
     title TEXT NOT NULL,
@@ -52,14 +54,15 @@ CREATE TABLE public.tasks (
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
 
--- Enable RLS on tasks
 ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
 
--- Create budget categories enum
-CREATE TYPE public.budget_category AS ENUM ('venue', 'catering', 'entertainment', 'decorations', 'transportation', 'marketing', 'supplies', 'services', 'other');
+DO $$ BEGIN
+  CREATE TYPE public.budget_category AS ENUM ('venue', 'catering', 'entertainment', 'decorations', 'transportation', 'marketing', 'supplies', 'services', 'other');
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
 
--- Create budget items table
-CREATE TABLE public.budget_items (
+CREATE TABLE IF NOT EXISTS public.budget_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     event_id UUID,
     category budget_category NOT NULL,
@@ -76,31 +79,32 @@ CREATE TABLE public.budget_items (
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
 
--- Enable RLS on budget_items
 ALTER TABLE public.budget_items ENABLE ROW LEVEL SECURITY;
 
--- Create RLS policies for user_roles
+DROP POLICY IF EXISTS "Users can view their own roles" ON public.user_roles;
 CREATE POLICY "Users can view their own roles"
 ON public.user_roles
 FOR SELECT
 USING (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "Admins can manage all roles" ON public.user_roles;
 CREATE POLICY "Admins can manage all roles"
 ON public.user_roles
 FOR ALL
 USING (public.has_role(auth.uid(), 'admin'));
 
--- Create RLS policies for tasks
+DROP POLICY IF EXISTS "Users can view tasks assigned to them or created by them" ON public.tasks;
 CREATE POLICY "Users can view tasks assigned to them or created by them"
 ON public.tasks
 FOR SELECT
 USING (
-    assigned_to = auth.uid() OR 
+    assigned_to = auth.uid() OR
     created_by = auth.uid() OR
     public.has_role(auth.uid(), 'admin') OR
     public.has_role(auth.uid(), 'event_manager')
 );
 
+DROP POLICY IF EXISTS "Event managers and admins can create tasks" ON public.tasks;
 CREATE POLICY "Event managers and admins can create tasks"
 ON public.tasks
 FOR INSERT
@@ -110,6 +114,7 @@ WITH CHECK (
     public.has_role(auth.uid(), 'task_coordinator')
 );
 
+DROP POLICY IF EXISTS "Users can update tasks assigned to them" ON public.tasks;
 CREATE POLICY "Users can update tasks assigned to them"
 ON public.tasks
 FOR UPDATE
@@ -120,7 +125,7 @@ USING (
     public.has_role(auth.uid(), 'event_manager')
 );
 
--- Create RLS policies for budget_items
+DROP POLICY IF EXISTS "Users can view budget items for their events" ON public.budget_items;
 CREATE POLICY "Users can view budget items for their events"
 ON public.budget_items
 FOR SELECT
@@ -131,6 +136,7 @@ USING (
     public.has_role(auth.uid(), 'budget_manager')
 );
 
+DROP POLICY IF EXISTS "Budget managers and admins can manage budget items" ON public.budget_items;
 CREATE POLICY "Budget managers and admins can manage budget items"
 ON public.budget_items
 FOR ALL
@@ -140,7 +146,6 @@ USING (
     public.has_role(auth.uid(), 'budget_manager')
 );
 
--- Create triggers for updated_at timestamps
 CREATE OR REPLACE FUNCTION public.update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -149,11 +154,13 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS update_tasks_updated_at ON public.tasks;
 CREATE TRIGGER update_tasks_updated_at
     BEFORE UPDATE ON public.tasks
     FOR EACH ROW
     EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_budget_items_updated_at ON public.budget_items;
 CREATE TRIGGER update_budget_items_updated_at
     BEFORE UPDATE ON public.budget_items
     FOR EACH ROW

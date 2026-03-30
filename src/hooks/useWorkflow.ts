@@ -18,6 +18,13 @@ interface WorkflowData {
   updated_at?: string;
 }
 
+const sanitizeWorkflowUpdates = (
+  updates: Partial<Omit<WorkflowData, 'user_id' | 'event_id'>> & { event_id?: string }
+) =>
+  Object.fromEntries(
+    Object.entries(updates).filter(([, v]) => v !== undefined)
+  ) as typeof updates;
+
 export const useWorkflow = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -72,9 +79,10 @@ export const useWorkflow = () => {
       setWorkflowId(existingWorkflow.id);
 
       if (error) {
+        console.error('saveWorkflowType:', error);
         toast({
           title: "Error",
-          description: "Failed to save workflow type",
+          description: error.message || "Failed to save workflow type",
           variant: "destructive"
         });
         return null;
@@ -132,20 +140,23 @@ export const useWorkflow = () => {
           return false;
         }
 
+        const payload = sanitizeWorkflowUpdates({
+          ...updates,
+          user_id: user.id,
+          event_id: updates.event_id!,
+        });
+
         const { data, error } = await supabase
           .from('workflows')
-          .insert({ 
-            user_id: user.id,
-            event_id: updates.event_id,
-            ...updates
-          })
+          .insert(payload)
           .select()
           .single();
 
         if (error) {
+          console.error('create workflow:', error);
           toast({
             title: "Error",
-            description: "Failed to create workflow",
+            description: error.message || "Failed to create workflow",
             variant: "destructive"
           });
           return false;
@@ -179,17 +190,19 @@ export const useWorkflow = () => {
         .eq('id', effectiveWorkflowId)
         .single();
 
-      // Update existing workflow
+      const cleanUpdates = sanitizeWorkflowUpdates(updates);
+
       const { error } = await supabase
         .from('workflows')
-        .update(updates)
+        .update(cleanUpdates)
         .eq('id', effectiveWorkflowId)
         .eq('user_id', user.id);
 
       if (error) {
+        console.error('updateWorkflowSelections:', error);
         toast({
           title: "Error",
-          description: "Failed to save workflow selections",
+          description: error.message || "Failed to save workflow selections",
           variant: "destructive"
         });
         return false;

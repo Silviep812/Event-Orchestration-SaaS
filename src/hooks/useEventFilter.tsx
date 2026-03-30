@@ -6,6 +6,7 @@ interface Event {
   id: string;
   title: string;
   start_date?: string;
+  archived?: boolean | null;
 }
 
 export function useEventFilter() {
@@ -22,12 +23,13 @@ export function useEventFilter() {
       try {
         const { data, error } = await supabase
           .from('events')
-          .select('id, title, start_date')
+          .select('id, title, start_date, archived')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false });
         
         if (error) throw error;
-        setEvents(data || []);
+        const rows = (data || []).filter((e) => e.archived !== true);
+        setEvents(rows);
       } catch (error) {
         console.error('Error fetching events:', error);
       } finally {

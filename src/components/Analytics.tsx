@@ -5,12 +5,14 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { DatePickerWithRange } from "@/components/ui/date-picker";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, Legend } from 'recharts';
 import { TrendingUp, TrendingDown, Users, Calendar, DollarSign, CheckCircle, Filter, Activity, Target, Clock } from 'lucide-react';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { format, subDays } from "date-fns";
+import { format, subDays, subMonths } from "date-fns";
+import { useAuth } from "@/hooks/useAuth";
 
 interface AnalyticsFilters {
   dateRange: {
@@ -26,7 +28,7 @@ interface KPIData {
   change: string;
   icon: any;
   description: string;
-  trend: 'up' | 'down' | 'neutral';
+  trend: "up" | "down" | "neutral";
 }
 
 interface UserInteraction {
@@ -39,10 +41,12 @@ interface UserInteraction {
 }
 
 interface AnalyticsProps {
+  /** When set (e.g. from Manage Event), metrics are scoped to this event only */
+  eventId?: string;
   onInteractionTrack?: (interaction: UserInteraction) => void;
 }
 
-export default function Analytics({ onInteractionTrack }: AnalyticsProps = {}) {
+export default function Analytics({ eventId, onInteractionTrack }: AnalyticsProps = {}) {
   const [filters, setFilters] = useState<AnalyticsFilters>({
     dateRange: {
       from: subDays(new Date(), 30),
@@ -61,7 +65,29 @@ export default function Analytics({ onInteractionTrack }: AnalyticsProps = {}) {
   });
   
   const [loading, setLoading] = useState(true);
+  const [themeOptions, setThemeOptions] = useState<{ id: number; name: string }[]>([]);
+  const [eventOptions, setEventOptions] = useState<{ id: string; title: string }[]>([]);
+  const [selectedEventId, setSelectedEventId] = useState<string>("all");
   const { toast } = useToast();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    supabase.from("event_themes").select("id, name").order("name").then(({ data }) => {
+      setThemeOptions(data || []);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("events")
+      .select("id, title")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .then(({ data }) => {
+        setEventOptions(data || []);
+      });
+  }, [user?.id]);
 
   // Track user interactions
   const trackInteraction = (action: string, details: any = {}) => {
@@ -85,79 +111,115 @@ export default function Analytics({ onInteractionTrack }: AnalyticsProps = {}) {
   const fetchAnalyticsData = async () => {
     try {
       setLoading(true);
-      
-      // Fetch events data
-      const { data: events, error: eventsError } = await supabase
-        .from('events')
-        .select('*')
-        .gte('created_at', filters.dateRange.from.toISOString())
-        .lte('created_at', filters.dateRange.to.toISOString());
+      const fromIso = filters.dateRange.from.toISOString();
+      const toIso = filters.dateRange.to.toISOString();
 
+      // Resolve the active event scope: prop takes priority, then local picker
+      const activeEventId = eventId || (selectedEventId !== "all" ? selectedEventId : undefined);
+
+      let eventsQuery = supabase
+        .from("events")
+        .select("*")
+        .gte("created_at", fromIso)
+        .lte("created_at", toIso);
+      if (activeEventId) {
+        eventsQuery = eventsQuery.eq("id", activeEventId);
+      } else if (user) {
+        eventsQuery = eventsQuery.eq("user_id", user.id);
+      }
+      const { data: eventsRaw, error: eventsError } = await eventsQuery;
       if (eventsError) throw eventsError;
 
-      // Fetch tasks data
-      const { data: tasks, error: tasksError } = await supabase
-        .from('tasks')
-        .select('*')
-        .gte('created_at', filters.dateRange.from.toISOString())
-        .lte('created_at', filters.dateRange.to.toISOString());
+      let events = eventsRaw || [];
+      if (filters.theme !== "all" && !activeEventId) {
+        const tid = Number(filters.theme);
+        events = events.filter((e) => e.theme_id === tid);
+      }
 
-      if (tasksError) throw tasksError;
+      const taskScopeIds =
+        activeEventId != null && activeEventId !== ""
+          ? [activeEventId]
+          : events.map((e) => e.id);
 
-      // Fetch budget items
+      let tasks: any[] = [];
+      if (taskScopeIds.length > 0) {
+        let tasksQuery = supabase
+          .from("tasks")
+          .select("*")
+          .gte("created_at", fromIso)
+          .lte("created_at", toIso)
+          .in("event_id", taskScopeIds);
+        const { data: tdata, error: tasksError } = await tasksQuery;
+        if (tasksError) throw tasksError;
+        tasks = tdata || [];
+      }
+
       const { data: budgetItems, error: budgetError } = await supabase
-        .from('budget_items')
-        .select('*')
-        .gte('created_at', filters.dateRange.from.toISOString())
-        .lte('created_at', filters.dateRange.to.toISOString());
+        .from("budget_items")
+        .select("*")
+        .gte("created_at", fromIso)
+        .lte("created_at", toIso);
 
       if (budgetError) throw budgetError;
 
-      // Calculate KPIs
-      const totalEvents = events?.length || 0;
-      const completedTasks = tasks?.filter(t => t.status === 'completed').length || 0;
+      const totalEvents = events.length;
+      const completedTasks = tasks?.filter((t) => t.status === "completed").length || 0;
+      const activeTasks =
+        tasks?.filter((t) => t.status === "in_progress" || t.status === "not_started").length || 0;
       const totalTasks = tasks?.length || 0;
-      const taskCompletionRate = totalTasks > 0 ? (completedTasks / totalTasks * 100).toFixed(1) : '0';
-      
-      const avgTaskDuration = tasks?.reduce((acc, task) => {
-        return acc + (task.actual_hours || task.estimated_hours || 0);
-      }, 0) / (tasks?.length || 1);
+      const taskCompletionRate =
+        totalTasks > 0 ? ((completedTasks / totalTasks) * 100).toFixed(1) : "0";
 
-      // Calculate resource utilization (placeholder calculation)
-      const resourceUtilizationRate = '75.5'; // Replace with actual calculation
+      const avgTaskDuration =
+        tasks?.reduce((acc, task) => {
+          return acc + (task.actual_hours || task.estimated_hours || 0);
+        }, 0) / (tasks?.length || 1);
+
+      const resourceUtilizationRate =
+        totalTasks > 0
+          ? ((activeTasks / totalTasks) * 100).toFixed(1)
+          : "0";
 
       const kpis: KPIData[] = [
         {
-          title: "Total Events",
-          value: totalEvents.toString(),
-          change: "+12%",
-          icon: Calendar,
-          description: "This period",
-          trend: 'up'
+          title: "Total Tasks",
+          value: totalTasks.toString(),
+          change: "Selected period",
+          icon: Target,
+          description: "All tasks in scope",
+          trend: "neutral",
+        },
+        {
+          title: "Tasks Active",
+          value: activeTasks.toString(),
+          change: "In progress + not started",
+          icon: Activity,
+          description: "Currently active",
+          trend: activeTasks > 0 ? "up" : "neutral",
         },
         {
           title: "Task Completion Rate",
           value: `${taskCompletionRate}%`,
-          change: "+5%",
+          change: "Completed / total",
           icon: CheckCircle,
           description: "Completed tasks",
-          trend: 'up'
+          trend: Number(taskCompletionRate) >= 50 ? "up" : "neutral",
         },
         {
           title: "Avg Task Duration",
           value: `${avgTaskDuration.toFixed(1)}h`,
-          change: "-2h",
+          change: "Est. + actual hours",
           icon: Clock,
-          description: "Average hours",
-          trend: 'down'
+          description: "Average hours per task",
+          trend: "neutral",
         },
         {
           title: "Resource Utilization",
           value: `${resourceUtilizationRate}%`,
-          change: "+8%",
-          icon: Activity,
-          description: "Efficiency rate",
-          trend: 'up'
+          change: "Active / total tasks",
+          icon: Users,
+          description: "Workflow load",
+          trend: "neutral",
         },
       ];
 
@@ -245,7 +307,7 @@ export default function Analytics({ onInteractionTrack }: AnalyticsProps = {}) {
 
   useEffect(() => {
     fetchAnalyticsData();
-  }, [filters]);
+  }, [filters, eventId, selectedEventId, user?.id]);
 
   const handleFilterChange = (filterType: keyof AnalyticsFilters, value: any) => {
     setFilters(prev => ({
@@ -271,7 +333,9 @@ export default function Analytics({ onInteractionTrack }: AnalyticsProps = {}) {
             Analytics Dashboard
           </h2>
           <p className="text-muted-foreground">
-            Track event performance, user behavior, and scalability metrics for marketing leads.
+            {eventId
+              ? "Metrics for the selected event (date range and theme filters apply)."
+              : "Planner totals for your events. Use weekly, monthly, or quarterly presets."}
           </p>
         </div>
         
@@ -284,6 +348,47 @@ export default function Analytics({ onInteractionTrack }: AnalyticsProps = {}) {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  handleFilterChange("dateRange", {
+                    from: subDays(new Date(), 7),
+                    to: new Date(),
+                  })
+                }
+              >
+                Weekly
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  handleFilterChange("dateRange", {
+                    from: subMonths(new Date(), 1),
+                    to: new Date(),
+                  })
+                }
+              >
+                Monthly
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  handleFilterChange("dateRange", {
+                    from: subMonths(new Date(), 3),
+                    to: new Date(),
+                  })
+                }
+              >
+                Quarterly
+              </Button>
+            </div>
             <div>
               <Label htmlFor="date-range" className="text-xs">Date Range</Label>
               <DatePickerWithRange
@@ -292,6 +397,25 @@ export default function Analytics({ onInteractionTrack }: AnalyticsProps = {}) {
               />
             </div>
             
+            {!eventId && (
+              <div>
+                <Label htmlFor="event-filter" className="text-xs">Event</Label>
+                <Select value={selectedEventId} onValueChange={setSelectedEventId}>
+                  <SelectTrigger className="h-8" id="event-filter">
+                    <SelectValue placeholder="All Events" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Events</SelectItem>
+                    {eventOptions.map((e) => (
+                      <SelectItem key={e.id} value={e.id}>
+                        {e.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <div>
               <Label htmlFor="theme-filter" className="text-xs">Theme</Label>
               <Select value={filters.theme} onValueChange={(value) => handleFilterChange('theme', value)}>
@@ -300,10 +424,11 @@ export default function Analytics({ onInteractionTrack }: AnalyticsProps = {}) {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Themes</SelectItem>
-                  <SelectItem value="wedding">Wedding</SelectItem>
-                  <SelectItem value="corporate">Corporate</SelectItem>
-                  <SelectItem value="birthday">Birthday</SelectItem>
-                  <SelectItem value="festival">Festival</SelectItem>
+                  {themeOptions.map((t) => (
+                    <SelectItem key={t.id} value={String(t.id)}>
+                      {t.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -312,10 +437,11 @@ export default function Analytics({ onInteractionTrack }: AnalyticsProps = {}) {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
         {analyticsData.kpis.map((kpi) => {
           const Icon = kpi.icon
-          const isPositive = kpi.trend === 'up'
+          const isPositive = kpi.trend === "up"
+          const isDown = kpi.trend === "down"
           
           return (
             <Card key={kpi.title} className="shadow-elegant border-0 bg-gradient-subtle hover:shadow-lg transition-shadow">
@@ -329,11 +455,11 @@ export default function Analytics({ onInteractionTrack }: AnalyticsProps = {}) {
                 <div className="text-2xl font-bold">{kpi.value}</div>
                 <div className="flex items-center space-x-2">
                   <div className={`flex items-center text-xs ${
-                    isPositive ? 'text-green-600' : kpi.trend === 'down' ? 'text-red-600' : 'text-muted-foreground'
+                    isPositive ? "text-green-600" : isDown ? "text-red-600" : "text-muted-foreground"
                   }`}>
                     {isPositive ? (
                       <TrendingUp className="h-3 w-3 mr-1" />
-                    ) : kpi.trend === 'down' ? (
+                    ) : isDown ? (
                       <TrendingDown className="h-3 w-3 mr-1" />
                     ) : null}
                     {kpi.change}

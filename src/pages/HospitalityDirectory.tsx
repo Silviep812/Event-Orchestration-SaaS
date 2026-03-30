@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Hotel, Home, MapPin, Coffee, Phone, Mail, Globe, DollarSign, Users, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { DirectoryPageHeader } from "@/components/resource-directory/DirectoryPageHeader";
 
 const HospitalityDirectory = () => {
   const [hospitalityProfiles, setHospitalityProfiles] = useState<any[]>([]);
@@ -46,9 +47,13 @@ const HospitalityDirectory = () => {
       
       if (error) {
         console.error('Error fetching hospitality profiles:', error);
+        toast({
+          title: "Error loading hospitality profiles",
+          description: error.message,
+          variant: "destructive",
+        });
+        setHospitalityProfiles([]);
       } else {
-        console.log('data from Hospitality Profile:', data);
-        
         // Remove duplicates based on business name
         const uniqueProfiles = data?.filter((profile, index, self) =>
           index === self.findIndex((p) => (
@@ -92,12 +97,18 @@ const HospitalityDirectory = () => {
     icon: getIconForType(type.name)
   }));
 
-  // Filter profiles based on selected types
-  const filteredProfiles = selectedHospitalityTypes.length > 0 
-    ? hospitalityProfiles.filter(profile => 
-        selectedHospitalityTypes.includes(profile.hospitality_type?.toString())
-      )
-    : hospitalityProfiles;
+  // Filter profiles based on selected types and location
+  const filteredProfiles = hospitalityProfiles.filter(profile => {
+    const matchesType = selectedHospitalityTypes.length === 0 ||
+      selectedHospitalityTypes.includes(profile.hospitality_type?.toString());
+    const locationString = [profile.city, profile.state, profile.zip]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+    const matchesLocation = !locationFilter ||
+      locationString.includes(locationFilter.toLowerCase());
+    return matchesType && matchesLocation;
+  });
 
   const clearAllSelections = () => {
     setSelectedHospitalityTypes([]);
@@ -172,12 +183,10 @@ const HospitalityDirectory = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Hospitality Directory</h1>
-        <p className="text-muted-foreground">
-          Manage hospitality services and accommodations
-        </p>
-      </div>
+      <DirectoryPageHeader
+        title="Hospitality Directory"
+        subtitle="Browse by hospitality type, then profile (same pattern as other resource directories)"
+      />
 
       <Card>
         <CardHeader>
@@ -293,13 +302,9 @@ const HospitalityDirectory = () => {
         <CardHeader>
           <CardTitle>
             {(() => {
-              console.log('Selected types:', selectedHospitalityTypes);
-              console.log('Hospitality types:', hospitalityTypes);
-              
               if (selectedHospitalityTypes.length > 0) {
-                const typeNames = selectedHospitalityTypes.map((typeId, index) => {
+                const typeNames = selectedHospitalityTypes.map((typeId) => {
                   const matchedType = hospitalityTypes.find(t => t.id.toString() === typeId);
-                  console.log('Looking for typeId:', typeId, 'Found:', matchedType);
                   const typeName = matchedType?.name || 'Unknown';
                   const displayName = typeName.charAt(0).toUpperCase() + typeName.slice(1);
                   return displayName;

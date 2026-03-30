@@ -86,7 +86,7 @@ RETURNS TABLE (
 ) AS $$
 DECLARE
   base_date TIMESTAMP WITH TIME ZONE;
-  current_date TIMESTAMP WITH TIME ZONE;
+  v_running_ts TIMESTAMP WITH TIME ZONE;
   task_record RECORD;
 BEGIN
   -- Get the earliest task start date for this event
@@ -100,7 +100,7 @@ BEGIN
     base_date := now();
   END IF;
   
-  current_date := base_date;
+  v_running_ts := base_date;
   
   -- Recalculate timeline for all tasks in dependency order
   FOR task_record IN 
@@ -118,22 +118,22 @@ BEGIN
       t.created_at
   LOOP
     -- Calculate new due date
-    current_date := current_date + (COALESCE(task_record.estimated_hours, 1) || ' hours')::interval;
+    v_running_ts := v_running_ts + (COALESCE(task_record.estimated_hours, 1) || ' hours')::interval;
     
     -- Update the task
     UPDATE public.tasks
-    SET due_date = current_date,
+    SET due_date = v_running_ts,
         updated_at = now()
     WHERE id = task_record.id;
     
     -- Return the updates
     RETURN QUERY SELECT 
       task_record.id,
-      current_date,
-      current_date;
+      v_running_ts,
+      v_running_ts;
     
     -- Add buffer time between tasks (30 minutes)
-    current_date := current_date + interval '30 minutes';
+    v_running_ts := v_running_ts + interval '30 minutes';
   END LOOP;
   
   RETURN;

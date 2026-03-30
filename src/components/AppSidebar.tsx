@@ -188,7 +188,7 @@ const menuGroups = [
         hoverColor: "hover:bg-orange-50"
       },
       {
-        title: "Generate Reports",
+        title: "Event Plan Report",
         url: "/dashboard/reports",
         icon: FileText,
         color: "text-orange-600",
@@ -232,14 +232,16 @@ export function AppSidebar() {
   const currentPath = location.pathname;
   const collapsed = state === "collapsed";
 
-  const isActive = (path: string) => currentPath === path;
-  
-  const getNavClass = (item: any, isActive: boolean) => {
-    const baseClasses = "transition-all duration-200 rounded-lg mx-2 my-1";
-    if (isActive) {
-      return `${baseClasses} ${item.color} bg-gradient-to-r from-primary/20 to-secondary/20 font-medium border-l-4 border-primary shadow-sm`;
+  /** Exact path match so parent routes (e.g. /dashboard) are not active on child pages. */
+  const pathIsActive = (url: string) => currentPath === url || currentPath === `${url}/`;
+
+  const getNavClass = (item: { color: string; hoverColor: string }, active: boolean) => {
+    const base =
+      "transition-all duration-200 rounded-md mx-1 my-0.5 px-2 py-2 w-[calc(100%-0.25rem)] min-w-0";
+    if (active) {
+      return `${base} bg-primary text-primary-foreground font-semibold shadow-md border-l-4 border-primary ring-1 ring-primary/20 [&_svg]:text-primary-foreground`;
     }
-    return `${baseClasses} text-muted-foreground ${item.hoverColor} hover:text-foreground hover:shadow-sm hover:scale-[1.02]`;
+    return `${base} text-muted-foreground ${item.color} ${item.hoverColor} hover:text-foreground hover:shadow-sm`;
   };
 
   return (
@@ -268,22 +270,27 @@ export function AppSidebar() {
             )}
             <SidebarGroupContent>
               <SidebarMenu>
-                {group.items
-                  .map((item) => (
+                {group.items.map((item) => {
+                  const active = pathIsActive(item.url);
+                  return (
                     <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton asChild>
-                        <NavLink 
-                          to={item.url} 
+                      <SidebarMenuButton asChild isActive={active}>
+                        <NavLink
+                          to={item.url}
+                          end
                           className={({ isActive }) => getNavClass(item, isActive)}
                         >
-                          <item.icon className={`h-5 w-5 ${collapsed ? 'mx-auto' : 'mr-3'} transition-colors duration-200`} />
+                          <item.icon
+                            className={`h-5 w-5 shrink-0 ${collapsed ? "mx-auto" : "mr-2"} transition-colors duration-200`}
+                          />
                           {!collapsed && (
-                            <span className="text-sm font-medium">{item.title}</span>
+                            <span className="truncate text-sm font-medium">{item.title}</span>
                           )}
                         </NavLink>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
-                  ))}
+                  );
+                })}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>

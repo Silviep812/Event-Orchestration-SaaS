@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -82,6 +83,7 @@ const COLLABORATOR_TYPE_OPTIONS: { value: string; label: string }[] = [
 export default function Collaborate() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   const [activeTab, setActiveTab] = useState("team");
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
@@ -105,6 +107,13 @@ export default function Collaborate() {
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [activeTeamId, setActiveTeamId] = useState<string | null>(null);
+  const [isCrOpen, setIsCrOpen] = useState(false);
+  const [crTitle, setCrTitle] = useState("");
+  const [crDesc, setCrDesc] = useState("");
+  const [crEventId, setCrEventId] = useState("");
+  const [isSubmittingCr, setIsSubmittingCr] = useState(false);
+  const [isCreatingTeam, setIsCreatingTeam] = useState(false);
+  const [userEvents, setUserEvents] = useState<{ id: string; title: string }[]>([]);
 
   const inviteTeamId = activeTeamId ?? userTeam?.id ?? null;
   const isInviteTeamAdmin = useMemo(() => {
@@ -117,6 +126,16 @@ export default function Collaborate() {
       setInviteRole("");
     }
   }, [inviteRole, isInviteTeamAdmin]);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("events")
+      .select("id, title")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .then(({ data }) => setUserEvents(data || []));
+  }, [user]);
 
   const openInviteDialog = (teamId?: string | null) => {
     setActiveTeamId(teamId ?? userTeam?.id ?? null);
@@ -716,7 +735,11 @@ export default function Collaborate() {
     setIsMemberDialogOpen(true);
   };
 
+  const createTeamReady =
+    Boolean(teamName.trim()) && teamCollaboratorTypes.length > 0 && Boolean(user);
+
   const handleCreateTeam = async () => {
+    if (isCreatingTeam) return;
     if (!teamName.trim()) {
       toast({
         title: "Error",
@@ -744,6 +767,7 @@ export default function Collaborate() {
       return;
     }
 
+    setIsCreatingTeam(true);
     try {
       // Create the team
       const { data: teamData, error: teamError } = await supabase
@@ -801,12 +825,60 @@ export default function Collaborate() {
         description: "An unexpected error occurred. Please try again.",
         variant: "destructive"
       });
+    } finally {
+      setIsCreatingTeam(false);
+    }
+  };
+
+  const changeRequestReady =
+    Boolean(crEventId && crTitle.trim() && crDesc.trim());
+
+  const submitCollaborateChangeRequest = async () => {
+    if (isSubmittingCr) return;
+    if (!user || !crTitle.trim() || !crDesc.trim() || !crEventId) {
+      toast({
+        title: "Missing information",
+        description: "Select an event and enter a title and description.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setIsSubmittingCr(true);
+    try {
+      const { error } = await supabase.from("tasks").insert({
+        title: `[Change Request] ${crTitle.trim()}`,
+        description: crDesc.trim(),
+        event_id: crEventId,
+        priority: "medium",
+        status: "not_started",
+        category: "Change Management",
+        created_by: user.id,
+      });
+      if (error) throw error;
+      toast({
+        title: "Posted to Project Management",
+        description: "Your change request appears under Tasks for that event.",
+      });
+      const eventIdForNav = crEventId;
+      setIsCrOpen(false);
+      setCrTitle("");
+      setCrDesc("");
+      setCrEventId("");
+      navigate(`/dashboard/project-management?eventId=${eventIdForNav}`);
+    } catch (e) {
+      toast({
+        title: "Error",
+        description: "Could not create change request.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmittingCr(false);
     }
   };
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
             Team Collaboration
@@ -815,6 +887,60 @@ export default function Collaborate() {
             Work together seamlessly on your events
           </p>
         </div>
+        <div className="flex flex-wrap gap-2 shrink-0">
+          <Button type="button" variant="outline" onClick={() => setIsCrOpen(true)}>
+            Create change request
+          </Button>
+        </div>
+
+        <Dialog
+          open={isCrOpen}
+          onOpenChange={(open) => {
+            setIsCrOpen(open);
+            if (!open) {
+              setIsSubmittingCr(false);
+            }
+          }}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Change request (Project Management)</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div>
+                <label className="text-sm font-medium">Event</label>
+                <Select value={crEventId} onValueChange={setCrEventId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select event" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {userEvents.map((ev) => (
+                      <SelectItem key={ev.id} value={ev.id}>
+                        {ev.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Title</label>
+                <Input value={crTitle} onChange={(e) => setCrTitle(e.target.value)} placeholder="Short title" />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Description</label>
+                <Textarea value={crDesc} onChange={(e) => setCrDesc(e.target.value)} rows={4} placeholder="What should change?" />
+              </div>
+              <Button
+                type="button"
+                className="w-full"
+                disabled={!changeRequestReady || isSubmittingCr}
+                onClick={submitCollaborateChangeRequest}
+              >
+                {isSubmittingCr ? "Submitting…" : "Submit to PM Tasks"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Create Team Dialog */}
         <Dialog 
@@ -824,6 +950,7 @@ export default function Collaborate() {
             if (!open) {
               setTeamName("");
               setTeamCollaboratorTypes([]);
+              setIsCreatingTeam(false);
             }
           }}
         >
@@ -862,8 +989,13 @@ export default function Collaborate() {
                   ))}
                 </div>
               </div>
-              <Button onClick={handleCreateTeam} className="w-full">
-                Create Team
+              <Button
+                type="button"
+                disabled={!createTeamReady || isCreatingTeam}
+                onClick={handleCreateTeam}
+                className="w-full"
+              >
+                {isCreatingTeam ? "Creating Team…" : "Create Team"}
               </Button>
             </div>
           </DialogContent>

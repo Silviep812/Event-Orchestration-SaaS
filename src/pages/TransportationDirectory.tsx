@@ -5,6 +5,20 @@ import { Input } from "@/components/ui/input";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Bus, Car, Truck, Crown, Package } from "lucide-react";
+import { DirectoryPageHeader } from "@/components/resource-directory/DirectoryPageHeader";
+import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
+
+/** PostgREST when the table was never created or API cache is stale */
+function isMissingTableOrSchemaCacheError(message: string): boolean {
+  const m = message.toLowerCase();
+  return (
+    m.includes("schema cache") ||
+    m.includes("could not find the table") ||
+    m.includes("does not exist")
+  );
+}
 
 const TransportationDirectory = () => {
   const [transportationTypes, setTransportationTypes] = useState<any[]>([]);
@@ -12,37 +26,55 @@ const TransportationDirectory = () => {
   const [selectedTransportationTypes, setSelectedTransportationTypes] = useState<string[]>([]);
   const [locationFilter, setLocationFilter] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [profilesLoadError, setProfilesLoadError] = useState<string | null>(null);
+  const [typesLoadError, setTypesLoadError] = useState<string | null>(null);
+  const { toast } = useToast();
 
-  // Fetch transportation types and profiles from Supabase
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        setError(null);
 
-        // Fetch transportation types
+        setTypesLoadError(null);
+        setProfilesLoadError(null);
+
         const { data: typesData, error: typesError } = await supabase
-          .from('transportation_types')
-          .select('*');
-
-        if (typesError) throw typesError;
-
-        // Fetch transportation profiles with their types
-        const { data: profilesData, error: profilesError } = await supabase
-          .from('transportations')
-          .select(`
-            *,
-            transportation_types(*)
-          `);
-
-        if (profilesError) throw profilesError;
-
+          .from("transportation_types")
+          .select("*");
+        if (typesError) {
+          console.error("transportation_types:", typesError);
+          setTypesLoadError(typesError.message);
+          if (!isMissingTableOrSchemaCacheError(typesError.message)) {
+            toast({
+              title: "Transportation types",
+              description: typesError.message,
+              variant: "destructive",
+            });
+          }
+        }
         setTransportationTypes(typesData || []);
+
+        // Plain select avoids PostgREST embed errors; join type names client-side.
+        const { data: profilesData, error: profilesError } = await supabase
+          .from("transportations")
+          .select("*");
+        if (profilesError) {
+          console.error("transportations:", profilesError);
+          setProfilesLoadError(profilesError.message);
+          if (!isMissingTableOrSchemaCacheError(profilesError.message)) {
+            toast({
+              title: "Transportation profiles",
+              description:
+                profilesError.message ||
+                "Could not load profiles. Run migrations or check RLS in Supabase.",
+              variant: "destructive",
+            });
+          }
+        }
         setTransportationProfiles(profilesData || []);
       } catch (err: any) {
-        console.error('Error fetching data:', err);
-        setError(err.message);
+        console.error('Error fetching transportation data:', err);
+        toast({ title: "Error", description: "Failed to load transportation directory.", variant: "destructive" });
       } finally {
         setLoading(false);
       }
@@ -86,14 +118,33 @@ const TransportationDirectory = () => {
     return Package;
   };
 
+  const setupError =
+    (profilesLoadError && isMissingTableOrSchemaCacheError(profilesLoadError)) ||
+    (typesLoadError && isMissingTableOrSchemaCacheError(typesLoadError));
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Transportation Directory</h1>
-        <p className="text-muted-foreground">
-          Manage transportation services and options
-        </p>
-      </div>
+      <DirectoryPageHeader
+        title="Transportation Directory"
+        subtitle="Filter by type and location, then open profile details"
+      />
+
+      {setupError && (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Supabase needs the directory tables</AlertTitle>
+          <AlertDescription className="mt-2 space-y-2 text-pretty">
+            <p>
+              The linked project does not expose <code className="text-xs">public.transportations</code>{" "}
+              (and possibly <code className="text-xs">transportation_types</code>) to the API yet. Apply the
+              migration in Supabase: <strong>SQL Editor</strong> → paste and run{" "}
+              <code className="text-xs">supabase/migrations/20260329190000_create_transportations_if_missing.sql</code>{" "}
+              from this repo, then reload this page. If you use the Supabase CLI, run{" "}
+              <code className="text-xs">supabase db push</code> against this project.
+            </p>
+          </AlertDescription>
+        </Alert>
+      )}
 
       <Card>
         <CardHeader>
@@ -102,8 +153,6 @@ const TransportationDirectory = () => {
         <CardContent className="space-y-4">
           {loading ? (
             <p className="text-center py-4">Loading transportation types...</p>
-          ) : error ? (
-            <p className="text-center py-4 text-destructive">Error loading data: {error}</p>
           ) : (
             <>
               <div className="space-y-3">
@@ -194,8 +243,14 @@ const TransportationDirectory = () => {
         <CardContent>
           {loading ? (
             <p className="text-center py-8">Loading transportation profiles...</p>
-          ) : error ? (
-            <p className="text-center py-8 text-destructive">Error loading profiles: {error}</p>
+          ) : profilesLoadError && !setupError ? (
+            <p className="text-muted-foreground text-center py-8">
+              Could not load profiles: {profilesLoadError}
+            </p>
+          ) : setupError && filteredProfiles.length === 0 ? (
+            <p className="text-muted-foreground text-center py-8">
+              No profiles until the database migration has been applied.
+            </p>
           ) : filteredProfiles.length === 0 ? (
             <p className="text-muted-foreground text-center py-8">
               No transportation profiles match your selected criteria.
@@ -203,7 +258,8 @@ const TransportationDirectory = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredProfiles.map((profile) => {
-                const transportationType = profile.transportation_types?.name || 'Transportation';
+                const transportationType =
+                  transportationTypes.find((t) => t.id === profile.transp_type_id)?.name || "Transportation";
                 const IconComponent = getTransportationIcon(transportationType);
                 
                 return (

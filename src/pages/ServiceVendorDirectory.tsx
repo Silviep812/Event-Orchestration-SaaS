@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ChefHat, Camera, Utensils, Cake, Truck, Flower, Package, Car, PersonStanding, Mail, Phone } from "lucide-react";
+import { DirectoryPageHeader } from "@/components/resource-directory/DirectoryPageHeader";
+import { useToast } from "@/hooks/use-toast";
 
 const ServiceVendorDirectory = () => {
   const [vendorTypes, setVendorTypes] = useState<any[]>([]);
@@ -12,37 +14,30 @@ const ServiceVendorDirectory = () => {
   const [selectedVendorTypes, setSelectedVendorTypes] = useState<string[]>([]);
   const [locationFilter, setLocationFilter] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
-  // Fetch vendor types and profiles from Supabase
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        setError(null);
 
-        // Fetch vendor types
         const { data: typesData, error: typesError } = await supabase
           .from('vendor_supplier_types')
           .select('*');
+        if (typesError) console.error('vendor_supplier_types:', typesError);
+        setVendorTypes(typesData || []);
 
-        if (typesError) throw typesError;
-
-        // Fetch vendor profiles with their types
         const { data: profilesData, error: profilesError } = await supabase
           .from('serv_vendor_suppliers')
-          .select(`
-            *,
-            vendor_supplier_types(*)
-          `);
-
-        if (profilesError) throw profilesError;
-
-        setVendorTypes(typesData || []);
+          .select('*, vendor_supplier_types(*)');
+        if (profilesError) {
+          console.error('serv_vendor_suppliers:', profilesError);
+          toast({ title: "Service vendor profiles", description: "Could not load profiles — table may need setup in Supabase.", variant: "destructive" });
+        }
         setVendorProfiles(profilesData || []);
       } catch (err: any) {
-        console.error('Error fetching data:', err);
-        setError(err.message);
+        console.error('Error fetching service vendor data:', err);
+        toast({ title: "Error", description: "Failed to load service vendor directory.", variant: "destructive" });
       } finally {
         setLoading(false);
       }
@@ -100,12 +95,10 @@ const ServiceVendorDirectory = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Service Vendor Directory</h1>
-        <p className="text-muted-foreground">
-          Manage service vendors and external vendors
-        </p>
-      </div>
+      <DirectoryPageHeader
+        title="Service Vendor Directory"
+        subtitle="Select vendor type, then profile (category and location filters)"
+      />
 
       <Card>
         <CardHeader>
@@ -114,8 +107,6 @@ const ServiceVendorDirectory = () => {
         <CardContent className="space-y-4">
           {loading ? (
             <p className="text-center py-4">Loading vendor types...</p>
-          ) : error ? (
-            <p className="text-center py-4 text-destructive">Error loading data: {error}</p>
           ) : (
             <>
               <div className="space-y-3">
@@ -206,8 +197,6 @@ const ServiceVendorDirectory = () => {
         <CardContent>
           {loading ? (
             <p className="text-center py-8">Loading vendor profiles...</p>
-          ) : error ? (
-            <p className="text-center py-8 text-destructive">Error loading profiles: {error}</p>
           ) : filteredProfiles.length === 0 ? (
             <p className="text-muted-foreground text-center py-8">
               No vendor profiles match your selected criteria.

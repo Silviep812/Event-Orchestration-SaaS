@@ -49,6 +49,8 @@ interface WorkflowDashboardProps {
   selectedTheme: number;
   workflowId?: string;
   setCurrentStep?: (step: SetupStep) => void;
+  /** When set (e.g. viewing dashboard without wizard state), opens the setup wizard with workflow data. */
+  onCustomizeWorkflow?: () => void | Promise<void>;
   onChangeWorkflow?: () => void;
   showChangeWorkflow?: boolean;
 }
@@ -251,7 +253,15 @@ const getPriorityColor = (priority: string) => {
   }
 };
 
-export const WorkflowDashboard = ({ userType, selectedTheme, workflowId, setCurrentStep, onChangeWorkflow, showChangeWorkflow }: WorkflowDashboardProps) => {
+export const WorkflowDashboard = ({
+  userType,
+  selectedTheme,
+  workflowId,
+  setCurrentStep,
+  onCustomizeWorkflow,
+  onChangeWorkflow,
+  showChangeWorkflow,
+}: WorkflowDashboardProps) => {
   const [steps, setSteps] = useState<WorkflowStep[]>([]);
   const [eventTasks, setEventTasks] = useState<any[]>([]);
   const [selections, setSelections] = useState<WorkflowSelections>({
@@ -273,8 +283,6 @@ export const WorkflowDashboard = ({ userType, selectedTheme, workflowId, setCurr
       ? await getWorkflowById(workflowId)
       : await getWorkflowData();
 
-    console.log('workflowdata', workflowData)
-    
     const eventId = workflowData?.event_id;
     
     if (eventId) {
@@ -285,16 +293,21 @@ export const WorkflowDashboard = ({ userType, selectedTheme, workflowId, setCurr
   };
 
   const handleCustomize = async () => {
-    const workflowData = workflowId 
-      ? await getWorkflowById(workflowId)
-      : await getWorkflowData();
-    
-    const eventId = workflowData?.event_id;
-    
+    if (onCustomizeWorkflow) {
+      await onCustomizeWorkflow();
+      return;
+    }
     if (setCurrentStep) {
       setCurrentStep("user-type");
-    } else {
+      return;
+    }
+
+    const workflowData = workflowId ? await getWorkflowById(workflowId) : await getWorkflowData();
+    const eventId = workflowData?.event_id;
+    if (eventId) {
       navigate(`/dashboard/workflow-dashboard?eventId=${eventId}`);
+    } else {
+      navigate("/dashboard/workflow-dashboard");
     }
   };
 
@@ -319,6 +332,11 @@ export const WorkflowDashboard = ({ userType, selectedTheme, workflowId, setCurr
   useEffect(() => {
     setSteps(workflowSteps[userType] || []);
   }, [userType]);
+
+  useEffect(() => {
+    window.addEventListener('focus', refreshEventTasks);
+    return () => window.removeEventListener('focus', refreshEventTasks);
+  }, [refreshEventTasks]);
 
   useEffect(() => {
     const loadEventTasks = async () => {
@@ -511,7 +529,12 @@ export const WorkflowDashboard = ({ userType, selectedTheme, workflowId, setCurr
               Change Workflow
             </Button>
           )}
-          <Button variant="outline" size="sm" onClick={handleCustomize}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleCustomize}
+            title="Edit workflow setup: role, theme, venue, services, and vendors"
+          >
             <Settings className="h-4 w-4 mr-2" />
             Customize
           </Button>

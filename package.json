@@ -4,6 +4,12 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "db:repair-remote-history": "powershell -ExecutionPolicy Bypass -File scripts/repair-supabase-migration-history.ps1",
+    "db:link:direct": "npx supabase link --project-ref mavbnybtyfewfsihmuri --skip-pooler",
+    "db:link:direct:ps": "powershell -ExecutionPolicy Bypass -File scripts/db-link-direct.ps1",
+    "db:push": "npx supabase db push --include-all",
+    "db:push:with-password": "powershell -ExecutionPolicy Bypass -File scripts/db-push-with-password.ps1",
+    "db:push:https-dns": "npx supabase db push --include-all --dns-resolver https",
     "dev": "vite",
     "build": "vite build",
     "build:dev": "vite build --mode development",

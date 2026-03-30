@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -7,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Shield, Users, UserCheck, Crown, ClipboardList, Eye } from "lucide-react";
 import { PermissionLevel } from "@/lib/permissions";
 import { UnassignedUserCard } from "./UnassignedUserCard";
-import { TeamMemberTaskAssignments } from "./TeamMemberTaskAssignments";
+import { Button } from "@/components/ui/button";
 
 interface UserRole {
   id: string;
@@ -45,6 +46,7 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
   const [permissionMappings, setPermissionMappings] = useState<Map<string, PermissionLevel>>(new Map());
   const [dataTimestamp, setDataTimestamp] = useState(Date.now());
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const roles = [
     { value: 'manager', label: 'Manager', description: 'Full access to manage events, users, and system settings' },
@@ -566,8 +568,27 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
         </div>
       )}
 
-      {/* Team Member Task Assignments */}
-      <TeamMemberTaskAssignments />
+      <Card className="mt-8">
+        <CardHeader>
+          <CardTitle>Add task assignment</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Same form as Project Management &gt; Tasks &gt; Add Task. Select an event in the filter at the top of this page first.
+          </p>
+          <Button
+            type="button"
+            disabled={selectedEventFilter === "all"}
+            onClick={() =>
+              navigate(
+                `/dashboard/project-management?eventId=${selectedEventFilter}&openModal=true`
+              )
+            }
+          >
+            Open Add Task
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 }

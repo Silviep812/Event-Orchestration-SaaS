@@ -2,30 +2,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Mail, Globe } from "lucide-react";
 import { Link } from "react-router-dom";
+import { MarketingTopBar } from "@/components/MarketingTopBar";
 
 const Contact = () => {
   return (
     <div className="min-h-screen bg-background">
-      {/* Navigation */}
-      <nav className="border-b bg-card">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <Link to="/" className="flex items-center" aria-label="IEP">
-                <img src="/lovable-uploads/e8e18250-fa27-4ae4-a4bc-867e063bcfd1.png" alt="IEP logo" className="h-8 w-8" />
-              </Link>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Link to="/">
-                <Button variant="ghost">Back to Home</Button>
-              </Link>
-              <Link to="/auth">
-                <Button variant="outline">Sign In</Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <MarketingTopBar page="contact" />
 
       {/* Contact Section */}
       <section className="px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-20">
@@ -85,7 +67,7 @@ const Contact = () => {
               Ready to start planning your next event?
             </p>
             <Link to="/auth">
-              <Button size="lg">Start Free Trial</Button>
+              <Button size="lg">Start 14-day free trial</Button>
             </Link>
           </div>
         </div>

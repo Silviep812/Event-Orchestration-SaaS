@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import { useEventFilter } from "@/hooks/useEventFilter";
 import { CheckCircle2, Clock, AlertCircle, Plus, Calendar, User, Archive, ArchiveRestore, Eye, EyeOff, Link, Save, X } from "lucide-react";
 import { format } from "date-fns";
 import { createTaskSchema } from "@/lib/validation/taskValidation";
+import { TASK_ASSIGNMENT_CATEGORIES } from "@/lib/taskBusinessRules";
 
 interface Task {
   id: string;
@@ -26,6 +27,7 @@ interface Task {
   assigned_user_name?: string;
   assigned_role?: string;
   assigned_coordinator_name?: string;
+  assigned_to_display_name?: string | null;
   status: 'not_started' | 'in_progress' | 'completed' | 'on_hold' | 'cancelled';
   priority: 'low' | 'medium' | 'high' | 'urgent';
   estimated_hours?: number;
@@ -82,6 +84,9 @@ const statusIcons = {
   cancelled: AlertCircle
 };
 
+/** Radix Select forbids SelectItem value=""; use this for "General / unset" instead. */
+const TASK_CATEGORY_NONE = "__none__";
+
 const COLLABORATOR_TYPE_OPTIONS: { value: string; label: string }[] = [
   { value: 'Bookings', label: 'Bookings' },
   { value: 'Venue', label: 'Venue' },
@@ -131,20 +136,50 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
     due_date: "",
     selected_event_id: "",
     dependencies: [] as string[],
-    assigned_role: ""
+    assigned_role: "",
+    taskCategory: "",
   });
   const [selectedCollaboratorTypes, setSelectedCollaboratorTypes] = useState<string[]>([]);
   const [dependencySearchTerm, setDependencySearchTerm] = useState<string>("");
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [clearFormAfterSave, setClearFormAfterSave] = useState(false);
-  const [coordinatorName, setCoordinatorName] = useState(""); // For Create Task dialog
+  const [assigneeDisplayName, setAssigneeDisplayName] = useState("");
   const [editCoordinatorName, setEditCoordinatorName] = useState(""); // For Edit Task dialog
   const [isSavingCoordinatorName, setIsSavingCoordinatorName] = useState(false);
   const [cardCollaboratorInput, setCardCollaboratorInput] = useState<{ [taskId: string]: string }>({});
   const [isSavingCardCollaborator, setIsSavingCardCollaborator] = useState<{ [taskId: string]: boolean }>({});
+  const [isCreatingTask, setIsCreatingTask] = useState(false);
+  const isCreatingTaskRef = useRef(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const { events, applyEventFilter } = useEventFilter();
+
+  const createTaskValidationPayload = useMemo(
+    () => ({
+      ...newTask,
+      dependencies: [] as string[],
+      selected_event_id: eventId || newTask.selected_event_id,
+    }),
+    [newTask, eventId]
+  );
+
+  const isCreateTaskFormValid = useMemo(
+    () => createTaskSchema.safeParse(createTaskValidationPayload).success,
+    [createTaskValidationPayload]
+  );
+
+  // Open create-task dialog immediately when routed here with ?openModal=true (do not wait for
+  // fetchTasks or strip the URL until close — avoids Strict Mode / async races where no modal appears).
+  useLayoutEffect(() => {
+    if (searchParams.get("openModal") !== "true") return;
+
+    setIsCreateDialogOpen(true);
+    const urlEventId = searchParams.get("eventId");
+    const targetEventId = urlEventId || eventId;
+    if (targetEventId) {
+      setNewTask((prev) => ({ ...prev, selected_event_id: targetEventId }));
+    }
+  }, [searchParams, eventId]);
 
   useEffect(() => {
     let isMounted = true;
@@ -157,25 +192,6 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
       
       // Always fetch all users (not filtered by event)
       await fetchUsers();
-      
-      // Check URL parameters for auto-opening modal
-      const openModal = searchParams.get('openModal');
-      const urlEventId = searchParams.get('eventId');
-      
-      if (openModal === 'true' && isMounted) {
-        setIsCreateDialogOpen(true);
-        
-        // Auto-select the event if eventId is provided in URL or props
-        const targetEventId = urlEventId || eventId;
-        if (targetEventId) {
-          setNewTask(prev => ({ ...prev, selected_event_id: targetEventId }));
-        }
-        
-        // Remove the openModal parameter from URL
-        const newSearchParams = new URLSearchParams(searchParams);
-        newSearchParams.delete('openModal');
-        setSearchParams(newSearchParams, { replace: true });
-      }
       
       if (isMounted) setLoading(false);
     };
@@ -261,8 +277,19 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
       const { data, error } = await query;
       if (error) throw error;
       
+      const { data: archivedEv, error: archErr } = await supabase
+        .from("events")
+        .select("id")
+        .eq("archived", true);
+      const archivedIds = new Set<string>();
+      if (!archErr) (archivedEv || []).forEach((e) => archivedIds.add(e.id));
+
+      const rawTasks = (data || []).filter(
+        (t) => !t.event_id || !archivedIds.has(t.event_id)
+      );
+
       const tasksWithDependenciesAndAssignments = await Promise.all(
-        (data || []).map(async (task) => {
+        rawTasks.map(async (task) => {
           // Fetch dependencies
           const { data: deps } = await supabase
             .from('tasks_dependencies')
@@ -300,7 +327,8 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
             assigned_user_id,
             assigned_user_name,
             assigned_role: roleAssignment,
-            assigned_coordinator_name: task.assigned_coordinator_name
+            assigned_coordinator_name: task.assigned_coordinator_name,
+            assigned_to_display_name: task.assigned_to_display_name,
           };
         })
       );
@@ -631,8 +659,10 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
   };
 
   const createTask = async () => {
-    const validationResult = createTaskSchema.safeParse({...newTask, dependencies: []});
-    
+    if (isCreatingTaskRef.current) return;
+
+    const validationResult = createTaskSchema.safeParse(createTaskValidationPayload);
+
     if (!validationResult.success) {
       const errors: Record<string, string> = {};
       validationResult.error.issues.forEach((issue) => {
@@ -648,9 +678,16 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
       });
       return;
     }
-    
+
     setValidationErrors({});
-    executeCreateTask();
+    isCreatingTaskRef.current = true;
+    setIsCreatingTask(true);
+    try {
+      await executeCreateTask();
+    } finally {
+      isCreatingTaskRef.current = false;
+      setIsCreatingTask(false);
+    }
   };
 
   const executeCreateTask = async (overrideDueDate?: string) => {
@@ -658,6 +695,10 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
+      const categoryValue =
+        newTask.taskCategory?.trim() ||
+        (selectedCollaboratorTypes.length > 0 ? selectedCollaboratorTypes.join(", ") : null);
+      const manualName = assigneeDisplayName.trim();
       const taskData = {
         title: newTask.title.trim(),
         description: newTask.description?.trim() || null,
@@ -666,8 +707,9 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         due_date: overrideDueDate || newTask.due_date || null,
         event_id: eventId || newTask.selected_event_id || null,
         created_by: user.id,
-        category: selectedCollaboratorTypes.length > 0 ? selectedCollaboratorTypes.join(', ') : null,
-        assigned_coordinator_name: (newTask as any).assigned_coordinator_name || null
+        category: categoryValue,
+        assigned_coordinator_name: manualName || null,
+        assigned_to_display_name: manualName || null,
       };
 
       const { data: createdTask, error } = await supabase
@@ -1084,6 +1126,14 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
             // Only clear validation errors and search term when closing
             setDependencySearchTerm("");
             setValidationErrors({});
+            setSearchParams(
+              (prev) => {
+                const next = new URLSearchParams(prev);
+                next.delete("openModal");
+                return next;
+              },
+              { replace: true }
+            );
           }
           setIsCreateDialogOpen(open);
         }}>
@@ -1097,15 +1147,19 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
             <DialogHeader>
               <DialogTitle>Create New Task</DialogTitle>
             </DialogHeader>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Left column */}
+            <div className="grid grid-cols-1 gap-6 max-w-2xl">
               <div className="space-y-4">
                 {!eventId && events.length > 0 && (
                   <div className="space-y-2">
                     <Label htmlFor="event">Select Project/Event *</Label>
                     <Select 
-                      value={newTask.selected_event_id} 
+                      value={
+                        events.some((e) => e.id === newTask.selected_event_id)
+                          ? newTask.selected_event_id
+                          : "__none__"
+                      }
                       onValueChange={(value) => {
+                        if (value === "__none__") return;
                         setNewTask({ ...newTask, selected_event_id: value, assigned_user_id: "" });
                         setValidationErrors({ ...validationErrors, selected_event_id: "" });
                       }}
@@ -1114,6 +1168,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                         <SelectValue placeholder="Choose a project/event" />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="__none__">Choose a project/event</SelectItem>
                         {events.map((event) => (
                           <SelectItem key={event.id} value={event.id}>
                             {event.title} {event.start_date && `(${format(new Date(event.start_date), 'MMM d, yyyy')})`}
@@ -1181,103 +1236,29 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                   </Select>
                 </div>
 
-                {/* Task Assignments selection */}
                 <div className="space-y-2">
-                  <Label>Task Assignments</Label>
-                  <div className="max-h-48 overflow-y-auto space-y-2 border rounded-md p-2">
-                    {COLLABORATOR_TYPE_OPTIONS.map(({ value, label }) => (
-                      <div key={value} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`collab-${value}`}
-                          checked={selectedCollaboratorTypes.includes(value)}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setSelectedCollaboratorTypes([...selectedCollaboratorTypes, value]);
-                            } else {
-                              setSelectedCollaboratorTypes(selectedCollaboratorTypes.filter(t => t !== value));
-                            }
-                            // Clear assignment when collaborator types change
-                            setNewTask({ ...newTask, assigned_user_id: "" });
-                          }}
-                        />
-                        <label htmlFor={`collab-${value}`} className="text-sm font-medium leading-none cursor-pointer">
-                          {label}
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                  {selectedCollaboratorTypes.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {selectedCollaboratorTypes.map(type => (
-                        <Badge key={type} variant="secondary" className="text-xs">
-                          {type}
-                        </Badge>
+                  <Label htmlFor="task-category">Assignment category</Label>
+                  <Select
+                    value={newTask.taskCategory ? newTask.taskCategory : TASK_CATEGORY_NONE}
+                    onValueChange={(value) =>
+                      setNewTask({
+                        ...newTask,
+                        taskCategory: value === TASK_CATEGORY_NONE ? "" : value,
+                      })
+                    }
+                  >
+                    <SelectTrigger id="task-category">
+                      <SelectValue placeholder="Select category (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={TASK_CATEGORY_NONE}>General</SelectItem>
+                      {TASK_ASSIGNMENT_CATEGORIES.map((c) => (
+                        <SelectItem key={c.value} value={c.value}>
+                          {c.label}
+                        </SelectItem>
                       ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Right column */}
-              <div className="space-y-4">
-                <div className="space-y-2 p-3 border border-blue-200 rounded-lg bg-blue-50">
-                  <Label htmlFor="coordinator-name" className="text-base font-semibold">
-                    Assign Collaborator Task To
-                  </Label>
-                  <p className="text-xs text-muted-foreground">
-                    Enter task collaborator's name
-                  </p>
-                  <div className="flex gap-2">
-                    <Input
-                      id="coordinator-name"
-                      placeholder="Enter task collaborator's name"
-                      value={coordinatorName}
-                      onChange={(e) => setCoordinatorName(e.target.value)}
-                      maxLength={100}
-                    />
-                    <Button
-                      type="button"
-                      onClick={() => {
-                        if (coordinatorName.trim()) {
-                          setNewTask({ 
-                            ...newTask, 
-                            assigned_coordinator_name: coordinatorName.trim() 
-                          } as any);
-                          toast({
-                            title: "Coordinator assigned",
-                            description: `${coordinatorName.trim()} assigned to this task`,
-                          });
-                          setCoordinatorName("");
-                        }
-                      }}
-                      disabled={!coordinatorName.trim()}
-                    >
-                      <Save className="h-4 w-4 mr-1" />
-                      Save
-                    </Button>
-                  </div>
-                  {(newTask as any).assigned_coordinator_name && (
-                    <div className="flex items-center justify-between p-2 bg-white rounded border border-blue-300">
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-blue-600" />
-                        <span className="text-sm font-medium">{(newTask as any).assigned_coordinator_name}</span>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setNewTask({ ...newTask, assigned_coordinator_name: undefined } as any);
-                          toast({
-                            title: "Coordinator removed",
-                            description: "Manual coordinator assignment cleared",
-                          });
-                        }}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  )}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">
@@ -1309,6 +1290,52 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     onChange={(e) => setNewTask({ ...newTask, due_date: e.target.value })}
                   />
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="assignee-name">Assignee name (manual)</Label>
+                  <Input
+                    id="assignee-name"
+                    placeholder="Enter assignee name if not using directory user"
+                    value={assigneeDisplayName}
+                    onChange={(e) => setAssigneeDisplayName(e.target.value)}
+                    maxLength={120}
+                  />
+                </div>
+
+                {/* Task Assignments selection */}
+                <div className="space-y-2">
+                  <Label>Collaborator checklist (multi-select)</Label>
+                  <div className="max-h-48 overflow-y-auto space-y-2 border rounded-md p-2">
+                    {COLLABORATOR_TYPE_OPTIONS.map(({ value, label }) => (
+                      <div key={value} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`collab-${value}`}
+                          checked={selectedCollaboratorTypes.includes(value)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedCollaboratorTypes([...selectedCollaboratorTypes, value]);
+                            } else {
+                              setSelectedCollaboratorTypes(selectedCollaboratorTypes.filter(t => t !== value));
+                            }
+                            setNewTask({ ...newTask, assigned_user_id: "" });
+                          }}
+                        />
+                        <label htmlFor={`collab-${value}`} className="text-sm font-medium leading-none cursor-pointer">
+                          {label}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                  {selectedCollaboratorTypes.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {selectedCollaboratorTypes.map(type => (
+                        <Badge key={type} variant="secondary" className="text-xs">
+                          {type}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
             
@@ -1325,8 +1352,10 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     due_date: "",
                     selected_event_id: "",
                     dependencies: [] as string[],
-                    assigned_role: ""
+                    assigned_role: "",
+                    taskCategory: "",
                   });
+                  setAssigneeDisplayName("");
                   setSelectedCollaboratorTypes([]);
                   setValidationErrors({});
                   setShouldPreserveForm(false);
@@ -1339,8 +1368,13 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
               >
                 Clear Form
               </Button>
-              <Button onClick={createTask} className="flex-1">
-                Create Task
+              <Button
+                type="button"
+                onClick={createTask}
+                className="flex-1"
+                disabled={!isCreateTaskFormValid || isCreatingTask}
+              >
+                {isCreatingTask ? "Creating…" : "Create Task"}
               </Button>
             </div>
           </DialogContent>
@@ -1412,11 +1446,17 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                                   </Select>
                                 </div>
 
-                                {(task.assigned_user_name || task.assigned_role) && (
+                                {(task.assigned_user_name ||
+                                  task.assigned_role ||
+                                  task.assigned_coordinator_name ||
+                                  task.assigned_to_display_name) && (
                                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                     <User className="h-3 w-3" />
                                     <span>
-                                      {task.assigned_user_name || task.assigned_role?.replace('_', ' ')}
+                                      {task.assigned_user_name ||
+                                        task.assigned_role?.replace("_", " ") ||
+                                        task.assigned_coordinator_name ||
+                                        task.assigned_to_display_name}
                                     </span>
                                   </div>
                                 )}

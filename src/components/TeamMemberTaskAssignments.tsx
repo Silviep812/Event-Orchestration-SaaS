@@ -69,7 +69,6 @@ export function TeamMemberTaskAssignments() {
         email: '' // Not needed for this use case
       }));
       
-      console.log('[TeamMemberTaskAssignments] Loaded collaborators:', allUsers.length, allUsers);
       setAllUsers(allUsers);
 
       // Fetch all tasks with their categories
@@ -95,8 +94,7 @@ export function TeamMemberTaskAssignments() {
 
       // Filter tasks to only show resource-type tasks
       const filteredTasks = tasks?.filter(task => 
-        resourceCategories.includes(task.category) || 
-        task.title === 'Lee Task Team'
+        resourceCategories.includes(task.category)
       ) || [];
 
       // Fetch event titles separately

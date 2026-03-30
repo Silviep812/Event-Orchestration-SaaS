@@ -66,13 +66,11 @@ import { useToast } from "@/hooks/use-toast";
 interface ChangeLog {
   id: string;
   entity_type: string;
-  entity_id: string;
+  entity_id: string | null;
   action: string;
-  field_name: string | null;
-  old_value: string | null;
-  new_value: string | null;
-  change_description: string | null;
-  changed_by: string;
+  event_id: string | null;
+  metadata: Record<string, unknown> | null;
+  changed_by: string | null;
   created_at: string;
 }
 
@@ -97,11 +95,10 @@ const Reports = () => {
     fetchChangeData();
   }, [dateRange, entityTypeFilter, actionFilter]);
 
-  // Helper to get display names for user IDs
   const [userDisplayNames, setUserDisplayNames] = useState<Record<string, string>>({});
   useEffect(() => {
     const fetchUserNames = async () => {
-      const userIds = Array.from(new Set(changeLogs.map(log => log.changed_by)));
+      const userIds = Array.from(new Set(changeLogs.map(log => log.changed_by).filter(Boolean))) as string[];
       if (userIds.length === 0) return;
       const { data } = await supabase
         .from('user_profiles_teammate_view')
@@ -119,13 +116,12 @@ const Reports = () => {
   const fetchChangeData = async () => {
     try {
       setLoading(true);
-      
+
       let query = supabase
-        .from('change_logs')
+        .from('cm_activity')
         .select('*')
         .order('created_at', { ascending: false });
 
-      // Apply filters
       if (dateRange?.from) {
         query = query.gte('created_at', dateRange.from.toISOString());
       }
@@ -143,8 +139,9 @@ const Reports = () => {
 
       if (error) throw error;
 
-      setChangeLogs(data || []);
-      generateReportData(data || []);
+      const logs = (data || []) as ChangeLog[];
+      setChangeLogs(logs);
+      generateReportData(logs);
     } catch (error) {
       console.error('Error fetching change data:', error);
       toast({
@@ -194,6 +191,7 @@ const Reports = () => {
     // User activity
     const userCount: { [key: string]: number } = {};
     logs.forEach(log => {
+      if (!log.changed_by) return;
       userCount[log.changed_by] = (userCount[log.changed_by] || 0) + 1;
     });
 
@@ -216,18 +214,17 @@ const Reports = () => {
 
   const exportReport = () => {
     const csvContent = [
-      ['Date', 'Entity Type', 'Action', 'Field', 'Old Value', 'New Value', 'Description', 'User ID'],
+      ['Date', 'Entity Type', 'Action', 'Event ID', 'Entity ID', 'Metadata', 'User ID'],
       ...changeLogs.map(log => [
         format(new Date(log.created_at), 'yyyy-MM-dd HH:mm:ss'),
         log.entity_type,
         log.action,
-        log.field_name || '',
-        log.old_value || '',
-        log.new_value || '',
-        log.change_description || '',
-        log.changed_by,
+        log.event_id || '',
+        log.entity_id || '',
+        log.metadata ? JSON.stringify(log.metadata) : '',
+        log.changed_by || '',
       ])
-    ].map(row => row.join(',')).join('\n');
+    ].map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
@@ -392,7 +389,7 @@ const Reports = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {[...new Set(changeLogs.map(log => log.changed_by))].length}
+                  {[...new Set(changeLogs.map(log => log.changed_by).filter(Boolean))].length}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Users making changes
@@ -536,56 +533,54 @@ const Reports = () => {
                       <TableHead>Date/Time</TableHead>
                       <TableHead>Entity</TableHead>
                       <TableHead>Action</TableHead>
-                      <TableHead>Field</TableHead>
-                      <TableHead>Change</TableHead>
+                      <TableHead>Details</TableHead>
                       <TableHead>User</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {changeLogs.map((log) => (
-                      <TableRow key={log.id}>
-                        <TableCell className="font-mono text-xs">
-                          {format(new Date(log.created_at), 'yyyy-MM-dd HH:mm:ss')}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">
-                            {log.entity_type.replace('_', ' ')}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={getActionBadgeVariant(log.action)}>
-                            {log.action}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {log.field_name && (
-                            <code className="text-xs bg-muted px-1 py-0.5 rounded">
-                              {log.field_name}
-                            </code>
-                          )}
-                        </TableCell>
-                        <TableCell className="max-w-xs">
-                          {log.old_value && log.new_value ? (
-                            <div className="text-xs">
-                              <span className="text-red-500 line-through">
-                                {log.old_value.length > 20 ? log.old_value.substring(0, 20) + '...' : log.old_value}
-                              </span>
-                              {" → "}
-                              <span className="text-green-500">
-                                {log.new_value.length > 20 ? log.new_value.substring(0, 20) + '...' : log.new_value}
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">
-                              {log.change_description || 'No description'}
-                            </span>
-                          )}
-                        </TableCell>
-                        <TableCell className="font-mono text-xs">
-                          {userDisplayNames[log.changed_by] || log.changed_by.substring(0, 8) + '...'}
+                    {changeLogs.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                          No activity logged yet. Changes to events and tasks will appear here automatically.
                         </TableCell>
                       </TableRow>
-                    ))}
+                    ) : changeLogs.map((log) => {
+                      const meta = log.metadata as Record<string, unknown> | null;
+                      const detail = meta
+                        ? Object.entries(meta)
+                            .filter(([, v]) => v !== null && v !== undefined)
+                            .map(([k, v]) => `${k}: ${v}`)
+                            .join(', ')
+                            .substring(0, 60)
+                        : '';
+                      return (
+                        <TableRow key={log.id}>
+                          <TableCell className="font-mono text-xs">
+                            {format(new Date(log.created_at), 'yyyy-MM-dd HH:mm:ss')}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">
+                              {log.entity_type.replace('_', ' ')}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={getActionBadgeVariant(log.action)}>
+                              {log.action}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="max-w-xs">
+                            <span className="text-xs text-muted-foreground">
+                              {detail || '—'}
+                            </span>
+                          </TableCell>
+                          <TableCell className="font-mono text-xs">
+                            {log.changed_by
+                              ? (userDisplayNames[log.changed_by] || log.changed_by.substring(0, 8) + '...')
+                              : '—'}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </ScrollArea>

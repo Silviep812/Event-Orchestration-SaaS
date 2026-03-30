@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, FieldErrors, FieldError } from "react-hook-form";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,9 +19,12 @@ interface EventFormData {
   type: string;
   subType?: string;
   venue: string;
+  location: string;
   budget: string;
   expectedAttendees: string;
   theme_id: number;
+  entertainment_id: string;
+  serv_vendor_rental_id: string;
 }
 
 export default function CreateEvent() {
@@ -31,7 +34,20 @@ export default function CreateEvent() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   
-  const { register, handleSubmit, formState: { errors }, reset, control, watch, setValue } = useForm<EventFormData>();
+  const { register, handleSubmit, formState: { errors }, reset, control, watch, setValue, setFocus } = useForm<EventFormData>({
+    defaultValues: {
+      title: "",
+      description: "",
+      type: "",
+      subType: "",
+      venue: "",
+      location: "",
+      budget: "",
+      expectedAttendees: "",
+      entertainment_id: "",
+      serv_vendor_rental_id: "",
+    },
+  });
 
   const [eventThemes, setEventThemes] = useState<{ id: number; name: string; premium: boolean }[]>([]);
   const [eventTypes, setEventTypes] = useState<{ id: number; name: string; theme_id: number; parent_id: number | null }[]>([]);
@@ -57,6 +73,38 @@ export default function CreateEvent() {
 
   const [themesLoaded, setThemesLoaded] = useState(false);
   const [budgetInput, setBudgetInput] = useState('');
+  const [entertainmentTypes, setEntertainmentTypes] = useState<{ id: number; name: string }[]>([]);
+  const [entertainmentProfiles, setEntertainmentProfiles] = useState<
+    { id: string; business_name: string; ent_type_id: number | null }[]
+  >([]);
+  const [selectedEntTypeId, setSelectedEntTypeId] = useState<number | null>(null);
+  const [vendorRentalTypes, setVendorRentalTypes] = useState<{ id: number; name: string }[]>([]);
+  const [rentalProfiles, setRentalProfiles] = useState<
+    {
+      id: string;
+      business_name: string;
+      serv_vendor_rental_assignments?: { vendor_rental_types: { id: number; name: string } | null }[];
+    }[]
+  >([]);
+  const [selectedRentalTypeId, setSelectedRentalTypeId] = useState<number | null>(null);
+
+  const watchedTitle = watch("title");
+  const watchedTheme = watch("theme_id");
+  const watchedType = watch("type");
+  const watchedSubType = watch("subType");
+  const watchedVenue = watch("venue");
+
+  const eventTypeSelectionOk =
+    subEventTypes.length > 0 ? Boolean(watchedSubType) : Boolean(watchedType);
+
+  const createEventReady = Boolean(
+    watchedTitle?.trim() &&
+    watchedTheme != null &&
+    eventTypeSelectionOk &&
+    watchedVenue?.trim() &&
+    selectedVenueType != null &&
+    dateRange?.from
+  );
 
   useEffect(() => {
     const fetchThemes = async () => {
@@ -117,6 +165,27 @@ export default function CreateEvent() {
       setVenueProfiles(profiles);
     };
     fetchVenueData();
+  }, []);
+
+  useEffect(() => {
+    const loadEntAndRental = async () => {
+      const [{ data: entTypes, error: e1 }, { data: entProfs, error: e2 }] = await Promise.all([
+        supabase.from("entertainment_types").select("id, name").order("name"),
+        supabase.from("entertainments").select("id, business_name, ent_type_id"),
+      ]);
+      if (!e1) setEntertainmentTypes(entTypes || []);
+      if (!e2) setEntertainmentProfiles(entProfs || []);
+
+      const [{ data: vrTypes, error: r1 }, { data: vrProfs, error: r2 }] = await Promise.all([
+        supabase.from("vendor_rental_types").select("id, name").order("name"),
+        supabase.from("serv_vendor_rentals").select(
+          `id, business_name, serv_vendor_rental_assignments(vendor_rental_types(id, name))`
+        ),
+      ]);
+      if (!r1) setVendorRentalTypes(vrTypes || []);
+      if (!r2) setRentalProfiles(vrProfs || []);
+    };
+    loadEntAndRental();
   }, []);
 
   const [isFormCleared, setIsFormCleared] = useState(false);
@@ -243,7 +312,44 @@ export default function CreateEvent() {
     return () => sub.unsubscribe();
   }, [watch]);
 
+  const collectErrorMessages = (errs: FieldErrors<EventFormData>): string[] => {
+    const msgs: string[] = [];
+    const visit = (node: unknown): void => {
+      if (!node || typeof node !== "object") return;
+      const fe = node as FieldError;
+      if (typeof fe.message === "string" && fe.message) {
+        msgs.push(fe.message);
+        return;
+      }
+      for (const v of Object.values(node)) {
+        visit(v);
+      }
+    };
+    visit(errs);
+    return msgs;
+  };
+
+  const onInvalid = (errs: FieldErrors<EventFormData>) => {
+    const messages = collectErrorMessages(errs);
+    const keys = Object.keys(errs) as (keyof EventFormData)[];
+    const description =
+      messages.length > 0
+        ? messages.join(" ")
+        : "Check fields marked with * (attendees and budget are optional).";
+
+    toast({
+      title: "Fix the issues below",
+      description,
+      variant: "destructive",
+    });
+    const first = keys[0];
+    if (first) {
+      setFocus(first);
+    }
+  };
+
   const onSubmit = async (data: EventFormData) => {
+    if (isSubmitting) return;
     if (!dateRange?.from) {
       toast({
         title: "Date Required",
@@ -264,11 +370,11 @@ export default function CreateEvent() {
     }
 
     // Trial version date restriction
-    const trialEnd = new Date('2025-12-31T23:59:59');
+    const trialEnd = new Date('2026-04-30T23:59:59');
     if (dateRange.from > trialEnd) {
       toast({
         title: "Trial Limitation",
-        description: "The trial version doesn't allow creating events after December 31st, 2025.",
+        description: "The trial version doesn't allow creating events after April 30th, 2026.",
         variant: "destructive",
       });
       return;
@@ -314,12 +420,18 @@ export default function CreateEvent() {
       // Use subType if available, otherwise use type
       const typeId = data.subType ? parseInt(data.subType) : parseInt(data.type);
       
+      const entId = data.entertainment_id?.trim() || null;
+      const rentalId = data.serv_vendor_rental_id?.trim() || null;
+
+      // Core row only: optional FK columns need migration 20260327120000 on Supabase.
+      // Insert succeeds without them; profile links are applied in a follow-up update.
       const eventData = {
         user_id: user.id,
         title: data.title,
         description: data.description || null,
         type_id: typeId,
         venue: data.venue,
+        location: data.location?.trim() || null,
         start_date: dateRange.from.toISOString().split('T')[0],
         end_date: dateRange.to ? dateRange.to.toISOString().split('T')[0] : null,
         budget: data.budget ? parseFloat(data.budget) : null,
@@ -327,25 +439,46 @@ export default function CreateEvent() {
         theme_id: data.theme_id,
       };
 
-      // Save to the new events table
-      const { error: insertError } = await supabase
-        .from('events')
-        .insert([eventData]);
+      const { data: insertedRow, error: insertError } = await supabase
+        .from("events")
+        .insert([eventData])
+        .select("id")
+        .single();
 
       if (insertError) {
-        console.error('Error creating event:', insertError);
+        console.error("Error creating event:", insertError);
+        const detail =
+          insertError.message ||
+          "There was an error saving your event. Please try again.";
         toast({
           title: "Error Creating Event",
-          description: "There was an error saving your event. Please try again.",
+          description: detail,
           variant: "destructive",
         });
         setIsSubmitting(false);
         return;
       }
 
+      let profileLinkFailed = false;
+      if (insertedRow?.id && (entId || rentalId)) {
+        const { error: linkError } = await supabase
+          .from("events")
+          .update({
+            ...(entId ? { entertainment_id: entId } : {}),
+            ...(rentalId ? { serv_vendor_rental_id: rentalId } : {}),
+          })
+          .eq("id", insertedRow.id);
+        if (linkError) {
+          console.warn("Optional profile links not saved:", linkError);
+          profileLinkFailed = true;
+        }
+      }
+
       toast({
         title: "Event Created Successfully!",
-        description: `Your event "${data.title}" has been created and saved.`,
+        description: profileLinkFailed
+          ? `Your event "${data.title}" was saved. Entertainment or rental profile links were not stored (run the Supabase migration deliverable1_events_tasks or set profiles in Manage Event).`
+          : `Your event "${data.title}" has been created and saved.`,
       });
 
       // Reset form completely
@@ -356,6 +489,9 @@ export default function CreateEvent() {
         type: "",
         subType: "",
         venue: "",
+        location: "",
+        entertainment_id: "",
+        serv_vendor_rental_id: "",
         budget: "",
         expectedAttendees: "",
         description: ""
@@ -365,6 +501,8 @@ export default function CreateEvent() {
       setSubEventTypes([]);
       setEventTypes([]);
       setSelectedVenueType(null);
+      setSelectedEntTypeId(null);
+      setSelectedRentalTypeId(null);
 
       // Redirect to manage event page
       navigate('/dashboard/manage-event');
@@ -397,14 +535,14 @@ export default function CreateEvent() {
           </Button>
           <div>
             <h1 className="text-3xl font-bold mb-2">Create New Event</h1>
-            <p className="text-muted-foreground">
-              Fill in the details below to create your event. All fields marked with * are required.
+            <p className="text-muted-foreground text-sm sm:text-base">
+              Required fields are marked with <span className="text-foreground font-medium">*</span>.
             </p>
           </div>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form noValidate onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-6">
         <div className="grid md:grid-cols-2 gap-6">
           {/* Basic Information */}
           <Card>
@@ -413,9 +551,6 @@ export default function CreateEvent() {
                 <Calendar className="h-5 w-5" />
                 Basic Information
               </CardTitle>
-              <CardDescription>
-                Enter the fundamental details of your event
-              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
@@ -442,9 +577,10 @@ export default function CreateEvent() {
                         <SelectValue placeholder="Select event theme" />
                       </SelectTrigger>
                       <SelectContent>
-                        {eventThemes.filter(theme => theme.premium !== true).map((theme) => (
+                        {eventThemes.map((theme) => (
                           <SelectItem key={theme.id} value={theme.id.toString()}>
                             {theme.name}
+                            {theme.premium ? " (Premium)" : ""}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -489,11 +625,6 @@ export default function CreateEvent() {
                 />
                 {errors.type && subEventTypes.length === 0 && (
                   <p className="text-sm text-destructive mt-1">{errors.type.message}</p>
-                )}
-                {!selectedThemeId && (
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Please select an event theme first to see available categories.
-                  </p>
                 )}
               </div>
 
@@ -553,18 +684,17 @@ export default function CreateEvent() {
                 <MapPin className="h-5 w-5" />
                 Event Details
               </CardTitle>
-              <CardDescription>
-                Specify venue, budget, and attendee information
-              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Venue: Type → Profile → Location autofill */}
               <div>
                 <Label htmlFor="venueType">Venue Type *</Label>
-                <Select 
-                  value={selectedVenueType?.toString() || ""} 
+                <Select
+                  value={selectedVenueType?.toString() || ""}
                   onValueChange={(value) => {
                     setSelectedVenueType(Number(value));
-                    setValue("venue", ""); // Reset venue selection when type changes
+                    setValue("venue", "");
+                    setValue("location", "");
                   }}
                 >
                   <SelectTrigger>
@@ -585,11 +715,20 @@ export default function CreateEvent() {
                 <Controller
                   name="venue"
                   control={control}
-                  rules={{ required: "Venue is required" }}
+                  rules={{ required: "Venue profile is required" }}
                   render={({ field }) => (
-                    <Select 
-                      value={field.value} 
-                      onValueChange={field.onChange}
+                    <Select
+                      value={field.value}
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        const profile = venueProfiles.find(v => v.business_name === value);
+                        if (profile) {
+                          const loc = [profile.city, profile.state, profile.zip]
+                            .filter(Boolean)
+                            .join(", ");
+                          setValue("location", loc);
+                        }
+                      }}
                       disabled={!selectedVenueType}
                     >
                       <SelectTrigger>
@@ -610,39 +749,166 @@ export default function CreateEvent() {
                 {errors.venue && (
                   <p className="text-sm text-destructive mt-1">{errors.venue.message}</p>
                 )}
+              </div>
+
+              <div>
+                <Label htmlFor="location">Location</Label>
+                <Input
+                  id="location"
+                  {...register("location")}
+                  placeholder="City, State, ZIP"
+                />
                 {selectedVenueDetail &&
-                  (selectedVenueDetail.city ||
-                    selectedVenueDetail.state ||
-                    selectedVenueDetail.zip) && (
-                    <p className="text-sm text-muted-foreground mt-2 flex items-start gap-2">
-                      <MapPin className="h-4 w-4 shrink-0 mt-0.5" />
-                      <span>
-                        <span className="font-medium text-foreground">Location: </span>
-                        {[selectedVenueDetail.city, selectedVenueDetail.state, selectedVenueDetail.zip]
-                          .filter(Boolean)
-                          .join(", ")}
-                      </span>
+                  (selectedVenueDetail.city || selectedVenueDetail.state || selectedVenueDetail.zip) && (
+                    <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                      <MapPin className="h-3 w-3 shrink-0" />
+                      {[selectedVenueDetail.city, selectedVenueDetail.state, selectedVenueDetail.zip]
+                        .filter(Boolean)
+                        .join(", ")}
                     </p>
                   )}
+              </div>
+
+              {/* Entertainment: Type → Profile */}
+              <div className="space-y-2 border rounded-md p-3 bg-muted/30">
+                <Label className="text-sm font-medium">Entertainment (optional)</Label>
+                <div>
+                  <Label htmlFor="entType" className="text-xs text-muted-foreground">Entertainment Type</Label>
+                  <Select
+                    value={selectedEntTypeId === null ? "__all__" : String(selectedEntTypeId)}
+                    onValueChange={(v) => {
+                      setSelectedEntTypeId(v === "__all__" ? null : Number(v));
+                      setValue("entertainment_id", "");
+                    }}
+                  >
+                    <SelectTrigger id="entType">
+                      <SelectValue placeholder="Select entertainment type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__all__">All types</SelectItem>
+                      {entertainmentTypes.map((t) => (
+                        <SelectItem key={t.id} value={t.id.toString()}>
+                          {t.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="entProfile" className="text-xs text-muted-foreground">Entertainment Profile</Label>
+                  <Controller
+                    name="entertainment_id"
+                    control={control}
+                    render={({ field }) => (
+                      <Select
+                        value={field.value ? field.value : "__none__"}
+                        onValueChange={(v) => field.onChange(v === "__none__" ? "" : v)}
+                      >
+                        <SelectTrigger id="entProfile">
+                          <SelectValue placeholder="Select entertainment profile" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none__">None</SelectItem>
+                          {entertainmentProfiles
+                            .filter((p) =>
+                              selectedEntTypeId == null || p.ent_type_id === selectedEntTypeId
+                            )
+                            .map((p) => (
+                              <SelectItem key={p.id} value={p.id}>
+                                {p.business_name}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                </div>
+              </div>
+
+              {/* External Vendor: Type → Profile */}
+              <div className="space-y-2 border rounded-md p-3 bg-muted/30">
+                <Label className="text-sm font-medium">External Vendor (optional)</Label>
+                <div>
+                  <Label htmlFor="vendorType" className="text-xs text-muted-foreground">External Vendor Type</Label>
+                  <Select
+                    value={selectedRentalTypeId === null ? "__all__" : String(selectedRentalTypeId)}
+                    onValueChange={(v) => {
+                      setSelectedRentalTypeId(v === "__all__" ? null : Number(v));
+                      setValue("serv_vendor_rental_id", "");
+                    }}
+                  >
+                    <SelectTrigger id="vendorType">
+                      <SelectValue placeholder="Select vendor type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__all__">All types</SelectItem>
+                      {vendorRentalTypes.map((t) => (
+                        <SelectItem key={t.id} value={t.id.toString()}>
+                          {t.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="vendorProfile" className="text-xs text-muted-foreground">External Vendor Profile</Label>
+                  <Controller
+                    name="serv_vendor_rental_id"
+                    control={control}
+                    render={({ field }) => (
+                      <Select
+                        value={field.value ? field.value : "__none__"}
+                        onValueChange={(v) => field.onChange(v === "__none__" ? "" : v)}
+                      >
+                        <SelectTrigger id="vendorProfile">
+                          <SelectValue placeholder="Select vendor profile" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none__">None</SelectItem>
+                          {rentalProfiles
+                            .filter((p) => {
+                              if (selectedRentalTypeId == null) return true;
+                              return p.serv_vendor_rental_assignments?.some(
+                                (a: { vendor_rental_types?: { id: number } | null }) =>
+                                  a.vendor_rental_types?.id === selectedRentalTypeId
+                              );
+                            })
+                            .map((p) => (
+                              <SelectItem key={p.id} value={p.id}>
+                                {p.business_name}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                </div>
               </div>
 
               <div>
                 <Label htmlFor="expectedAttendees" className="flex items-center gap-2">
                   <Users className="h-4 w-4" />
-                  Expected Attendees
+                  Number of Attendees
+                  <span className="text-xs text-muted-foreground font-normal">(optional)</span>
                 </Label>
                 <Input
                   id="expectedAttendees"
-                  type="number"
-                  {...register("expectedAttendees")}
-                  placeholder="Number of attendees"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  {...register("expectedAttendees", {
+                    validate: (v) =>
+                      v === "" || v === undefined || /^\d+$/.test(String(v).trim()) || "Enter a whole number or leave blank",
+                  })}
+                  placeholder="Number of people attending"
                 />
               </div>
 
               <div>
                 <Label htmlFor="budget" className="flex items-center gap-2">
                   <DollarSign className="h-4 w-4" />
-                  Budget
+                  Budget Amount
+                  <span className="text-xs text-muted-foreground font-normal">(optional)</span>
                 </Label>
                 <Input
                   id="budget"
@@ -654,4 +920,60 @@ export default function CreateEvent() {
                   onBlur={() => {
                     if (budgetInput) {
                       const formatted = parseFloat(budgetInput).toFixed(2);
-                      setBudgetInput(formatted                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              
+                      setBudgetInput(formatted);
+                      setValue('budget', formatted);
+                    }
+                  }}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      (e.target as HTMLInputElement).blur();
+                    }
+                  }}
+                  placeholder="Enter budget amount"
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex justify-end gap-4 pt-6">
+          <Button type="button" variant="outline" onClick={() => {
+            // Set flag to prevent URL params from repopulating the form
+            setIsFormCleared(true);
+            
+            // Reset all form fields
+            reset({
+              title: "",
+              theme_id: undefined,
+              type: "",
+              subType: "",
+              venue: "",
+              location: "",
+              entertainment_id: "",
+              serv_vendor_rental_id: "",
+              budget: "",
+              expectedAttendees: "",
+              description: ""
+            });
+            setDateRange(undefined);
+            setBudgetInput('');
+            setSubEventTypes([]);
+            setEventTypes([]);
+            setSelectedVenueType(null);
+            setSelectedEntTypeId(null);
+            setSelectedRentalTypeId(null);
+            
+            // Clear URL parameters to prevent form repopulation
+            navigate('/dashboard/create-event', { replace: true });
+          }}>
+            Clear Form
+          </Button>
+          <Button type="submit" disabled={!createEventReady || isSubmitting}>
+            {isSubmitting ? "Creating Event…" : "Create Event"}
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+}

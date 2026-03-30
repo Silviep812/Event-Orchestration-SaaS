@@ -1,8 +1,16 @@
-# Welcome to your Lovable project
+# IDA Event Partners — Event Orchestration SaaS
 
 ## Project info
 
-**URL**: https://lovable.dev/projects/8cf37313-547d-49d6-990f-d661a5976189
+**Lovable project:** https://lovable.dev/projects/8cf37313-547d-49d6-990f-d661a5976189  
+**Preview URL:** https://preview--iep-trial.lovable.app  
+**Custom domain:** https://idaeventpartners.com (DNS / Lovable domain config — see [`docs/CLIENT_REDIRECT_SUMMARY.md`](docs/CLIENT_REDIRECT_SUMMARY.md))  
+**Supabase project:** see [`docs/REDIRECT_AND_AUTH_URLS.md`](docs/REDIRECT_AND_AUTH_URLS.md) for Auth URL setup
+
+## Deliverable 1 status
+
+See [`docs/DELIVERABLE1_SOW_GAP_CHECKLIST.md`](docs/DELIVERABLE1_SOW_GAP_CHECKLIST.md) for the full SOW acceptance-criteria checklist.  
+Required Supabase SQL migrations to run: `supabase/migrations/202603271*` in date order.
 
 ## How can I edit this code?
 
@@ -71,3 +79,19 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+
+## Ship checklist (client requirements — Sylvia)
+
+**In-app work** for the public shell, auth flow, and Create/Manage Event (per SOW) is implemented in this branch. To **fully ship**:
+
+1. **Lovable:** Publish; point **custom domain** at this project (no separate “Coming Soon” app covering the real UI).
+2. **Supabase:** [Authentication → URL Configuration](https://supabase.com/dashboard) — **Site URL** + **Redirect URLs** for production + preview; **SMTP** (e.g. Resend) for auth emails.
+3. **Database:** From repo root, `npm run db push` (if the pooler times out: set `SUPABASE_DB_PASSWORD`, then `npm run db:link:direct:ps` and `npm run db:push:with-password` — see `docs/CLIENT_STEP_BY_STEP.md`).
+4. **Client:** Send Q&A on main vs staging DB; obtain **Theme / Create / Details** bullet list if anything remains.
+
+| Doc | Purpose |
+|-----|---------|
+| [`docs/CLIENT_STEP_BY_STEP.md`](docs/CLIENT_STEP_BY_STEP.md) | Numbered steps matching the client email |
+| [`docs/CLIENT_REQUIREMENTS_FULL.md`](docs/CLIENT_REQUIREMENTS_FULL.md) | Full requirement narrative |
+| [`docs/PROJECT_HANDOFF_COMPLETE.md`](docs/PROJECT_HANDOFF_COMPLETE.md) | What is done in repo vs what you finish in hosting |
+| [`docs/DELIVERABLE1_SOW_GAP_CHECKLIST.md`](docs/DELIVERABLE1_SOW_GAP_CHECKLIST.md) | SOW / Deliverable 1 checklist |

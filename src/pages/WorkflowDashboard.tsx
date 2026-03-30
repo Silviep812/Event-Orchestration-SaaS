@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { WorkflowDashboard as WorkflowDashboardComponent } from "@/components/workflow/WorkflowDashboard";
 import { WorkflowSelector } from "@/components/workflow/WorkflowSelector";
 import { EventSelector } from "@/components/workflow/EventSelector";
@@ -10,6 +10,7 @@ import { ServiceSelector } from "@/components/workflow/ServiceSelector";
 import { SupplierSelector } from "@/components/workflow/SupplierSelector";
 import { useWorkflow } from "@/hooks/useWorkflow";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, CheckCircle2, ArrowLeft, Plus } from "lucide-react";
@@ -40,7 +41,9 @@ interface Event {
 
 export default function WorkflowDashboard() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const { userRoles, user } = useAuth();
+  const { toast } = useToast();
   const { getAllWorkflows, getWorkflowById, saveWorkflowType, updateWorkflowSelections, loading } = useWorkflow();
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(null);
@@ -111,11 +114,10 @@ export default function WorkflowDashboard() {
   // Check if editing existing workflow (coming from query params)
   useEffect(() => {
     const eventId = searchParams.get('eventId');
-    if (eventId && !selectedWorkflowId) {
+    if (eventId && !selectedWorkflowId && user?.id) {
       setSelectedEvent(eventId);
       setIsCreatingWorkflow(true);
       
-      // Load existing workflow data for this event
       const loadExistingWorkflow = async () => {
         const { data: workflow } = await supabase
           .from('workflows')
@@ -136,13 +138,22 @@ export default function WorkflowDashboard() {
           if (workflow.serv_vendor_sup_id) setSelectedServiceVendor(workflow.serv_vendor_sup_id);
           if (workflow.serv_vendor_rent_id) setSelectedServiceRental(workflow.serv_vendor_rent_id);
           if (workflow.supplier_id) setSelectedSupplier({ id: workflow.supplier_id });
+        } else {
+          const { data: created, error } = await supabase
+            .from('workflows')
+            .insert({ event_id: eventId, user_id: user.id })
+            .select('id')
+            .single();
+          if (!error && created?.id) {
+            setWorkflowIdForEvent(created.id);
+          }
         }
       };
       
       loadExistingWorkflow();
       setCurrentStep("user-type");
     }
-  }, [searchParams, selectedWorkflowId]);
+  }, [searchParams, selectedWorkflowId, user?.id]);
 
   // Auto-detect user type from Supabase roles
   useEffect(() => {
@@ -316,6 +327,41 @@ export default function WorkflowDashboard() {
       case "dashboard": return 100;
       default: return 0;
     }
+  };
+
+  /** Re-enter the setup wizard from the standalone workflow dashboard (Customize button). */
+  const openCustomizeWizard = async () => {
+    if (!selectedWorkflowId) {
+      toast({
+        title: "No workflow",
+        description: "Select a workflow first.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const data = await getWorkflowById(selectedWorkflowId);
+    if (!data) {
+      toast({
+        title: "Error",
+        description: "Could not load workflow data.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setWorkflowIdForEvent(data.id);
+    if (data.event_id) setSelectedEvent(data.event_id);
+    setSelectedUserType(getUserTypeString(data.workflow_type_id));
+    if (data.theme_id != null) setSelectedTheme(data.theme_id);
+    else setSelectedTheme(undefined);
+    setSelectedHospitality(data.hospitality_id ?? undefined);
+    setSelectedVenue(data.venue_id ?? undefined);
+    setSelectedServiceVendor(data.serv_vendor_sup_id ?? null);
+    setSelectedServiceRental(data.serv_vendor_rent_id ?? null);
+    if (data.supplier_id) setSelectedSupplier({ id: data.supplier_id });
+    else setSelectedSupplier(null);
+    setIsCreatingWorkflow(true);
+    setCurrentStep("user-type");
+    navigate("/dashboard/workflow-dashboard", { replace: true });
   };
 
   if (workflows.length === 0 || isCreatingWorkflow) {
@@ -518,6 +564,7 @@ export default function WorkflowDashboard() {
         userType={userType}
         selectedTheme={selectedTheme}
         workflowId={selectedWorkflowId!}
+        onCustomizeWorkflow={openCustomizeWizard}
         onChangeWorkflow={() => setSelectedWorkflowId(null)}
         showChangeWorkflow={workflows.length > 1}
       />

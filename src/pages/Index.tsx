@@ -1,14 +1,21 @@
-import { useState } from "react";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Menu, X, Calendar, Users, BarChart3, Bell, FolderOpen } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Calendar, Users, BarChart3, Bell, FolderOpen } from "lucide-react";
+import { Link } from "react-router-dom";
+import { MarketingTopBar } from "@/components/MarketingTopBar";
 
+const scrollToId = (id: string) => {
+  document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+};
 
 const Index = () => {
-  console.log('Index component is rendering');
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const navigate = useNavigate();
+  useEffect(() => {
+    const raw = window.location.hash.replace(/^#/, "");
+    if (raw && document.getElementById(raw)) {
+      requestAnimationFrame(() => scrollToId(raw));
+    }
+  }, []);
 
   const features = [
     {
@@ -58,78 +65,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Mobile-first Navigation */}
-      <nav className="border-b bg-card">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <Link to="/" className="flex items-center" aria-label="IEP">
-                <img src="/lovable-uploads/e8e18250-fa27-4ae4-a4bc-867e063bcfd1.png" alt="IEP logo" className="h-8 w-8" />
-              </Link>
-            </div>
-            
-            {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center space-x-4">
-              <Button variant="ghost" onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}>Features</Button>
-              <Button variant="ghost">Pricing</Button>
-              <Button variant="ghost" onClick={() => navigate('/contact')}>Contact</Button>
-              <Button 
-                variant="outline" 
-                onClick={(e) => {
-                  console.log('Desktop Sign In button clicked', e);
-                  e.preventDefault();
-                  e.stopPropagation();
-                  window.location.href = '/auth';
-                }}
-              >
-                Sign In
-              </Button>
-              <Button onClick={() => navigate('/auth')}>Start Trial</Button>
-            </div>
-
-            {/* Mobile menu button */}
-            <div className="md:hidden">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              >
-                {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-              </Button>
-            </div>
-          </div>
-
-          {/* Mobile Navigation Menu */}
-          {mobileMenuOpen && (
-            <div className="md:hidden border-t">
-              <div className="px-2 pt-2 pb-3 space-y-1">
-                <Button variant="ghost" className="w-full justify-start" onClick={() => {
-                  document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
-                  setMobileMenuOpen(false);
-                }}>Features</Button>
-                <Button variant="ghost" className="w-full justify-start">Pricing</Button>
-                <Button variant="ghost" className="w-full justify-start" onClick={() => {
-                  navigate('/contact');
-                  setMobileMenuOpen(false);
-                }}>Contact</Button>
-                <Button
-                  variant="outline" 
-                  className="w-full"
-                  onClick={() => {
-                    console.log('Mobile Sign In button clicked');
-                    navigate('/auth');
-                  }}
-                >
-                  Sign In
-                </Button>
-                <Link to="/auth">
-                  <Button className="w-full">Start Trial</Button>
-                </Link>
-              </div>
-            </div>
-          )}
-        </div>
-      </nav>
+      <MarketingTopBar page="home" />
 
       {/* Hero Section */}
       <section className="px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-20">
@@ -138,17 +74,43 @@ const Index = () => {
             Welcome to Ida Event Partners
           </h1>
           <p className="text-lg sm:text-xl text-muted-foreground mb-8 max-w-3xl mx-auto">
-            Streamline your event planning process with our comprehensive SaaS platform. 
-            Create, manage, and track events while collaborating seamlessly with your team.
+            Streamline your event planning with our comprehensive SaaS platform. 
+            Create, manage, and track events while collaborating with your team.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/auth">
-              <Button size="lg" className="w-full text-lg px-8 py-3">Start Free Trial</Button>
+              <Button size="lg" className="w-full text-lg px-8 py-3">
+                Start 14-day free trial
+              </Button>
             </Link>
-            <Button variant="outline" size="lg" className="text-lg px-8 py-3">
-              Watch Demo
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              className="text-lg px-8 py-3"
+              onClick={() => scrollToId("payment-plan")}
+            >
+              View payment plan
             </Button>
           </div>
+        </div>
+      </section>
+
+      <section id="payment-plan" className="px-4 sm:px-6 lg:px-8 py-12 sm:py-14 border-y bg-muted/40">
+        <div className="max-w-3xl mx-auto text-center">
+          <h2 className="text-2xl sm:text-3xl font-bold mb-3">Payment plan</h2>
+          <p className="text-muted-foreground mb-6">
+            Try every core workflow free for <strong className="text-foreground">14 days</strong>. Upgrade when you are
+            ready—no long-term commitment required for the trial.
+          </p>
+          <ul className="text-left sm:text-center text-sm text-foreground/90 space-y-2 mb-8 max-w-md mx-auto">
+            <li>Full access to event creation, directories, and collaboration during the trial</li>
+            <li>Email support during business hours</li>
+            <li>Cancel or upgrade before the trial ends</li>
+          </ul>
+          <Link to="/auth">
+            <Button size="lg">Begin free trial</Button>
+          </Link>
         </div>
       </section>
 
