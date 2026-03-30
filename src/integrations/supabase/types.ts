@@ -3478,47 +3478,6 @@ export type Database = {
           },
         ]
       }
-      team_assignments: {
-        Row: {
-          created_at: string
-          id: number
-          is_coordinator: boolean
-          is_viewer: boolean
-          team_admin: boolean
-          team_id: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: number
-          is_coordinator?: boolean
-          is_viewer?: boolean
-          team_admin?: boolean
-          team_id: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: number
-          is_coordinator?: boolean
-          is_viewer?: boolean
-          team_admin?: boolean
-          team_id?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "team_assignments_team_id_fkey1"
-            columns: ["team_id"]
-            isOneToOne: false
-            referencedRelation: "teams"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       teams: {
         Row: {
           created_at: string
@@ -5126,11 +5085,6 @@ export type Database = {
       }
       tca_insert_allowed: {
         Args: { p_team_admin: boolean; p_team_id: string; p_user_id: string }
-        Returns: boolean
-      }
-      tca_team_is_empty: { Args: { p_team_id: string }; Returns: boolean }
-      team_assignments_is_empty: {
-        Args: { p_team_id: string }
         Returns: boolean
       }
       update_resource_utilization: {
