@@ -19,7 +19,7 @@ interface Event {
   type: "meeting" | "event" | "deadline" | "other";
   attendees: number;
   description?: string;
-  status: "pending" | "in_progress" | "completed" | "cancelled" | "confirmed";
+  status: "pending" | "in_progress" | "completed" | "cancelled";
 }
 
 const EventCalendar = () => {
