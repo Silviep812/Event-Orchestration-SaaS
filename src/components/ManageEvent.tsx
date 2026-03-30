@@ -55,7 +55,7 @@ interface ManageEventData {
   location?: string;
   theme_id?: number;
   type_id?: number;
-  status?: "pending" | "in_progress" | "completed" | "cancelled";
+  status?: "pending" | "confirmed" | "in_progress" | "completed" | "cancelled";
   budget?: number;
   created_at?: string;
   updated_at?: string;
