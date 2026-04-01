@@ -401,6 +401,13 @@ export type Database = {
             foreignKeyName: "cm_activity_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: false
+            referencedRelation: "due_soon_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cm_activity_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
             referencedRelation: "event_kpi_view"
             referencedColumns: ["event_id"]
           },
@@ -410,6 +417,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "events"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cm_activity_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_category_counts"
+            referencedColumns: ["event_id"]
           },
         ]
       }
@@ -487,27 +501,45 @@ export type Database = {
           created_at: string
           description: string | null
           event_id: string | null
+          field_changed: string | null
           id: string
+          new_value: string | null
+          old_value: string | null
           priority_tag: string | null
           requested_by: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string | null
           task_id: string | null
         }
         Insert: {
           created_at?: string
           description?: string | null
           event_id?: string | null
+          field_changed?: string | null
           id?: string
+          new_value?: string | null
+          old_value?: string | null
           priority_tag?: string | null
           requested_by?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string | null
           task_id?: string | null
         }
         Update: {
           created_at?: string
           description?: string | null
           event_id?: string | null
+          field_changed?: string | null
           id?: string
+          new_value?: string | null
+          old_value?: string | null
           priority_tag?: string | null
           requested_by?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string | null
           task_id?: string | null
         }
         Relationships: []
@@ -903,6 +935,74 @@ export type Database = {
           venue_type?: string[] | null
         }
         Relationships: []
+      }
+      email_events: {
+        Row: {
+          created_at: string
+          error: string | null
+          event_id: string | null
+          id: string
+          metadata: Json | null
+          provider: string | null
+          recipient: string
+          status: string
+          template: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          event_id?: string | null
+          id?: string
+          metadata?: Json | null
+          provider?: string | null
+          recipient: string
+          status?: string
+          template: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          event_id?: string | null
+          id?: string
+          metadata?: Json | null
+          provider?: string | null
+          recipient?: string
+          status?: string
+          template?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_events_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "due_soon_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_events_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event_kpi_view"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "email_events_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_events_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_category_counts"
+            referencedColumns: ["event_id"]
+          },
+        ]
       }
       "Entertainment Directory": {
         Row: {
@@ -1423,6 +1523,68 @@ export type Database = {
           venue_types?: string | null
         }
         Relationships: []
+      }
+      event_resource_selections: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          notes: string | null
+          resource_id: string
+          selection_type: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: string
+          notes?: string | null
+          resource_id: string
+          selection_type: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          notes?: string | null
+          resource_id?: string
+          selection_type?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_resource_selections_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "due_soon_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_resource_selections_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event_kpi_view"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "event_resource_selections_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_resource_selections_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_category_counts"
+            referencedColumns: ["event_id"]
+          },
+        ]
       }
       event_themes: {
         Row: {
@@ -1991,6 +2153,7 @@ export type Database = {
           analytics_update: Json[] | null
           created_at: string
           event_theme: string
+          linked_event_id: string | null
           progress_update: string | null
           resource_update: string | null
           task_align_update: Json[] | null
@@ -2003,6 +2166,7 @@ export type Database = {
           analytics_update?: Json[] | null
           created_at?: string
           event_theme: string
+          linked_event_id?: string | null
           progress_update?: string | null
           resource_update?: string | null
           task_align_update?: Json[] | null
@@ -2015,6 +2179,7 @@ export type Database = {
           analytics_update?: Json[] | null
           created_at?: string
           event_theme?: string
+          linked_event_id?: string | null
           progress_update?: string | null
           resource_update?: string | null
           task_align_update?: Json[] | null
@@ -2023,7 +2188,36 @@ export type Database = {
           task_modified_date?: string | null
           task_update?: string[] | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "Manage Event Tasks_linked_event_id_fkey"
+            columns: ["linked_event_id"]
+            isOneToOne: false
+            referencedRelation: "due_soon_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Manage Event Tasks_linked_event_id_fkey"
+            columns: ["linked_event_id"]
+            isOneToOne: false
+            referencedRelation: "event_kpi_view"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "Manage Event Tasks_linked_event_id_fkey"
+            columns: ["linked_event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Manage Event Tasks_linked_event_id_fkey"
+            columns: ["linked_event_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_category_counts"
+            referencedColumns: ["event_id"]
+          },
+        ]
       }
       "Marketing Directory": {
         Row: {
@@ -2213,42 +2407,80 @@ export type Database = {
       }
       notifications: {
         Row: {
+          channel: string | null
           created_at: string
           entity_id: string | null
           entity_type: string | null
+          event_id: string | null
           id: string
           is_read: boolean
           message: string
           recipient_id: string
           sender_id: string | null
+          sent_at: string | null
           title: string
           type: string
         }
         Insert: {
+          channel?: string | null
           created_at?: string
           entity_id?: string | null
           entity_type?: string | null
+          event_id?: string | null
           id?: string
           is_read?: boolean
           message: string
           recipient_id: string
           sender_id?: string | null
+          sent_at?: string | null
           title: string
           type: string
         }
         Update: {
+          channel?: string | null
           created_at?: string
           entity_id?: string | null
           entity_type?: string | null
+          event_id?: string | null
           id?: string
           is_read?: boolean
           message?: string
           recipient_id?: string
           sender_id?: string | null
+          sent_at?: string | null
           title?: string
           type?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "notifications_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "due_soon_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event_kpi_view"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "notifications_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_category_counts"
+            referencedColumns: ["event_id"]
+          },
+        ]
       }
       private_profiles: {
         Row: {
@@ -2588,6 +2820,13 @@ export type Database = {
             foreignKeyName: "resources_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: false
+            referencedRelation: "due_soon_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resources_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
             referencedRelation: "event_kpi_view"
             referencedColumns: ["event_id"]
           },
@@ -2597,6 +2836,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "events"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resources_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_category_counts"
+            referencedColumns: ["event_id"]
           },
           {
             foreignKeyName: "resources_status_id_fkey"
@@ -3996,6 +4242,62 @@ export type Database = {
           },
         ]
       }
+      uploads: {
+        Row: {
+          created_at: string
+          event_id: string | null
+          file_path: string
+          id: string
+          media_type: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id?: string | null
+          file_path: string
+          id?: string
+          media_type?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string | null
+          file_path?: string
+          id?: string
+          media_type?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "uploads_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "due_soon_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "uploads_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event_kpi_view"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "uploads_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "uploads_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_category_counts"
+            referencedColumns: ["event_id"]
+          },
+        ]
+      }
       "User Profile": {
         Row: {
           Biz_Name: string | null
@@ -4095,6 +4397,13 @@ export type Database = {
             foreignKeyName: "user_roles_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: false
+            referencedRelation: "due_soon_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_roles_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
             referencedRelation: "event_kpi_view"
             referencedColumns: ["event_id"]
           },
@@ -4104,6 +4413,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "events"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_roles_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_category_counts"
+            referencedColumns: ["event_id"]
           },
         ]
       }
@@ -4614,6 +4930,13 @@ export type Database = {
             foreignKeyName: "workflows_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: true
+            referencedRelation: "due_soon_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflows_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: true
             referencedRelation: "event_kpi_view"
             referencedColumns: ["event_id"]
           },
@@ -4623,6 +4946,13 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "events"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflows_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: true
+            referencedRelation: "vendor_category_counts"
+            referencedColumns: ["event_id"]
           },
           {
             foreignKeyName: "workflows_hospitality_id_fkey"
@@ -4684,6 +5014,68 @@ export type Database = {
       }
     }
     Views: {
+      activity_feed: {
+        Row: {
+          action: string | null
+          changed_by: string | null
+          created_at: string | null
+          entity_id: string | null
+          entity_type: string | null
+          event_id: string | null
+          id: string | null
+          metadata: Json | null
+        }
+        Insert: {
+          action?: string | null
+          changed_by?: string | null
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          event_id?: string | null
+          id?: string | null
+          metadata?: Json | null
+        }
+        Update: {
+          action?: string | null
+          changed_by?: string | null
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          event_id?: string | null
+          id?: string | null
+          metadata?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cm_activity_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "due_soon_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cm_activity_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event_kpi_view"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "cm_activity_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cm_activity_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_category_counts"
+            referencedColumns: ["event_id"]
+          },
+        ]
+      }
       cm_activity_with_event: {
         Row: {
           action: string | null
@@ -4701,6 +5093,13 @@ export type Database = {
             foreignKeyName: "cm_activity_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: false
+            referencedRelation: "due_soon_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cm_activity_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
             referencedRelation: "event_kpi_view"
             referencedColumns: ["event_id"]
           },
@@ -4710,6 +5109,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "events"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cm_activity_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_category_counts"
+            referencedColumns: ["event_id"]
           },
         ]
       }
@@ -4794,6 +5200,97 @@ export type Database = {
         }
         Relationships: []
       }
+      due_soon_events: {
+        Row: {
+          archived: boolean | null
+          budget: number | null
+          created_at: string | null
+          description: string | null
+          end_date: string | null
+          end_time: string | null
+          entertainment_id: string | null
+          expected_attendees: number | null
+          id: string | null
+          location: string | null
+          serv_vendor_rental_id: string | null
+          start_date: string | null
+          start_time: string | null
+          status: Database["public"]["Enums"]["event_status_enum"] | null
+          theme_id: number | null
+          title: string | null
+          type_id: number | null
+          updated_at: string | null
+          user_id: string | null
+          venue: string | null
+        }
+        Insert: {
+          archived?: boolean | null
+          budget?: number | null
+          created_at?: string | null
+          description?: string | null
+          end_date?: string | null
+          end_time?: string | null
+          entertainment_id?: string | null
+          expected_attendees?: number | null
+          id?: string | null
+          location?: string | null
+          serv_vendor_rental_id?: string | null
+          start_date?: string | null
+          start_time?: string | null
+          status?: Database["public"]["Enums"]["event_status_enum"] | null
+          theme_id?: number | null
+          title?: string | null
+          type_id?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+          venue?: string | null
+        }
+        Update: {
+          archived?: boolean | null
+          budget?: number | null
+          created_at?: string | null
+          description?: string | null
+          end_date?: string | null
+          end_time?: string | null
+          entertainment_id?: string | null
+          expected_attendees?: number | null
+          id?: string | null
+          location?: string | null
+          serv_vendor_rental_id?: string | null
+          start_date?: string | null
+          start_time?: string | null
+          status?: Database["public"]["Enums"]["event_status_enum"] | null
+          theme_id?: number | null
+          title?: string | null
+          type_id?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+          venue?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_entertainment_id_fkey"
+            columns: ["entertainment_id"]
+            isOneToOne: false
+            referencedRelation: "entertainments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_serv_vendor_rental_id_fkey"
+            columns: ["serv_vendor_rental_id"]
+            isOneToOne: false
+            referencedRelation: "serv_vendor_rentals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_type_id_fkey"
+            columns: ["type_id"]
+            isOneToOne: false
+            referencedRelation: "event_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_kpi_view: {
         Row: {
           allocated_resources: number | null
@@ -4827,6 +5324,68 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "event_types"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_resources: {
+        Row: {
+          created_at: string | null
+          event_id: string | null
+          id: string | null
+          notes: string | null
+          resource_id: string | null
+          selection_type: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          event_id?: string | null
+          id?: string | null
+          notes?: string | null
+          resource_id?: string | null
+          selection_type?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          event_id?: string | null
+          id?: string | null
+          notes?: string | null
+          resource_id?: string | null
+          selection_type?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_resource_selections_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "due_soon_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_resource_selections_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event_kpi_view"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "event_resource_selections_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_resource_selections_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_category_counts"
+            referencedColumns: ["event_id"]
           },
         ]
       }
@@ -4984,6 +5543,15 @@ export type Database = {
           full_name?: never
           role?: string | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      vendor_category_counts: {
+        Row: {
+          event_id: string | null
+          owner_id: string | null
+          selection_count: number | null
+          selection_type: string | null
         }
         Relationships: []
       }
