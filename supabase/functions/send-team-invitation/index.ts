@@ -88,7 +88,7 @@ const handler = async (req: Request): Promise<Response> => {
             user_id: existingUser.id,
             team_id: teamId,
             team_admin: false,
-            is_coordinator: isCoordinator || false,
+            is_collaborator: isCoordinator || false,
             is_viewer: isViewer || false,
           }, {
             onConflict: 'user_id,team_id'
@@ -156,7 +156,7 @@ const handler = async (req: Request): Promise<Response> => {
             user_id: data.user.id,
             team_id: teamId,
             team_admin: false,
-            is_coordinator: isCoordinator || false,
+            is_collaborator: isCoordinator || false,
             is_viewer: isViewer || false,
           });
 

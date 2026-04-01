@@ -33,7 +33,42 @@ interface TeamMemberWithTasks {
   tasks: TaskAssignment[];
 }
 
-export function TeamMemberTaskAssignments() {
+interface TeamMemberTaskAssignmentsProps {
+  /** When set (e.g. Manage Event), only tasks for this event are shown */
+  eventId?: string;
+}
+
+const RESOURCE_CATEGORY_PARTS = new Set([
+  "Venue",
+  "Transportation",
+  "Service Vendor",
+  "Vendor Service Rental/Buy",
+  "Hospitality",
+  "Supplier",
+  "Suppliers",
+  "Entertainment",
+  "Bookings",
+]);
+
+function taskCategoryMatchesResourceFilter(category: string | null | undefined): boolean {
+  if (!category?.trim()) return false;
+  return category
+    .split(",")
+    .map((s) => s.trim())
+    .some((p) => RESOURCE_CATEGORY_PARTS.has(p));
+}
+
+/** PDF naming: Supplier → External Vendor */
+function formatTaskCategoryLabel(category: string | null | undefined): string {
+  if (!category?.trim()) return "";
+  return category
+    .split(",")
+    .map((s) => s.trim())
+    .map((p) => (p === "Supplier" || p === "Suppliers" ? "External Vendor" : p))
+    .join(", ");
+}
+
+export function TeamMemberTaskAssignments({ eventId }: TeamMemberTaskAssignmentsProps) {
   const [teamMembers, setTeamMembers] = useState<TeamMemberWithTasks[]>([]);
   const [unassignedTasks, setUnassignedTasks] = useState<TaskAssignment[]>([]);
   const [unassignedTasksCount, setUnassignedTasksCount] = useState(0);
@@ -43,17 +78,21 @@ export function TeamMemberTaskAssignments() {
 
   useEffect(() => {
     fetchTaskAssignments();
-  }, []);
+  }, [eventId]);
 
   const fetchTaskAssignments = async () => {
     try {
       setLoading(true);
 
-      // Fetch all tasks to extract unique collaborator names
-      const { data: allTasksForCollaborators, error: collaboratorsError } = await supabase
+      // Unique collaborator names (scoped to event when eventId is set)
+      let collabNameQuery = supabase
         .from('tasks')
         .select('assigned_coordinator_name')
         .not('assigned_coordinator_name', 'is', null);
+      if (eventId) {
+        collabNameQuery = collabNameQuery.eq('event_id', eventId);
+      }
+      const { data: allTasksForCollaborators, error: collaboratorsError } = await collabNameQuery;
 
       if (collaboratorsError) throw collaboratorsError;
 
@@ -71,31 +110,21 @@ export function TeamMemberTaskAssignments() {
       
       setAllUsers(allUsers);
 
-      // Fetch all tasks with their categories
-      const { data: tasks, error: tasksError } = await supabase
+      // Fetch tasks (optionally scoped to one event — Deliverable 1 / Manage Event)
+      let tasksQuery = supabase
         .from('tasks')
         .select('id, title, status, priority, due_date, assigned_to, assigned_coordinator_name, event_id, category')
         .order('due_date', { ascending: true });
-      
+      if (eventId) {
+        tasksQuery = tasksQuery.eq('event_id', eventId);
+      }
+      const { data: tasks, error: tasksError } = await tasksQuery;
+
       if (tasksError) throw tasksError;
 
-      // Define valid resource type categories
-      const resourceCategories = [
-        'Venue',
-        'Transportation', 
-        'Service Vendor',
-        'Vendor Service Rental/Buy',
-        'Hospitality',
-        'Supplier',
-        'Suppliers',
-        'Entertainment',
-        'Bookings'
-      ];
-
-      // Filter tasks to only show resource-type tasks
-      const filteredTasks = tasks?.filter(task => 
-        resourceCategories.includes(task.category)
-      ) || [];
+      // Filter tasks to only show resource-type tasks (category may be CSV from create form)
+      const filteredTasks =
+        tasks?.filter((task) => taskCategoryMatchesResourceFilter(task.category)) || [];
 
       // Fetch event titles separately
       const eventIds = [...new Set(filteredTasks?.map(t => t.event_id).filter(Boolean))];
@@ -283,7 +312,7 @@ export function TeamMemberTaskAssignments() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Unassigned Tasks</p>
+                <p className="text-sm font-medium text-muted-foreground">Tasks without assignee</p>
                 <p className="text-2xl font-bold">{unassignedTasksCount}</p>
               </div>
               <AlertCircle className="h-8 w-8 text-muted-foreground" />
@@ -292,10 +321,10 @@ export function TeamMemberTaskAssignments() {
         </Card>
       </div>
 
-      {/* Unassigned Tasks Section */}
+      {/* Tasks needing assignee */}
       {unassignedTasksCount > 0 && (
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Unassigned Tasks ({unassignedTasksCount})</h3>
+          <h3 className="text-lg font-semibold">Add task assignment — needs assignee ({unassignedTasksCount})</h3>
           <Card>
             <CardContent className="p-6">
               <div className="space-y-2">
@@ -306,7 +335,9 @@ export function TeamMemberTaskAssignments() {
                         <div className="flex items-center gap-2 flex-wrap">
                           <p className="font-medium text-sm">{task.taskTitle}</p>
                           {task.taskCategory && (
-                            <Badge className="bg-primary text-primary-foreground font-semibold">{task.taskCategory}</Badge>
+                            <Badge className="bg-primary text-primary-foreground font-semibold">
+                              {formatTaskCategoryLabel(task.taskCategory)}
+                            </Badge>
                           )}
                         </div>
                         {task.eventTitle && (
@@ -370,9 +401,9 @@ export function TeamMemberTaskAssignments() {
         </div>
       )}
 
-      {/* Team Member Task Assignments */}
+      {/* Assignments by collaborator */}
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold">Team Member Task Assignments</h3>
+        <h3 className="text-lg font-semibold">Task assignments by collaborator</h3>
         
         {teamMembers.length === 0 ? (
           <Card className="p-6 text-center">
@@ -421,7 +452,9 @@ export function TeamMemberTaskAssignments() {
                           <div className="flex items-center gap-2 flex-wrap">
                             <p className="font-medium text-sm">{task.taskTitle}</p>
                             {task.taskCategory && (
-                              <Badge className="bg-primary text-primary-foreground font-semibold">{task.taskCategory}</Badge>
+                              <Badge className="bg-primary text-primary-foreground font-semibold">
+                                {formatTaskCategoryLabel(task.taskCategory)}
+                              </Badge>
                             )}
                             <Badge variant={task.taskStatus === 'completed' ? 'default' : 'outline'}>
                               {task.taskStatus}

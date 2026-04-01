@@ -33,6 +33,10 @@ import EntertainmentDirectory from "./pages/EntertainmentDirectory";
 import SupplierDirectory from "./pages/SupplierDirectory";
 import Profile from "./pages/Profile";
 import Contact from "./pages/Contact";
+import EventSummary from "./pages/EventSummary";
+import TaskTimeline from "./pages/TaskTimeline";
+import ResourceMap from "./pages/ResourceMap";
+import MarketingCampaign from "./pages/MarketingCampaign";
 
 const queryClient = new QueryClient();
 
@@ -56,11 +60,15 @@ const App = () => (
               <Route path="planning-assets/:templateId" element={<EditTemplate />} />
               <Route path="analytics" element={<Analytics />} />
               <Route path="calendar" element={<EventCalendar />} />
+              <Route path="task-timeline" element={<TaskTimeline />} />
+              <Route path="resource-map" element={<ResourceMap />} />
               <Route path="create-event" element={<CreateEvent />} />
+              <Route path="event-summary" element={<EventSummary />} />
               <Route path="manage-event" element={<ManageEventPage />} />
               <Route path="collaborate" element={<Collaborate />} />
               <Route path="track-progress" element={<TrackProgress />} />
               <Route path="reports" element={<Reports />} />
+              <Route path="marketing-campaign" element={<MarketingCampaign />} />
               <Route path="notification" element={<Notifications />} />
               <Route path="comments" element={<Comments />} />
               <Route path="bookings" element={<BookingsDirectory />} />

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,17 +7,20 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+/** Change audit: cm_activity + cm_change_logs (RPC); cm_change_requests rows for batched field updates (Deliverable 2). */
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { Bell, Clock, Plus, Save, AlertCircle, History, Eye, Trash2, Calendar as CalendarIcon, Package, BarChart3 } from "lucide-react";
+import { Bell, Clock, Plus, Save, AlertCircle, History, Eye, Trash2, Calendar as CalendarIcon, Package, BarChart3, ListChecks } from "lucide-react";
 import { format } from "date-fns";
 import TimelineView from "@/components/timeline/TimelineView";
 import ResourceManager from "@/components/ResourceManager";
 import Analytics from "@/components/Analytics";
 import { TaskManager } from "@/components/TaskManager";
+import { EventChecklists } from "@/components/EventChecklists";
+import { TeamMemberTaskAssignments } from "@/components/TeamMemberTaskAssignments";
 
 interface ManageEventData {
   id?: string;
@@ -68,6 +71,22 @@ interface ChangeLog {
   changed_by: string;
 }
 
+/** Merges `cm_change_logs` (log_change RPC) with `cm_activity` (triggers + explicit inserts) per client PDF / Deliverable 1. */
+type UnifiedChangelogEntry =
+  | { source: "cm_change_logs"; id: string; created_at: string; log: ChangeLog }
+  | {
+      source: "cm_activity";
+      id: string;
+      created_at: string;
+      activity: {
+        action: string;
+        entity_type: string;
+        entity_id: string | null;
+        metadata: Record<string, unknown> | null;
+        changed_by: string | null;
+      };
+    };
+
 interface NewRequest {
   title: string;
   description: string;
@@ -110,7 +129,7 @@ function isPastEvent(event: { start_date?: string | null; end_date?: string | nu
 const ManageEvent = () => {
   const [events, setEvents] = useState<ManageEventData[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<ManageEventData | null>(null);
-  const [changeLogs, setChangeLogs] = useState<ChangeLog[]>([]);
+  const [unifiedChangelog, setUnifiedChangelog] = useState<UnifiedChangelogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [autoSave, setAutoSave] = useState(true);
@@ -133,6 +152,8 @@ const ManageEvent = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const eventIdFromUrl = searchParams.get("eventId");
 
   // Auto-save debounce
   const [saveTimeout, setSaveTimeout] = useState<NodeJS.Timeout | null>(null);
@@ -344,19 +365,59 @@ const ManageEvent = () => {
     }
   };
 
-  const fetchChangeLogs = async (entityId: string) => {
+  const fetchUnifiedChangelog = async (entityId: string) => {
     try {
-      const { data, error } = await supabase
-        .from('change_logs')
-        .select('*')
-        .eq('entity_id', entityId)
-        .eq('entity_type', 'event')
-        .order('created_at', { ascending: false });
+      const [logsRes, activityRes] = await Promise.all([
+        supabase
+          .from("cm_change_logs")
+          .select("*")
+          .eq("entity_id", entityId)
+          .eq("entity_type", "event")
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("cm_activity")
+          .select("id, created_at, action, entity_type, entity_id, metadata, changed_by")
+          .eq("event_id", entityId)
+          .order("created_at", { ascending: false }),
+      ]);
 
-      if (error) throw error;
-      setChangeLogs(data || []);
+      if (logsRes.error) throw logsRes.error;
+      if (activityRes.error) {
+        console.warn("cm_activity fetch (optional migration):", activityRes.error);
+      }
+
+      const logs = (logsRes.data || []) as ChangeLog[];
+      const activities = activityRes.data || [];
+
+      const merged: UnifiedChangelogEntry[] = [
+        ...logs.map((log) => ({
+          source: "cm_change_logs" as const,
+          id: `cl-${log.id}`,
+          created_at: log.created_at,
+          log,
+        })),
+        ...activities.map((row) => ({
+          source: "cm_activity" as const,
+          id: `cm-${row.id}`,
+          created_at: row.created_at,
+          activity: {
+            action: row.action,
+            entity_type: row.entity_type,
+            entity_id: row.entity_id,
+            metadata: (row.metadata as Record<string, unknown> | null) ?? null,
+            changed_by: row.changed_by,
+          },
+        })),
+      ]
+        .sort(
+          (a, b) =>
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+
+      setUnifiedChangelog(merged);
     } catch (error) {
-      console.error('Error fetching change logs:', error);
+      console.error("Error fetching unified changelog:", error);
+      setUnifiedChangelog([]);
     }
   };
 
@@ -448,9 +509,21 @@ const ManageEvent = () => {
             title: "Success",
             description: "Event saved successfully",
           });
+          if (user?.email && eventData.id) {
+            void supabase.functions.invoke("send-event-notification", {
+              body: {
+                kind: "event_updated",
+                eventTitle: eventData.title,
+                eventId: eventData.id,
+                userEmail: user.email,
+                userId: user.id,
+              },
+            });
+          }
         }
 
-        for (const [field, change] of Object.entries(pendingChanges)) {
+        const changeEntries = Object.entries(pendingChanges);
+        for (const [field, change] of changeEntries) {
           const { error: logErr } = await supabase.rpc("log_change", {
             p_entity_type: "event",
             p_entity_id: eventData.id,
@@ -461,6 +534,20 @@ const ManageEvent = () => {
             p_description: `Manual save: ${field} updated`,
           });
           if (logErr) console.error("log_change RPC:", logErr);
+        }
+
+        if (changeEntries.length > 0 && eventData.id && user?.id) {
+          const first = changeEntries[0];
+          const { error: crErr } = await supabase.from("cm_change_requests").insert({
+            event_id: eventData.id,
+            requested_by: user.id,
+            description: `Event update (${changeEntries.length} field(s))`,
+            status: "approved",
+            field_changed: changeEntries.map(([f]) => f).join(", "),
+            old_value: first?.[1]?.oldValue?.toString() ?? null,
+            new_value: first?.[1]?.newValue?.toString() ?? null,
+          });
+          if (crErr) console.warn("cm_change_requests insert:", crErr);
         }
 
         setPendingChanges({});
@@ -787,21 +874,35 @@ const ManageEvent = () => {
       .subscribe();
 
     const changeLogsChannel = supabase
-      .channel('change-logs-updates')
-      .on('postgres_changes', { 
-        event: '*', 
-        schema: 'public', 
-        table: 'change_logs' 
-      }, () => {
-        if (selectedEvent?.id) {
-          fetchChangeLogs(selectedEvent.id);
+      .channel("change-logs-updates")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "cm_change_logs" },
+        () => {
+          if (selectedEvent?.id) {
+            void fetchUnifiedChangelog(selectedEvent.id);
+          }
         }
-      })
+      )
+      .subscribe();
+
+    const cmActivityChannel = supabase
+      .channel("cm-activity-updates")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "cm_activity" },
+        () => {
+          if (selectedEvent?.id) {
+            void fetchUnifiedChangelog(selectedEvent.id);
+          }
+        }
+      )
       .subscribe();
 
     return () => {
       supabase.removeChannel(eventsChannel);
       supabase.removeChannel(changeLogsChannel);
+      supabase.removeChannel(cmActivityChannel);
     };
   }, [selectedEvent?.id]);
 
@@ -817,9 +918,35 @@ const ManageEvent = () => {
     if (user) fetchEvents();
   }, [user, showPastEvents, showArchivedEvents]);
 
+  /** Deep link: /dashboard/manage-event?eventId=… (e.g. from Event Summary "Edit in Manage Event"). */
+  useEffect(() => {
+    if (!eventIdFromUrl || !user?.id) return;
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from("events")
+        .select("*")
+        .eq("id", eventIdFromUrl)
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (cancelled) return;
+      if (error || !data) return;
+      const ev = data as ManageEventData;
+      if (ev.archived) setShowArchivedEvents(true);
+      if (isPastEvent(ev)) setShowPastEvents(true);
+      setSelectedEvent({
+        ...ev,
+        theme_id: ev.theme_id ? Number(ev.theme_id) : undefined,
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [eventIdFromUrl, user?.id]);
+
   useEffect(() => {
     if (selectedEvent?.id) {
-      fetchChangeLogs(selectedEvent.id);
+      void fetchUnifiedChangelog(selectedEvent.id);
     }
   }, [selectedEvent?.id]);
 
@@ -879,6 +1006,11 @@ const ManageEvent = () => {
             <Plus className="w-4 h-4 mr-2" />
             New Resource
           </Button>
+          {selectedEvent?.id ? (
+            <Button variant="outline" className="shrink-0" asChild>
+              <Link to={`/dashboard/event-summary?eventId=${selectedEvent.id}`}>Event summary</Link>
+            </Button>
+          ) : null}
           {selectedEvent?.id && !selectedEvent.archived && (
             <Button
               type="button"
@@ -937,6 +1069,9 @@ const ManageEvent = () => {
             <DialogContent className="w-full max-w-md mx-auto">
               <DialogHeader>
                 <DialogTitle>Submit New Request</DialogTitle>
+                <DialogDescription>
+                  Describe the change or issue. Coordinators will be notified.
+                </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
                 <div>
@@ -1101,7 +1236,7 @@ const ManageEvent = () => {
         <div className="lg:col-span-2 space-y-6">
           {selectedEvent ? (
             <Tabs defaultValue="details" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-5">
+              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-1">
                 <TabsTrigger value="details" className="flex items-center gap-2">
                   <Eye className="h-4 w-4" />
                   Details
@@ -1114,13 +1249,17 @@ const ManageEvent = () => {
                   <Package className="h-4 w-4" />
                   Resources
                 </TabsTrigger>
+                <TabsTrigger value="checklists" className="flex items-center gap-2">
+                  <ListChecks className="h-4 w-4" />
+                  Checklists
+                </TabsTrigger>
                 <TabsTrigger value="analytics" className="flex items-center gap-2">
                   <BarChart3 className="h-4 w-4" />
                   Analytics
                 </TabsTrigger>
                 <TabsTrigger value="changelog" className="flex items-center gap-2">
                   <History className="h-4 w-4" />
-                  Change Log ({changeLogs.length})
+                  Change Log ({unifiedChangelog.length})
                 </TabsTrigger>
               </TabsList>
 
@@ -1488,6 +1627,9 @@ const ManageEvent = () => {
                   </CardHeader>
                   <CardContent className="p-6 space-y-6">
                     <TimelineView eventId={selectedEvent.id} />
+                    {selectedEvent.id && (
+                      <TeamMemberTaskAssignments eventId={selectedEvent.id} />
+                    )}
                     <div className="flex flex-wrap gap-2">
                       <Button
                         type="button"
@@ -1497,7 +1639,7 @@ const ManageEvent = () => {
                           )
                         }
                       >
-                        Add task assignment (opens PM Add Task)
+                        Open Project Management — Add task assignment
                       </Button>
                     </div>
                     <div className="border-t pt-6">
@@ -1523,6 +1665,17 @@ const ManageEvent = () => {
                 </Card>
               </TabsContent>
 
+              <TabsContent value="checklists">
+                <Card className="shadow-elegant border-0 bg-gradient-subtle">
+                  <CardHeader className="border-b border-border/50">
+                    <CardTitle>Event checklists</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    {selectedEvent.id && <EventChecklists eventId={selectedEvent.id} />}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
               <TabsContent value="analytics">
                 <Analytics
                   eventId={selectedEvent.id}
@@ -1536,46 +1689,99 @@ const ManageEvent = () => {
                 <Card className="shadow-elegant border-0 bg-gradient-subtle">
                   <CardHeader className="border-b border-border/50">
                     <CardTitle>Change History</CardTitle>
+                    <p className="text-sm text-muted-foreground font-normal">
+                      Field-level log (<code className="text-xs">cm_change_logs</code>) and CM activity (
+                      <code className="text-xs">cm_activity</code>)
+                    </p>
                   </CardHeader>
                   <CardContent className="p-0">
                     <div className="max-h-96 overflow-y-auto">
-                      {changeLogs.length > 0 ? (
-                        changeLogs.map((log) => (
-                          <div key={log.id} className="p-4 border-b border-border/30">
-                            <div className="flex items-start justify-between gap-4">
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <Badge variant="outline" className="text-xs">
-                                    {log.action}
-                                  </Badge>
-                                  {log.field_name && (
-                                    <span className="text-xs text-muted-foreground">
-                                      {log.field_name}
-                                    </span>
+                      {unifiedChangelog.length > 0 ? (
+                        unifiedChangelog.map((entry) =>
+                          entry.source === "cm_change_logs" ? (
+                            <div
+                              key={entry.id}
+                              className="p-4 border-b border-border/30"
+                            >
+                              <div className="flex items-start justify-between gap-4">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                    <Badge variant="secondary" className="text-[10px]">
+                                      RPC log
+                                    </Badge>
+                                    <Badge variant="outline" className="text-xs">
+                                      {entry.log.action}
+                                    </Badge>
+                                    {entry.log.field_name && (
+                                      <span className="text-xs text-muted-foreground">
+                                        {entry.log.field_name}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {entry.log.change_description && (
+                                    <p className="text-sm text-foreground mb-2">
+                                      {entry.log.change_description}
+                                    </p>
+                                  )}
+                                  {entry.log.old_value && entry.log.new_value && (
+                                    <div className="text-xs space-y-1">
+                                      <div className="text-red-600">
+                                        Old: {entry.log.old_value}
+                                      </div>
+                                      <div className="text-green-600">
+                                        New: {entry.log.new_value}
+                                      </div>
+                                    </div>
                                   )}
                                 </div>
-                                {log.change_description && (
-                                  <p className="text-sm text-foreground mb-2">
-                                    {log.change_description}
-                                  </p>
-                                )}
-                                {log.old_value && log.new_value && (
-                                  <div className="text-xs space-y-1">
-                                    <div className="text-red-600">
-                                      Old: {log.old_value}
-                                    </div>
-                                    <div className="text-green-600">
-                                      New: {log.new_value}
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                              <div className="text-xs text-muted-foreground text-right">
-                                {format(new Date(log.created_at), 'MMM dd, yyyy HH:mm')}
+                                <div className="text-xs text-muted-foreground text-right shrink-0">
+                                  {format(
+                                    new Date(entry.created_at),
+                                    "MMM dd, yyyy HH:mm"
+                                  )}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ))
+                          ) : (
+                            <div
+                              key={entry.id}
+                              className="p-4 border-b border-border/30"
+                            >
+                              <div className="flex items-start justify-between gap-4">
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                    <Badge variant="secondary" className="text-[10px]">
+                                      CM activity
+                                    </Badge>
+                                    <Badge variant="outline" className="text-xs">
+                                      {entry.activity.action}
+                                    </Badge>
+                                    <span className="text-xs text-muted-foreground">
+                                      {entry.activity.entity_type}
+                                    </span>
+                                  </div>
+                                  {entry.activity.metadata &&
+                                    Object.keys(entry.activity.metadata).length >
+                                      0 && (
+                                      <pre className="text-xs bg-muted/50 rounded p-2 mt-2 overflow-x-auto max-h-24 whitespace-pre-wrap break-words">
+                                        {JSON.stringify(
+                                          entry.activity.metadata,
+                                          null,
+                                          2
+                                        )}
+                                      </pre>
+                                    )}
+                                </div>
+                                <div className="text-xs text-muted-foreground text-right shrink-0">
+                                  {format(
+                                    new Date(entry.created_at),
+                                    "MMM dd, yyyy HH:mm"
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        )
                       ) : (
                         <div className="p-8 text-center text-muted-foreground">
                           <History className="h-8 w-8 mx-auto mb-2 opacity-50" />

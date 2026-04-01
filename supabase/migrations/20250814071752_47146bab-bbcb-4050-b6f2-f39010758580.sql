@@ -16,12 +16,28 @@ RETURNS BOOLEAN
 LANGUAGE SQL
 STABLE
 SECURITY DEFINER
+SET search_path = public
 AS $$
   SELECT EXISTS (
     SELECT 1
     FROM public.user_roles
     WHERE user_id = _user_id
       AND role = _role
+  )
+$$;
+
+-- Compare by text so RLS policies survive app_role enum renames (admin→host, event_manager→organizer, etc.)
+CREATE OR REPLACE FUNCTION public.user_has_role_text(_user_id uuid, _role_names text[])
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.user_roles ur
+    WHERE ur.user_id = _user_id
+      AND ur.role::text = ANY(_role_names)
   )
 $$;
 
@@ -91,7 +107,7 @@ DROP POLICY IF EXISTS "Admins can manage all roles" ON public.user_roles;
 CREATE POLICY "Admins can manage all roles"
 ON public.user_roles
 FOR ALL
-USING (public.has_role(auth.uid(), 'admin'));
+USING (public.user_has_role_text(auth.uid(), ARRAY['admin', 'host', 'manager']));
 
 DROP POLICY IF EXISTS "Users can view tasks assigned to them or created by them" ON public.tasks;
 CREATE POLICY "Users can view tasks assigned to them or created by them"
@@ -100,8 +116,8 @@ FOR SELECT
 USING (
     assigned_to = auth.uid() OR
     created_by = auth.uid() OR
-    public.has_role(auth.uid(), 'admin') OR
-    public.has_role(auth.uid(), 'event_manager')
+    public.user_has_role_text(auth.uid(), ARRAY['admin', 'host', 'manager']) OR
+    public.user_has_role_text(auth.uid(), ARRAY['event_manager', 'organizer', 'event_planner'])
 );
 
 DROP POLICY IF EXISTS "Event managers and admins can create tasks" ON public.tasks;
@@ -109,9 +125,9 @@ CREATE POLICY "Event managers and admins can create tasks"
 ON public.tasks
 FOR INSERT
 WITH CHECK (
-    public.has_role(auth.uid(), 'admin') OR
-    public.has_role(auth.uid(), 'event_manager') OR
-    public.has_role(auth.uid(), 'task_coordinator')
+    public.user_has_role_text(auth.uid(), ARRAY['admin', 'host', 'manager']) OR
+    public.user_has_role_text(auth.uid(), ARRAY['event_manager', 'organizer', 'event_planner']) OR
+    public.user_has_role_text(auth.uid(), ARRAY['task_coordinator', 'event_planner'])
 );
 
 DROP POLICY IF EXISTS "Users can update tasks assigned to them" ON public.tasks;
@@ -121,8 +137,8 @@ FOR UPDATE
 USING (
     assigned_to = auth.uid() OR
     created_by = auth.uid() OR
-    public.has_role(auth.uid(), 'admin') OR
-    public.has_role(auth.uid(), 'event_manager')
+    public.user_has_role_text(auth.uid(), ARRAY['admin', 'host', 'manager']) OR
+    public.user_has_role_text(auth.uid(), ARRAY['event_manager', 'organizer', 'event_planner'])
 );
 
 DROP POLICY IF EXISTS "Users can view budget items for their events" ON public.budget_items;
@@ -131,9 +147,9 @@ ON public.budget_items
 FOR SELECT
 USING (
     created_by = auth.uid() OR
-    public.has_role(auth.uid(), 'admin') OR
-    public.has_role(auth.uid(), 'event_manager') OR
-    public.has_role(auth.uid(), 'budget_manager')
+    public.user_has_role_text(auth.uid(), ARRAY['admin', 'host', 'manager']) OR
+    public.user_has_role_text(auth.uid(), ARRAY['event_manager', 'organizer', 'event_planner']) OR
+    public.user_has_role_text(auth.uid(), ARRAY['budget_manager', 'event_planner'])
 );
 
 DROP POLICY IF EXISTS "Budget managers and admins can manage budget items" ON public.budget_items;
@@ -141,9 +157,9 @@ CREATE POLICY "Budget managers and admins can manage budget items"
 ON public.budget_items
 FOR ALL
 USING (
-    public.has_role(auth.uid(), 'admin') OR
-    public.has_role(auth.uid(), 'event_manager') OR
-    public.has_role(auth.uid(), 'budget_manager')
+    public.user_has_role_text(auth.uid(), ARRAY['admin', 'host', 'manager']) OR
+    public.user_has_role_text(auth.uid(), ARRAY['event_manager', 'organizer', 'event_planner']) OR
+    public.user_has_role_text(auth.uid(), ARRAY['budget_manager', 'event_planner'])
 );
 
 CREATE OR REPLACE FUNCTION public.update_updated_at_column()

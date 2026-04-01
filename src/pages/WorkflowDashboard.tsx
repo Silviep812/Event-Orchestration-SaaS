@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { WorkflowDashboard as WorkflowDashboardComponent } from "@/components/workflow/WorkflowDashboard";
 import { WorkflowSelector } from "@/components/workflow/WorkflowSelector";
@@ -27,7 +27,7 @@ interface Workflow {
   hospitality_id?: string;
   venue_id?: string;
   supplier_id?: string;
-  serv_vendor_sup_id?: string;
+  serv_vendor_id?: string;
   serv_vendor_rent_id?: string;
   created_at?: string;
   updated_at?: string;
@@ -61,6 +61,12 @@ export default function WorkflowDashboard() {
   const [selectedServiceRental, setSelectedServiceRental] = useState<string | null>(null);
   const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
   const [workflowIdForEvent, setWorkflowIdForEvent] = useState<string | null>(null);
+  /** When true, skip auto-jumping user-type → theme from roles (e.g. user pressed Back). */
+  const [suppressUserTypeAutoAdvance, setSuppressUserTypeAutoAdvance] = useState(false);
+  /** True when wizard was opened via Customize on an existing workflow — skip event/user-type and Back from theme exits to dashboard. */
+  const [wizardOpenedFromCustomize, setWizardOpenedFromCustomize] = useState(false);
+  /** Bumps EventSelector to refetch events vs workflows after starting "new workflow for another event". */
+  const [eventSelectorRefreshKey, setEventSelectorRefreshKey] = useState(0);
 
   // Map workflow_type_id back to user type string
   const getUserTypeString = (typeId?: number): string => {
@@ -74,42 +80,39 @@ export default function WorkflowDashboard() {
     }
   };
 
+  const refreshWorkflowsAndEvents = useCallback(async () => {
+    const allWorkflows = await getAllWorkflows();
+    setWorkflows(allWorkflows);
+
+    const eventIds = allWorkflows.map((w) => w.event_id).filter(Boolean) as string[];
+    if (eventIds.length > 0) {
+      const { data: eventsData } = await supabase
+        .from("events")
+        .select("id, title, description")
+        .in("id", eventIds);
+      if (eventsData) {
+        const eventsMap: Record<string, Event> = {};
+        eventsData.forEach((event) => {
+          eventsMap[event.id] = event;
+        });
+        setEvents(eventsMap);
+      }
+    }
+    return allWorkflows;
+  }, [getAllWorkflows]);
+
   // Load all workflows on mount
   useEffect(() => {
     const loadWorkflows = async () => {
       setIsLoadingWorkflows(true);
-      const allWorkflows = await getAllWorkflows();
-      setWorkflows(allWorkflows);
-
-      // If only one workflow, auto-select it
+      const allWorkflows = await refreshWorkflowsAndEvents();
       if (allWorkflows.length === 1 && allWorkflows[0].id) {
         setSelectedWorkflowId(allWorkflows[0].id);
       }
-
-      // Load event details for all workflows
-      const eventIds = allWorkflows
-        .map(w => w.event_id)
-        .filter(Boolean) as string[];
-
-      if (eventIds.length > 0) {
-        const { data: eventsData } = await supabase
-          .from('events')
-          .select('id, title, description')
-          .in('id', eventIds);
-
-        if (eventsData) {
-          const eventsMap: Record<string, Event> = {};
-          eventsData.forEach(event => {
-            eventsMap[event.id] = event;
-          });
-          setEvents(eventsMap);
-        }
-      }
-
       setIsLoadingWorkflows(false);
     };
     loadWorkflows();
-  }, [getAllWorkflows]);
+  }, [refreshWorkflowsAndEvents]);
 
   // Check if editing existing workflow (coming from query params)
   useEffect(() => {
@@ -135,7 +138,7 @@ export default function WorkflowDashboard() {
           if (workflow.theme_id) setSelectedTheme(workflow.theme_id);
           if (workflow.hospitality_id) setSelectedHospitality(workflow.hospitality_id);
           if (workflow.venue_id) setSelectedVenue(workflow.venue_id);
-          if (workflow.serv_vendor_sup_id) setSelectedServiceVendor(workflow.serv_vendor_sup_id);
+          if (workflow.serv_vendor_id) setSelectedServiceVendor(workflow.serv_vendor_id);
           if (workflow.serv_vendor_rent_id) setSelectedServiceRental(workflow.serv_vendor_rent_id);
           if (workflow.supplier_id) setSelectedSupplier({ id: workflow.supplier_id });
         } else {
@@ -151,13 +154,18 @@ export default function WorkflowDashboard() {
       };
       
       loadExistingWorkflow();
+      setSuppressUserTypeAutoAdvance(false);
       setCurrentStep("user-type");
     }
   }, [searchParams, selectedWorkflowId, user?.id]);
 
-  // Auto-detect user type from Supabase roles
+  // Auto-detect user type from Supabase roles (skip when user navigated Back to change role)
   useEffect(() => {
-    if (userRoles.length > 0 && currentStep === "user-type") {
+    if (
+      userRoles.length > 0 &&
+      currentStep === "user-type" &&
+      !suppressUserTypeAutoAdvance
+    ) {
       if (userRoles.includes('venue_manager')) {
         setSelectedUserType('venue-owner');
       } else if (userRoles.includes('hospitality_manager')) {
@@ -169,10 +177,10 @@ export default function WorkflowDashboard() {
       } else {
         setSelectedUserType('social-organizer');
       }
-      
+
       setCurrentStep("theme");
     }
-  }, [userRoles, currentStep]);
+  }, [userRoles, currentStep, suppressUserTypeAutoAdvance]);
 
   // Load selected workflow data
   useEffect(() => {
@@ -227,6 +235,8 @@ export default function WorkflowDashboard() {
       setWorkflowIdForEvent(existingWorkflow.id);
     }
     
+    setWizardOpenedFromCustomize(false);
+    setSuppressUserTypeAutoAdvance(true);
     setCurrentStep("user-type");
   };
 
@@ -260,8 +270,9 @@ export default function WorkflowDashboard() {
   };
 
   const handleUserTypeSelection = async (userType: string) => {
+    setSuppressUserTypeAutoAdvance(false);
     setSelectedUserType(userType);
-    await saveWorkflowType(userType);
+    await saveWorkflowType(userType, workflowIdForEvent);
     setCurrentStep(getNextStepForUserType(userType, "user-type"));
   };
 
@@ -285,30 +296,74 @@ export default function WorkflowDashboard() {
 
   const handleServiceVendorSelection = async (vendorId: string) => {
     setSelectedServiceVendor(vendorId);
-    await updateWorkflowSelections({ serv_vendor_sup_id: vendorId }, workflowIdForEvent || undefined);
-    if (selectedServiceRental) {
+    const ok = await updateWorkflowSelections(
+      { serv_vendor_id: vendorId },
+      workflowIdForEvent || undefined
+    );
+    // One of vendor or rental is enough to continue (matches suppliers step gate).
+    if (ok) {
       setCurrentStep(getNextStepForUserType(selectedUserType, "services"));
     }
   };
 
   const handleServiceRentalSelection = async (rentalId: string) => {
     setSelectedServiceRental(rentalId);
-    await updateWorkflowSelections({ serv_vendor_rent_id: rentalId }, workflowIdForEvent || undefined);
-    if (selectedServiceVendor) {
+    const ok = await updateWorkflowSelections(
+      { serv_vendor_rent_id: rentalId },
+      workflowIdForEvent || undefined
+    );
+    if (ok) {
       setCurrentStep(getNextStepForUserType(selectedUserType, "services"));
     }
   };
 
   const handleSupplierSelection = async (supplier: any) => {
     setSelectedSupplier(supplier);
-    await updateWorkflowSelections({ supplier_id: supplier.id }, workflowIdForEvent || undefined);
-    setCurrentStep(getNextStepForUserType(selectedUserType, "suppliers"));
+    const ok = await updateWorkflowSelections(
+      { supplier_id: supplier.id },
+      workflowIdForEvent || undefined
+    );
+    if (!ok) return;
+
+    const next = getNextStepForUserType(selectedUserType, "suppliers");
+    if (next !== "dashboard") {
+      setCurrentStep(next);
+      return;
+    }
+
+    // Land on the main workflow dashboard (full toolbar: Customize, New workflow, Change workflow).
+    const wid = workflowIdForEvent;
+    if (wid) {
+      setSelectedWorkflowId(wid);
+    }
+    setIsCreatingWorkflow(false);
+    setCurrentStep(null);
+    setWizardOpenedFromCustomize(false);
+
+    await refreshWorkflowsAndEvents();
+
+    navigate("/dashboard/workflow-dashboard", { replace: true });
+    toast({
+      title: "Workflow setup complete",
+      description: "Use Customize to change selections anytime.",
+    });
   };
 
   const handleBack = () => {
-    if (currentStep === "user-type") setCurrentStep("event");
-    else if (currentStep === "theme") setCurrentStep("user-type");
-    else if (currentStep === "hospitality") setCurrentStep("theme");
+    if (currentStep === "user-type") {
+      setSuppressUserTypeAutoAdvance(false);
+      setWizardOpenedFromCustomize(false);
+      setCurrentStep("event");
+    } else if (currentStep === "theme") {
+      if (wizardOpenedFromCustomize) {
+        setWizardOpenedFromCustomize(false);
+        setIsCreatingWorkflow(false);
+        setCurrentStep(null);
+        return;
+      }
+      setSuppressUserTypeAutoAdvance(true);
+      setCurrentStep("user-type");
+    } else if (currentStep === "hospitality") setCurrentStep("theme");
     else if (currentStep === "venue") setCurrentStep("hospitality");
     else if (currentStep === "services") setCurrentStep("venue");
     else if (currentStep === "suppliers") setCurrentStep("services");
@@ -355,12 +410,46 @@ export default function WorkflowDashboard() {
     else setSelectedTheme(undefined);
     setSelectedHospitality(data.hospitality_id ?? undefined);
     setSelectedVenue(data.venue_id ?? undefined);
-    setSelectedServiceVendor(data.serv_vendor_sup_id ?? null);
+    setSelectedServiceVendor(data.serv_vendor_id ?? null);
     setSelectedServiceRental(data.serv_vendor_rent_id ?? null);
     if (data.supplier_id) setSelectedSupplier({ id: data.supplier_id });
     else setSelectedSupplier(null);
+    setSuppressUserTypeAutoAdvance(false);
     setIsCreatingWorkflow(true);
-    setCurrentStep("user-type");
+
+    const role = getUserTypeString(data.workflow_type_id);
+    setSelectedUserType(role || "");
+    if (role) {
+      setWizardOpenedFromCustomize(true);
+      setCurrentStep("theme");
+    } else {
+      setWizardOpenedFromCustomize(false);
+      setSuppressUserTypeAutoAdvance(true);
+      setCurrentStep("user-type");
+    }
+
+    navigate("/dashboard/workflow-dashboard", { replace: true });
+  };
+
+  /** Begin wizard for an event that does not yet have a workflow (EventSelector hides events that already have one). */
+  const startNewWorkflowForAnotherEvent = async () => {
+    await refreshWorkflowsAndEvents();
+    setEventSelectorRefreshKey((k) => k + 1);
+    setWizardOpenedFromCustomize(false);
+    setSuppressUserTypeAutoAdvance(false);
+    setSelectedWorkflowId(null);
+    setUserType("");
+    setSelectedEvent(undefined);
+    setSelectedUserType("");
+    setSelectedTheme(undefined);
+    setSelectedHospitality(undefined);
+    setSelectedVenue(undefined);
+    setSelectedServiceVendor(null);
+    setSelectedServiceRental(null);
+    setSelectedSupplier(null);
+    setWorkflowIdForEvent(null);
+    setCurrentStep("event");
+    setIsCreatingWorkflow(true);
     navigate("/dashboard/workflow-dashboard", { replace: true });
   };
 
@@ -438,6 +527,7 @@ export default function WorkflowDashboard() {
               <EventSelector 
                 onSelectEvent={handleEventSelection}
                 selectedEvent={selectedEvent}
+                refreshKey={eventSelectorRefreshKey}
               />
             )}
 
@@ -485,15 +575,6 @@ export default function WorkflowDashboard() {
                 selectedSupplier={selectedSupplier}
               />
             )}
-
-            {currentStep === "dashboard" && selectedUserType && selectedTheme && selectedSupplier && (
-              <WorkflowDashboardComponent 
-                userType={selectedUserType}
-                selectedTheme={selectedTheme}
-                workflowId={workflowIdForEvent || undefined}
-                setCurrentStep={setCurrentStep}
-              />
-            )}
           </div>
         </div>
       </div>
@@ -506,11 +587,18 @@ export default function WorkflowDashboard() {
       <div className="min-h-screen bg-background p-6">
         <div className="max-w-4xl mx-auto space-y-6">
           <Card>
-            <CardHeader>
-              <CardTitle>Select a Workflow</CardTitle>
-              <CardDescription>
-                Choose which workflow you want to view
-              </CardDescription>
+            <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="space-y-1.5">
+                <CardTitle>Select a Workflow</CardTitle>
+                <CardDescription>
+                  Each workflow is tied to one event. To add another workflow, create a new event, then use &quot;New workflow for another event&quot;.
+                </CardDescription>
+              </div>
+              <Button size="sm" onClick={startNewWorkflowForAnotherEvent} className="shrink-0">
+                <Plus className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">New workflow for another event</span>
+                <span className="sm:hidden">New workflow</span>
+              </Button>
             </CardHeader>
           </Card>
 
@@ -565,8 +653,12 @@ export default function WorkflowDashboard() {
         selectedTheme={selectedTheme}
         workflowId={selectedWorkflowId!}
         onCustomizeWorkflow={openCustomizeWizard}
-        onChangeWorkflow={() => setSelectedWorkflowId(null)}
+        onChangeWorkflow={async () => {
+          await refreshWorkflowsAndEvents();
+          setSelectedWorkflowId(null);
+        }}
         showChangeWorkflow={workflows.length > 1}
+        onNewWorkflowForAnotherEvent={startNewWorkflowForAnotherEvent}
       />
     </div>
   );

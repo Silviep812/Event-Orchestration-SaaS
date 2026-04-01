@@ -28,7 +28,9 @@ const Profile = () => {
     username: "",
     display_name: "",
     bio: "",
-    avatar_url: ""
+    avatar_url: "",
+    /** Replaces legacy Registration table usage per DB PDF — stored on `profiles.subscription_level` */
+    subscription_level: "",
   });
   const [avatarUploading, setAvatarUploading] = useState(false);
 
@@ -66,7 +68,7 @@ const Profile = () => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('username, display_name, bio, avatar_url')
+        .select('username, display_name, bio, avatar_url, subscription_level')
         .eq('user_id', user.id)
         .maybeSingle();
 
@@ -85,7 +87,8 @@ const Profile = () => {
           username: data.username || "",
           display_name: data.display_name || "",
           bio: data.bio || "",
-          avatar_url: data.avatar_url || ""
+          avatar_url: data.avatar_url || "",
+          subscription_level: (data as { subscription_level?: string | null }).subscription_level || "",
         });
       } else {
         // Create profile if it doesn't exist
@@ -127,7 +130,8 @@ const Profile = () => {
         username: "idaeventpartners.com",
         display_name: "IDA Event Partners",
         bio: "",
-        avatar_url: ""
+        avatar_url: "",
+        subscription_level: "",
       });
     } catch (err: any) {
       console.error('Error in createUserProfile:', err);
@@ -151,7 +155,8 @@ const Profile = () => {
           username: profile.username,
           display_name: profile.display_name,
           bio: profile.bio,
-          avatar_url: profile.avatar_url
+          avatar_url: profile.avatar_url,
+          subscription_level: profile.subscription_level.trim() || null,
         })
         .eq('user_id', user.id);
 
@@ -457,6 +462,23 @@ const Profile = () => {
                 onChange={(e) => setProfile(prev => ({ ...prev, bio: e.target.value }))}
                 placeholder="Tell us about yourself"
               />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="subscription_level">Subscription level</Label>
+              <Input
+                id="subscription_level"
+                value={profile.subscription_level}
+                onChange={(e) =>
+                  setProfile((prev) => ({
+                    ...prev,
+                    subscription_level: e.target.value,
+                  }))
+                }
+                placeholder="e.g. trial, paid (optional)"
+              />
+              <p className="text-sm text-muted-foreground">
+                Stored on your profile for reporting. Use your account billing source of truth for charges.
+              </p>
             </div>
             <div className="grid gap-2">
               <Label>Email</Label>

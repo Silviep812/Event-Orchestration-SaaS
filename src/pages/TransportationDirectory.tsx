@@ -4,13 +4,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Bus, Car, Truck, Crown, Package } from "lucide-react";
+import { Bus, Car, Truck, Crown, Package, ExternalLink } from "lucide-react";
 import { DirectoryPageHeader } from "@/components/resource-directory/DirectoryPageHeader";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 
 /** PostgREST when the table was never created or API cache is stale */
+function normalizeExternalUrl(raw: string): string {
+  const t = raw.trim();
+  if (!t) return "";
+  if (/^https?:\/\//i.test(t)) return t;
+  return `https://${t}`;
+}
+
 function isMissingTableOrSchemaCacheError(message: string): boolean {
   const m = message.toLowerCase();
   return (
@@ -294,6 +301,18 @@ const TransportationDirectory = () => {
                       
                       {profile.description && (
                         <p className="text-sm text-muted-foreground">{profile.description}</p>
+                      )}
+
+                      {profile.profile_url && String(profile.profile_url).trim() !== "" && (
+                        <a
+                          href={normalizeExternalUrl(String(profile.profile_url))}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                          Profile / website
+                        </a>
                       )}
                       
                       {profile.special_accommodations && profile.special_accommodations.length > 0 && (

@@ -19,9 +19,13 @@ import {
   Coffee,
   ShoppingCart,
   Truck,
-  Car
+  Car,
+  MapPin,
+  Megaphone,
 } from "lucide-react";
 
+import { useAuth } from "@/hooks/useAuth";
+import { cmSidebarFooterText } from "@/lib/cmEnv";
 import {
   Sidebar,
   SidebarContent,
@@ -45,8 +49,16 @@ const menuGroups = [
         url: "/dashboard",
         icon: Home,
         color: "text-blue-600",
-        hoverColor: "hover:bg-blue-50"
-      }
+        hoverColor: "hover:bg-blue-50",
+      },
+      {
+        title: "Marketing campaign",
+        url: "/dashboard/marketing-campaign",
+        icon: Megaphone,
+        color: "text-blue-600",
+        hoverColor: "hover:bg-blue-50",
+        adminOnly: true,
+      },
     ]
   },
   {
@@ -55,7 +67,7 @@ const menuGroups = [
     bgColor: "bg-purple-50",
     items: [
       {
-        title: "Create Event",
+        title: "Create event",
         url: "/dashboard/create-event",
         icon: Plus,
         color: "text-purple-600",
@@ -65,6 +77,13 @@ const menuGroups = [
         title: "Manage Event",
         url: "/dashboard/manage-event",
         icon: Calendar,
+        color: "text-purple-600",
+        hoverColor: "hover:bg-purple-50"
+      },
+      {
+        title: "Event Summary",
+        url: "/dashboard/event-summary",
+        icon: FileText,
         color: "text-purple-600",
         hoverColor: "hover:bg-purple-50"
       },
@@ -107,6 +126,13 @@ const menuGroups = [
         title: "Track Progress",
         url: "/dashboard/track-progress",
         icon: TrendingUp,
+        color: "text-green-600",
+        hoverColor: "hover:bg-green-50"
+      },
+      {
+        title: "Task timeline",
+        url: "/dashboard/task-timeline",
+        icon: BarChart3,
         color: "text-green-600",
         hoverColor: "hover:bg-green-50"
       }
@@ -193,6 +219,13 @@ const menuGroups = [
         icon: FileText,
         color: "text-orange-600",
         hoverColor: "hover:bg-orange-50"
+      },
+      {
+        title: "Resource map",
+        url: "/dashboard/resource-map",
+        icon: MapPin,
+        color: "text-orange-600",
+        hoverColor: "hover:bg-orange-50"
       }
     ]
   },
@@ -228,9 +261,12 @@ const menuGroups = [
 
 export function AppSidebar() {
   const { state } = useSidebar();
+  const { userRoles } = useAuth();
+  const isAdmin = userRoles.includes("admin");
   const location = useLocation();
   const currentPath = location.pathname;
   const collapsed = state === "collapsed";
+  const cmFooter = cmSidebarFooterText();
 
   /** Exact path match so parent routes (e.g. /dashboard) are not active on child pages. */
   const pathIsActive = (url: string) => currentPath === url || currentPath === `${url}/`;
@@ -270,7 +306,9 @@ export function AppSidebar() {
             )}
             <SidebarGroupContent>
               <SidebarMenu>
-                {group.items.map((item) => {
+                {group.items
+                  .filter((item) => !(item as { adminOnly?: boolean }).adminOnly || isAdmin)
+                  .map((item) => {
                   const active = pathIsActive(item.url);
                   return (
                     <SidebarMenuItem key={item.title}>
@@ -296,6 +334,13 @@ export function AppSidebar() {
           </SidebarGroup>
         ))}
         
+        {!collapsed && cmFooter && (
+          <div className="mt-6 px-4 pt-4 border-t border-border/60">
+            <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">
+              {cmFooter}
+            </p>
+          </div>
+        )}
         {collapsed && (
           <div className="mt-auto px-2">
             <div className="h-8 w-8 rounded-full bg-gradient-to-r from-primary to-secondary mx-auto" />

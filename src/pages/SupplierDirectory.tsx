@@ -19,6 +19,8 @@ interface Supplier {
   state?: string;
   zip?: string;
   price?: number;
+  /** PDF / schema: distinct from list or quote `price` when both are tracked */
+  supplier_cost?: number | null;
   description?: string;
   supplier_types?: { name: string };
   supplier_categories?: { name: string };
@@ -221,9 +223,14 @@ export default function SupplierDirectory() {
                             </span>
                           </div>
                         )}
-                        {supplier.price && (
+                        {supplier.price != null && supplier.price !== "" && (
                           <p className="text-sm font-semibold text-primary mt-2">
-                            Starting at ${supplier.price.toLocaleString()}
+                            Starting at ${Number(supplier.price).toLocaleString()}
+                          </p>
+                        )}
+                        {supplier.supplier_cost != null && (
+                          <p className="text-sm font-medium text-muted-foreground">
+                            Supplier cost: ${Number(supplier.supplier_cost).toLocaleString()}
                           </p>
                         )}
                       </div>

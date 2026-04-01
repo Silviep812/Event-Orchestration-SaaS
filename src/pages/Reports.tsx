@@ -89,11 +89,24 @@ const Reports = () => {
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [entityTypeFilter, setEntityTypeFilter] = useState<string>("all");
   const [actionFilter, setActionFilter] = useState<string>("all");
+  const [dueSoonCount, setDueSoonCount] = useState<number | null>(null);
+  const [vendorCategoryRows, setVendorCategoryRows] = useState<number | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     fetchChangeData();
   }, [dateRange, entityTypeFilter, actionFilter]);
+
+  useEffect(() => {
+    (async () => {
+      const { count, error: e1 } = await supabase
+        .from("due_soon_events")
+        .select("*", { count: "exact", head: true });
+      if (!e1) setDueSoonCount(count ?? 0);
+      const { data: vc, error: e2 } = await supabase.from("vendor_category_counts").select("event_id");
+      if (!e2) setVendorCategoryRows(vc?.length ?? 0);
+    })();
+  }, []);
 
   const [userDisplayNames, setUserDisplayNames] = useState<Record<string, string>>({});
   useEffect(() => {
@@ -278,6 +291,29 @@ const Reports = () => {
           Export Report
         </Button>
       </div>
+
+      {(dueSoonCount !== null || vendorCategoryRows !== null) && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Events starting within 48h</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold">{dueSoonCount ?? "—"}</p>
+              <p className="text-xs text-muted-foreground">From view due_soon_events</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Vendor / resource selection rows</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold">{vendorCategoryRows ?? "—"}</p>
+              <p className="text-xs text-muted-foreground">From view vendor_category_counts</p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Filters */}
       <Card>

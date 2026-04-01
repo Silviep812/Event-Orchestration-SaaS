@@ -68,8 +68,24 @@ export default function Analytics({ eventId, onInteractionTrack }: AnalyticsProp
   const [themeOptions, setThemeOptions] = useState<{ id: number; name: string }[]>([]);
   const [eventOptions, setEventOptions] = useState<{ id: string; title: string }[]>([]);
   const [selectedEventId, setSelectedEventId] = useState<string>("all");
+  const [scopedEventTitle, setScopedEventTitle] = useState<string | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
+
+  useEffect(() => {
+    if (!eventId) {
+      setScopedEventTitle(null);
+      return;
+    }
+    supabase
+      .from("events")
+      .select("title")
+      .eq("id", eventId)
+      .maybeSingle()
+      .then(({ data }) => {
+        setScopedEventTitle(data?.title ?? null);
+      });
+  }, [eventId]);
 
   useEffect(() => {
     supabase.from("event_themes").select("id, name").order("name").then(({ data }) => {
@@ -186,7 +202,7 @@ export default function Analytics({ eventId, onInteractionTrack }: AnalyticsProp
           value: totalTasks.toString(),
           change: "Selected period",
           icon: Target,
-          description: "All tasks in scope",
+          description: activeEventId ? "Planner total for this event" : "Planner totals in scope",
           trend: "neutral",
         },
         {
@@ -337,6 +353,11 @@ export default function Analytics({ eventId, onInteractionTrack }: AnalyticsProp
               ? "Metrics for the selected event (date range and theme filters apply)."
               : "Planner totals for your events. Use weekly, monthly, or quarterly presets."}
           </p>
+          {eventId && scopedEventTitle && (
+            <p className="text-sm font-medium text-foreground">
+              Event: {scopedEventTitle}
+            </p>
+          )}
         </div>
         
         {/* Filters */}

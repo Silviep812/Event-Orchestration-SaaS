@@ -214,7 +214,7 @@ export default function Collaborate() {
         // Get team members from team_assignments table
         const { data: assignments, error: assignmentsError } = await supabase
           .from('team_assignments')
-          .select('user_id, team_admin, is_coordinator, is_viewer')
+          .select('user_id, team_admin, is_collaborator, is_viewer')
           .eq('team_id', userTeam.id);
 
         if (assignmentsError) {
@@ -247,7 +247,7 @@ export default function Collaborate() {
           let roleDisplay = userDetails?.role || 'Member';
           if (assignment.team_admin) {
             roleDisplay = 'Admin';
-          } else if (assignment.is_coordinator) {
+          } else if (assignment.is_collaborator) {
             roleDisplay = 'Coordinator';
           } else if (assignment.is_viewer) {
             roleDisplay = 'Viewer';
@@ -546,7 +546,7 @@ export default function Collaborate() {
             team_id: activeTeamId,
             role: inviteRole,
             collaborator_types: selectedCollaboratorTypes,
-            is_coordinator: inviteAttributes.coordinator,
+            is_collaborator: inviteAttributes.coordinator,
             is_viewer: inviteAttributes.viewer,
           })
           .select();

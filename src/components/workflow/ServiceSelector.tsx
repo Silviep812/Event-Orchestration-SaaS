@@ -308,7 +308,15 @@ export function ServiceSelector({ onSelectServiceVendor, onSelectServiceRental, 
                               </div>
                             </div>
                             <div className="flex gap-2">
-                              <Button className="flex-1" size="sm">
+                              <Button
+                                type="button"
+                                className="flex-1"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onSelectServiceVendor(service.id);
+                                }}
+                              >
                                 {isSelected ? "Selected" : "Select Service"}
                               </Button>
                             </div>
@@ -394,7 +402,15 @@ export function ServiceSelector({ onSelectServiceVendor, onSelectServiceRental, 
                               </div>
                             </div>
                             <div className="flex gap-2">
-                              <Button className="flex-1" size="sm">
+                              <Button
+                                type="button"
+                                className="flex-1"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onSelectServiceRental(service.id);
+                                }}
+                              >
                                 {isSelected ? "Selected" : "Select Rental"}
                               </Button>
                             </div>

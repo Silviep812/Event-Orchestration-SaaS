@@ -3,5 +3,8 @@ project_id = "mavbnybtyfewfsihmuri"
 [functions.send-task-notification]
 verify_jwt = false
 
+[functions.send-event-notification]
+verify_jwt = false
+
 [functions.create-bulk-users]
 verify_jwt = false

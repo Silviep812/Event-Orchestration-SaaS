@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Generated PDF text extracts (regenerate with scripts/extract-docs-assets-pdf.py)
+docs/assets/_extracted/

@@ -1,0 +1,30 @@
+# Refresh workflow_analytics.event_task_metrics (SOW Deliverable 2).
+# Requires migration 20260403130000 applied. Call RPC as authenticated user with permission to execute.
+
+name: Workflow analytics refresh
+
+on:
+  schedule:
+    - cron: "30 12 * * *"
+  workflow_dispatch:
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST workflow_analytics_refresh_all
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -e
+          curl -sS -X POST "${SUPABASE_URL}/rest/v1/rpc/workflow_analytics_refresh_all" \
+            -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
+            -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "{}"
+          curl -sS -X POST "${SUPABASE_URL}/rest/v1/rpc/refresh_mv_daily_activity" \
+            -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
+            -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "{}"

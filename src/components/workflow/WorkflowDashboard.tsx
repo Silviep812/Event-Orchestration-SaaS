@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -53,6 +52,8 @@ interface WorkflowDashboardProps {
   onCustomizeWorkflow?: () => void | Promise<void>;
   onChangeWorkflow?: () => void;
   showChangeWorkflow?: boolean;
+  /** Start the wizard to attach a workflow to another event (one workflow per event). */
+  onNewWorkflowForAnotherEvent?: () => void;
 }
 
 interface WorkflowSelections {
@@ -62,6 +63,38 @@ interface WorkflowSelections {
   supplier: string;
   serviceVendor: string;
   serviceRental: string;
+}
+
+/** Matches the setup wizard: one "services" pick is vendor OR rental; venue-owner skips hospitality & venue. */
+function getWorkflowSelectionProgress(
+  userType: string,
+  selections: WorkflowSelections
+): { completed: number; total: number; percentage: number } {
+  const hasTheme = Boolean(selections.theme);
+  const hasHospitality = Boolean(selections.hospitality);
+  const hasVenue = Boolean(selections.venue);
+  const hasSupplier = Boolean(selections.supplier);
+  const hasServices = Boolean(selections.serviceVendor || selections.serviceRental);
+
+  if (userType === "venue-owner") {
+    const slots = [hasTheme, hasServices, hasSupplier];
+    const completed = slots.filter(Boolean).length;
+    const total = slots.length;
+    return {
+      completed,
+      total,
+      percentage: total > 0 ? (completed / total) * 100 : 0,
+    };
+  }
+
+  const slots = [hasTheme, hasHospitality, hasVenue, hasServices, hasSupplier];
+  const completed = slots.filter(Boolean).length;
+  const total = slots.length;
+  return {
+    completed,
+    total,
+    percentage: total > 0 ? (completed / total) * 100 : 0,
+  };
 }
 
 interface SelectionCard {
@@ -261,6 +294,7 @@ export const WorkflowDashboard = ({
   onCustomizeWorkflow,
   onChangeWorkflow,
   showChangeWorkflow,
+  onNewWorkflowForAnotherEvent,
 }: WorkflowDashboardProps) => {
   const [steps, setSteps] = useState<WorkflowStep[]>([]);
   const [eventTasks, setEventTasks] = useState<any[]>([]);
@@ -430,14 +464,14 @@ export const WorkflowDashboard = ({
         }
 
         // Fetch service vendor name
-        if (workflowData.serv_vendor_sup_id) {
+        if (workflowData.serv_vendor_id) {
           const { data: serviceVendor } = await supabase
             .from('serv_vendor_suppliers')
             .select('business_name')
-            .eq('id', workflowData.serv_vendor_sup_id)
+            .eq('id', workflowData.serv_vendor_id)
             .limit(1)
             .maybeSingle();
-          newSelections.serviceVendor = serviceVendor?.business_name || `Service Vendor ${workflowData.serv_vendor_sup_id}`;
+          newSelections.serviceVendor = serviceVendor?.business_name || `Service Vendor ${workflowData.serv_vendor_id}`;
         }
 
         // // Fetch service rental name
@@ -488,10 +522,8 @@ export const WorkflowDashboard = ({
   const now = new Date();
   const upcomingDeadlines = eventTasks.filter(task => task.due_date && new Date(task.due_date) > now).length;
 
-  // Calculate overall progress based on workflow selections made
-  const selectionKeys = Object.keys(selections);
-  const selectionsMade = selectionKeys.filter(key => selections[key as keyof WorkflowSelections]).length;
-  const overallProgressPercentage = selectionKeys.length > 0 ? (selectionsMade / selectionKeys.length) * 100 : 0;
+  const { completed: selectionsMade, total: selectionTotal, percentage: overallProgressPercentage } =
+    getWorkflowSelectionProgress(userType, selections);
 
   const stats = [
     {
@@ -523,7 +555,19 @@ export const WorkflowDashboard = ({
             {userType.replace("-", " ").replace(/\b\w/g, l => l.toUpperCase())}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          {onNewWorkflowForAnotherEvent && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onNewWorkflowForAnotherEvent}
+              title="Pick an event that does not have a workflow yet"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">New workflow for another event</span>
+              <span className="sm:hidden">New workflow</span>
+            </Button>
+          )}
           {showChangeWorkflow && (
             <Button variant="outline" size="sm" onClick={onChangeWorkflow || (() => navigate('/dashboard/select-workflow'))}>
               Change Workflow
@@ -559,7 +603,7 @@ export const WorkflowDashboard = ({
             </div>
             <Progress value={overallProgressPercentage} className="w-full" />
             <div className="text-xs text-muted-foreground mt-2">
-              {selectionsMade} of {selectionKeys.length} selections completed
+              {selectionsMade} of {selectionTotal} required selections completed
             </div>
           </div>
         </CardContent>

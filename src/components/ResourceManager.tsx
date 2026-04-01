@@ -711,7 +711,7 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
           </Button>
           <span className="text-sm text-muted-foreground">Quick Filters</span>
           <Select value={groupBy} onValueChange={(value: 'location' | 'category') => setGroupBy(value)}>
-            <SelectTrigger className="w-32">
+            <SelectTrigger className="h-10 w-auto min-w-fit max-w-[min(100%,18rem)] shrink-0 [&>span]:line-clamp-none [&>span]:block [&>span]:text-left">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

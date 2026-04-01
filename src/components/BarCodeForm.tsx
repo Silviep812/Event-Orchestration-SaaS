@@ -43,7 +43,7 @@ const BarCodeForm = () => {
 
       const bookId = `bar_${Date.now()}`;
       const { error: barcodeError } = await supabase
-        .from('barcode_submissions')
+        .from('qrcode_submissions')
         .insert([{
           book_id: bookId,
           event_name: validatedData.event_name,

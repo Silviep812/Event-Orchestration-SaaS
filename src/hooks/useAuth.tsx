@@ -12,6 +12,7 @@ interface AuthContextType {
   signOut: () => Promise<{ error: any }>;
   resetPassword: (email: string) => Promise<{ error: any }>;
   signInWithMagicLink: (email: string) => Promise<{ error: any }>;
+  signInWithOAuth: (provider: "google" | "linkedin_oidc") => Promise<{ error: any }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -135,6 +136,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error };
   };
 
+  const signInWithOAuth = async (provider: "google" | "linkedin_oidc") => {
+    const redirectUrl = `${window.location.origin}/dashboard`;
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: redirectUrl },
+    });
+    return { error };
+  };
+
   const value = {
     user,
     session,
@@ -145,6 +155,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signOut,
     resetPassword,
     signInWithMagicLink,
+    signInWithOAuth,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

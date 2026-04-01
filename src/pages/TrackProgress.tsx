@@ -92,20 +92,12 @@ export default function TrackProgress() {
       
       if (error) throw error;
 
-      // Fetch assigned users for each task
       const tasksWithUsers = await Promise.all(
         (tasksData || []).map(async (task) => {
-          const { data: assignmentData } = await supabase
-            .from('task_assignments')
-            .select('user_id')
-            .eq('task_id', task.id)
-            .limit(1)
-            .maybeSingle();
+          let assigned_user_name: string | null = task.assigned_to_display_name || null;
+          const assigned_user_id = task.assigned_to || null;
 
-          let assigned_user_name: string | null = null;
-          const assigned_user_id = assignmentData?.user_id || null;
-          
-          if (assigned_user_id) {
+          if (assigned_user_id && !assigned_user_name) {
             const { data: profileData } = await supabase
               .from('user_profiles_teammate_view')
               .select('display_name')

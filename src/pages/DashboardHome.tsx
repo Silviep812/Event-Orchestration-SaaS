@@ -8,6 +8,9 @@ import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, R
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import Analytics from "@/components/Analytics";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { trialBannerText } from "@/lib/trialLimits";
+import { computeEventNudges } from "@/lib/nudges";
 
 const DashboardHome = () => {
   const [analytics, setAnalytics] = useState({
@@ -18,6 +21,7 @@ const DashboardHome = () => {
     recentEvents: []
   });
   const [loading, setLoading] = useState(true);
+  const [nudgeMessages, setNudgeMessages] = useState<{ id: string; message: string }[]>([]);
   const [activities, setActivities] = useState<Array<{
     id: string;
     description: string;
@@ -41,11 +45,21 @@ const DashboardHome = () => {
         // Fetch events data for current user only
         const { data: events, error: eventsError } = await supabase
           .from('events')
-          .select('id, user_id, title, description, start_date, created_at')
+          .select('id, user_id, title, description, start_date, created_at, venue, status, archived')
           .eq('user_id', userId)
           .order('created_at', { ascending: false })
           .limit(10);
         if (eventsError) throw eventsError;
+
+        const nextEvent = (events || []).filter((e) => !e.archived).sort(
+          (a, b) =>
+            new Date(a.start_date || 0).getTime() - new Date(b.start_date || 0).getTime(),
+        )[0];
+        if (nextEvent) {
+          setNudgeMessages(computeEventNudges(nextEvent as Parameters<typeof computeEventNudges>[0]));
+        } else {
+          setNudgeMessages([]);
+        }
 
         // Fetch tasks data for current user only
         const { data: tasks, error: tasksError } = await supabase
@@ -118,9 +132,9 @@ const DashboardHome = () => {
           type: 'task' | 'analytics' | 'resource';
         }> = [];
 
-        // Fetch all change_logs for the user
+        // Fetch all cm_change_logs for the user
         const { data: changeLogs } = await supabase
-          .from('change_logs')
+          .from('cm_change_logs')
           .select('id, entity_type, action, created_at, field_name, old_value, new_value, change_description, entity_id')
           .eq('changed_by', user.id)
           .order('created_at', { ascending: false })
@@ -275,8 +289,25 @@ const DashboardHome = () => {
     },
   ];
 
+  const trialMsg = trialBannerText();
+
   return (
     <div className="space-y-6">
+      {trialMsg ? (
+        <Alert>
+          <AlertDescription>{trialMsg}</AlertDescription>
+        </Alert>
+      ) : null}
+      {nudgeMessages.length > 0 ? (
+        <div className="space-y-2">
+          {nudgeMessages.map((n) => (
+            <Alert key={n.id}>
+              <AlertTitle>Tip</AlertTitle>
+              <AlertDescription>{n.message}</AlertDescription>
+            </Alert>
+          ))}
+        </div>
+      ) : null}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
@@ -303,7 +334,7 @@ const DashboardHome = () => {
           </Button>
           <Button variant="outline" onClick={() => window.location.href = '/dashboard/create-event'} className="flex items-center gap-2 bg-gradient-primary hover:opacity-90">
             <Plus className="h-4 w-4" />
-            Create New Event
+            Create event
           </Button>
         </div>
       </div>
@@ -448,7 +479,7 @@ const DashboardHome = () => {
                   onClick={() => window.location.href = '/dashboard/create-event'}
                 >
                   <Calendar className="mr-2 h-4 w-4" />
-                  Schedule New Event
+                  New resource (theme & event)
                 </Button>
                 <Button 
                   variant="outline" 

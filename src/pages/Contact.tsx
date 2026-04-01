@@ -1,10 +1,51 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Mail, Globe } from "lucide-react";
 import { Link } from "react-router-dom";
 import { MarketingTopBar } from "@/components/MarketingTopBar";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const Contact = () => {
+  const { toast } = useToast();
+  const [leadEmail, setLeadEmail] = useState("");
+  const [leadName, setLeadName] = useState("");
+  const [leadSubmitting, setLeadSubmitting] = useState(false);
+
+  const submitLead = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const email = leadEmail.trim();
+    if (!email || !email.includes("@")) {
+      toast({ title: "Invalid email", variant: "destructive" });
+      return;
+    }
+    setLeadSubmitting(true);
+    const { error } = await supabase.from("marketing_subscribers").insert({
+      email,
+      name: leadName.trim() || null,
+      signup_source: "contact_page",
+    });
+    setLeadSubmitting(false);
+    if (error) {
+      if (error.code === "23505") {
+        toast({ title: "You are already on the list", description: "This email is already registered." });
+      } else {
+        toast({
+          title: "Could not subscribe",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
+      return;
+    }
+    toast({ title: "Thanks — you are on the list" });
+    setLeadEmail("");
+    setLeadName("");
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <MarketingTopBar page="contact" />
@@ -59,6 +100,45 @@ const Contact = () => {
                   </a>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-lg mt-8">
+            <CardHeader>
+              <CardTitle className="text-xl">Campaign updates</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Get launch news and tips (Marketing Campaign Binder — lead capture).
+              </p>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={submitLead} className="space-y-4 max-w-md">
+                <div className="space-y-2">
+                  <Label htmlFor="lead-email">Email</Label>
+                  <Input
+                    id="lead-email"
+                    type="email"
+                    autoComplete="email"
+                    placeholder="you@company.com"
+                    value={leadEmail}
+                    onChange={(e) => setLeadEmail(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lead-name">Name (optional)</Label>
+                  <Input
+                    id="lead-name"
+                    type="text"
+                    autoComplete="name"
+                    placeholder="Your name"
+                    value={leadName}
+                    onChange={(e) => setLeadName(e.target.value)}
+                  />
+                </div>
+                <Button type="submit" disabled={leadSubmitting}>
+                  {leadSubmitting ? "Submitting…" : "Subscribe"}
+                </Button>
+              </form>
             </CardContent>
           </Card>
 

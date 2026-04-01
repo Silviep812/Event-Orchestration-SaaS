@@ -195,10 +195,14 @@ const EditTemplate = () => {
 
       {tasks.length === 0 ? (
         <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <p className="text-muted-foreground mb-4 text-center">
-              No tasks added yet. Add your first task to this template!
+          <CardContent className="flex flex-col items-center justify-center py-12 gap-4">
+            <p className="text-muted-foreground text-center max-w-md">
+              No tasks added yet. Add your first task to this template, or return to Planning Assets.
             </p>
+            <Button type="button" variant="outline" onClick={() => navigate("/dashboard/planning-assets")}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Planning Assets
+            </Button>
           </CardContent>
         </Card>
       ) : (

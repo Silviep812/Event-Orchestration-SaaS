@@ -20,6 +20,7 @@ export type Database = {
           description: string | null
           id: number
           name: string
+          price: number | null
           updated_at: string
         }
         Insert: {
@@ -27,6 +28,7 @@ export type Database = {
           description?: string | null
           id?: number
           name: string
+          price?: number | null
           updated_at?: string
         }
         Update: {
@@ -34,6 +36,7 @@ export type Database = {
           description?: string | null
           id?: number
           name?: string
+          price?: number | null
           updated_at?: string
         }
         Relationships: []
@@ -68,7 +71,7 @@ export type Database = {
         }
         Relationships: []
       }
-      barcode_submissions: {
+      qrcode_submissions: {
         Row: {
           book_id: string
           created_at: string
@@ -191,7 +194,7 @@ export type Database = {
         }
         Relationships: []
       }
-      change_logs: {
+      cm_change_logs: {
         Row: {
           action: string
           change_description: string | null
@@ -229,6 +232,47 @@ export type Database = {
           old_value?: string | null
         }
         Relationships: []
+      }
+      check_lists: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          items: Json
+          resource_id: string
+          resource_type: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: string
+          items?: Json
+          resource_id?: string
+          resource_type: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          items?: Json
+          resource_id?: string
+          resource_type?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "check_lists_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       cm_activity: {
         Row: {
@@ -306,27 +350,45 @@ export type Database = {
           created_at: string
           description: string | null
           event_id: string | null
+          field_changed: string | null
           id: string
+          new_value: string | null
+          old_value: string | null
           priority_tag: string | null
           requested_by: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string | null
           task_id: string | null
         }
         Insert: {
           created_at?: string
           description?: string | null
           event_id?: string | null
+          field_changed?: string | null
           id?: string
+          new_value?: string | null
+          old_value?: string | null
           priority_tag?: string | null
           requested_by?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string | null
           task_id?: string | null
         }
         Update: {
           created_at?: string
           description?: string | null
           event_id?: string | null
+          field_changed?: string | null
           id?: string
+          new_value?: string | null
+          old_value?: string | null
           priority_tag?: string | null
           requested_by?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string | null
           task_id?: string | null
         }
         Relationships: []
@@ -1118,6 +1180,253 @@ export type Database = {
           },
         ]
       }
+      email_events: {
+        Row: {
+          created_at: string
+          error: string | null
+          event_id: string | null
+          id: string
+          metadata: Json | null
+          provider: string | null
+          recipient: string
+          status: string
+          template: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          event_id?: string | null
+          id?: string
+          metadata?: Json | null
+          provider?: string | null
+          recipient: string
+          status?: string
+          template: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          event_id?: string | null
+          id?: string
+          metadata?: Json | null
+          provider?: string | null
+          recipient?: string
+          status?: string
+          template?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      marketing_campaigns: {
+        Row: {
+          id: string
+          campaign_name: string | null
+          campaign_type: string | null
+          start_date: string | null
+          end_date: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          campaign_name?: string | null
+          campaign_type?: string | null
+          start_date?: string | null
+          end_date?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          campaign_name?: string | null
+          campaign_type?: string | null
+          start_date?: string | null
+          end_date?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      marketing_conversions: {
+        Row: {
+          id: string
+          subscriber_id: string | null
+          conversion_type: string | null
+          conversion_date: string
+          value: number | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          subscriber_id?: string | null
+          conversion_type?: string | null
+          conversion_date?: string
+          value?: number | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          subscriber_id?: string | null
+          conversion_type?: string | null
+          conversion_date?: string
+          value?: number | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_conversions_subscriber_id_fkey"
+            columns: ["subscriber_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_subscribers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_email_deliveries: {
+        Row: {
+          id: string
+          subscriber_id: string
+          email_id: string | null
+          sent_at: string | null
+          opened: boolean
+          clicked: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          subscriber_id: string
+          email_id?: string | null
+          sent_at?: string | null
+          opened?: boolean
+          clicked?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          subscriber_id?: string
+          email_id?: string | null
+          sent_at?: string | null
+          opened?: boolean
+          clicked?: boolean
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_email_deliveries_subscriber_id_fkey"
+            columns: ["subscriber_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_subscribers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_email_deliveries_email_id_fkey"
+            columns: ["email_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_emails"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_emails: {
+        Row: {
+          id: string
+          campaign_id: string | null
+          email_name: string | null
+          subject_line: string | null
+          send_day: number | null
+          template_key: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          campaign_id?: string | null
+          email_name?: string | null
+          subject_line?: string | null
+          send_day?: number | null
+          template_key?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          campaign_id?: string | null
+          email_name?: string | null
+          subject_line?: string | null
+          send_day?: number | null
+          template_key?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_emails_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_subscribers: {
+        Row: {
+          id: string
+          email: string
+          name: string | null
+          user_type: string | null
+          organization: string | null
+          signup_source: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          email: string
+          name?: string | null
+          user_type?: string | null
+          organization?: string | null
+          signup_source?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          email?: string
+          name?: string | null
+          user_type?: string | null
+          organization?: string | null
+          signup_source?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      event_resource_selections: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          notes: string | null
+          resource_id: string
+          selection_type: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: string
+          notes?: string | null
+          resource_id: string
+          selection_type: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          notes?: string | null
+          resource_id?: string
+          selection_type?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       events: {
         Row: {
           archived: boolean
@@ -1599,38 +1908,47 @@ export type Database = {
       }
       notifications: {
         Row: {
+          channel: string | null
           created_at: string
           entity_id: string | null
           entity_type: string | null
+          event_id: string | null
           id: string
           is_read: boolean
           message: string
           recipient_id: string
           sender_id: string | null
+          sent_at: string | null
           title: string
           type: string
         }
         Insert: {
+          channel?: string | null
           created_at?: string
           entity_id?: string | null
           entity_type?: string | null
+          event_id?: string | null
           id?: string
           is_read?: boolean
           message: string
           recipient_id: string
           sender_id?: string | null
+          sent_at?: string | null
           title: string
           type: string
         }
         Update: {
+          channel?: string | null
           created_at?: string
           entity_id?: string | null
           entity_type?: string | null
+          event_id?: string | null
           id?: string
           is_read?: boolean
           message?: string
           recipient_id?: string
           sender_id?: string | null
+          sent_at?: string | null
           title?: string
           type?: string
         }
@@ -1676,6 +1994,7 @@ export type Database = {
           created_at: string
           display_name: string | null
           id: string
+          subscription_level: string | null
           updated_at: string
           user_id: string
           username: string | null
@@ -1686,6 +2005,7 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id?: string
+          subscription_level?: string | null
           updated_at?: string
           user_id: string
           username?: string | null
@@ -1696,24 +2016,10 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id?: string
+          subscription_level?: string | null
           updated_at?: string
           user_id?: string
           username?: string | null
-        }
-        Relationships: []
-      }
-      Registration: {
-        Row: {
-          created_at: string
-          id: number
-        }
-        Insert: {
-          created_at?: string
-          id?: number
-        }
-        Update: {
-          created_at?: string
-          id?: number
         }
         Relationships: []
       }
@@ -2451,6 +2757,7 @@ export type Database = {
           phone_number: string | null
           price: number | null
           state: string | null
+          supplier_cost: number | null
           type_id: number | null
           updated_at: string
           zip: string | null
@@ -2467,6 +2774,7 @@ export type Database = {
           phone_number?: string | null
           price?: number | null
           state?: string | null
+          supplier_cost?: number | null
           type_id?: number | null
           updated_at?: string
           zip?: string | null
@@ -2483,6 +2791,7 @@ export type Database = {
           phone_number?: string | null
           price?: number | null
           state?: string | null
+          supplier_cost?: number | null
           type_id?: number | null
           updated_at?: string
           zip?: string | null
@@ -2540,11 +2849,17 @@ export type Database = {
         Row: {
           actual_hours: number | null
           archived: boolean
+          assigned_bookings_role: string | null
           assigned_coordinator_name: string | null
+          assigned_entertainment_role: string | null
+          assigned_external_vendor_role: string | null
+          assigned_hospitality_role: string | null
+          assigned_service_rental_role: string | null
           assigned_service_vendor_role: string | null
           assigned_supplier_vendor_role: string | null
           assigned_to: string | null
           assigned_to_display_name: string | null
+          assigned_transportation_role: string | null
           assigned_venue_role: string | null
           assined_vendor_role: string | null
           category: string | null
@@ -2567,11 +2882,17 @@ export type Database = {
         Insert: {
           actual_hours?: number | null
           archived?: boolean
+          assigned_bookings_role?: string | null
           assigned_coordinator_name?: string | null
+          assigned_entertainment_role?: string | null
+          assigned_external_vendor_role?: string | null
+          assigned_hospitality_role?: string | null
+          assigned_service_rental_role?: string | null
           assigned_service_vendor_role?: string | null
           assigned_supplier_vendor_role?: string | null
           assigned_to?: string | null
           assigned_to_display_name?: string | null
+          assigned_transportation_role?: string | null
           assigned_venue_role?: string | null
           assined_vendor_role?: string | null
           category?: string | null
@@ -2594,11 +2915,17 @@ export type Database = {
         Update: {
           actual_hours?: number | null
           archived?: boolean
+          assigned_bookings_role?: string | null
           assigned_coordinator_name?: string | null
+          assigned_entertainment_role?: string | null
+          assigned_external_vendor_role?: string | null
+          assigned_hospitality_role?: string | null
+          assigned_service_rental_role?: string | null
           assigned_service_vendor_role?: string | null
           assigned_supplier_vendor_role?: string | null
           assigned_to?: string | null
           assigned_to_display_name?: string | null
+          assigned_transportation_role?: string | null
           assigned_venue_role?: string | null
           assined_vendor_role?: string | null
           category?: string | null
@@ -2720,7 +3047,7 @@ export type Database = {
         Row: {
           created_at: string
           id: number
-          is_coordinator: boolean
+          is_collaborator: boolean
           is_viewer: boolean
           team_admin: boolean
           team_id: string
@@ -2730,7 +3057,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: number
-          is_coordinator?: boolean
+          is_collaborator?: boolean
           is_viewer?: boolean
           team_admin?: boolean
           team_id: string
@@ -2740,7 +3067,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: number
-          is_coordinator?: boolean
+          is_collaborator?: boolean
           is_viewer?: boolean
           team_admin?: boolean
           team_id?: string
@@ -3029,6 +3356,7 @@ export type Database = {
           id: string
           phone_number: string | null
           price: number | null
+          profile_url: string | null
           seating_capacity: number | null
           special_accommodations: string[] | null
           state: string | null
@@ -3047,6 +3375,7 @@ export type Database = {
           id?: string
           phone_number?: string | null
           price?: number | null
+          profile_url?: string | null
           seating_capacity?: number | null
           special_accommodations?: string[] | null
           state?: string | null
@@ -3065,6 +3394,7 @@ export type Database = {
           id?: string
           phone_number?: string | null
           price?: number | null
+          profile_url?: string | null
           seating_capacity?: number | null
           special_accommodations?: string[] | null
           state?: string | null
@@ -3142,6 +3472,33 @@ export type Database = {
           User_Subscription_Freq?: string | null
           "User_Ty[e"?: string | null
           User_Type?: string | null
+        }
+        Relationships: []
+      }
+      uploads: {
+        Row: {
+          created_at: string
+          event_id: string | null
+          file_path: string
+          id: string
+          media_type: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id?: string | null
+          file_path: string
+          id?: string
+          media_type?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string | null
+          file_path?: string
+          id?: string
+          media_type?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -3464,6 +3821,7 @@ export type Database = {
           email: string | null
           id: string
           phone_number: string | null
+          price: number | null
           state: string | null
           updated_at: string
           user_id: string | null
@@ -3480,6 +3838,7 @@ export type Database = {
           email?: string | null
           id?: string
           phone_number?: string | null
+          price?: number | null
           state?: string | null
           updated_at?: string
           user_id?: string | null
@@ -3496,6 +3855,7 @@ export type Database = {
           email?: string | null
           id?: string
           phone_number?: string | null
+          price?: number | null
           state?: string | null
           updated_at?: string
           user_id?: string | null
@@ -3546,7 +3906,7 @@ export type Database = {
           hospitality_id: string | null
           id: string
           serv_vendor_rent_id: string | null
-          serv_vendor_sup_id: string | null
+          serv_vendor_id: string | null
           supplier_id: string | null
           theme_id: number | null
           updated_at: string
@@ -3560,7 +3920,7 @@ export type Database = {
           hospitality_id?: string | null
           id?: string
           serv_vendor_rent_id?: string | null
-          serv_vendor_sup_id?: string | null
+          serv_vendor_id?: string | null
           supplier_id?: string | null
           theme_id?: number | null
           updated_at?: string
@@ -3574,7 +3934,7 @@ export type Database = {
           hospitality_id?: string | null
           id?: string
           serv_vendor_rent_id?: string | null
-          serv_vendor_sup_id?: string | null
+          serv_vendor_id?: string | null
           supplier_id?: string | null
           theme_id?: number | null
           updated_at?: string
@@ -3605,8 +3965,8 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "workflows_serv_vendor_sup_id_fkey"
-            columns: ["serv_vendor_sup_id"]
+            foreignKeyName: "workflows_serv_vendor_id_fkey"
+            columns: ["serv_vendor_id"]
             isOneToOne: false
             referencedRelation: "serv_vendor_suppliers"
             referencedColumns: ["id"]
@@ -3643,6 +4003,87 @@ export type Database = {
       }
     }
     Views: {
+      activity_feed: {
+        Row: {
+          action: string | null
+          changed_by: string | null
+          created_at: string | null
+          entity_id: string | null
+          entity_type: string | null
+          event_id: string | null
+          id: string | null
+          metadata: Json | null
+        }
+        Insert: {
+          action?: string | null
+          changed_by?: string | null
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          event_id?: string | null
+          id?: string | null
+          metadata?: Json | null
+        }
+        Update: {
+          action?: string | null
+          changed_by?: string | null
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          event_id?: string | null
+          id?: string | null
+          metadata?: Json | null
+        }
+        Relationships: []
+      }
+      change_requests: {
+        Row: {
+          created_at: string
+          description: string | null
+          event_id: string | null
+          field_changed: string | null
+          id: string
+          new_value: string | null
+          old_value: string | null
+          priority_tag: string | null
+          requested_by: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string | null
+          task_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          event_id?: string | null
+          field_changed?: string | null
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          priority_tag?: string | null
+          requested_by?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string | null
+          task_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          event_id?: string | null
+          field_changed?: string | null
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          priority_tag?: string | null
+          requested_by?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string | null
+          task_id?: string | null
+        }
+        Relationships: []
+      }
       cm_activity_with_event: {
         Row: {
           action: string | null
@@ -3676,6 +4117,129 @@ export type Database = {
           event_title?: string | null
           id?: string | null
           metadata?: Json | null
+        }
+        Relationships: []
+      }
+      due_soon_events: {
+        Row: {
+          archived: boolean
+          budget: number | null
+          created_at: string
+          description: string | null
+          end_date: string | null
+          end_time: string | null
+          entertainment_id: string | null
+          expected_attendees: number | null
+          id: string
+          location: string | null
+          serv_vendor_rental_id: string | null
+          start_date: string
+          start_time: string | null
+          status: Database["public"]["Enums"]["event_status_enum"] | null
+          theme_id: number | null
+          title: string
+          type_id: number | null
+          updated_at: string
+          user_id: string
+          venue: string
+        }
+        Insert: {
+          archived?: boolean
+          budget?: number | null
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          end_time?: string | null
+          entertainment_id?: string | null
+          expected_attendees?: number | null
+          id?: string
+          location?: string | null
+          serv_vendor_rental_id?: string | null
+          start_date?: string
+          start_time?: string | null
+          status?: Database["public"]["Enums"]["event_status_enum"] | null
+          theme_id?: number | null
+          title?: string
+          type_id?: number | null
+          updated_at?: string
+          user_id?: string
+          venue?: string
+        }
+        Update: {
+          archived?: boolean
+          budget?: number | null
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          end_time?: string | null
+          entertainment_id?: string | null
+          expected_attendees?: number | null
+          id?: string
+          location?: string | null
+          serv_vendor_rental_id?: string | null
+          start_date?: string
+          start_time?: string | null
+          status?: Database["public"]["Enums"]["event_status_enum"] | null
+          theme_id?: number | null
+          title?: string
+          type_id?: number | null
+          updated_at?: string
+          user_id?: string
+          venue?: string
+        }
+        Relationships: []
+      }
+      event_resources: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          notes: string | null
+          resource_id: string
+          selection_type: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          notes?: string | null
+          resource_id?: string
+          selection_type?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          notes?: string | null
+          resource_id?: string
+          selection_type?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      vendor_category_counts: {
+        Row: {
+          event_id: string | null
+          owner_id: string | null
+          selection_count: number | null
+          selection_type: string | null
+        }
+        Insert: {
+          event_id?: string | null
+          owner_id?: string | null
+          selection_count?: number | null
+          selection_type?: string | null
+        }
+        Update: {
+          event_id?: string | null
+          owner_id?: string | null
+          selection_count?: number | null
+          selection_type?: string | null
         }
         Relationships: []
       }
@@ -3762,34 +4326,34 @@ export type Database = {
       }
       unified_audit_events: {
         Row: {
+          action: string | null
+          changed_by: string | null
           created_at: string | null
-          description: string | null
+          entity_id: string | null
+          entity_type: string | null
           event_id: string | null
           id: string | null
-          payload: Json | null
-          source: string | null
-          type: string | null
-          user_id: string | null
+          metadata: Json | null
         }
         Insert: {
+          action?: string | null
+          changed_by?: string | null
           created_at?: string | null
-          description?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
           event_id?: string | null
           id?: string | null
-          payload?: Json | null
-          source?: never
-          type?: string | null
-          user_id?: string | null
+          metadata?: Json | null
         }
         Update: {
+          action?: string | null
+          changed_by?: string | null
           created_at?: string | null
-          description?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
           event_id?: string | null
           id?: string | null
-          payload?: Json | null
-          source?: never
-          type?: string | null
-          user_id?: string | null
+          metadata?: Json | null
         }
         Relationships: []
       }
@@ -3825,21 +4389,30 @@ export type Database = {
           location_id: string | null
           name: string | null
           role: string | null
-          source: string | null
+          source_kind: string | null
         }
         Relationships: []
       }
       unified_tasks: {
         Row: {
-          depends_on: string | null
-          end_date: string | null
+          actual_hours: number | null
+          archived: boolean | null
+          assigned_coordinator_name: string | null
+          assigned_to: string | null
+          category: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          due_date: string | null
+          estimated_hours: number | null
           event_id: string | null
+          event_owner_id: string | null
+          event_title: string | null
           id: string | null
-          locked: boolean | null
-          name: string | null
-          source: string | null
-          start_date: string | null
+          priority: string | null
           status: string | null
+          title: string | null
+          updated_at: string | null
         }
         Relationships: []
       }
@@ -3941,6 +4514,10 @@ export type Database = {
           p_old_value?: string
         }
         Returns: string
+      }
+      workflow_analytics_refresh_all: {
+        Args: Record<string, never>
+        Returns: undefined
       }
       notify_coordinators: {
         Args: {

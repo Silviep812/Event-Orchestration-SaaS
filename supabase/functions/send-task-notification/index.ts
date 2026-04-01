@@ -1,8 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "https://esm.sh/resend@2.0.0";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.53.0";
-
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+import { sendEmail } from "../_shared/email.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -23,7 +20,6 @@ interface TaskNotificationRequest {
 const handler = async (req: Request): Promise<Response> => {
   console.log("Task notification function called");
 
-  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -35,10 +31,8 @@ const handler = async (req: Request): Promise<Response> => {
       newEstimate,
       coordinatorEmails,
       changeDescription,
+      eventId,
     }: TaskNotificationRequest = await req.json();
-
-    console.log("Sending notification for task:", taskTitle);
-    console.log("Recipients:", coordinatorEmails);
 
     const subject = `Task Estimate Updated: ${taskTitle}`;
     const htmlContent = `
@@ -53,10 +47,10 @@ const handler = async (req: Request): Promise<Response> => {
           <div style="margin: 15px 0;">
             <strong>Estimate Change:</strong>
             <div style="margin: 5px 0;">
-              <span style="color: #ef4444;">Previous: ${oldEstimate ? `${oldEstimate} hours` : 'Not set'}</span>
+              <span style="color: #ef4444;">Previous: ${oldEstimate ? `${oldEstimate} hours` : "Not set"}</span>
             </div>
             <div style="margin: 5px 0;">
-              <span style="color: #22c55e;">New: ${newEstimate ? `${newEstimate} hours` : 'Not set'}</span>
+              <span style="color: #22c55e;">New: ${newEstimate ? `${newEstimate} hours` : "Not set"}</span>
             </div>
           </div>
           
@@ -79,28 +73,19 @@ const handler = async (req: Request): Promise<Response> => {
       </div>
     `;
 
-    // Send email to all coordinators
-    const emailPromises = coordinatorEmails.map(email =>
-      resend.emails.send({
-        from: "Event Planning System <onboarding@resend.dev>",
+    const results: { email: string; ok: boolean; error?: string }[] = [];
+    for (const email of coordinatorEmails) {
+      const r = await sendEmail({
         to: [email],
         subject,
         html: htmlContent,
-      })
-    );
+        template: "task_estimate_updated",
+        eventId: eventId ?? null,
+      });
+      results.push({ email, ok: r.ok, error: r.error });
+    }
 
-    const results = await Promise.allSettled(emailPromises);
-    
-    // Log results
-    results.forEach((result, index) => {
-      if (result.status === 'fulfilled') {
-        console.log(`Email sent successfully to ${coordinatorEmails[index]}`);
-      } else {
-        console.error(`Failed to send email to ${coordinatorEmails[index]}:`, result.reason);
-      }
-    });
-
-    const successCount = results.filter(r => r.status === 'fulfilled').length;
+    const successCount = results.filter((r) => r.ok).length;
     const failureCount = results.length - successCount;
 
     return new Response(
@@ -115,16 +100,17 @@ const handler = async (req: Request): Promise<Response> => {
           "Content-Type": "application/json",
           ...corsHeaders,
         },
-      }
+      },
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : "Unknown error";
     console.error("Error in send-task-notification function:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: msg }),
       {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
+      },
     );
   }
 };

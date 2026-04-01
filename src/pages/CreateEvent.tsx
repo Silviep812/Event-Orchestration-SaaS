@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useForm, Controller, FieldErrors, FieldError } from "react-hook-form";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +12,7 @@ import { Plus, X, Calendar, MapPin, Users, DollarSign, ArrowLeft } from "lucide-
 import { DateRange } from "react-day-picker";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { assertCanCreateEvent } from "@/lib/trialLimits";
 
 interface EventFormData {
   title: string;
@@ -105,6 +106,22 @@ export default function CreateEvent() {
     selectedVenueType != null &&
     dateRange?.from
   );
+
+  const wizardStep = useMemo(() => {
+    if (!watchedTitle?.trim() || watchedTheme == null) return 1;
+    if (!eventTypeSelectionOk || !dateRange?.from) return 2;
+    if (!watchedVenue?.trim() || selectedVenueType == null) return 3;
+    return 4;
+  }, [
+    watchedTitle,
+    watchedTheme,
+    eventTypeSelectionOk,
+    dateRange?.from,
+    watchedVenue,
+    selectedVenueType,
+  ]);
+
+  const wizardLabels = ["Basics", "Venue & directories", "Budget & extras", "Ready"];
 
   useEffect(() => {
     const fetchThemes = async () => {
@@ -416,6 +433,17 @@ export default function CreateEvent() {
         return;
       }
 
+      const trial = await assertCanCreateEvent(user.id, supabase);
+      if (!trial.ok) {
+        toast({
+          title: "Trial limit",
+          description: trial.message,
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
       // Prepare event data for the new events table
       // Use subType if available, otherwise use type
       const typeId = data.subType ? parseInt(data.subType) : parseInt(data.type);
@@ -481,6 +509,18 @@ export default function CreateEvent() {
           : `Your event "${data.title}" has been created and saved.`,
       });
 
+      if (insertedRow?.id && user.email) {
+        void supabase.functions.invoke("send-event-notification", {
+          body: {
+            kind: "event_created",
+            eventTitle: data.title,
+            eventId: insertedRow.id,
+            userEmail: user.email,
+            userId: user.id,
+          },
+        });
+      }
+
       // Reset form completely
       setIsFormCleared(true);
       reset({
@@ -534,12 +574,41 @@ export default function CreateEvent() {
             Back to Dashboard
           </Button>
           <div>
-            <h1 className="text-3xl font-bold mb-2">Create New Event</h1>
+            <h1 className="text-3xl font-bold mb-2">Create event</h1>
             <p className="text-muted-foreground text-sm sm:text-base">
               Required fields are marked with <span className="text-foreground font-medium">*</span>.
             </p>
           </div>
         </div>
+      </div>
+
+      <div className="mb-8 flex flex-wrap items-center justify-center gap-2 sm:gap-4" aria-label="Creation steps">
+        {wizardLabels.map((label, i) => {
+          const n = i + 1;
+          const active = wizardStep === n;
+          const done = wizardStep > n;
+          return (
+            <div key={label} className="flex items-center gap-2">
+              <span
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-medium border-2 ${
+                  done
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : active
+                      ? "border-primary text-primary"
+                      : "border-muted-foreground/30 text-muted-foreground"
+                }`}
+              >
+                {done ? "✓" : n}
+              </span>
+              <span className={`text-xs sm:text-sm ${active ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
+                {label}
+              </span>
+              {i < wizardLabels.length - 1 ? (
+                <span className="hidden sm:inline text-muted-foreground/50 px-1">→</span>
+              ) : null}
+            </div>
+          );
+        })}
       </div>
 
       <form noValidate onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-6">

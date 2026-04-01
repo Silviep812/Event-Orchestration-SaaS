@@ -19,7 +19,7 @@ import {
   DollarSign
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/useAuth";
 
 interface VenueOption {
@@ -377,6 +377,9 @@ export const VenueSelector = ({ onSelectVenue, selectedVenue }: VenueSelectorPro
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Add Your Venue</DialogTitle>
+            <DialogDescription>
+              Enter your venue details below. They will be saved to your account.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>

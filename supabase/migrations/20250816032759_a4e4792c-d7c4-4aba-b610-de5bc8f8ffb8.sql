@@ -1,7 +1,8 @@
 -- Enable public access to Themes Directory since it's reference data
-CREATE POLICY "Anyone can view themes directory" 
-ON "Themes Directory" 
-FOR SELECT 
+DROP POLICY IF EXISTS "Anyone can view themes directory" ON "Themes Directory";
+CREATE POLICY "Anyone can view themes directory"
+ON "Themes Directory"
+FOR SELECT
 USING (true);
 
 -- Insert a sample row if the table is empty (since it appears to be a single-row reference table)

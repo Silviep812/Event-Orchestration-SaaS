@@ -1,0 +1,28 @@
+# Daily due-soon reminder batch (Deliverable 2). Invokes Edge Function send-event-notification.
+# Secrets: SUPABASE_URL (https://xxxx.supabase.co), SUPABASE_ANON_KEY, optional CRON_SECRET
+# (set CRON_SECRET on the function too; if unset, function allows the call).
+
+name: Due-soon email batch
+
+on:
+  schedule:
+    - cron: "0 12 * * *"
+  workflow_dispatch:
+
+jobs:
+  invoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST due_soon_batch
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -e
+          curl -sS -X POST "${SUPABASE_URL}/functions/v1/send-event-notification" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Content-Type: application/json" \
+            -H "x-cron-secret: ${CRON_SECRET}" \
+            -d '{"kind":"due_soon_batch"}'

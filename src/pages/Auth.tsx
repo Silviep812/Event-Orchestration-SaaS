@@ -20,7 +20,8 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('signin');
   
-  const { signIn, signUp, resetPassword, signInWithMagicLink, user } = useAuth();
+  const { signIn, signUp, resetPassword, signInWithMagicLink, signInWithOAuth, user } = useAuth();
+  const oauthEnabled = import.meta.env.VITE_ENABLE_OAUTH === "true";
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -121,6 +122,19 @@ export default function Auth() {
     setLoading(false);
   };
 
+  const handleOAuth = async (provider: "google" | "linkedin_oidc") => {
+    setLoading(true);
+    const { error } = await signInWithOAuth(provider);
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Sign-in with provider failed",
+        description: error.message,
+      });
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <MarketingTopBar page="auth" />
@@ -186,6 +200,38 @@ export default function Auth() {
                   <Button type="submit" className="w-full" disabled={loading}>
                     {loading ? "Signing in..." : "Sign In"}
                   </Button>
+                  {oauthEnabled && (
+                    <>
+                      <div className="relative my-4">
+                        <div className="absolute inset-0 flex items-center">
+                          <span className="w-full border-t" />
+                        </div>
+                        <div className="relative flex justify-center text-xs uppercase">
+                          <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="w-full"
+                          disabled={loading}
+                          onClick={() => handleOAuth("google")}
+                        >
+                          Google
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="w-full"
+                          disabled={loading}
+                          onClick={() => handleOAuth("linkedin_oidc")}
+                        >
+                          LinkedIn
+                        </Button>
+                      </div>
+                    </>
+                  )}
                 </form>
               </TabsContent>
               

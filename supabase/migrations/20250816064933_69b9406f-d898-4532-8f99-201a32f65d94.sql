@@ -4,7 +4,8 @@ VALUES
 ('caterer_001', 'Catering Services', NULL, NULL, NULL),
 ('bakery_001', NULL, 'Bakery Services', NULL, NULL),
 ('videographer_001', NULL, NULL, 'Videography Services', NULL),
-('chef_001', NULL, NULL, NULL, 'Chef Services');
+('chef_001', NULL, NULL, NULL, 'Chef Services')
+ON CONFLICT (service_vendor_id) DO NOTHING;
 
 -- Populate Venue Directory with available venue types
 INSERT INTO "Venue Directory" (id, "Private_Resident", "Business_Location", "Restaurant_Location", "Resort_Location", "Recreation_Location", "Private_Club", "Market_Place", "Local_Govern_Location", "Hospitality_Location", "Agri-Farming", "Warehouse", "State_Govern_Location", "Sporting_Facility", "Other") 
@@ -22,7 +23,8 @@ VALUES
 (11, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Warehouse', NULL, NULL, NULL),
 (12, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'State Government Location', NULL, NULL),
 (13, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Sporting Facility', NULL),
-(14, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Other');
+(14, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Other')
+ON CONFLICT (id) DO NOTHING;
 
 -- Populate Hospitality Directory with available hospitality types
 INSERT INTO "Hospitality Directory" (id, "Motel", "Hotel", "Airbnb", "Resort", "Other") 
@@ -31,7 +33,8 @@ VALUES
 (2, NULL, 'Hotel', NULL, NULL, NULL),
 (3, NULL, NULL, 'Airbnb', NULL, NULL),
 (4, NULL, NULL, NULL, 'Resort', NULL),
-(5, NULL, NULL, NULL, NULL, 'Other');
+(5, NULL, NULL, NULL, NULL, 'Other')
+ON CONFLICT (id) DO NOTHING;
 
 -- Populate Transportation Directory with available transportation types
 INSERT INTO "Transportation Directory" (transo_rental_id, bus, van, limo, car_suv, truck, other) 
@@ -41,7 +44,8 @@ VALUES
 (3, NULL, NULL, 'Limousine Services', NULL, NULL, NULL),
 (4, NULL, NULL, NULL, 'Car/SUV Services', NULL, NULL),
 (5, NULL, NULL, NULL, NULL, 'Truck Services', NULL),
-(6, NULL, NULL, NULL, NULL, NULL, 'Other Transportation');
+(6, NULL, NULL, NULL, NULL, NULL, 'Other Transportation')
+ON CONFLICT (transo_rental_id) DO NOTHING;
 
 -- Populate Service Rental/Sale Directory with available rental types
 INSERT INTO "Service Rental/Sale Directory" (rental_type_id, transport_options, photo_both, lighting, audio_visual_equip, game_tables, flowers_plants, tents, table_chairs, housewares, entertainment_options) 
@@ -55,7 +59,8 @@ VALUES
 ('tents_001', NULL, NULL, NULL, NULL, NULL, NULL, 'Tents', NULL, NULL, NULL),
 ('tables_001', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Tables & Chairs', NULL, NULL),
 ('housewares_001', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Housewares', NULL),
-('entertainment_001', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Entertainment Options');
+('entertainment_001', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Entertainment Options')
+ON CONFLICT (rental_type_id) DO NOTHING;
 
 -- Populate Entertainment Directory with available entertainment types
 INSERT INTO "Entertainment Directory" (id, "Musicians", "DJ Music", "Performer", "Standup Comic", "Speaker", "Stage_Production", "Other") 
@@ -66,7 +71,8 @@ VALUES
 (4, NULL, NULL, NULL, 'Standup Comic', NULL, NULL, NULL),
 (5, NULL, NULL, NULL, NULL, 'Speaker', NULL, NULL),
 (6, NULL, NULL, NULL, NULL, NULL, 'Stage Production', NULL),
-(7, NULL, NULL, NULL, NULL, NULL, NULL, 'Other');
+(7, NULL, NULL, NULL, NULL, NULL, NULL, 'Other')
+ON CONFLICT (id) DO NOTHING;
 
 -- Populate Bookings Directory with available booking types
 INSERT INTO "Bookings Directory" (book_id, reservation, rsvp, confirmation, registry) 
@@ -74,4 +80,5 @@ VALUES
 ('reservation_001', TRUE, NULL, NULL, NULL),
 ('rsvp_001', NULL, TRUE, NULL, NULL),
 ('confirmation_001', NULL, NULL, TRUE, NULL),
-('registry_001', NULL, NULL, NULL, ARRAY['Registry Services']);
+('registry_001', NULL, NULL, NULL, ARRAY['Registry Services'])
+ON CONFLICT (book_id) DO NOTHING;

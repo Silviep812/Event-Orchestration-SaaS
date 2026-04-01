@@ -1,0 +1,29 @@
+# Deliverable 2 / SOW: daily summary emails via Resend (template: daily_planner_summary).
+# Refreshes workflow_analytics MV then sends one digest per event owner (aggregated from public.events + tasks).
+# Secrets: SUPABASE_URL, SUPABASE_ANON_KEY, optional CRON_SECRET (match Edge Function env).
+# Edge env: RESEND_API_KEY, EMAIL_FROM, SUPABASE_SERVICE_ROLE_KEY. Optional: DAILY_SUMMARY_EMAILS_ENABLED=false to disable sends.
+
+name: Daily marketing summary (Resend)
+
+on:
+  schedule:
+    - cron: "30 13 * * *"
+  workflow_dispatch:
+
+jobs:
+  invoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST daily_summary_batch
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -e
+          curl -sS -X POST "${SUPABASE_URL}/functions/v1/send-event-notification" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Content-Type: application/json" \
+            -H "x-cron-secret: ${CRON_SECRET}" \
+            -d '{"kind":"daily_summary_batch"}'
