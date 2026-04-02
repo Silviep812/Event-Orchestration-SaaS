@@ -44,40 +44,16 @@ export type Database = {
       Authorization: {
         Row: {
           created_at: string
-          magic_link_enabled: boolean | null
-          magic_link_expires_at: string | null
-          magic_link_request_count: number | null
-          magic_link_requested_ip: string | null
-          magic_link_sent_at: string | null
-          magic_link_token: string | null
-          magic_link_used: boolean | null
-          magic_link_used_at: string | null
           sign_in: string
           sign_out: string | null
         }
         Insert: {
           created_at?: string
-          magic_link_enabled?: boolean | null
-          magic_link_expires_at?: string | null
-          magic_link_request_count?: number | null
-          magic_link_requested_ip?: string | null
-          magic_link_sent_at?: string | null
-          magic_link_token?: string | null
-          magic_link_used?: boolean | null
-          magic_link_used_at?: string | null
           sign_in: string
           sign_out?: string | null
         }
         Update: {
           created_at?: string
-          magic_link_enabled?: boolean | null
-          magic_link_expires_at?: string | null
-          magic_link_request_count?: number | null
-          magic_link_requested_ip?: string | null
-          magic_link_sent_at?: string | null
-          magic_link_token?: string | null
-          magic_link_used?: boolean | null
-          magic_link_used_at?: string | null
           sign_in?: string
           sign_out?: string | null
         }
@@ -6067,7 +6043,6 @@ export type Database = {
         Args: { u1: string; u2: string }
         Returns: boolean
       }
-      generate_magic_link: { Args: { user_email: string }; Returns: string }
       get_my_events_safe: {
         Args: never
         Returns: {
@@ -6212,14 +6187,6 @@ export type Database = {
       update_resource_utilization: {
         Args: { p_allocated: number; p_resource_id: string; p_total: number }
         Returns: Json
-      }
-      validate_magic_link: {
-        Args: { input_token: string }
-        Returns: {
-          is_valid: boolean
-          reason: string
-          user_email: string
-        }[]
       }
       workflow_analytics_refresh_all: { Args: never; Returns: undefined }
     }
