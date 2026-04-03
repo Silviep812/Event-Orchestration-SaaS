@@ -6188,6 +6188,10 @@ export type Database = {
         Args: { p_allocated: number; p_resource_id: string; p_total: number }
         Returns: Json
       }
+      user_is_member_of_event: {
+        Args: { p_event_id: string }
+        Returns: boolean
+      }
       workflow_analytics_refresh_all: { Args: never; Returns: undefined }
     }
     Enums: {
