@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format, addDays, isAfter, isBefore, isWithinInterval, parseISO } from "date-fns";
@@ -48,6 +49,7 @@ const TimelineView = ({ eventId }: TimelineViewProps) => {
   const [viewMode, setViewMode] = useState<'all' | 'day' | 'week' | 'month'>('all');
   const [conflicts, setConflicts] = useState<string[]>([]);
   const [overdueFlags, setOverdueFlags] = useState<string[]>([]);
+  const [showTimelineIssues, setShowTimelineIssues] = useState(false);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -126,7 +128,6 @@ const TimelineView = ({ eventId }: TimelineViewProps) => {
           .select('*')
           .eq('event_id', eventId)
           .order('due_date', { ascending: true });
-          console.log('Fetched tasks:', data, error);
         if (error) throw error;
         setTasks(data || []);
         analyzeConstraints(data || []);
@@ -150,6 +151,12 @@ const TimelineView = ({ eventId }: TimelineViewProps) => {
     const conflictIds: string[] = [];
     const overdueIds: string[] = [];
 
+    const hasExplicitTimeWindow = (t: Task) =>
+      Boolean(t.start_time?.trim() && t.end_time?.trim());
+
+    const skipConflictCheck = (t: Task) =>
+      t.status === 'completed' || t.status === 'cancelled';
+
     // Check for overdue tasks (computed based on due_date vs current time)
     taskList.forEach(task => {
       if (task.due_date) {
@@ -160,13 +167,15 @@ const TimelineView = ({ eventId }: TimelineViewProps) => {
       }
     });
 
-    // Check for overlapping tasks (simplified - same day overlaps)
+    // Time conflicts: only when both tasks share a day and both have real start/end times.
+    // Missing times used to default to 00:00–23:59, which falsely flagged every same-day pair.
     for (let i = 0; i < taskList.length; i++) {
       for (let j = i + 1; j < taskList.length; j++) {
         const task1 = taskList[i];
         const task2 = taskList[j];
-        
-        // Check date overlap
+
+        if (skipConflictCheck(task1) || skipConflictCheck(task2)) continue;
+
         const task1Start = new Date(task1.start_date);
         const task1End = new Date(task1.end_date);
         const task2Start = new Date(task2.start_date);
@@ -177,17 +186,17 @@ const TimelineView = ({ eventId }: TimelineViewProps) => {
                        isWithinInterval(task2Start, { start: task1Start, end: task1End }) ||
                        isWithinInterval(task2End, { start: task1Start, end: task1End });
 
-        if (overlap && task1.start_date === task2.start_date) {
-          // Check time overlap on same day
-          const task1StartTime = parseInt(task1.start_time?.replace(':', '') || '0000');
-          const task1EndTime = parseInt(task1.end_time?.replace(':', '') || '2359');
-          const task2StartTime = parseInt(task2.start_time?.replace(':', '') || '0000');
-          const task2EndTime = parseInt(task2.end_time?.replace(':', '') || '2359');
+        if (!overlap || task1.start_date !== task2.start_date) continue;
+        if (!hasExplicitTimeWindow(task1) || !hasExplicitTimeWindow(task2)) continue;
 
-          if ((task1StartTime <= task2EndTime && task1EndTime >= task2StartTime)) {
-            if (!conflictIds.includes(task1.id)) conflictIds.push(task1.id);
-            if (!conflictIds.includes(task2.id)) conflictIds.push(task2.id);
-          }
+        const task1StartTime = parseInt(task1.start_time!.replace(':', ''), 10);
+        const task1EndTime = parseInt(task1.end_time!.replace(':', ''), 10);
+        const task2StartTime = parseInt(task2.start_time!.replace(':', ''), 10);
+        const task2EndTime = parseInt(task2.end_time!.replace(':', ''), 10);
+
+        if (task1StartTime <= task2EndTime && task1EndTime >= task2StartTime) {
+          if (!conflictIds.includes(task1.id)) conflictIds.push(task1.id);
+          if (!conflictIds.includes(task2.id)) conflictIds.push(task2.id);
         }
       }
     }
@@ -400,6 +409,8 @@ const TimelineView = ({ eventId }: TimelineViewProps) => {
     );
   }
 
+  const hasTimelineIssues = conflicts.length > 0 || overdueFlags.length > 0;
+
   return (
     <div className="space-y-6">
       {/* Header Controls */}
@@ -411,7 +422,23 @@ const TimelineView = ({ eventId }: TimelineViewProps) => {
           </p>
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+          <div className="flex items-center justify-between sm:justify-start gap-3 rounded-md border bg-muted/30 px-3 py-2">
+            <div className="flex items-center gap-2">
+              <Switch
+                id="timeline-show-issues"
+                checked={showTimelineIssues}
+                onCheckedChange={setShowTimelineIssues}
+              />
+              <Label htmlFor="timeline-show-issues" className="text-sm font-normal cursor-pointer whitespace-nowrap">
+                Show scheduling issues
+              </Label>
+            </div>
+            {!showTimelineIssues && hasTimelineIssues && (
+              <span className="text-xs text-muted-foreground shrink-0">Turn on to view</span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
           <Select value={viewMode} onValueChange={(value: 'all'| 'day' | 'week' | 'month' ) => setViewMode(value)}>
             <SelectTrigger className="w-32">
               <SelectValue />
@@ -441,11 +468,12 @@ const TimelineView = ({ eventId }: TimelineViewProps) => {
               />
             </PopoverContent>
           </Popover>
+          </div>
         </div>
       </div>
 
       {/* Alerts Section */}
-      {(conflicts.length > 0 || overdueFlags.length > 0) && (
+      {showTimelineIssues && hasTimelineIssues && (
         <Card className="border-destructive/20 bg-destructive/5">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-destructive">
@@ -477,26 +505,33 @@ const TimelineView = ({ eventId }: TimelineViewProps) => {
             key={task.id} 
             className={cn(
               "shadow-sm border transition-all",
-              conflicts.includes(task.id) && "border-orange-300 bg-orange-50/30",
-              overdueFlags.includes(task.id) && "border-red-300 bg-red-50/30"
+              showTimelineIssues && conflicts.includes(task.id) && "border-orange-300 bg-orange-50/30",
+              showTimelineIssues && overdueFlags.includes(task.id) && "border-red-300 bg-red-50/30"
             )}
           >
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
-                    <div className={cn("w-3 h-3 rounded-full", getStatusColor(overdueFlags.includes(task.id) ? 'overdue' : task.status))} />
+                    <div
+                      className={cn(
+                        "w-3 h-3 rounded-full",
+                        getStatusColor(
+                          showTimelineIssues && overdueFlags.includes(task.id) ? 'overdue' : task.status
+                        )
+                      )}
+                    />
                     <h3 className="font-medium">{task.title}</h3>
                     <Badge variant="outline" className={getPriorityColor(task.priority)}>
                       {task.priority}
                     </Badge>
-                    {conflicts.includes(task.id) && (
+                    {showTimelineIssues && conflicts.includes(task.id) && (
                       <Badge variant="destructive" className="text-xs">
                         <XCircle className="h-3 w-3 mr-1" />
                         Conflict
                       </Badge>
                     )}
-                    {overdueFlags.includes(task.id) && (
+                    {showTimelineIssues && overdueFlags.includes(task.id) && (
                       <Badge variant="destructive" className="text-xs">
                         <Flag className="h-3 w-3 mr-1" />
                         Overdue

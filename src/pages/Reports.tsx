@@ -126,42 +126,75 @@ const Reports = () => {
     fetchUserNames();
   }, [changeLogs]);
 
+  const mapActivityRowToChangeLog = (row: Record<string, unknown>): ChangeLog | null => {
+    const id = row.id;
+    const entity_type = row.entity_type;
+    const action = row.action;
+    const created_at = row.created_at;
+    if (typeof id !== "string" || typeof entity_type !== "string" || typeof action !== "string" || typeof created_at !== "string") {
+      return null;
+    }
+    return {
+      id,
+      entity_type,
+      entity_id: typeof row.entity_id === "string" ? row.entity_id : null,
+      action,
+      event_id: typeof row.event_id === "string" ? row.event_id : null,
+      metadata: row.metadata && typeof row.metadata === "object" ? (row.metadata as Record<string, unknown>) : null,
+      changed_by: typeof row.changed_by === "string" ? row.changed_by : null,
+      created_at,
+    };
+  };
+
   const fetchChangeData = async () => {
     try {
       setLoading(true);
 
-      let query = supabase
-        .from('cm_activity')
-        .select('*')
-        .order('created_at', { ascending: false });
+      // Prefer activity_feed (explicit GRANT in migrations, same rows as cm_activity, same RLS).
+      const runQuery = (source: "activity_feed" | "cm_activity") => {
+        let query = supabase.from(source).select("*").order("created_at", { ascending: false });
+        if (dateRange?.from) {
+          query = query.gte("created_at", dateRange.from.toISOString());
+        }
+        if (dateRange?.to) {
+          query = query.lte("created_at", dateRange.to.toISOString());
+        }
+        if (entityTypeFilter !== "all") {
+          query = query.eq("entity_type", entityTypeFilter);
+        }
+        if (actionFilter !== "all") {
+          query = query.eq("action", actionFilter);
+        }
+        return query;
+      };
 
-      if (dateRange?.from) {
-        query = query.gte('created_at', dateRange.from.toISOString());
+      let { data, error } = await runQuery("activity_feed");
+      if (error) {
+        const retry = await runQuery("cm_activity");
+        data = retry.data;
+        error = retry.error;
       }
-      if (dateRange?.to) {
-        query = query.lte('created_at', dateRange.to.toISOString());
-      }
-      if (entityTypeFilter !== 'all') {
-        query = query.eq('entity_type', entityTypeFilter);
-      }
-      if (actionFilter !== 'all') {
-        query = query.eq('action', actionFilter);
-      }
-
-      const { data, error } = await query;
 
       if (error) throw error;
 
-      const logs = (data || []) as ChangeLog[];
+      const logs = (data || [])
+        .map((row) => mapActivityRowToChangeLog(row as Record<string, unknown>))
+        .filter((log): log is ChangeLog => log !== null);
       setChangeLogs(logs);
       generateReportData(logs);
-    } catch (error) {
-      console.error('Error fetching change data:', error);
+    } catch (error: unknown) {
+      console.error("Error fetching change data:", error);
+      const detail =
+        error && typeof error === "object" && "message" in error
+          ? String((error as { message: unknown }).message)
+          : "Unknown error";
       toast({
         title: "Error",
-        description: "Failed to fetch change management data",
+        description: `Failed to fetch change management data: ${detail}`,
         variant: "destructive",
       });
+      setChangeLogs([]);
+      setReportData(null);
     } finally {
       setLoading(false);
     }
@@ -680,7 +713,7 @@ const Reports = () => {
                   <div className="flex justify-between items-center">
                     <span className="text-sm">Most Changed Entity</span>
                     <Badge variant="secondary">
-                      {reportData?.topModifiedEntities[0]?.entity || 'N/A'}
+                      {reportData?.topModifiedEntities?.[0]?.entity || 'N/A'}
                     </Badge>
                   </div>
                   <Separator />

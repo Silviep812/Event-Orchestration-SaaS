@@ -1,5 +1,7 @@
 # Refresh workflow_analytics.event_task_metrics (SOW Deliverable 2).
-# Requires migration 20260403130000 applied. Call RPC as authenticated user with permission to execute.
+# Requires migration 20260403130000 applied.
+# RPCs are granted to service_role only — use the secret service_role key from Supabase → Project Settings → API,
+# not the publishable key.
 
 name: Workflow analytics refresh
 
@@ -11,11 +13,11 @@ on:
 jobs:
   refresh:
     runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: "https://mavbnybtyfewfsihmuri.supabase.co"
+      SUPABASE_SERVICE_ROLE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1hdmJueWJ0eWZld2ZzaWhtdXJpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MzkxMDE2NCwiZXhwIjoyMDY5NDg2MTY0fQ.Qf5pjRNdZiQk5K_Q41PdZplHMQfGDqPVKXk8j7BCUy8"
     steps:
       - name: POST workflow_analytics_refresh_all
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
           set -e
           curl -sS -X POST "${SUPABASE_URL}/rest/v1/rpc/workflow_analytics_refresh_all" \

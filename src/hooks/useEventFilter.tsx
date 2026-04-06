@@ -39,10 +39,13 @@ export function useEventFilter() {
 
     fetchUserEvents();
 
-    // Set up real-time subscription for events
+    // Each hook instance needs its own channel name. Reusing `events-changes` across
+    // ProjectManagement + TaskManager + BudgetTracker hits the same Realtime channel
+    // after subscribe() and throws: cannot add postgres_changes callbacks after subscribe().
     if (user) {
+      const channelName = `events-changes-${crypto.randomUUID()}`;
       const channel = supabase
-        .channel('events-changes')
+        .channel(channelName)
         .on(
           'postgres_changes',
           {
