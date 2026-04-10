@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Clock, Menu, X } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import { IEP_LOGO_COLORED } from "@/lib/brandAssets";
 
-type Page = "home" | "contact" | "auth";
+type Page = "home" | "auth";
 
 type MarketingTopBarProps = {
   /** Current public page — hides redundant nav actions */
@@ -46,11 +47,15 @@ export function MarketingTopBar({ page = "home" }: MarketingTopBarProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-wrap justify-between items-center gap-y-2 min-h-[4rem] py-2">
           <div className="flex items-center gap-3 min-w-0">
-            <Link to="/" className="flex items-center gap-3 shrink-0" aria-label="Ida Event Partners home">
+            <Link to="/" className="flex items-center gap-3 shrink-0" aria-label="Ida Event Partners — We Got You">
               <img
-                src="/lovable-uploads/e8e18250-fa27-4ae4-a4bc-867e063bcfd1.png"
-                alt=""
-                className="h-9 w-9 object-contain bg-transparent"
+                src={IEP_LOGO_COLORED}
+                alt="Ida Event Partners — We Got You"
+                className="h-10 w-auto sm:h-11 object-contain"
+                width={44}
+                height={44}
+                loading="eager"
+                decoding="async"
               />
               <div className="hidden sm:flex flex-col leading-tight">
                 <span className="text-sm font-semibold text-foreground tracking-tight">Ida Event Partners</span>
@@ -65,14 +70,6 @@ export function MarketingTopBar({ page = "home" }: MarketingTopBarProps) {
             </Button>
             <Button variant="ghost" className="text-foreground/90" onClick={() => scrollToHash("payment-plan")}>
               Payment plan
-            </Button>
-            <Button
-              variant="ghost"
-              className="text-foreground/90"
-              onClick={() => navigate("/contact")}
-              aria-current={page === "contact" ? "page" : undefined}
-            >
-              Contact
             </Button>
             <span className="px-2 py-1 rounded-md bg-primary/10 text-primary text-xs font-medium whitespace-nowrap">
               14-day free trial
@@ -145,21 +142,21 @@ export function MarketingTopBar({ page = "home" }: MarketingTopBarProps) {
                 variant="ghost"
                 className="w-full justify-start"
                 onClick={() => {
-                  scrollToHash("payment-plan");
+                  scrollToHash("demo");
                   setOpen(false);
                 }}
               >
-                Payment plan
+                Demo
               </Button>
               <Button
                 variant="ghost"
                 className="w-full justify-start"
                 onClick={() => {
-                  navigate("/contact");
+                  scrollToHash("payment-plan");
                   setOpen(false);
                 }}
               >
-                Contact
+                Payment plan
               </Button>
               <div className="px-2 py-2 text-sm text-primary font-medium">14-day free trial</div>
               {showSignInCta && (

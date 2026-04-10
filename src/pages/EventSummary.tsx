@@ -7,6 +7,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader2, CheckCircle, ArrowLeft } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
+import { Badge } from "@/components/ui/badge";
+import { getLifecycleTableBadge } from "@/lib/eventStatus";
 
 type EventRow = Database["public"]["Tables"]["events"]["Row"];
 
@@ -161,6 +163,13 @@ export default function EventSummary() {
     );
   }
 
+  const lifecycleBadge = getLifecycleTableBadge({
+    status: event.status,
+    start_date: event.start_date,
+    end_date: event.end_date,
+    archived: event.archived,
+  });
+
   return (
     <div className="container max-w-3xl p-6 space-y-6">
       <div className="flex items-center gap-4">
@@ -176,8 +185,11 @@ export default function EventSummary() {
           <CardTitle>{event.title}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
-          <p>
-            <span className="text-muted-foreground">Status:</span> {event.status ?? "—"}
+          <p className="flex flex-wrap items-center gap-2">
+            <span className="text-muted-foreground">Status:</span>
+            <Badge variant={lifecycleBadge.variant} className="capitalize">
+              {lifecycleBadge.label}
+            </Badge>
           </p>
           <p>
             <span className="text-muted-foreground">Dates:</span> {event.start_date}

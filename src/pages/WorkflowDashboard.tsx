@@ -59,7 +59,8 @@ export default function WorkflowDashboard() {
   const [selectedVenue, setSelectedVenue] = useState<string | undefined>(undefined);
   const [selectedServiceVendor, setSelectedServiceVendor] = useState<string | null>(null);
   const [selectedServiceRental, setSelectedServiceRental] = useState<string | null>(null);
-  const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
+  /** External procurement vendors (`public.suppliers`); also synced to `events.external_supplier_ids`. */
+  const [selectedSupplierIds, setSelectedSupplierIds] = useState<string[]>([]);
   const [workflowIdForEvent, setWorkflowIdForEvent] = useState<string | null>(null);
   /** When true, skip auto-jumping user-type → theme from roles (e.g. user pressed Back). */
   const [suppressUserTypeAutoAdvance, setSuppressUserTypeAutoAdvance] = useState(false);
@@ -140,7 +141,19 @@ export default function WorkflowDashboard() {
           if (workflow.venue_id) setSelectedVenue(workflow.venue_id);
           if (workflow.serv_vendor_id) setSelectedServiceVendor(workflow.serv_vendor_id);
           if (workflow.serv_vendor_rent_id) setSelectedServiceRental(workflow.serv_vendor_rent_id);
-          if (workflow.supplier_id) setSelectedSupplier({ id: workflow.supplier_id });
+          const { data: evSup } = await supabase
+            .from("events")
+            .select("external_supplier_ids")
+            .eq("id", eventId)
+            .maybeSingle();
+          const ext = evSup?.external_supplier_ids;
+          setSelectedSupplierIds(
+            Array.isArray(ext) && ext.length > 0
+              ? ext
+              : workflow.supplier_id
+                ? [workflow.supplier_id]
+                : [],
+          );
         } else {
           const { data: created, error } = await supabase
             .from('workflows')
@@ -214,9 +227,23 @@ export default function WorkflowDashboard() {
     
     const { data: existingWorkflow } = await supabase
       .from('workflows')
-      .select('id')
+      .select('id, supplier_id')
       .eq('event_id', eventId)
       .maybeSingle();
+
+    const { data: eventRow } = await supabase
+      .from('events')
+      .select('external_supplier_ids')
+      .eq('id', eventId)
+      .maybeSingle();
+    const fromEvent = eventRow?.external_supplier_ids;
+    setSelectedSupplierIds(
+      Array.isArray(fromEvent) && fromEvent.length > 0
+        ? fromEvent
+        : existingWorkflow?.supplier_id
+          ? [existingWorkflow.supplier_id]
+          : [],
+    );
     
     if (!existingWorkflow) {
       const { data: newWorkflow } = await supabase
@@ -317,13 +344,37 @@ export default function WorkflowDashboard() {
     }
   };
 
-  const handleSupplierSelection = async (supplier: any) => {
-    setSelectedSupplier(supplier);
+  const handleSuppliersStepContinue = async () => {
+    if (selectedSupplierIds.length === 0) {
+      const skip = window.confirm(
+        "Continue without selecting external vendors? You can add them later under Resources → External Vendors or event details.",
+      );
+      if (!skip) return;
+    }
+    const primaryId = selectedSupplierIds[0];
     const ok = await updateWorkflowSelections(
-      { supplier_id: supplier.id },
+      selectedSupplierIds.length > 0 ? { supplier_id: primaryId } : { supplier_id: null },
       workflowIdForEvent || undefined
     );
     if (!ok) return;
+
+    if (selectedEvent) {
+      const { error: evErr } = await supabase
+        .from("events")
+        .update({
+          external_supplier_ids: selectedSupplierIds.length ? selectedSupplierIds : null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", selectedEvent);
+      if (evErr) {
+        toast({
+          title: "Could not save vendor list on event",
+          description: evErr.message,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
 
     const next = getNextStepForUserType(selectedUserType, "suppliers");
     if (next !== "dashboard") {
@@ -412,8 +463,23 @@ export default function WorkflowDashboard() {
     setSelectedVenue(data.venue_id ?? undefined);
     setSelectedServiceVendor(data.serv_vendor_id ?? null);
     setSelectedServiceRental(data.serv_vendor_rent_id ?? null);
-    if (data.supplier_id) setSelectedSupplier({ id: data.supplier_id });
-    else setSelectedSupplier(null);
+    if (data.event_id) {
+      const { data: evSup } = await supabase
+        .from("events")
+        .select("external_supplier_ids")
+        .eq("id", data.event_id)
+        .maybeSingle();
+      const ext = evSup?.external_supplier_ids;
+      setSelectedSupplierIds(
+        Array.isArray(ext) && ext.length > 0
+          ? ext
+          : data.supplier_id
+            ? [data.supplier_id]
+            : [],
+      );
+    } else {
+      setSelectedSupplierIds(data.supplier_id ? [data.supplier_id] : []);
+    }
     setSuppressUserTypeAutoAdvance(false);
     setIsCreatingWorkflow(true);
 
@@ -446,7 +512,7 @@ export default function WorkflowDashboard() {
     setSelectedVenue(undefined);
     setSelectedServiceVendor(null);
     setSelectedServiceRental(null);
-    setSelectedSupplier(null);
+    setSelectedSupplierIds([]);
     setWorkflowIdForEvent(null);
     setCurrentStep("event");
     setIsCreatingWorkflow(true);
@@ -472,7 +538,7 @@ export default function WorkflowDashboard() {
                       <CardTitle className="text-xl">
                         {currentStep === "event" && "Select Your Event"}
                         {currentStep === "user-type" && "Setup Your Workflow"}
-                        {currentStep === "theme" && "Choose Event Theme"}
+                        {currentStep === "theme" && "Manage Event — theme & category"}
                         {currentStep === "hospitality" && "Select Hospitality Services"}
                         {currentStep === "venue" && "Choose Venue Location"}
                         {currentStep === "services" && "Choose Services"}
@@ -489,6 +555,11 @@ export default function WorkflowDashboard() {
                           currentStep === "suppliers" ? "7" : "8"
                         } of 8
                       </p>
+                      {currentStep !== "event" && (
+                        <p className="text-xs text-muted-foreground mt-2 max-w-2xl">
+                          Each step scopes this workflow to your event, then theme and categories so resource and external vendor choices stay aligned. Use Customize on the dashboard to change selections anytime.
+                        </p>
+                      )}
                     </div>
                   </div>
                   {selectedUserType && (
@@ -543,6 +614,7 @@ export default function WorkflowDashboard() {
                 userType={selectedUserType}
                 onSelectTheme={handleThemeSelection}
                 selectedTheme={selectedTheme}
+                eventId={selectedEvent}
               />
             )}
 
@@ -569,10 +641,11 @@ export default function WorkflowDashboard() {
               />
             )}
 
-            {currentStep === "suppliers" && selectedUserType && selectedTheme && (selectedServiceVendor || selectedServiceRental) && (
-              <SupplierSelector 
-                onSelectSupplier={handleSupplierSelection}
-                selectedSupplier={selectedSupplier}
+            {currentStep === "suppliers" && selectedUserType && selectedTheme && (
+              <SupplierSelector
+                selectedSupplierIds={selectedSupplierIds}
+                onSelectedIdsChange={setSelectedSupplierIds}
+                onContinue={() => void handleSuppliersStepContinue()}
               />
             )}
           </div>

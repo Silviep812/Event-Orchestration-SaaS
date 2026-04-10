@@ -165,13 +165,12 @@ export const useWorkflow = () => {
 
         const payload = sanitizeWorkflowUpdates({
           ...updates,
-          user_id: user.id,
           event_id: updates.event_id!,
         });
 
         const { data, error } = await supabase
           .from('workflows')
-          .insert(payload)
+          .insert({ ...payload, user_id: user.id } as any)
           .select()
           .single();
 

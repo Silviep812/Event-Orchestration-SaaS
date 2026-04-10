@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useEventFilter } from "@/hooks/useEventFilter";
 import { DollarSign, Plus, TrendingUp, TrendingDown, AlertTriangle, CheckCircle, Archive, ArchiveRestore, Eye, EyeOff } from "lucide-react";
 import { format } from "date-fns";
+import { eventSelectLifecycleLabel } from "@/lib/eventStatus";
 
 interface BudgetItem {
   id: string;
@@ -463,8 +464,9 @@ export function BudgetTracker({ eventId, selectedEventFilter }: BudgetTrackerPro
               value={budgetAddInput}
               onChange={(e) => setBudgetAddInput(e.target.value)}
             />
-            <Button type="button" variant="secondary" onClick={addToEventBudget}>
-              Add to event budget
+            <Button type="button" variant="secondary" onClick={addToEventBudget} className="gap-1.5">
+              <Plus className="h-4 w-4" aria-hidden />
+              Add amount to budget
             </Button>
           </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
@@ -478,110 +480,119 @@ export function BudgetTracker({ eventId, selectedEventFilter }: BudgetTrackerPro
             <DialogHeader>
               <DialogTitle>Add Budget Item</DialogTitle>
             </DialogHeader>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="project">Project *</Label>
-                  <Select value={newItem.event_id} onValueChange={(value) => setNewItem({ ...newItem, event_id: value })}>
-                    <SelectTrigger className={formErrors.event_id ? "border-destructive" : ""}>
-                      <SelectValue placeholder="Select project" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {events.map((event) => (
-                        <SelectItem key={event.id} value={event.id}>
-                          {event.title} {event.start_date && `(${format(new Date(event.start_date), 'MMM d, yyyy')})`}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {formErrors.event_id && (
-                    <p className="text-sm text-destructive">{formErrors.event_id}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="category">Category *</Label>
-                  <Select value={newItem.category} onValueChange={(value) => setNewItem({ ...newItem, category: value })}>
-                    <SelectTrigger className={formErrors.category ? "border-destructive" : ""}>
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="venue">Venue</SelectItem>
-                      <SelectItem value="catering">Catering</SelectItem>
-                      <SelectItem value="entertainment">Entertainment</SelectItem>
-                      <SelectItem value="decorations">Decorations</SelectItem>
-                      <SelectItem value="transportation">Transportation</SelectItem>
-                      <SelectItem value="marketing">Marketing</SelectItem>
-                      <SelectItem value="supplies">Supplies</SelectItem>
-                      <SelectItem value="services">Services</SelectItem>
-                      <SelectItem value="vendors">Vendors</SelectItem>
-                      <SelectItem value="misc">Miscellaneous</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {formErrors.category && (
-                    <p className="text-sm text-destructive">{formErrors.category}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="item_name">Item Name *</Label>
-                  <Input
-                    id="item_name"
-                    placeholder="Enter item name"
-                    value={newItem.item_name}
-                    onChange={(e) => setNewItem({ ...newItem, item_name: e.target.value })}
-                    className={formErrors.item_name ? "border-destructive" : ""}
-                  />
-                  {formErrors.item_name && (
-                    <p className="text-sm text-destructive">{formErrors.item_name}</p>
-                  )}
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="estimated_cost">Estimated Cost</Label>
-                  <Input
-                    id="estimated_cost"
-                    type="number"
-                    step="0.01"
-                    placeholder="0.00"
-                    value={newItem.estimated_cost}
-                    onChange={(e) => setNewItem({ ...newItem, estimated_cost: e.target.value })}
-                  />
-                </div>
+            <div className="space-y-4 max-w-xl">
+              <div className="space-y-2">
+                <Label htmlFor="project">Project *</Label>
+                <Select value={newItem.event_id} onValueChange={(value) => setNewItem({ ...newItem, event_id: value })}>
+                  <SelectTrigger className={formErrors.event_id ? "border-destructive" : ""}>
+                    <SelectValue placeholder="Select project" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {events.map((event) => (
+                      <SelectItem key={event.id} value={event.id}>
+                        {event.title}
+                        {event.start_date &&
+                          ` (${format(new Date(event.start_date), "MMM d, yyyy")})`}
+                        <span className="text-muted-foreground">{` · ${eventSelectLifecycleLabel(event)}`}</span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {formErrors.event_id && (
+                  <p className="text-sm text-destructive">{formErrors.event_id}</p>
+                )}
               </div>
 
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    placeholder="Enter description"
-                    value={newItem.description}
-                    onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
-                    rows={3}
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="category">Category *</Label>
+                <Select value={newItem.category} onValueChange={(value) => setNewItem({ ...newItem, category: value })}>
+                  <SelectTrigger className={formErrors.category ? "border-destructive" : ""}>
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="venue">Venue</SelectItem>
+                    <SelectItem value="catering">Catering</SelectItem>
+                    <SelectItem value="entertainment">Entertainment</SelectItem>
+                    <SelectItem value="decorations">Decorations</SelectItem>
+                    <SelectItem value="transportation">Transportation</SelectItem>
+                    <SelectItem value="marketing">Marketing</SelectItem>
+                    <SelectItem value="supplies">Supplies</SelectItem>
+                    <SelectItem value="services">Services</SelectItem>
+                    <SelectItem value="vendors">Vendors</SelectItem>
+                    <SelectItem value="misc">Miscellaneous</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+                {formErrors.category && (
+                  <p className="text-sm text-destructive">{formErrors.category}</p>
+                )}
+              </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="vendor_name">Vendor Name</Label>
-                  <Input
-                    id="vendor_name"
-                    placeholder="Enter vendor name"
-                    value={newItem.vendor_name}
-                    onChange={(e) => setNewItem({ ...newItem, vendor_name: e.target.value })}
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="item_name">Item Name *</Label>
+                <Input
+                  id="item_name"
+                  placeholder="Enter item name"
+                  value={newItem.item_name}
+                  onChange={(e) => setNewItem({ ...newItem, item_name: e.target.value })}
+                  className={formErrors.item_name ? "border-destructive" : ""}
+                />
+                {formErrors.item_name && (
+                  <p className="text-sm text-destructive">{formErrors.item_name}</p>
+                )}
+              </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="payment_due_date">Payment Due Date</Label>
-                  <Input
-                    id="payment_due_date"
-                    type="date"
-                    value={newItem.payment_due_date}
-                    onChange={(e) => setNewItem({ ...newItem, payment_due_date: e.target.value })}
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="estimated_cost">Estimated Cost</Label>
+                <Input
+                  id="estimated_cost"
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={newItem.estimated_cost}
+                  onChange={(e) => setNewItem({ ...newItem, estimated_cost: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  placeholder="Enter description"
+                  value={newItem.description}
+                  onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
+                  rows={3}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="vendor_name">Vendor Name</Label>
+                <Input
+                  id="vendor_name"
+                  placeholder="Enter vendor name"
+                  value={newItem.vendor_name}
+                  onChange={(e) => setNewItem({ ...newItem, vendor_name: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="vendor_contact">Vendor contact</Label>
+                <Input
+                  id="vendor_contact"
+                  placeholder="Email"
+                  value={newItem.vendor_contact}
+                  onChange={(e) => setNewItem({ ...newItem, vendor_contact: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="payment_due_date">Payment Due Date</Label>
+                <Input
+                  id="payment_due_date"
+                  type="date"
+                  value={newItem.payment_due_date}
+                  onChange={(e) => setNewItem({ ...newItem, payment_due_date: e.target.value })}
+                />
               </div>
             </div>
             

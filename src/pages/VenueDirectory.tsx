@@ -261,10 +261,11 @@ const VenueDirectory = () => {
                     <CardContent className="space-y-3">
                       <div>
                         <p className="font-semibold">{profile.contact_name}</p>
-                        <p className="text-sm text-muted-foreground">{profile.email}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {profile.phone_number ? profile.phone_number : 'No phone provided'}
-                        </p>
+                        {profile.email ? (
+                          <p className="text-sm text-muted-foreground">{profile.email}</p>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">Email not provided</p>
+                        )}
                       </div>
                       
                       <div className="text-sm space-y-1">

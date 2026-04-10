@@ -1,11 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { AvatarWithBrandFallback } from "@/components/AvatarWithBrandFallback";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -78,6 +77,8 @@ const COLLABORATOR_TYPE_OPTIONS: { value: string; label: string }[] = [
   { value: 'Transportation', label: 'Transportation' },
   { value: 'Entertainment', label: 'Entertainment' },
   { value: 'Suppliers', label: 'External Vendor' },
+  { value: 'Vendors', label: 'Vendors' },
+  { value: 'Marketing', label: 'Marketing' },
 ];
 
 export default function Collaborate() {
@@ -107,13 +108,7 @@ export default function Collaborate() {
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [activeTeamId, setActiveTeamId] = useState<string | null>(null);
-  const [isCrOpen, setIsCrOpen] = useState(false);
-  const [crTitle, setCrTitle] = useState("");
-  const [crDesc, setCrDesc] = useState("");
-  const [crEventId, setCrEventId] = useState("");
-  const [isSubmittingCr, setIsSubmittingCr] = useState(false);
   const [isCreatingTeam, setIsCreatingTeam] = useState(false);
-  const [userEvents, setUserEvents] = useState<{ id: string; title: string }[]>([]);
 
   const inviteTeamId = activeTeamId ?? userTeam?.id ?? null;
   const isInviteTeamAdmin = useMemo(() => {
@@ -126,16 +121,6 @@ export default function Collaborate() {
       setInviteRole("");
     }
   }, [inviteRole, isInviteTeamAdmin]);
-
-  useEffect(() => {
-    if (!user) return;
-    supabase
-      .from("events")
-      .select("id, title")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .then(({ data }) => setUserEvents(data || []));
-  }, [user]);
 
   const openInviteDialog = (teamId?: string | null) => {
     setActiveTeamId(teamId ?? userTeam?.id ?? null);
@@ -511,7 +496,7 @@ export default function Collaborate() {
     if (!inviteRole || selectedCollaboratorTypes.length === 0) {
       toast({
         title: "Error",
-        description: "Please select a role and at least one collaborator type.",
+        description: "Please select a role and at least one team role type.",
         variant: "destructive"
       });
       return;
@@ -585,7 +570,7 @@ export default function Collaborate() {
         console.error('Error saving collaborator configuration:', error);
         toast({
           title: "Error",
-          description: "Failed to save collaborator configuration. Please try again.",
+          description: "Failed to save team role configuration. Please try again.",
           variant: "destructive"
         });
         return;
@@ -752,7 +737,7 @@ export default function Collaborate() {
     if (teamCollaboratorTypes.length === 0) {
       toast({
         title: "Error",
-        description: "Please select at least one collaborator type.",
+        description: "Please select at least one team role type.",
         variant: "destructive"
       });
       return;
@@ -809,7 +794,7 @@ export default function Collaborate() {
 
       toast({
         title: "Success",
-        description: `Team "${teamName}" created with ${teamCollaboratorTypes.join(', ')} collaborators!`,
+        description: `Team "${teamName}" created with role types: ${teamCollaboratorTypes.join(", ")}.`,
       });
 
       setTeamName("");
@@ -830,117 +815,25 @@ export default function Collaborate() {
     }
   };
 
-  const changeRequestReady =
-    Boolean(crEventId && crTitle.trim() && crDesc.trim());
-
-  const submitCollaborateChangeRequest = async () => {
-    if (isSubmittingCr) return;
-    if (!user || !crTitle.trim() || !crDesc.trim() || !crEventId) {
-      toast({
-        title: "Missing information",
-        description: "Select an event and enter a title and description.",
-        variant: "destructive",
-      });
-      return;
-    }
-    setIsSubmittingCr(true);
-    try {
-      const { error } = await supabase.from("tasks").insert({
-        title: `[Change Request] ${crTitle.trim()}`,
-        description: crDesc.trim(),
-        event_id: crEventId,
-        priority: "medium",
-        status: "not_started",
-        category: "Change Management",
-        created_by: user.id,
-      });
-      if (error) throw error;
-      toast({
-        title: "Posted to Project Management",
-        description: "Your change request appears under Tasks for that event.",
-      });
-      const eventIdForNav = crEventId;
-      setIsCrOpen(false);
-      setCrTitle("");
-      setCrDesc("");
-      setCrEventId("");
-      navigate(`/dashboard/project-management?eventId=${eventIdForNav}`);
-    } catch (e) {
-      toast({
-        title: "Error",
-        description: "Could not create change request.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmittingCr(false);
-    }
-  };
-
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-            Team Collaboration
+            Team Members
           </h1>
           <p className="text-muted-foreground">
-            Work together seamlessly on your events
+            Invite team members, assign roles, and coordinate on events
           </p>
         </div>
         <div className="flex flex-wrap gap-2 shrink-0">
-          <Button type="button" variant="outline" onClick={() => setIsCrOpen(true)}>
-            Create change request
+          <Button type="button" variant="outline" asChild>
+            <Link to="/dashboard/manage-event">Manage Event</Link>
+          </Button>
+          <Button type="button" variant="outline" asChild>
+            <Link to="/dashboard/project-management">Project Management</Link>
           </Button>
         </div>
-
-        <Dialog
-          open={isCrOpen}
-          onOpenChange={(open) => {
-            setIsCrOpen(open);
-            if (!open) {
-              setIsSubmittingCr(false);
-            }
-          }}
-        >
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Change request (Project Management)</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-3">
-              <div>
-                <label className="text-sm font-medium">Event</label>
-                <Select value={crEventId} onValueChange={setCrEventId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select event" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {userEvents.map((ev) => (
-                      <SelectItem key={ev.id} value={ev.id}>
-                        {ev.title}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label className="text-sm font-medium">Title</label>
-                <Input value={crTitle} onChange={(e) => setCrTitle(e.target.value)} placeholder="Short title" />
-              </div>
-              <div>
-                <label className="text-sm font-medium">Description</label>
-                <Textarea value={crDesc} onChange={(e) => setCrDesc(e.target.value)} rows={4} placeholder="What should change?" />
-              </div>
-              <Button
-                type="button"
-                className="w-full"
-                disabled={!changeRequestReady || isSubmittingCr}
-                onClick={submitCollaborateChangeRequest}
-              >
-                {isSubmittingCr ? "Submitting…" : "Submit to PM Tasks"}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
 
         {/* Create Team Dialog */}
         <Dialog 
@@ -968,7 +861,7 @@ export default function Collaborate() {
                 />
               </div>
               <div>
-                <label className="text-sm font-medium">Collaborator Types (select all that apply)</label>
+                <label className="text-sm font-medium">Team role types (select all that apply)</label>
                 <div className="mt-2 max-h-48 overflow-y-auto space-y-2 border rounded-md p-3 bg-background">
                   {COLLABORATOR_TYPE_OPTIONS.map(({ value, label }) => (
                     <label key={value} className="flex items-center gap-2 cursor-pointer hover:bg-accent/50 p-2 rounded">
@@ -1011,15 +904,13 @@ export default function Collaborate() {
               <div className="space-y-4">
                 <div className="flex items-center gap-4">
                   <div className="relative">
-                    <Avatar className="w-16 h-16">
-                      {selectedMember.avatar ? (
-                        <AvatarImage src={selectedMember.avatar} alt={selectedMember.name} />
-                      ) : (
-                        <AvatarFallback className="text-lg">
-                          {selectedMember.name.split(' ').map(n => n[0]).join('')}
-                        </AvatarFallback>
-                      )}
-                    </Avatar>
+                    <AvatarWithBrandFallback
+                      className="w-16 h-16"
+                      src={selectedMember.avatar}
+                      alt={selectedMember.name}
+                      displayName={selectedMember.name}
+                      fallbackClassName="text-xl"
+                    />
                     <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${getStatusColor(selectedMember.status)}`} />
                   </div>
                   <div className="flex-1">
@@ -1107,7 +998,7 @@ export default function Collaborate() {
               </div>
               
               <div>
-                <label className="text-sm font-medium">Collaborator Types (select all that apply)</label>
+                <label className="text-sm font-medium">Team role types (select all that apply)</label>
                 <div className="mt-2 max-h-48 overflow-y-auto space-y-2 border rounded-md p-3 bg-background">
                   {COLLABORATOR_TYPE_OPTIONS.map(({ value, label }) => (
                     <label key={value} className="flex items-center gap-2 cursor-pointer hover:bg-accent/50 p-2 rounded">
@@ -1257,7 +1148,9 @@ export default function Collaborate() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {activities.map((activity) => {
+                {activities
+                  .filter((activity) => activity.type !== "comment")
+                  .map((activity) => {
                   const IconComponent = getActivityIcon(activity.type);
                   return (
                     <div key={activity.id} className="flex items-center gap-3">

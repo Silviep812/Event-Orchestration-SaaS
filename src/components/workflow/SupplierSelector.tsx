@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Phone, Mail, Package, Building } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { MapPin, Mail, Package, Building } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -22,8 +23,11 @@ interface Supplier {
 }
 
 interface SupplierSelectorProps {
-  onSelectSupplier: (supplier: Supplier) => void;
-  selectedSupplier: Supplier | null;
+  /** Selected procurement vendor ids (`public.suppliers` — not rental/service equipment). */
+  selectedSupplierIds: string[];
+  onSelectedIdsChange: (ids: string[]) => void;
+  /** Called when the user finishes the step (multi-select). */
+  onContinue: () => void;
 }
 
 const getCategoryIcon = (category: string) => {
@@ -47,7 +51,11 @@ const getCategoryColor = (category: string) => {
   }
 };
 
-export function SupplierSelector({ onSelectSupplier, selectedSupplier }: SupplierSelectorProps) {
+export function SupplierSelector({
+  selectedSupplierIds,
+  onSelectedIdsChange,
+  onContinue,
+}: SupplierSelectorProps) {
   const [locationFilter, setLocationFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
@@ -71,9 +79,9 @@ export function SupplierSelector({ onSelectSupplier, selectedSupplier }: Supplie
         `);
 
       if (error) {
-        console.error('Error fetching external vendors:', error);
+        console.error("Error fetching suppliers:", error);
         toast({
-          title: "Error loading external vendors",
+          title: "Error loading vendors",
           description: error.message,
           variant: "destructive",
         });
@@ -86,6 +94,14 @@ export function SupplierSelector({ onSelectSupplier, selectedSupplier }: Supplie
     } finally {
       setLoading(false);
     }
+  };
+
+  const toggleSupplier = (id: string) => {
+    onSelectedIdsChange(
+      selectedSupplierIds.includes(id)
+        ? selectedSupplierIds.filter((x) => x !== id)
+        : [...selectedSupplierIds, id],
+    );
   };
 
   const filteredSuppliers = suppliers.filter(supplier => {
@@ -110,6 +126,10 @@ export function SupplierSelector({ onSelectSupplier, selectedSupplier }: Supplie
             <Package className="h-5 w-5" />
             Select External Vendors
           </CardTitle>
+          <p className="text-sm text-muted-foreground font-normal mt-1">
+            Lists <strong>procurement vendors</strong> from <code className="text-xs">public.suppliers</code> (external
+            vendor / procurement). Service equipment rentals are chosen in the previous Services step — not here.
+          </p>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Filters */}
@@ -124,7 +144,7 @@ export function SupplierSelector({ onSelectSupplier, selectedSupplier }: Supplie
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="supplier-type">Filter by external vendor supply type</Label>
+              <Label htmlFor="supplier-type">Filter by supply type</Label>
               <Input
                 id="supplier-type"
                 placeholder="Enter supply type"
@@ -169,7 +189,7 @@ export function SupplierSelector({ onSelectSupplier, selectedSupplier }: Supplie
 
           {/* External vendor categories */}
           <div className="space-y-2">
-            <Label>External vendor categories:</Label>
+            <Label>Vendor categories</Label>
             <div className="flex flex-wrap gap-2">
               {categories.map((category) => (
                 <Badge 
@@ -187,27 +207,37 @@ export function SupplierSelector({ onSelectSupplier, selectedSupplier }: Supplie
             </div>
           </div>
 
-          {/* External vendor list */}
+          {/* Vendor list (procurement / suppliers table) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto">
             {loading ? (
               <div className="col-span-2 text-center py-8 text-muted-foreground">
                 <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Loading external vendors...</p>
+                <p>Loading vendors…</p>
               </div>
             ) : filteredSuppliers.map((supplier) => {
               const location = [supplier.city, supplier.state, supplier.zip].filter(Boolean).join(', ');
+              const selected = selectedSupplierIds.includes(supplier.id);
               return (
                 <Card 
                   key={supplier.id}
                   className={`cursor-pointer transition-all hover:shadow-md ${
-                    selectedSupplier?.id === supplier.id ? 'ring-2 ring-primary' : ''
+                    selected ? 'ring-2 ring-primary' : ''
                   }`}
-                  onClick={() => onSelectSupplier(supplier)}
+                  onClick={() => toggleSupplier(supplier.id)}
                 >
                   <CardContent className="p-4">
                     <div className="space-y-2">
-                      <div className="flex items-start justify-between">
-                        <h4 className="font-semibold text-sm">{supplier.business_name}</h4>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-start gap-2 min-w-0">
+                          <Checkbox
+                            checked={selected}
+                            onCheckedChange={() => toggleSupplier(supplier.id)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="mt-0.5"
+                            aria-label={`Select ${supplier.business_name}`}
+                          />
+                          <h4 className="font-semibold text-sm">{supplier.business_name}</h4>
+                        </div>
                         {supplier.supplier_categories?.name && (
                           <Badge 
                             variant="outline" 
@@ -234,16 +264,16 @@ export function SupplierSelector({ onSelectSupplier, selectedSupplier }: Supplie
                             <span className="text-xs">{location}</span>
                           </div>
                         )}
-                        {supplier.phone_number && (
+                        {supplier.email?.trim() && (
                           <div className="flex items-center gap-1">
-                            <Phone className="h-3 w-3" />
-                            <span className="text-xs">{supplier.phone_number}</span>
-                          </div>
-                        )}
-                        {supplier.email && (
-                          <div className="flex items-center gap-1">
-                            <Mail className="h-3 w-3" />
-                            <span className="text-xs">{supplier.email}</span>
+                            <Mail className="h-3 w-3 shrink-0" />
+                            <a
+                              href={`mailto:${String(supplier.email).trim()}`}
+                              className="text-xs text-primary hover:underline break-all"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {supplier.email}
+                            </a>
                           </div>
                         )}
                         {supplier.contact_name && (
@@ -260,25 +290,21 @@ export function SupplierSelector({ onSelectSupplier, selectedSupplier }: Supplie
           {!loading && filteredSuppliers.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
               <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No external vendors found matching your criteria.</p>
+              <p>No vendors match your filters.</p>
               <p className="text-sm">Try adjusting your filters.</p>
             </div>
           )}
 
-          {selectedSupplier && (
-            <div className="mt-6 p-4 bg-primary/10 rounded-lg">
-              <h4 className="font-semibold text-primary mb-2">Selected external vendor</h4>
-              <div className="text-sm">
-                <p><strong>{selectedSupplier.business_name}</strong></p>
-                {selectedSupplier.supplier_types?.name && (
-                  <p>{selectedSupplier.supplier_types.name} {selectedSupplier.supplier_categories?.name && `(${selectedSupplier.supplier_categories.name})`}</p>
-                )}
-                <p className="text-muted-foreground">
-                  {[selectedSupplier.city, selectedSupplier.state, selectedSupplier.zip].filter(Boolean).join(', ')}
-                </p>
-              </div>
-            </div>
-          )}
+          <div className="mt-6 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between p-4 bg-muted/40 rounded-lg border">
+            <p className="text-sm text-muted-foreground">
+              <strong>{selectedSupplierIds.length}</strong> vendor{selectedSupplierIds.length === 1 ? "" : "s"} selected
+            </p>
+            <Button type="button" onClick={onContinue}>
+              {selectedSupplierIds.length === 0
+                ? "Continue without vendors"
+                : `Continue with ${selectedSupplierIds.length} vendor${selectedSupplierIds.length === 1 ? "" : "s"}`}
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>

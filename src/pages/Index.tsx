@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Calendar, Users, BarChart3, Bell, FolderOpen } from "lucide-react";
 import { Link } from "react-router-dom";
 import { MarketingTopBar } from "@/components/MarketingTopBar";
+import { IEP_LOGO_HERO } from "@/lib/brandAssets";
 
 const scrollToId = (id: string) => {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
@@ -67,19 +68,30 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <MarketingTopBar page="home" />
 
-      {/* Hero Section */}
+      {/* Hero: transparent SVG logo with clean spacing and no background panel. */}
       <section className="px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-20">
         <div className="max-w-7xl mx-auto text-center">
-          <h1 className="text-3xl sm:text-4xl lg:text-6xl font-bold mb-6">
+          <div className="flex justify-center mb-8">
+            <img
+              src={IEP_LOGO_HERO}
+              alt="Ida Event Partners — We Got You"
+              className="block w-full max-w-[min(100vw,35rem)] h-auto mx-auto object-contain object-center"
+              width={640}
+              height={192}
+              loading="eager"
+              decoding="async"
+            />
+          </div>
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
             Welcome to Ida Event Partners
           </h1>
-          <p className="text-lg sm:text-xl text-muted-foreground mb-8 max-w-3xl mx-auto">
-            Streamline your event planning with our comprehensive SaaS platform. 
-            Create, manage, and track events while collaborating with your team.
+          <p className="text-lg sm:text-xl text-muted-foreground mb-10 max-w-3xl mx-auto leading-relaxed">
+            Streamline your event planning with our comprehensive SaaS platform.
+            Create, manage, and track events while collaborating with your team — clean, compelling, easy flow.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <div className="flex flex-col sm:flex-row gap-3 justify-center flex-wrap">
             <Link to="/auth">
-              <Button size="lg" className="w-full text-lg px-8 py-3">
+              <Button size="lg" className="w-full sm:w-auto text-lg px-8 py-3">
                 Start 14-day free trial
               </Button>
             </Link>
@@ -87,30 +99,32 @@ const Index = () => {
               type="button"
               variant="outline"
               size="lg"
-              className="text-lg px-8 py-3"
-              onClick={() => scrollToId("payment-plan")}
+              className="text-lg px-8 py-3 w-full sm:w-auto"
+              onClick={() => scrollToId("demo")}
             >
-              View payment plan
+              View demo
             </Button>
           </div>
         </div>
       </section>
 
-      <section id="payment-plan" className="px-4 sm:px-6 lg:px-8 py-12 sm:py-14 border-y bg-muted/40">
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-2xl sm:text-3xl font-bold mb-3">Payment plan</h2>
-          <p className="text-muted-foreground mb-6">
-            Try every core workflow free for <strong className="text-foreground">14 days</strong>. Upgrade when you are
-            ready—no long-term commitment required for the trial.
+      {/* Anchor only: payment copy lives in MarketingTopBar (PDF: not in page body). */}
+      <div id="payment-plan" className="sr-only" aria-hidden="true" />
+
+      <section id="demo" className="px-4 sm:px-6 lg:px-8 py-12 sm:py-14 border-y bg-muted/30">
+        <div className="max-w-3xl mx-auto text-center space-y-4">
+          <h2 className="text-2xl sm:text-3xl font-bold">See it in action</h2>
+          <p className="text-muted-foreground">
+            Start your trial to explore directories, project management, workflows, and team tools — no payment required during the trial period.
           </p>
-          <ul className="text-left sm:text-center text-sm text-foreground/90 space-y-2 mb-8 max-w-md mx-auto">
-            <li>Full access to event creation, directories, and collaboration during the trial</li>
-            <li>Email support during business hours</li>
-            <li>Cancel or upgrade before the trial ends</li>
-          </ul>
-          <Link to="/auth">
-            <Button size="lg">Begin free trial</Button>
-          </Link>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+            <Link to="/auth">
+              <Button size="lg">Start demo / trial</Button>
+            </Link>
+            <Button type="button" variant="outline" size="lg" onClick={() => scrollToId("features")}>
+              Browse features
+            </Button>
+          </div>
         </div>
       </section>
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,14 +13,35 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { Bell, Clock, Plus, Save, AlertCircle, History, Eye, Trash2, Calendar as CalendarIcon, Package, BarChart3, ListChecks } from "lucide-react";
+import {
+  Bell,
+  Clock,
+  Plus,
+  Save,
+  AlertCircle,
+  History,
+  Eye,
+  Trash2,
+  Calendar as CalendarIcon,
+  BarChart3,
+  ClipboardList,
+  Lock,
+  Loader2,
+} from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { format } from "date-fns";
 import TimelineView from "@/components/timeline/TimelineView";
-import ResourceManager from "@/components/ResourceManager";
+import { getLifecycleTableBadge, isEventPastBySchedule } from "@/lib/eventStatus";
 import Analytics from "@/components/Analytics";
 import { TaskManager } from "@/components/TaskManager";
-import { EventChecklists } from "@/components/EventChecklists";
-import { TeamMemberTaskAssignments } from "@/components/TeamMemberTaskAssignments";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  isHealthWellnessThemeName,
+  isRetreatsThemeName,
+  loadHealthWellnessEventTypeGroups,
+  loadRetreatsEventTypeGroups,
+  type HealthWellnessKey,
+} from "@/lib/themeEventTypeHierarchy";
 
 interface ManageEventData {
   id?: string;
@@ -41,8 +62,15 @@ interface ManageEventData {
   updated_at?: string;
   venue?: string;
   entertainment_id?: string | null;
+  entertainment_ids?: string[] | null;
+  /** External Vendor / procurement (`suppliers` table), not serv_vendor_suppliers. */
+  external_supplier_ids?: string[] | null;
   serv_vendor_rental_id?: string | null;
+  service_vendor_id?: string | null;
+  service_vendor_ids?: string[] | null;
   archived?: boolean;
+  /** When true, venue booking is done and schedule fields are locked until cleared. */
+  venue_booking_completed?: boolean;
 }
 
 interface EventTheme {
@@ -114,18 +142,6 @@ function supabaseErrorMessage(err: unknown, fallback: string): string {
   return fallback;
 }
 
-/** Event is considered "past" when its end date (or start date if no end) is before today (local). */
-function isPastEvent(event: { start_date?: string | null; end_date?: string | null }): boolean {
-  const raw = event.end_date || event.start_date;
-  if (!raw) return false;
-  const d = new Date(String(raw).split("T")[0] + "T12:00:00");
-  if (Number.isNaN(d.getTime())) return false;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  d.setHours(0, 0, 0, 0);
-  return d < today;
-}
-
 const ManageEvent = () => {
   const [events, setEvents] = useState<ManageEventData[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<ManageEventData | null>(null);
@@ -135,6 +151,7 @@ const ManageEvent = () => {
   const [autoSave, setAutoSave] = useState(true);
   const [pendingChanges, setPendingChanges] = useState<{[key: string]: {oldValue: any, newValue: any}}>({});
   const [newRequestDialog, setNewRequestDialog] = useState(false);
+  const [submittingNewRequest, setSubmittingNewRequest] = useState(false);
   const [newRequest, setNewRequest] = useState<NewRequest>({
     title: '',
     description: '',
@@ -143,17 +160,48 @@ const ManageEvent = () => {
   });
   const [eventThemes, setEventThemes] = useState<EventTheme[]>([]);
   const [eventTypes, setEventTypes] = useState<EventType[]>([]);
+  /** Same Health & Wellness / Retreats hierarchy as Create Event + Browse Themes. */
+  const [hwHierarchy, setHwHierarchy] = useState<Awaited<
+    ReturnType<typeof loadHealthWellnessEventTypeGroups>
+  > | null>(null);
+  const [retreatHierarchy, setRetreatHierarchy] = useState<Awaited<
+    ReturnType<typeof loadRetreatsEventTypeGroups>
+  > | null>(null);
+  const [hwCategoryKey, setHwCategoryKey] = useState<HealthWellnessKey | "">("");
+  const [retreatBranchLabel, setRetreatBranchLabel] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [showPastEvents, setShowPastEvents] = useState(false);
   /** When true, include archived events in the sidebar list (default: only active events). */
   const [showArchivedEvents, setShowArchivedEvents] = useState(false);
-  const [entertainmentOptions, setEntertainmentOptions] = useState<{ id: string; business_name: string }[]>([]);
-  const [rentalOptions, setRentalOptions] = useState<{ id: string; business_name: string }[]>([]);
+  const [entertainmentOptions, setEntertainmentOptions] = useState<
+    { id: string; business_name: string; ent_type_id: number | null }[]
+  >([]);
+  const [entertainmentTypes, setEntertainmentTypes] = useState<{ id: number; name: string }[]>([]);
+  const [supplierOptions, setSupplierOptions] = useState<
+    { id: string; business_name: string; category_id: number | null }[]
+  >([]);
+  const [supplierCategories, setSupplierCategories] = useState<{ id: number; name: string }[]>([]);
+  const [selectedEntTypeFilter, setSelectedEntTypeFilter] = useState<number | null>(null);
+  const [selectedSupplierCategoryFilter, setSelectedSupplierCategoryFilter] = useState<number | null>(null);
+  const [selectedEntIds, setSelectedEntIds] = useState<string[]>([]);
+  const [selectedSvcIds, setSelectedSvcIds] = useState<string[]>([]);
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const eventIdFromUrl = searchParams.get("eventId");
+
+  const selectedThemeName = useMemo(
+    () => eventThemes.find((t) => t.id === selectedEvent?.theme_id)?.name ?? "",
+    [eventThemes, selectedEvent?.theme_id],
+  );
+
+  const themeHierarchyMode = useMemo((): "default" | "hw" | "retreats" => {
+    if (!selectedThemeName) return "default";
+    if (isHealthWellnessThemeName(selectedThemeName)) return "hw";
+    if (isRetreatsThemeName(selectedThemeName)) return "retreats";
+    return "default";
+  }, [selectedThemeName]);
 
   // Auto-save debounce
   const [saveTimeout, setSaveTimeout] = useState<NodeJS.Timeout | null>(null);
@@ -296,7 +344,10 @@ const ManageEvent = () => {
         .filter((event) => {
           const ev = event as ManageEventData;
           if (ev.archived && !showArchivedEvents) return false;
-          if (!showPastEvents && isPastEvent(ev)) return false;
+          if (!showPastEvents && isEventPastBySchedule(ev)) return false;
+          const sd = String((ev as { start_date?: string }).start_date ?? "");
+          const ed = String((ev as { end_date?: string }).end_date ?? "");
+          if (sd.startsWith("2025") || ed.startsWith("2025")) return false;
           return true;
         })
         .map((event) => ({
@@ -332,36 +383,51 @@ const ManageEvent = () => {
 
   useEffect(() => {
     (async () => {
-      const { data: ent } = await supabase
-        .from("entertainments")
-        .select("id, business_name")
-        .order("business_name");
-      const { data: ren } = await supabase
-        .from("serv_vendor_rentals")
-        .select("id, business_name")
-        .order("business_name");
+      const [{ data: ent }, { data: entT }, { data: sup }, { data: supCat }] = await Promise.all([
+        supabase.from("entertainments").select("id, business_name, ent_type_id").order("business_name"),
+        supabase.from("entertainment_types").select("id, name").order("name"),
+        supabase.from("suppliers").select("id, business_name, category_id").order("business_name"),
+        supabase.from("supplier_categories").select("id, name").order("name"),
+      ]);
       setEntertainmentOptions(ent || []);
-      setRentalOptions(ren || []);
+      setEntertainmentTypes(entT || []);
+      setSupplierOptions(sup || []);
+      setSupplierCategories(supCat || []);
     })();
   }, []);
 
+  useEffect(() => {
+    if (!selectedEvent?.id) return;
+    const ent =
+      selectedEvent.entertainment_ids?.length
+        ? [...selectedEvent.entertainment_ids]
+        : selectedEvent.entertainment_id
+          ? [selectedEvent.entertainment_id]
+          : [];
+    const ext =
+      selectedEvent.external_supplier_ids?.length
+        ? [...selectedEvent.external_supplier_ids]
+        : [];
+    setSelectedEntIds(ent);
+    setSelectedSvcIds(ext);
+  }, [selectedEvent?.id]);
+
   const fetchEventTypes = async (themeId?: number) => {
     try {
-      let query = supabase
-        .from('event_types')
-        .select('id, name, theme_id, parent_id')
-        .order('name');
-      
-      if (themeId) {
-        query = query.eq('theme_id', themeId);
+      if (!themeId) {
+        setEventTypes([]);
+        return;
       }
-
-      const { data, error } = await query;
-      
+      const { data, error } = await supabase
+        .from("event_types")
+        .select("id, name, theme_id, parent_id")
+        .eq("theme_id", themeId)
+        .order("name");
       if (error) throw error;
       setEventTypes(data || []);
     } catch (error) {
-      console.error('Error fetching event types:', error);
+      console.error("Error fetching event types:", error);
+      setEventTypes([]);
     }
   };
 
@@ -421,7 +487,11 @@ const ManageEvent = () => {
     }
   };
 
-  const saveEvent = async (eventData: ManageEventData, isManual = false) => {
+  const saveEvent = async (
+    eventData: ManageEventData,
+    isManual = false,
+    profileOverride?: { entIds: string[]; svcIds: string[] }
+  ) => {
     if (!eventData.id) return;
 
     // Date validation
@@ -456,8 +526,10 @@ const ManageEvent = () => {
     try {
       setSaving(true);
 
-      const entId = eventData.entertainment_id?.trim() || null;
-      const rentalId = eventData.serv_vendor_rental_id?.trim() || null;
+      const entIdsUse = profileOverride?.entIds ?? selectedEntIds;
+      const svcIdsUse = profileOverride?.svcIds ?? selectedSvcIds;
+      const entId = entIdsUse[0] ?? null;
+      const svcId = svcIdsUse[0] ?? null;
 
       const { error } = await supabase
         .from("events")
@@ -474,52 +546,41 @@ const ManageEvent = () => {
           type_id: eventData.type_id,
           status: eventData.status,
           budget: eventData.budget,
+          expected_attendees: eventData.expected_attendees,
           updated_at: new Date().toISOString(),
+          entertainment_id: entId,
+          entertainment_ids: entIdsUse.length ? entIdsUse : null,
+          external_supplier_ids: svcIdsUse.length ? svcIdsUse : null,
+          service_vendor_id: null,
+          service_vendor_ids: null,
+          venue_booking_completed: eventData.venue_booking_completed ?? false,
         })
         .eq("id", eventData.id);
 
       if (error) throw error;
 
-      const { error: linkError } = await supabase
-        .from("events")
-        .update({
-          entertainment_id: entId,
-          serv_vendor_rental_id: rentalId,
-        })
-        .eq("id", eventData.id);
-
-      if (linkError) {
-        console.warn("Optional profile links not saved (run migration deliverable1_events_tasks):", linkError);
-        if (isManual) {
-          toast({
-            title: "Event saved",
-            description:
-              "Core details saved; entertainment/rental links need migration 20260327120000_deliverable1_events_tasks on Supabase.",
-            variant: "default",
-          });
-        }
-      }
-
       // Sync details to resources after successful save
       await syncDetailsToResources(eventData);
 
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("iep-refetch-tasks"));
+      }
+
       if (isManual) {
-        if (!linkError) {
-          toast({
-            title: "Success",
-            description: "Event saved successfully",
+        toast({
+          title: "Success",
+          description: "Event saved successfully",
+        });
+        if (user?.email && eventData.id) {
+          void supabase.functions.invoke("send-event-notification", {
+            body: {
+              kind: "event_updated",
+              eventTitle: eventData.title,
+              eventId: eventData.id,
+              userEmail: user.email,
+              userId: user.id,
+            },
           });
-          if (user?.email && eventData.id) {
-            void supabase.functions.invoke("send-event-notification", {
-              body: {
-                kind: "event_updated",
-                eventTitle: eventData.title,
-                eventId: eventData.id,
-                userEmail: user.email,
-                userId: user.id,
-              },
-            });
-          }
         }
 
         const changeEntries = Object.entries(pendingChanges);
@@ -565,21 +626,67 @@ const ManageEvent = () => {
     }
   };
 
+  const toggleEntertainmentId = (profileId: string, checked: boolean) => {
+    if (!selectedEvent?.id) return;
+    const newEnt = checked
+      ? [...selectedEntIds, profileId]
+      : selectedEntIds.filter((x) => x !== profileId);
+    const merged: ManageEventData = {
+      ...selectedEvent,
+      entertainment_id: newEnt[0] ?? null,
+      entertainment_ids: newEnt.length ? newEnt : null,
+    };
+    setSelectedEntIds(newEnt);
+    setSelectedEvent(merged);
+    setEvents((prev) => prev.map((e) => (e.id === merged.id ? merged : e)));
+    if (autoSave) {
+      if (saveTimeout) clearTimeout(saveTimeout);
+      const t = setTimeout(
+        () => saveEvent(merged, false, { entIds: newEnt, svcIds: selectedSvcIds }),
+        1000
+      );
+      setSaveTimeout(t);
+    }
+  };
+
+  const toggleServiceVendorId = (profileId: string, checked: boolean) => {
+    if (!selectedEvent?.id) return;
+    const newSvc = checked
+      ? [...selectedSvcIds, profileId]
+      : selectedSvcIds.filter((x) => x !== profileId);
+    const merged: ManageEventData = {
+      ...selectedEvent,
+      external_supplier_ids: newSvc.length ? newSvc : null,
+      service_vendor_id: null,
+      service_vendor_ids: null,
+    };
+    setSelectedSvcIds(newSvc);
+    setSelectedEvent(merged);
+    setEvents((prev) => prev.map((e) => (e.id === merged.id ? merged : e)));
+    if (autoSave) {
+      if (saveTimeout) clearTimeout(saveTimeout);
+      const t = setTimeout(
+        () => saveEvent(merged, false, { entIds: selectedEntIds, svcIds: newSvc }),
+        1000
+      );
+      setSaveTimeout(t);
+    }
+  };
+
   const handleFieldChange = async (field: string, value: any) => {
     if (!selectedEvent) return;
 
-    // Trial version date restriction
-    if ((field === 'start_date' || field === 'end_date') && value) {
-      const trialEnd = new Date('2026-04-30T23:59:59');
-      const newDate = new Date(value);
-      if (newDate > trialEnd) {
-        toast({
-          title: "Trial Limitation",
-          description: "The trial version doesn't allow events with dates after April 30th, 2026.",
-          variant: "destructive",
-        });
-        return;
-      }
+    if (
+      selectedEvent.venue_booking_completed &&
+      (field === "start_date" || field === "end_date" || field === "start_time" || field === "end_time")
+    ) {
+      toast({
+        title: "Schedule locked",
+        description:
+          "Start and end dates and times are locked after the venue booking is marked complete. Create a new event if you need a different schedule.",
+        variant: "destructive",
+      });
+      return;
     }
 
     // Capture old value for logging
@@ -682,6 +789,114 @@ const ManageEvent = () => {
     }
   };
 
+  const handleThemeSelect = async (themeId: number) => {
+    if (!selectedEvent) return;
+    const oldTheme = selectedEvent.theme_id;
+    const oldType = selectedEvent.type_id;
+    if (oldTheme === themeId) return;
+    const updatedEvent = { ...selectedEvent, theme_id: themeId, type_id: undefined };
+    setSelectedEvent(updatedEvent);
+    setEvents((prev) => prev.map((e) => (e.id === updatedEvent.id ? updatedEvent : e)));
+    setSelectedCategoryId(null);
+    setHwCategoryKey("");
+    setRetreatBranchLabel("");
+
+    if (selectedEvent.id) {
+      if (autoSave) {
+        try {
+          await supabase.rpc("log_change", {
+            p_entity_type: "event",
+            p_entity_id: selectedEvent.id,
+            p_action: "updated",
+            p_field_name: "theme_id",
+            p_old_value: oldTheme?.toString() ?? null,
+            p_new_value: themeId.toString(),
+            p_description: `Field "theme_id" updated`,
+          });
+          if (oldType != null) {
+            await supabase.rpc("log_change", {
+              p_entity_type: "event",
+              p_entity_id: selectedEvent.id,
+              p_action: "updated",
+              p_field_name: "type_id",
+              p_old_value: oldType.toString(),
+              p_new_value: null,
+              p_description: `Field "type_id" cleared (theme change)`,
+            });
+          }
+        } catch (error) {
+          console.error("Error logging field change:", error);
+        }
+      } else {
+        setPendingChanges((prev) => ({
+          ...prev,
+          theme_id: { oldValue: oldTheme, newValue: themeId },
+          ...(oldType != null ? { type_id: { oldValue: oldType, newValue: undefined } } : {}),
+        }));
+      }
+    }
+
+    if (autoSave) {
+      if (saveTimeout) clearTimeout(saveTimeout);
+      const t = setTimeout(() => saveEvent(updatedEvent, false), 1000);
+      setSaveTimeout(t);
+    }
+  };
+
+  const clearEventTypeId = async (reason: string) => {
+    if (!selectedEvent) return;
+    const oldType = selectedEvent.type_id;
+    if (oldType == null) return;
+    const updatedEvent = { ...selectedEvent, type_id: undefined };
+    setSelectedEvent(updatedEvent);
+    setEvents((prev) => prev.map((e) => (e.id === updatedEvent.id ? updatedEvent : e)));
+
+    if (selectedEvent.id) {
+      if (autoSave) {
+        try {
+          await supabase.rpc("log_change", {
+            p_entity_type: "event",
+            p_entity_id: selectedEvent.id,
+            p_action: "updated",
+            p_field_name: "type_id",
+            p_old_value: oldType.toString(),
+            p_new_value: null,
+            p_description: reason,
+          });
+        } catch (error) {
+          console.error("Error logging field change:", error);
+        }
+      } else {
+        setPendingChanges((prev) => ({
+          ...prev,
+          type_id: { oldValue: oldType, newValue: undefined },
+        }));
+      }
+    }
+
+    if (autoSave) {
+      if (saveTimeout) clearTimeout(saveTimeout);
+      const t = setTimeout(() => saveEvent(updatedEvent, false), 1000);
+      setSaveTimeout(t);
+    }
+  };
+
+  const handleHwCategorySelect = async (k: HealthWellnessKey) => {
+    if (!selectedEvent || !hwHierarchy) return;
+    const pid = hwHierarchy.parentIds[k];
+    setHwCategoryKey(k);
+    setSelectedCategoryId(pid ?? null);
+    await clearEventTypeId(`Field "type_id" cleared (${k} category change)`);
+  };
+
+  const handleRetreatBranchSelect = async (branch: string) => {
+    if (!selectedEvent || !retreatHierarchy) return;
+    const rid = retreatHierarchy.rootIdByBranch[branch];
+    setRetreatBranchLabel(branch);
+    setSelectedCategoryId(rid ?? null);
+    await clearEventTypeId(`Field "type_id" cleared (retreat branch change)`);
+  };
+
   /** Restore event + its tasks to active (not archived). SOW: `events.archived` column; restore is product complement to archive. */
   const restoreArchivedEvent = async () => {
     if (!selectedEvent?.id || !selectedEvent.archived) return;
@@ -710,6 +925,10 @@ const ManageEvent = () => {
   };
 
   const submitNewRequest = async () => {
+    const titleOk = newRequest.title.trim().length > 0;
+    const descOk = newRequest.description.trim().length > 0;
+    if (!titleOk || !descOk || submittingNewRequest) return;
+
     if (!user || !selectedEvent?.id) {
       toast({
         title: "Select an event",
@@ -726,21 +945,39 @@ const ManageEvent = () => {
       });
       return;
     }
+    setSubmittingNewRequest(true);
     try {
-      const { error: taskErr } = await supabase.from("tasks").insert({
-        title: `[${newRequest.type.replace(/_/g, " ")}] ${newRequest.title}`,
-        description: newRequest.description,
-        event_id: selectedEvent.id,
-        priority: newRequest.priority,
-        status: "not_started",
-        category: "Change Management",
-        created_by: user.id,
-      });
+      const { data: taskRow, error: taskErr } = await supabase
+        .from("tasks")
+        .insert({
+          title: `[${newRequest.type.replace(/_/g, " ")}] ${newRequest.title.trim()}`,
+          description: newRequest.description.trim(),
+          event_id: selectedEvent.id,
+          priority: newRequest.priority,
+          status: "not_started",
+          category: "Change Management",
+          created_by: user.id,
+        })
+        .select("id")
+        .single();
       if (taskErr) throw taskErr;
 
+      if (taskRow?.id) {
+        const { error: crErr } = await supabase.from("cm_change_requests").insert({
+          event_id: selectedEvent.id,
+          description: newRequest.description.trim(),
+          field_changed: "manage_event_new_request",
+          priority_tag: newRequest.priority,
+          requested_by: user.id,
+          status: "open",
+          task_id: taskRow.id,
+        });
+        if (crErr) console.warn("cm_change_requests:", crErr);
+      }
+
       await supabase.rpc("notify_coordinators", {
-        p_title: `New ${newRequest.type.replace("_", " ")}: ${newRequest.title}`,
-        p_message: newRequest.description,
+        p_title: `New ${newRequest.type.replace("_", " ")}: ${newRequest.title.trim()}`,
+        p_message: newRequest.description.trim(),
         p_type: "new_request",
         p_entity_type: "event",
         p_entity_id: selectedEvent.id,
@@ -765,6 +1002,8 @@ const ManageEvent = () => {
         description: "Failed to submit request",
         variant: "destructive",
       });
+    } finally {
+      setSubmittingNewRequest(false);
     }
   };
 
@@ -848,13 +1087,6 @@ const ManageEvent = () => {
     }
   };
 
-  // Helper to map status value to display string
-  const getStatusDisplay = (status: string | undefined) => {
-    if (!status) return '';
-    if (status === 'in_progress') return 'in progress';
-    return status.replace('_', ' ');
-  };
-
   // Real-time subscriptions
   useEffect(() => {
     const eventsChannel = supabase
@@ -907,18 +1139,50 @@ const ManageEvent = () => {
   }, [selectedEvent?.id]);
 
   useEffect(() => {
-    if (user) {
-      fetchEvents();
-      fetchThemes();
-      fetchEventTypes();
+    if (!user) return;
+    void fetchThemes();
+  }, [user]);
+
+  useEffect(() => {
+    if (!selectedEvent?.theme_id) {
+      setEventTypes([]);
+      setHwHierarchy(null);
+      setRetreatHierarchy(null);
+      setHwCategoryKey("");
+      setRetreatBranchLabel("");
+      return;
     }
-  }, [selectedEvent?.theme_id]);
+    if (eventThemes.length === 0) return;
+
+    const tid = selectedEvent.theme_id;
+    const tname = eventThemes.find((t) => t.id === tid)?.name ?? "";
+
+    if (isHealthWellnessThemeName(tname)) {
+      setEventTypes([]);
+      void loadHealthWellnessEventTypeGroups().then(setHwHierarchy);
+      setRetreatHierarchy(null);
+      setRetreatBranchLabel("");
+      return;
+    }
+    if (isRetreatsThemeName(tname)) {
+      setEventTypes([]);
+      void loadRetreatsEventTypeGroups().then(setRetreatHierarchy);
+      setHwHierarchy(null);
+      setHwCategoryKey("");
+      return;
+    }
+    setHwHierarchy(null);
+    setRetreatHierarchy(null);
+    setHwCategoryKey("");
+    setRetreatBranchLabel("");
+    void fetchEventTypes(tid);
+  }, [selectedEvent?.theme_id, eventThemes]);
 
   useEffect(() => {
     if (user) fetchEvents();
   }, [user, showPastEvents, showArchivedEvents]);
 
-  /** Deep link: /dashboard/manage-event?eventId=… (e.g. from Event Summary "Edit in Manage Event"). */
+  /** Deep link: /dashboard/manage-event?eventId=… */
   useEffect(() => {
     if (!eventIdFromUrl || !user?.id) return;
     let cancelled = false;
@@ -933,7 +1197,7 @@ const ManageEvent = () => {
       if (error || !data) return;
       const ev = data as ManageEventData;
       if (ev.archived) setShowArchivedEvents(true);
-      if (isPastEvent(ev)) setShowPastEvents(true);
+      if (isEventPastBySchedule(ev)) setShowPastEvents(true);
       setSelectedEvent({
         ...ev,
         theme_id: ev.theme_id ? Number(ev.theme_id) : undefined,
@@ -959,19 +1223,51 @@ const ManageEvent = () => {
     }
   }, [selectedEvent?.budget]);
 
-  // Infer Event Category from type_id whenever event or types change
+  // Infer Event Category from type_id (default themes only — HW/Retreats use dedicated effects below)
   useEffect(() => {
+    if (themeHierarchyMode !== "default") return;
     if (!selectedEvent?.type_id || eventTypes.length === 0) return;
-    const currentType = eventTypes.find(t => t.id === selectedEvent.type_id);
+    const currentType = eventTypes.find((t) => t.id === selectedEvent.type_id);
     if (!currentType) return;
     if (currentType.parent_id) {
-      // It's a sub-type; category is its parent
       setSelectedCategoryId(currentType.parent_id);
     } else {
-      // It's a top-level category itself
       setSelectedCategoryId(currentType.id);
     }
-  }, [selectedEvent?.type_id, eventTypes]);
+  }, [selectedEvent?.type_id, eventTypes, themeHierarchyMode]);
+
+  // Health & Wellness: infer category (Peaceful/…) + leaf from saved type_id
+  useEffect(() => {
+    if (!selectedEvent?.type_id || !selectedEvent.theme_id) return;
+    if (!isHealthWellnessThemeName(selectedThemeName) || !hwHierarchy) return;
+    const keys: HealthWellnessKey[] = ["peaceful", "spiritual", "rejuvenating", "holistic"];
+    for (const k of keys) {
+      const leaf = (hwHierarchy.groups[k] ?? []).find((x) => x.id === selectedEvent.type_id);
+      const pid = hwHierarchy.parentIds[k];
+      if (leaf && pid) {
+        setHwCategoryKey(k);
+        setSelectedCategoryId(pid);
+        return;
+      }
+    }
+  }, [selectedEvent?.type_id, selectedEvent?.theme_id, hwHierarchy, selectedThemeName]);
+
+  // Retreats: infer branch + leaf from saved type_id
+  useEffect(() => {
+    if (!selectedEvent?.type_id || !selectedEvent.theme_id) return;
+    if (!isRetreatsThemeName(selectedThemeName) || !retreatHierarchy) return;
+    for (const branch of Object.keys(retreatHierarchy.typesByBranch)) {
+      const leaf = (retreatHierarchy.typesByBranch[branch] ?? []).find(
+        (x) => x.id === selectedEvent.type_id,
+      );
+      const rid = retreatHierarchy.rootIdByBranch[branch];
+      if (leaf && rid) {
+        setRetreatBranchLabel(branch);
+        setSelectedCategoryId(rid);
+        return;
+      }
+    }
+  }, [selectedEvent?.type_id, selectedEvent?.theme_id, retreatHierarchy, selectedThemeName]);
 
   if (loading) {
     return (
@@ -1004,13 +1300,8 @@ const ManageEvent = () => {
             className="bg-gradient-to-r from-primary to-secondary text-primary-foreground hover:opacity-90 shrink-0"
           >
             <Plus className="w-4 h-4 mr-2" />
-            New Resource
+            Change Request
           </Button>
-          {selectedEvent?.id ? (
-            <Button variant="outline" className="shrink-0" asChild>
-              <Link to={`/dashboard/event-summary?eventId=${selectedEvent.id}`}>Event summary</Link>
-            </Button>
-          ) : null}
           {selectedEvent?.id && !selectedEvent.archived && (
             <Button
               type="button"
@@ -1065,7 +1356,13 @@ const ManageEvent = () => {
             <Plus className="h-4 w-4 mr-2" />
             New Request
           </Button>
-          <Dialog open={newRequestDialog} onOpenChange={setNewRequestDialog}>
+          <Dialog
+            open={newRequestDialog}
+            onOpenChange={(open) => {
+              setNewRequestDialog(open);
+              if (!open) setSubmittingNewRequest(false);
+            }}
+          >
             <DialogContent className="w-full max-w-md mx-auto">
               <DialogHeader>
                 <DialogTitle>Submit New Request</DialogTitle>
@@ -1133,15 +1430,26 @@ const ManageEvent = () => {
                     rows={4}
                   />
                 </div>
-                
-                <Button 
-                  onClick={submitNewRequest}
-                  className="w-full bg-gradient-primary hover:opacity-90"
-                  disabled={!newRequest.title || !newRequest.description}
-                >
-                  <Bell className="h-4 w-4 mr-2" />
-                  Submit & Notify Coordinators
-                </Button>
+
+                {newRequest.title.trim().length > 0 && newRequest.description.trim().length > 0 ? (
+                  <Button
+                    type="button"
+                    onClick={() => void submitNewRequest()}
+                    className="w-full bg-gradient-primary hover:opacity-90"
+                    disabled={submittingNewRequest}
+                  >
+                    {submittingNewRequest ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Bell className="h-4 w-4 mr-2" />
+                    )}
+                    {submittingNewRequest ? "Submitting…" : "Submit & Notify Coordinators"}
+                  </Button>
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center">
+                    Enter a title and description to submit.
+                  </p>
+                )}
               </div>
             </DialogContent>
           </Dialog>
@@ -1194,31 +1502,35 @@ const ManageEvent = () => {
                   >
                     show past and archived
                   </button>
-                  , or create one with <span className="font-medium">New Resource</span>.
+                  , or create one with <span className="font-medium">Change Request</span> (create event).
                 </div>
               ) : (
-                events.map((event, index) => (
+                events.map((event, index) => {
+                  const lifecycleBadge = getLifecycleTableBadge({
+                    status: event.status,
+                    start_date: event.start_date,
+                    end_date: event.end_date,
+                    archived: event.archived,
+                  });
+                  return (
                   <div
                     key={event.id || index}
                     className={`p-4 border-b border-border/30 cursor-pointer transition-all hover:bg-surface/50 ${
                       selectedEvent?.id === event.id ? "bg-primary/10 border-l-4 border-l-primary" : ""
                     }`}
-                    onClick={async () => {
+                    onClick={() => {
                       setSelectedEvent(event);
                       setSelectedCategoryId(null);
-                      if (event.type_id && event.theme_id) {
-                        await fetchEventTypes(event.theme_id);
-                      }
                     }}
                   >
                     <div className="font-medium text-sm truncate">{event.title || "Unnamed Event"}</div>
                     <div className="flex flex-wrap items-center gap-1">
-                      <span className="text-xs text-muted-foreground">{getStatusDisplay(event.status)}</span>
-                      {event.archived && (
-                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                          Archived
-                        </Badge>
-                      )}
+                      <Badge
+                        variant={lifecycleBadge.variant}
+                        className="text-[10px] px-1.5 py-0 h-5 capitalize font-normal"
+                      >
+                        {lifecycleBadge.label}
+                      </Badge>
                     </div>
                     {event.start_date && (
                       <div className="text-xs text-muted-foreground">
@@ -1226,7 +1538,8 @@ const ManageEvent = () => {
                       </div>
                     )}
                   </div>
-                ))
+                  );
+                })
               )}
             </div>
           </CardContent>
@@ -1236,22 +1549,18 @@ const ManageEvent = () => {
         <div className="lg:col-span-2 space-y-6">
           {selectedEvent ? (
             <Tabs defaultValue="details" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-1">
+              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1">
                 <TabsTrigger value="details" className="flex items-center gap-2">
                   <Eye className="h-4 w-4" />
-                  Details
+                  Manage Event
                 </TabsTrigger>
                 <TabsTrigger value="timeline" className="flex items-center gap-2">
                   <CalendarIcon className="h-4 w-4" />
-                  Timeline
+                  Event Timeline
                 </TabsTrigger>
-                <TabsTrigger value="resources" className="flex items-center gap-2">
-                  <Package className="h-4 w-4" />
-                  Resources
-                </TabsTrigger>
-                <TabsTrigger value="checklists" className="flex items-center gap-2">
-                  <ListChecks className="h-4 w-4" />
-                  Checklists
+                <TabsTrigger value="change-request" className="flex items-center gap-2">
+                  <ClipboardList className="h-4 w-4" />
+                  Create Change Request
                 </TabsTrigger>
                 <TabsTrigger value="analytics" className="flex items-center gap-2">
                   <BarChart3 className="h-4 w-4" />
@@ -1267,7 +1576,10 @@ const ManageEvent = () => {
                 <Card className="shadow-elegant border-0 bg-gradient-subtle">
                   <CardHeader className="border-b border-border/50">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                      <CardTitle>Event Details</CardTitle>
+                      <div>
+                        <CardTitle>Manage Event</CardTitle>
+                        <p className="text-sm text-muted-foreground font-normal mt-1">Event details &amp; theme</p>
+                      </div>
                       <div className="flex items-center gap-2 flex-wrap">
                         {saving && (
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -1379,6 +1691,7 @@ const ManageEvent = () => {
                           type="date"
                           value={selectedEvent.start_date || ''}
                           onChange={(e) => handleFieldChange('start_date', e.target.value)}
+                          disabled={selectedEvent.venue_booking_completed === true}
                         />
                       </div>
                       
@@ -1389,6 +1702,7 @@ const ManageEvent = () => {
                           type="date"
                           value={selectedEvent.end_date || ''}
                           onChange={(e) => handleFieldChange('end_date', e.target.value)}
+                          disabled={selectedEvent.venue_booking_completed === true}
                         />
                       </div>
                       
@@ -1399,6 +1713,7 @@ const ManageEvent = () => {
                           type="time"
                           value={selectedEvent.start_time ? selectedEvent.start_time.slice(0, 5) : ''}
                           onChange={(e) => handleFieldChange('start_time', e.target.value)}
+                          disabled={selectedEvent.venue_booking_completed === true}
                         />
                       </div>
                       
@@ -1409,36 +1724,47 @@ const ManageEvent = () => {
                           type="time"
                           value={selectedEvent.end_time ? selectedEvent.end_time.slice(0, 5) : ''}
                           onChange={(e) => handleFieldChange('end_time', e.target.value)}
+                          disabled={selectedEvent.venue_booking_completed === true}
                         />
                       </div>
 
+                      {selectedEvent.venue_booking_completed ? (
+                        <Alert className="md:col-span-2 border-amber-200 bg-amber-50/50 dark:bg-amber-950/20">
+                          <Lock className="h-4 w-4" />
+                          <AlertTitle>Schedule locked</AlertTitle>
+                          <AlertDescription>
+                            Venue booking is marked complete. Start/end dates and times cannot be edited until you
+                            clear the confirmation below. For a different schedule after a completed booking, create a
+                            new event if required by your process.
+                          </AlertDescription>
+                        </Alert>
+                      ) : null}
+
+                      <div className="flex items-start gap-3 rounded-lg border p-4 md:col-span-2">
+                        <Checkbox
+                          id="venue-booking-completed"
+                          checked={selectedEvent.venue_booking_completed === true}
+                          onCheckedChange={(c) => void handleFieldChange("venue_booking_completed", c === true)}
+                        />
+                        <div className="space-y-1">
+                          <label htmlFor="venue-booking-completed" className="text-sm font-medium leading-none cursor-pointer">
+                            Venue booking transaction completed
+                          </label>
+                          <p className="text-xs text-muted-foreground">
+                            When saved, this locks event start/end date and start/end time. Uncheck to allow edits again
+                            if your team approves an exception.
+                          </p>
+                        </div>
+                      </div>
+
                       <div>
-                        <Label htmlFor="theme">Event Theme</Label>
+                        <Label htmlFor="theme">Event theme</Label>
                         <Select
-                          value={selectedEvent.theme_id?.toString() || ''}
-                          onValueChange={async (value) => {
-                            const themeId = parseInt(value);
-                            setSelectedEvent(prev => prev ? { ...prev, theme_id: themeId, type_id: undefined } : prev);
-                            setSelectedCategoryId(null);
-                            try {
-                              const { data, error } = await supabase
-                                .from('event_types')
-                                .select('id, name, theme_id, parent_id')
-                                .eq('theme_id', themeId)
-                                .order('name');
-                              if (!error && data) {
-                                setEventTypes(data);
-                              } else {
-                                setEventTypes([]);
-                              }
-                            } catch (err) {
-                              setEventTypes([]);
-                            }
-                            handleFieldChange('theme_id', themeId);
-                          }}
+                          value={selectedEvent.theme_id?.toString() || ""}
+                          onValueChange={(value) => void handleThemeSelect(parseInt(value, 10))}
                         >
                           <SelectTrigger className="bg-background border-border z-50">
-                            <SelectValue placeholder="Select theme" />
+                            <SelectValue placeholder="Choose theme for this event" />
                           </SelectTrigger>
                           <SelectContent className="bg-background border-border shadow-lg z-50">
                             {eventThemes.map((theme) => (
@@ -1450,71 +1776,171 @@ const ManageEvent = () => {
                           </SelectContent>
                         </Select>
                       </div>
-                      
-                      <div>
-                        <Label htmlFor="eventCategory">Event Category</Label>
-                        <Select
-                          value={selectedCategoryId?.toString() || ''}
-                          onValueChange={(value) => {
-                            const catId = parseInt(value);
-                            setSelectedCategoryId(catId);
-                            // If current type_id is not a child of this category, reset it
-                            const currentType = eventTypes.find(t => t.id === selectedEvent?.type_id);
-                            if (!currentType || currentType.parent_id !== catId) {
-                              // The category itself is the type when no sub-types; pick the category as type_id
-                              setSelectedEvent(prev => prev ? { ...prev, type_id: undefined } : prev);
-                            }
-                          }}
-                          disabled={!selectedEvent.theme_id}
-                        >
-                          <SelectTrigger className="bg-background border-border z-50" id="eventCategory">
-                            <SelectValue
-                              placeholder={selectedEvent.theme_id ? "Select event category" : "Select theme first"}
-                            />
-                          </SelectTrigger>
-                          <SelectContent className="bg-background border-border shadow-lg z-50">
-                            {eventTypes
-                              .filter(t => !t.parent_id)
-                              .map((cat) => (
-                                <SelectItem key={cat.id} value={cat.id.toString()}>
-                                  {cat.name}
-                                </SelectItem>
-                              ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
 
-                      <div>
-                        <Label htmlFor="eventType">Event Type</Label>
-                        <Select
-                          value={selectedEvent.type_id?.toString() || ''}
-                          onValueChange={(value) => handleFieldChange('type_id', parseInt(value))}
-                          disabled={!selectedCategoryId}
-                        >
-                          <SelectTrigger className="bg-background border-border z-50" id="eventType">
-                            <SelectValue
-                              placeholder={selectedCategoryId ? "Select event type" : "Select category first"}
-                            />
-                          </SelectTrigger>
-                          <SelectContent className="bg-background border-border shadow-lg z-50">
-                            {(() => {
-                              const children = eventTypes.filter(t => t.parent_id === selectedCategoryId);
-                              if (children.length === 0 && selectedCategoryId) {
-                                // Category has no sub-types: allow selecting the category itself as the type
-                                const cat = eventTypes.find(t => t.id === selectedCategoryId);
-                                return cat ? (
-                                  <SelectItem key={cat.id} value={cat.id.toString()}>{cat.name}</SelectItem>
-                                ) : null;
-                              }
-                              return children.map((type) => (
-                                <SelectItem key={type.id} value={type.id.toString()}>
-                                  {type.name}
-                                </SelectItem>
-                              ));
-                            })()}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                      {themeHierarchyMode === "hw" && hwHierarchy && (
+                        <>
+                          <div>
+                            <Label>Category (Health &amp; Wellness)</Label>
+                            <Select
+                              value={hwCategoryKey}
+                              onValueChange={(v) => void handleHwCategorySelect(v as HealthWellnessKey)}
+                            >
+                              <SelectTrigger className="bg-background border-border z-50">
+                                <SelectValue placeholder="Peaceful, Spiritual, Rejuvenating, Holistic" />
+                              </SelectTrigger>
+                              <SelectContent className="bg-background border-border shadow-lg z-50">
+                                {(["peaceful", "spiritual", "rejuvenating", "holistic"] as const).map((k) => {
+                                  const pid = hwHierarchy.parentIds[k];
+                                  if (!pid) return null;
+                                  const label = k.charAt(0).toUpperCase() + k.slice(1);
+                                  return (
+                                    <SelectItem key={k} value={k}>
+                                      {label}
+                                    </SelectItem>
+                                  );
+                                })}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          {hwCategoryKey ? (
+                            <div>
+                              <Label htmlFor="eventType-hw">Event type</Label>
+                              <Select
+                                value={selectedEvent.type_id?.toString() || ""}
+                                onValueChange={(value) => handleFieldChange("type_id", parseInt(value, 10))}
+                              >
+                                <SelectTrigger className="bg-background border-border z-50" id="eventType-hw">
+                                  <SelectValue placeholder="Select specific event type" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-background border-border shadow-lg z-50">
+                                  {(hwHierarchy.groups[hwCategoryKey] ?? []).map((row) => (
+                                    <SelectItem key={row.id} value={row.id.toString()}>
+                                      {row.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          ) : null}
+                        </>
+                      )}
+
+                      {themeHierarchyMode === "retreats" && retreatHierarchy && (
+                        <>
+                          <div>
+                            <Label>Retreat branch</Label>
+                            <Select
+                              value={retreatBranchLabel}
+                              onValueChange={(b) => void handleRetreatBranchSelect(b)}
+                            >
+                              <SelectTrigger className="bg-background border-border z-50">
+                                <SelectValue placeholder="Select branch" />
+                              </SelectTrigger>
+                              <SelectContent className="bg-background border-border shadow-lg z-50">
+                                {Object.keys(retreatHierarchy.typesByBranch).map((b) => (
+                                  <SelectItem key={b} value={b}>
+                                    {b}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          {retreatBranchLabel ? (
+                            <div>
+                              <Label htmlFor="eventType-retreat">Event type</Label>
+                              <Select
+                                value={selectedEvent.type_id?.toString() || ""}
+                                onValueChange={(value) => handleFieldChange("type_id", parseInt(value, 10))}
+                              >
+                                <SelectTrigger className="bg-background border-border z-50" id="eventType-retreat">
+                                  <SelectValue placeholder="Select specific event type" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-background border-border shadow-lg z-50">
+                                  {(retreatHierarchy.typesByBranch[retreatBranchLabel] ?? []).map((row) => (
+                                    <SelectItem key={row.id} value={row.id.toString()}>
+                                      {row.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          ) : null}
+                        </>
+                      )}
+
+                      {themeHierarchyMode === "default" && (
+                        <>
+                          <div>
+                            <Label htmlFor="eventCategory">Event Category</Label>
+                            <Select
+                              value={selectedCategoryId?.toString() || ""}
+                              onValueChange={(value) => {
+                                const catId = parseInt(value, 10);
+                                setSelectedCategoryId(catId);
+                                const currentType = eventTypes.find((t) => t.id === selectedEvent?.type_id);
+                                if (!currentType || currentType.parent_id !== catId) {
+                                  void handleFieldChange("type_id", undefined);
+                                }
+                              }}
+                              disabled={!selectedEvent.theme_id}
+                            >
+                              <SelectTrigger className="bg-background border-border z-50" id="eventCategory">
+                                <SelectValue
+                                  placeholder={
+                                    selectedEvent.theme_id ? "Select event category" : "Select theme first"
+                                  }
+                                />
+                              </SelectTrigger>
+                              <SelectContent className="bg-background border-border shadow-lg z-50">
+                                {eventTypes
+                                  .filter((t) => !t.parent_id)
+                                  .map((cat) => (
+                                    <SelectItem key={cat.id} value={cat.id.toString()}>
+                                      {cat.name}
+                                    </SelectItem>
+                                  ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div>
+                            <Label htmlFor="eventType">Event Type</Label>
+                            <Select
+                              value={selectedEvent.type_id?.toString() || ""}
+                              onValueChange={(value) => handleFieldChange("type_id", parseInt(value, 10))}
+                              disabled={!selectedCategoryId}
+                            >
+                              <SelectTrigger className="bg-background border-border z-50" id="eventType">
+                                <SelectValue
+                                  placeholder={
+                                    selectedCategoryId ? "Select event type" : "Select category first"
+                                  }
+                                />
+                              </SelectTrigger>
+                              <SelectContent className="bg-background border-border shadow-lg z-50">
+                                {(() => {
+                                  const children = eventTypes.filter(
+                                    (t) => t.parent_id === selectedCategoryId,
+                                  );
+                                  if (children.length === 0 && selectedCategoryId) {
+                                    const cat = eventTypes.find((t) => t.id === selectedCategoryId);
+                                    return cat ? (
+                                      <SelectItem key={cat.id} value={cat.id.toString()}>
+                                        {cat.name}
+                                      </SelectItem>
+                                    ) : null;
+                                  }
+                                  return children.map((type) => (
+                                    <SelectItem key={type.id} value={type.id.toString()}>
+                                      {type.name}
+                                    </SelectItem>
+                                  ));
+                                })()}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </>
+                      )}
 
                       <div>
                         <Label htmlFor="venue">Venue</Label>
@@ -1536,48 +1962,90 @@ const ManageEvent = () => {
                         />
                       </div>
 
-                      <div>
-                        <Label htmlFor="entertainment_id">Entertainment Profile</Label>
+                      <div className="md:col-span-2 space-y-2 border rounded-md p-3 bg-muted/30">
+                        <Label>Entertainment profiles (optional)</Label>
+                        <p className="text-xs text-muted-foreground">Select one or more. Filter by type to narrow the list.</p>
                         <Select
-                          value={selectedEvent.entertainment_id || "__none__"}
+                          value={selectedEntTypeFilter === null ? "__all__" : String(selectedEntTypeFilter)}
                           onValueChange={(v) =>
-                            handleFieldChange("entertainment_id", v === "__none__" ? null : v)
+                            setSelectedEntTypeFilter(v === "__all__" ? null : Number(v))
                           }
                         >
-                          <SelectTrigger id="entertainment_id">
-                            <SelectValue placeholder="Optional" />
+                          <SelectTrigger>
+                            <SelectValue placeholder="All entertainment types" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="__none__">None</SelectItem>
-                            {entertainmentOptions.map((o) => (
-                              <SelectItem key={o.id} value={o.id}>
-                                {o.business_name}
+                            <SelectItem value="__all__">All types</SelectItem>
+                            {entertainmentTypes.map((t) => (
+                              <SelectItem key={t.id} value={t.id.toString()}>
+                                {t.name}
                               </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
+                        <div className="max-h-36 overflow-y-auto space-y-2">
+                          {entertainmentOptions
+                            .filter(
+                              (o) =>
+                                selectedEntTypeFilter == null || o.ent_type_id === selectedEntTypeFilter
+                            )
+                            .map((o) => (
+                              <label key={o.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                                <Checkbox
+                                  checked={selectedEntIds.includes(o.id)}
+                                  onCheckedChange={(c) =>
+                                    toggleEntertainmentId(o.id, c === true)
+                                  }
+                                />
+                                <span>{o.business_name}</span>
+                              </label>
+                            ))}
+                        </div>
                       </div>
 
-                      <div>
-                        <Label htmlFor="serv_vendor_rental_id">External Vendor Profile</Label>
+                      <div className="md:col-span-2 space-y-2 border rounded-md p-3 bg-muted/30">
+                        <Label>External vendor (optional)</Label>
+                        <p className="text-xs text-muted-foreground">
+                          Procurement vendors from the External Vendors directory (same as Resources → External Vendors), not
+                          equipment rentals. Select one or more.
+                        </p>
                         <Select
-                          value={selectedEvent.serv_vendor_rental_id || "__none__"}
+                          value={selectedSupplierCategoryFilter === null ? "__all__" : String(selectedSupplierCategoryFilter)}
                           onValueChange={(v) =>
-                            handleFieldChange("serv_vendor_rental_id", v === "__none__" ? null : v)
+                            setSelectedSupplierCategoryFilter(v === "__all__" ? null : Number(v))
                           }
                         >
-                          <SelectTrigger id="serv_vendor_rental_id">
-                            <SelectValue placeholder="Optional" />
+                          <SelectTrigger>
+                            <SelectValue placeholder="All categories" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="__none__">None</SelectItem>
-                            {rentalOptions.map((o) => (
-                              <SelectItem key={o.id} value={o.id}>
-                                {o.business_name}
+                            <SelectItem value="__all__">All categories</SelectItem>
+                            {supplierCategories.map((t) => (
+                              <SelectItem key={t.id} value={t.id.toString()}>
+                                {t.name}
                               </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
+                        <div className="max-h-36 overflow-y-auto space-y-2">
+                          {supplierOptions
+                            .filter(
+                              (o) =>
+                                selectedSupplierCategoryFilter == null ||
+                                o.category_id === selectedSupplierCategoryFilter
+                            )
+                            .map((o) => (
+                              <label key={o.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                                <Checkbox
+                                  checked={selectedSvcIds.includes(o.id)}
+                                  onCheckedChange={(c) =>
+                                    toggleServiceVendorId(o.id, c === true)
+                                  }
+                                />
+                                <span>{o.business_name}</span>
+                              </label>
+                            ))}
+                        </div>
                       </div>
                       
                       <div>
@@ -1623,14 +2091,16 @@ const ManageEvent = () => {
               <TabsContent value="timeline">
                 <Card className="shadow-elegant border-0 bg-gradient-subtle">
                   <CardHeader className="border-b border-border/50">
-                    <CardTitle>Timeline and task assignment</CardTitle>
+                    <CardTitle>Event Timeline &amp; task assignment</CardTitle>
                   </CardHeader>
                   <CardContent className="p-6 space-y-6">
                     <TimelineView eventId={selectedEvent.id} />
-                    {selectedEvent.id && (
-                      <TeamMemberTaskAssignments eventId={selectedEvent.id} />
-                    )}
                     <div className="flex flex-wrap gap-2">
+                      <Button type="button" variant="outline" asChild>
+                        <Link to={`/dashboard/task-timeline?eventId=${selectedEvent.id}`}>
+                          Open full Event Timeline
+                        </Link>
+                      </Button>
                       <Button
                         type="button"
                         onClick={() =>
@@ -1639,39 +2109,39 @@ const ManageEvent = () => {
                           )
                         }
                       >
-                        Open Project Management — Add task assignment
+                        Add task assignment
                       </Button>
                     </div>
                     <div className="border-t pt-6">
                       <h3 className="text-lg font-semibold mb-4">Tasks for this event</h3>
-                      <TaskManager eventId={selectedEvent.id} />
+                      <TaskManager eventId={selectedEvent.id} embedInManageEvent />
                     </div>
                   </CardContent>
                 </Card>
               </TabsContent>
 
-              <TabsContent value="resources">
+              <TabsContent value="change-request">
                 <Card className="shadow-elegant border-0 bg-gradient-subtle">
                   <CardHeader className="border-b border-border/50">
-                    <CardTitle>Resource Management</CardTitle>
+                    <CardTitle>Create change request</CardTitle>
+                    <p className="text-sm text-muted-foreground font-normal mt-1">
+                      Submissions create a task in Project Management → Tasks (same queue as Task Management). Coordinators are notified.
+                    </p>
                   </CardHeader>
-                  <CardContent className="p-6">
-                    <ResourceManager 
-                      eventId={selectedEvent.id} 
-                      eventLocation={selectedEvent.location} 
-                      refreshKey={resourceRefreshKey}
-                    />
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="checklists">
-                <Card className="shadow-elegant border-0 bg-gradient-subtle">
-                  <CardHeader className="border-b border-border/50">
-                    <CardTitle>Event checklists</CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-6">
-                    {selectedEvent.id && <EventChecklists eventId={selectedEvent.id} />}
+                  <CardContent className="p-6 space-y-4">
+                    <div className="flex flex-wrap gap-2">
+                      <Button type="button" onClick={() => setNewRequestDialog(true)}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Open change request form
+                      </Button>
+                      <Button type="button" variant="outline" asChild>
+                        <Link
+                          to={`/dashboard/project-management?eventId=${selectedEvent.id}`}
+                        >
+                          Open Project Management
+                        </Link>
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -1679,6 +2149,7 @@ const ManageEvent = () => {
               <TabsContent value="analytics">
                 <Analytics
                   eventId={selectedEvent.id}
+                  showEventScopePicker
                   onInteractionTrack={(interaction) => {
                     console.log("User interaction tracked:", interaction);
                   }}
@@ -1690,8 +2161,11 @@ const ManageEvent = () => {
                   <CardHeader className="border-b border-border/50">
                     <CardTitle>Change History</CardTitle>
                     <p className="text-sm text-muted-foreground font-normal">
-                      Field-level log (<code className="text-xs">cm_change_logs</code>) and CM activity (
-                      <code className="text-xs">cm_activity</code>)
+                      Audit trail for this event (saved edits, <span className="font-medium text-foreground">cm_change_logs</span> RPC
+                      entries, and <span className="font-medium text-foreground">cm_activity</span> from the database). Saving here
+                      updates the event row and refreshes tasks in Project Management. Task-level work still appears under{" "}
+                      <span className="font-medium text-foreground">Project Management → Tasks</span>; this log is not a second task
+                      list.
                     </p>
                   </CardHeader>
                   <CardContent className="p-0">

@@ -1,5 +1,5 @@
 import { useState, useEffect, useLayoutEffect, useMemo, useRef } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, Link as RouterLink } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,11 +13,21 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useEventFilter } from "@/hooks/useEventFilter";
-import { CheckCircle2, Clock, AlertCircle, Plus, Calendar, User, Archive, ArchiveRestore, Eye, EyeOff, Link, Save, X } from "lucide-react";
+import { CheckCircle2, Clock, AlertCircle, Plus, Calendar, User, Link, Save, X } from "lucide-react";
 import { format } from "date-fns";
 import { createTaskSchema } from "@/lib/validation/taskValidation";
-import { TASK_ASSIGNMENT_CATEGORIES } from "@/lib/taskBusinessRules";
+import {
+  TASK_ASSIGNMENT_CATEGORIES,
+  getDependencyOptionsForCategories,
+} from "@/lib/taskBusinessRules";
+import {
+  canMarkTaskCompleted,
+  getAllItemIdsForTemplate,
+  getCollaboratorTemplateForCategory,
+} from "@/lib/collaboratorChecklists";
+import { CollaboratorChecklistSection } from "@/components/tasks/CollaboratorChecklistSection";
 import { COUNTDOWN_TASK_TEMPLATES, dueDateIsoDaysBeforeEvent } from "@/lib/countdownTaskTemplates";
+import { eventSelectLifecycleLabel } from "@/lib/eventStatus";
 
 interface Task {
   id: string;
@@ -46,7 +56,9 @@ interface Task {
   updated_at: string;
   event_id?: string;
   dependencies?: string[]; // Array of task IDs this task depends on
-  category?: string; // Task category based on collaborator type (Bookings, Venue, etc.)
+  category?: string; // Task category by role type (Bookings, Venue, etc.)
+  /** IEP Business Guidelines: { iep_prerequisites: string[] } */
+  checklist?: Record<string, unknown> | null;
 }
 
 interface AvailableTask {
@@ -67,6 +79,8 @@ interface User {
 interface TaskManagerProps {
   eventId?: string;
   selectedEventFilter?: string;
+  /** Manage Event timeline tab: hide duplicate Add action & inline team-member assign; use PM modal + edit instead. */
+  embedInManageEvent?: boolean;
 }
 
 const statusColors = {
@@ -84,6 +98,14 @@ const priorityColors = {
   urgent: "bg-red-100 text-red-800"
 };
 
+/** Seeded / legacy default copy still present on some rows — optional admin normalization. */
+const LEGACY_TASK_DESCRIPTION_SOURCES = [
+  "Assign task responsibilities",
+  "Assign coordinator responsibility",
+  "Assign tasks to team members",
+] as const;
+const LEGACY_TASK_DESCRIPTION_TARGET = "Enter team member name";
+
 const statusIcons = {
   not_started: Clock,
   in_progress: AlertCircle,
@@ -94,40 +116,74 @@ const statusIcons = {
 
 /** Radix Select forbids SelectItem value=""; use this for "General / unset" instead. */
 const TASK_CATEGORY_NONE = "__none__";
+const TASK_TITLE_CUSTOM = "__custom__";
 
-const COLLABORATOR_TYPE_OPTIONS: { value: string; label: string }[] = [
-  { value: 'Bookings', label: 'Bookings' },
-  { value: 'Venue', label: 'Venue' },
-  { value: 'Vendor Service Rental/Buy', label: 'Vendor Service Rental/Buy' },
-  { value: 'Hospitality', label: 'Hospitality' },
-  { value: 'Service Vendor', label: 'Service Vendor' },
-  { value: 'Transportation', label: 'Transportation' },
-  { value: 'Entertainment', label: 'Entertainment' },
-  { value: 'Suppliers', label: 'External Vendor' },
-];
+function toggleCategoryCsv(csv: string, value: string, checked: boolean): string {
+  const set = new Set(csv.split(",").map((s) => s.trim()).filter(Boolean));
+  if (checked) set.add(value);
+  else set.delete(value);
+  return Array.from(set).join(",");
+}
 
-/** DB columns `assigned_*_role` — labels for create/edit forms */
-const TASK_ROLE_FORM_FIELDS = [
-  { field: "assigned_bookings_role", label: "Bookings" },
-  { field: "assigned_service_rental_role", label: "Service / rental" },
-  { field: "assigned_hospitality_role", label: "Hospitality" },
-  { field: "assigned_entertainment_role", label: "Entertainment" },
-  { field: "assigned_transportation_role", label: "Transportation" },
-  { field: "assigned_external_vendor_role", label: "External vendor" },
-] as const;
+function hasAtLeastOneCategory(csv: string | undefined): boolean {
+  return Boolean(csv?.split(",").map((s) => s.trim()).filter(Boolean).length);
+}
 
 function trimOrNull(s: string | null | undefined): string | null {
   const t = (s ?? "").trim();
   return t ? t : null;
 }
 
-export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) {
+function taskCategoryDisplayLabel(category?: string | null): string | null {
+  const c = category?.trim();
+  if (!c) return null;
+  const parts = c.split(",").map((s) => s.trim()).filter(Boolean);
+  const labels = parts.map((p) => {
+    const found = TASK_ASSIGNMENT_CATEGORIES.find((x) => x.value === p);
+    return found?.label ?? p;
+  });
+  return labels.length ? labels.join(" · ") : null;
+}
+
+function parseTaskChecklistJson(raw: Task["checklist"]): Record<string, unknown> {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+  return { ...(raw as Record<string, unknown>) };
+}
+
+function mergeTaskChecklistJson(
+  existing: Task["checklist"],
+  patch: {
+    iep_prerequisites?: string[] | null;
+    collaborator_checklist?: Record<string, boolean> | null;
+    collaborator_required?: boolean | null;
+  },
+): Record<string, unknown> | null {
+  const base = parseTaskChecklistJson(existing);
+  if (patch.iep_prerequisites !== undefined) {
+    if (patch.iep_prerequisites && patch.iep_prerequisites.length > 0) {
+      base.iep_prerequisites = patch.iep_prerequisites;
+    } else {
+      delete base.iep_prerequisites;
+    }
+  }
+  if (patch.collaborator_checklist !== undefined) {
+    base.collaborator_checklist = patch.collaborator_checklist || {};
+  }
+  if (patch.collaborator_required === true) {
+    base.collaborator_required = true;
+  }
+  if (patch.collaborator_required === false) {
+    delete base.collaborator_required;
+  }
+  return Object.keys(base).length > 0 ? base : null;
+}
+
+export function TaskManager({ eventId, selectedEventFilter, embedInManageEvent }: TaskManagerProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [availableTasks, setAvailableTasks] = useState<AvailableTask[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showArchived, setShowArchived] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [shouldPreserveForm, setShouldPreserveForm] = useState(false);
   const [showDependencyDialog, setShowDependencyDialog] = useState(false);
@@ -157,10 +213,14 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
     priority: "medium" as const,
     estimated_hours: "",
     due_date: "",
+    start_date: "",
+    end_date: "",
     selected_event_id: "",
     dependencies: [] as string[],
     assigned_role: "",
     taskCategory: "",
+    /** Preset task title = assignment category (PDF): empty | category value | __custom__ */
+    taskTitleSelect: "" as string,
     assigned_bookings_role: "",
     assigned_service_rental_role: "",
     assigned_hospitality_role: "",
@@ -168,7 +228,14 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
     assigned_transportation_role: "",
     assigned_external_vendor_role: "",
   });
-  const [selectedCollaboratorTypes, setSelectedCollaboratorTypes] = useState<string[]>([]);
+  /** IEP prerequisite labels → confirmed (create form) */
+  const [iepPrerequisitesConfirmed, setIepPrerequisitesConfirmed] = useState<Record<string, boolean>>({});
+  /** IEP prerequisite labels → confirmed (edit dialog) */
+  const [editIepConfirmed, setEditIepConfirmed] = useState<Record<string, boolean>>({});
+  /** Collaborator checklist item ids → done (edit dialog) */
+  const [editCollaboratorChecklist, setEditCollaboratorChecklist] = useState<Record<string, boolean>>({});
+  /** Collaborator checklist on Add task (saved with new task) */
+  const [createCollaboratorChecklist, setCreateCollaboratorChecklist] = useState<Record<string, boolean>>({});
   const [dependencySearchTerm, setDependencySearchTerm] = useState<string>("");
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [clearFormAfterSave, setClearFormAfterSave] = useState(false);
@@ -179,9 +246,10 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
   const [isSavingCardCollaborator, setIsSavingCardCollaborator] = useState<{ [taskId: string]: boolean }>({});
   const [isCreatingTask, setIsCreatingTask] = useState(false);
   const [isApplyingCountdown, setIsApplyingCountdown] = useState(false);
+  const [isMigratingLegacyDescriptions, setIsMigratingLegacyDescriptions] = useState(false);
   const isCreatingTaskRef = useRef(false);
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, userRoles } = useAuth();
   const { events, applyEventFilter } = useEventFilter();
 
   const createTaskValidationPayload = useMemo(
@@ -193,10 +261,79 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
     [newTask, eventId]
   );
 
-  const isCreateTaskFormValid = useMemo(
-    () => createTaskSchema.safeParse(createTaskValidationPayload).success,
-    [createTaskValidationPayload]
-  );
+  const iepCreateOptions = useMemo(() => {
+    const cat = newTask.taskCategory?.trim();
+    if (!cat) return [];
+    return getDependencyOptionsForCategories(cat);
+  }, [newTask.taskCategory]);
+
+  useEffect(() => {
+    const next: Record<string, boolean> = {};
+    iepCreateOptions.forEach((label) => {
+      next[label] = false;
+    });
+    setIepPrerequisitesConfirmed(next);
+  }, [newTask.taskCategory]);
+
+  useEffect(() => {
+    const tmpl = newTask.taskCategory?.trim()
+      ? getCollaboratorTemplateForCategory(newTask.taskCategory)
+      : null;
+    if (!tmpl) {
+      setCreateCollaboratorChecklist({});
+      return;
+    }
+    const next: Record<string, boolean> = {};
+    for (const id of getAllItemIdsForTemplate(tmpl)) {
+      next[id] = false;
+    }
+    setCreateCollaboratorChecklist(next);
+  }, [newTask.taskCategory]);
+
+  const isCreateTaskFormValid = useMemo(() => {
+    const base = createTaskSchema.safeParse(createTaskValidationPayload).success;
+    if (!newTask.taskTitleSelect) return false;
+    if (newTask.taskTitleSelect === TASK_TITLE_CUSTOM && !newTask.title.trim()) return false;
+    if (newTask.taskTitleSelect === TASK_TITLE_CUSTOM && !hasAtLeastOneCategory(newTask.taskCategory)) return false;
+    if (
+      iepCreateOptions.length > 0 &&
+      !iepCreateOptions.every((label) => iepPrerequisitesConfirmed[label])
+    ) {
+      return false;
+    }
+    return base;
+  }, [
+    createTaskValidationPayload,
+    newTask.taskTitleSelect,
+    newTask.title,
+    newTask.taskCategory,
+    iepCreateOptions,
+    iepPrerequisitesConfirmed,
+  ]);
+
+  useEffect(() => {
+    if (!isEditDialogOpen || !selectedTask) return;
+    const opts = selectedTask.category?.trim()
+      ? getDependencyOptionsForCategories(selectedTask.category)
+      : [];
+    const raw = selectedTask.checklist as {
+      iep_prerequisites?: string[];
+      collaborator_checklist?: Record<string, boolean>;
+    } | null | undefined;
+    const confirmed = new Set(
+      Array.isArray(raw?.iep_prerequisites) ? raw.iep_prerequisites : []
+    );
+    const next: Record<string, boolean> = {};
+    opts.forEach((label) => {
+      next[label] = confirmed.has(label);
+    });
+    setEditIepConfirmed(next);
+    const cc = raw?.collaborator_checklist;
+    setEditCollaboratorChecklist(
+      typeof cc === "object" && cc && !Array.isArray(cc) ? { ...cc } : {},
+    );
+    // Only id + dialog: checklist/category objects change identity often and can cause effect churn.
+  }, [isEditDialogOpen, selectedTask?.id]);
 
   // Open create-task dialog immediately when routed here with ?openModal=true (do not wait for
   // fetchTasks or strip the URL until close — avoids Strict Mode / async races where no modal appears).
@@ -210,6 +347,14 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
       setNewTask((prev) => ({ ...prev, selected_event_id: targetEventId }));
     }
   }, [searchParams, eventId]);
+
+  useEffect(() => {
+    const onRefetchTasks = () => {
+      void fetchTasks();
+    };
+    window.addEventListener("iep-refetch-tasks", onRefetchTasks);
+    return () => window.removeEventListener("iep-refetch-tasks", onRefetchTasks);
+  }, [eventId, selectedEventFilter]);
 
   useEffect(() => {
     let isMounted = true;
@@ -231,7 +376,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
     return () => {
       isMounted = false;
     };
-  }, [eventId, selectedEventFilter, showArchived]);
+  }, [eventId, selectedEventFilter]);
 
   const fetchUsers = async () => {
     try {
@@ -301,8 +446,8 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         query = query.eq('event_id', selectedEventFilter);
       }
       
-      // Filter by archived status
-      query = query.eq('archived', showArchived);
+      // Per business rules: archive is at event level only; never list task-archived rows here.
+      query = query.eq("archived", false);
       
       const { data, error } = await query;
       if (error) throw error;
@@ -314,9 +459,13 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
       const archivedIds = new Set<string>();
       if (!archErr) (archivedEv || []).forEach((e) => archivedIds.add(e.id));
 
-      const rawTasks = (data || []).filter(
-        (t) => !t.event_id || !archivedIds.has(t.event_id)
-      );
+      const rawTasks = (data || [])
+        .filter((t) => !t.event_id || !archivedIds.has(t.event_id))
+        // Client cleanup: hide legacy demo tasks dated in 2025
+        .filter((t) => {
+          if (!t.due_date) return true;
+          return !String(t.due_date).startsWith("2025");
+        });
 
       const tasksWithDependenciesAndAssignments = await Promise.all(
         rawTasks.map(async (task) => {
@@ -717,9 +866,66 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      const categoryValue =
-        newTask.taskCategory?.trim() ||
-        (selectedCollaboratorTypes.length > 0 ? selectedCollaboratorTypes.join(", ") : null);
+      const evId = eventId || newTask.selected_event_id || null;
+      const manualNameTrim = assigneeDisplayName.trim();
+      if (evId && manualNameTrim) {
+        const { data: nameClash } = await supabase
+          .from("tasks")
+          .select("id, title")
+          .eq("event_id", evId)
+          .eq("assigned_coordinator_name", manualNameTrim)
+          .limit(1);
+        if (nameClash && nameClash.length > 0) {
+          toast({
+            title: "Assignee already has a task for this event",
+            description: `Use a different name or re-open "${nameClash[0].title}". Only one primary task per assignee name per event.`,
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+      if (evId && newTask.assigned_user_id) {
+        const { data: userClash } = await supabase
+          .from("tasks")
+          .select("id, title")
+          .eq("event_id", evId)
+          .eq("assigned_to", newTask.assigned_user_id)
+          .limit(1);
+        if (userClash && userClash.length > 0) {
+          toast({
+            title: "This team member already has a task for this event",
+            description: `Existing: "${userClash[0].title}".`,
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+
+      const categoryValue = newTask.taskCategory?.trim() || null;
+      const iepKeys = categoryValue
+        ? getDependencyOptionsForCategories(categoryValue)
+        : [];
+      if (
+        iepKeys.length > 0 &&
+        !iepKeys.every((label) => iepPrerequisitesConfirmed[label])
+      ) {
+        throw new Error("Prerequisites incomplete");
+      }
+      const checklistPayload: Record<string, unknown> | null = (() => {
+        const o: Record<string, unknown> = {};
+        if (iepKeys.length > 0) {
+          o.iep_prerequisites = iepKeys.filter((k) => iepPrerequisitesConfirmed[k]);
+        }
+        const tmpl = categoryValue ? getCollaboratorTemplateForCategory(categoryValue) : null;
+        if (tmpl) {
+          const merged: Record<string, boolean> = {};
+          for (const id of getAllItemIdsForTemplate(tmpl)) {
+            merged[id] = createCollaboratorChecklist[id] ?? false;
+          }
+          o.collaborator_checklist = merged;
+        }
+        return Object.keys(o).length > 0 ? o : null;
+      })();
       const manualName = assigneeDisplayName.trim();
       const pickedUser = newTask.assigned_user_id
         ? users.find((u) => u.userid === newTask.assigned_user_id)
@@ -730,18 +936,15 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         priority: newTask.priority as any,
         estimated_hours: newTask.estimated_hours ? parseFloat(newTask.estimated_hours) : null,
         due_date: overrideDueDate || newTask.due_date || null,
+        start_date: newTask.start_date?.trim() || null,
+        end_date: newTask.end_date?.trim() || null,
         event_id: eventId || newTask.selected_event_id || null,
         created_by: user.id,
         category: categoryValue,
+        checklist: (checklistPayload as unknown as Record<string, unknown> | null) ?? null,
         assigned_to: newTask.assigned_user_id || null,
         assigned_coordinator_name: manualName || null,
         assigned_to_display_name: (pickedUser?.user_name ?? manualName) || null,
-        assigned_bookings_role: trimOrNull(newTask.assigned_bookings_role),
-        assigned_service_rental_role: trimOrNull(newTask.assigned_service_rental_role),
-        assigned_hospitality_role: trimOrNull(newTask.assigned_hospitality_role),
-        assigned_entertainment_role: trimOrNull(newTask.assigned_entertainment_role),
-        assigned_transportation_role: trimOrNull(newTask.assigned_transportation_role),
-        assigned_external_vendor_role: trimOrNull(newTask.assigned_external_vendor_role),
       };
 
       const { data: createdTask, error } = await supabase
@@ -752,13 +955,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
 
       if (error) throw error;
 
-      // Log task creation
-      await supabase.rpc('log_change', {
-        p_entity_type: 'task',
-        p_entity_id: createdTask.id,
-        p_action: 'created',
-        p_description: `Created task: ${taskData.title}`
-      });
+      // Creation is already logged by DB trigger `log_task_changes` on INSERT.
 
       if (newTask.assigned_user_id) {
         const assignedUser = users.find((u) => u.userid === newTask.assigned_user_id);
@@ -783,8 +980,8 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
       setShowDependencyDialog(true);
       
       toast({
-        title: "Task Created",
-        description: "Now add dependencies (optional)",
+        title: "Saved",
+        description: "Task ordering",
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to create task. Please try again.";
@@ -844,10 +1041,35 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
       
       // Remove assigned_user_id and assigned_user_name from updates as they're handled separately
       const { assigned_user_id, assigned_user_name, ...taskUpdates } = updates;
+
+      let toSend: Partial<Task> = { ...taskUpdates };
+
+      if (taskUpdates.status === "in_progress" && originalTask) {
+        const merged = mergeTaskChecklistJson(taskUpdates.checklist ?? originalTask.checklist, {
+          collaborator_required: true,
+        });
+        toSend.checklist = merged as Task["checklist"];
+      }
+
+      if (taskUpdates.status === "completed" && originalTask) {
+        const previewChecklist = (toSend.checklist ?? taskUpdates.checklist ?? originalTask.checklist) as Task["checklist"];
+        const gate = canMarkTaskCompleted({
+          category: updates.category ?? originalTask.category,
+          checklist: previewChecklist as Record<string, unknown> | null,
+        });
+        if (!gate.ok) {
+          toast({
+            title: "Collaborator checklist incomplete",
+            description: gate.reason,
+            variant: "destructive",
+          });
+          return;
+        }
+      }
       
       const { error } = await supabase
         .from('tasks')
-        .update(taskUpdates)
+        .update(toSend)
         .eq('id', taskId);
 
       if (error) throw error;
@@ -897,8 +1119,8 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         await updateTaskAssignment(taskId, assigned_user_id, originalTask?.assigned_user_id);
       }
 
-      setTasks(tasks.map(task => 
-        task.id === taskId ? { ...task, ...updates } : task
+      setTasks(tasks.map((task) =>
+        task.id === taskId ? { ...task, ...updates, ...toSend } : task,
       ));
 
       toast({
@@ -969,6 +1191,33 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
     affectedTasks: Array<{id: string, title: string, currentDueDate: string, newDueDate: string}>
   ) => {
     try {
+      const catTrim = taskToUpdate.category?.trim();
+      const iepOpts = catTrim ? getDependencyOptionsForCategories(catTrim) : [];
+      if (iepOpts.length > 0 && !iepOpts.every((label) => editIepConfirmed[label])) {
+        toast({
+          title: "Prerequisites",
+          description: "Check all items",
+          variant: "destructive",
+        });
+        return;
+      }
+      const checklistUpdate = mergeTaskChecklistJson(taskToUpdate.checklist, {
+        iep_prerequisites: iepOpts.length ? iepOpts.filter((label) => editIepConfirmed[label]) : undefined,
+        collaborator_checklist: editCollaboratorChecklist,
+        collaborator_required: ["in_progress", "on_hold", "completed"].includes(taskToUpdate.status)
+          ? true
+          : false,
+      });
+      if (taskToUpdate.status === "completed") {
+        const gate = canMarkTaskCompleted({
+          category: taskToUpdate.category,
+          checklist: checklistUpdate,
+        });
+        if (!gate.ok) {
+          toast({ title: "Cannot complete task", description: gate.reason, variant: "destructive" });
+          return;
+        }
+      }
       // Update the main task first
       await updateTask(taskToUpdate.id, {
         title: taskToUpdate.title,
@@ -978,6 +1227,8 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         estimated_hours: taskToUpdate.estimated_hours,
         due_date: taskToUpdate.due_date,
         category: taskToUpdate.category,
+        status: taskToUpdate.status,
+        checklist: checklistUpdate as Task["checklist"],
         assigned_bookings_role: trimOrNull(taskToUpdate.assigned_bookings_role ?? undefined),
         assigned_service_rental_role: trimOrNull(taskToUpdate.assigned_service_rental_role ?? undefined),
         assigned_hospitality_role: trimOrNull(taskToUpdate.assigned_hospitality_role ?? undefined),
@@ -1022,6 +1273,33 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
 
   const executeUpdateTask = async (taskToUpdate: Task, overrideDueDate?: string) => {
     try {
+      const catTrim = taskToUpdate.category?.trim();
+      const iepOpts = catTrim ? getDependencyOptionsForCategories(catTrim) : [];
+      if (iepOpts.length > 0 && !iepOpts.every((label) => editIepConfirmed[label])) {
+        toast({
+          title: "Prerequisites",
+          description: "Check all items",
+          variant: "destructive",
+        });
+        return;
+      }
+      const checklistUpdate = mergeTaskChecklistJson(taskToUpdate.checklist, {
+        iep_prerequisites: iepOpts.length ? iepOpts.filter((label) => editIepConfirmed[label]) : undefined,
+        collaborator_checklist: editCollaboratorChecklist,
+        collaborator_required: ["in_progress", "on_hold", "completed"].includes(taskToUpdate.status)
+          ? true
+          : false,
+      });
+      if (taskToUpdate.status === "completed") {
+        const gate = canMarkTaskCompleted({
+          category: taskToUpdate.category,
+          checklist: checklistUpdate,
+        });
+        if (!gate.ok) {
+          toast({ title: "Cannot complete task", description: gate.reason, variant: "destructive" });
+          return;
+        }
+      }
       await updateTask(taskToUpdate.id, {
         title: taskToUpdate.title,
         description: taskToUpdate.description,
@@ -1030,6 +1308,8 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         estimated_hours: taskToUpdate.estimated_hours,
         due_date: overrideDueDate || taskToUpdate.due_date,
         category: taskToUpdate.category,
+        status: taskToUpdate.status,
+        checklist: checklistUpdate as Task["checklist"],
         assigned_bookings_role: trimOrNull(taskToUpdate.assigned_bookings_role ?? undefined),
         assigned_service_rental_role: trimOrNull(taskToUpdate.assigned_service_rental_role ?? undefined),
         assigned_hospitality_role: trimOrNull(taskToUpdate.assigned_hospitality_role ?? undefined),
@@ -1142,39 +1422,43 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
     }
   };
 
-  const archiveTask = async (taskId: string, archived: boolean) => {
+  /** Admin-only: align old default task descriptions with current assignee wording (client data cleanup). */
+  const migrateLegacyTaskDescriptions = async () => {
+    if (!user?.id) {
+      toast({ title: "Sign in required", variant: "destructive" });
+      return;
+    }
+    const ok = window.confirm(
+      "Normalize legacy task descriptions?\n\n" +
+        "Any tasks whose description is still the old default (assign responsibilities / coordinator) will be updated to:\n" +
+        `"${LEGACY_TASK_DESCRIPTION_TARGET}"\n\n` +
+        "Applies to rows your account can update. Continue?",
+    );
+    if (!ok) return;
+    setIsMigratingLegacyDescriptions(true);
     try {
-      const task = tasks.find(t => t.id === taskId);
-      
       const { error } = await supabase
-        .from('tasks')
-        .update({ archived })
-        .eq('id', taskId);
+        .from("tasks")
+        .update({ description: LEGACY_TASK_DESCRIPTION_TARGET })
+        .in("description", [...LEGACY_TASK_DESCRIPTION_SOURCES]);
 
       if (error) throw error;
 
-      // Log archive/restore action
-      await supabase.rpc('log_change', {
-        p_entity_type: 'task',
-        p_entity_id: taskId,
-        p_action: archived ? 'archived' : 'restored',
-        p_description: archived 
-          ? `Archived task: ${task?.title || 'Unknown'}`
-          : `Restored task: ${task?.title || 'Unknown'}`
-      });
-
       toast({
-        title: archived ? "Task archived" : "Task restored",
-        description: archived ? "Task has been archived." : "Task has been restored.",
+        title: "Descriptions normalized",
+        description: "Legacy default copy was updated where it matched.",
       });
-
-      fetchTasks();
-    } catch (error) {
+      await fetchTasks();
+      await fetchAvailableTasks();
+    } catch (e) {
+      console.error(e);
       toast({
-        title: "Error updating task",
-        description: "Failed to update task.",
+        title: "Could not update descriptions",
+        description: e instanceof Error ? e.message : "Try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsMigratingLegacyDescriptions(false);
     }
   };
 
@@ -1182,65 +1466,62 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
     return <div className="flex justify-center py-8">Loading tasks...</div>;
   }
 
+  const changelogEventId =
+    searchParams.get("eventId") ||
+    eventId ||
+    (selectedEventFilter && selectedEventFilter !== "all" ? selectedEventFilter : "");
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <h2 className="text-2xl font-bold">Task Management</h2>
-          <Button
-            variant="outline"
-            onClick={() => setShowArchived(!showArchived)}
-            className="flex items-center gap-2"
+      {!embedInManageEvent && changelogEventId ? (
+        <p className="text-sm text-muted-foreground">
+          For a running list of what changed on this event, open{" "}
+          <RouterLink
+            to={`/dashboard/manage-event?eventId=${changelogEventId}`}
+            className="text-primary font-medium underline-offset-4 hover:underline"
           >
-            {showArchived ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            {showArchived ? "Hide Archived" : "Show Archived"}
-          </Button>
-          <Button
-            variant="secondary"
-            onClick={applyCountdownChecklist}
-            disabled={!effectiveEventIdForCountdown || isApplyingCountdown}
-            className="flex items-center gap-2 text-xs"
-            title="Add PDF-style 90/60/30-day tasks based on the event start date"
-          >
-            <Calendar className="h-4 w-4" />
-            {isApplyingCountdown ? "Adding…" : "90/60/30 checklist"}
-          </Button>
-          <Button
-            variant="outline"
-            onClick={async () => {
-              try {
-                // Update all tasks with old description text
-                const { error } = await supabase
-                  .from('tasks')
-                  .update({ description: 'Enter task collaborator name' })
-                  .in('description', [
-                    'Assign task responsibilities',
-                    'Assign coordinator responsibility', 
-                    'Assign tasks to team members'
-                  ]);
-
-                if (error) throw error;
-
-                toast({
-                  title: "Descriptions updated",
-                  description: "Task descriptions have been updated successfully.",
-                });
-
-                fetchTasks();
-              } catch (error) {
-                console.error('Error updating descriptions:', error);
-                toast({
-                  title: "Error",
-                  description: "Failed to update task descriptions.",
-                  variant: "destructive",
-                });
-              }
-            }}
-            className="flex items-center gap-2 text-xs"
-          >
-            Update Old Descriptions
-          </Button>
+            Manage Event
+          </RouterLink>{" "}
+          and use <strong>Change Log</strong>.
+        </p>
+      ) : null}
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="space-y-1 min-w-0 flex-1">
+          <h2 className="text-2xl font-bold">
+            {embedInManageEvent ? "Tasks for this event" : "Task Management"}
+          </h2>
+          {!embedInManageEvent ? (
+            <p className="text-xs text-muted-foreground max-w-xl">
+              Archiving is at the <strong>event</strong> level (Manage Event), not per task.
+            </p>
+          ) : null}
+          <div className="flex flex-wrap items-center gap-2 pt-2">
+            <Button
+              variant="secondary"
+              onClick={applyCountdownChecklist}
+              disabled={!effectiveEventIdForCountdown || isApplyingCountdown}
+              className="flex items-center gap-2 text-xs"
+              title="Add standard reminder tasks 90, 60, and 30 days before the event start date"
+            >
+              <Calendar className="h-4 w-4" />
+              {isApplyingCountdown ? "Adding…" : "90 / 60 / 30 day reminders"}
+            </Button>
+            {!embedInManageEvent && userRoles.includes("admin") ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={isMigratingLegacyDescriptions}
+                className="text-xs"
+                title="Admin: replace old default task descriptions with current assignee wording"
+                onClick={() => void migrateLegacyTaskDescriptions()}
+              >
+                {isMigratingLegacyDescriptions ? "Updating…" : "Normalize legacy task descriptions"}
+              </Button>
+            ) : null}
+          </div>
         </div>
+        {!embedInManageEvent ? (
         <Dialog open={isCreateDialogOpen} onOpenChange={(open) => {
           if (!open) {
             // Only clear validation errors and search term when closing
@@ -1263,15 +1544,11 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
               Add task assignment
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Add task assignment</DialogTitle>
-              <p className="text-sm text-muted-foreground font-normal">
-                Same form as Project Management → Tasks (Deliverable 1).
-              </p>
             </DialogHeader>
-            <div className="grid grid-cols-1 gap-6 max-w-2xl">
-              <div className="space-y-4">
+            <div className="space-y-4 w-full max-w-3xl">
                 {!eventId && events.length > 0 && (
                   <div className="space-y-2">
                     <Label htmlFor="event">Select Project/Event *</Label>
@@ -1294,7 +1571,10 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                         <SelectItem value="__none__">Choose a project/event</SelectItem>
                         {events.map((event) => (
                           <SelectItem key={event.id} value={event.id}>
-                            {event.title} {event.start_date && `(${format(new Date(event.start_date), 'MMM d, yyyy')})`}
+                            {event.title}
+                            {event.start_date &&
+                              ` (${format(new Date(event.start_date), "MMM d, yyyy")})`}
+                            <span className="text-muted-foreground">{` · ${eventSelectLifecycleLabel(event)}`}</span>
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -1306,23 +1586,116 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                 )}
 
                 <div className="space-y-2">
-                  <Label htmlFor="title">Task Title *</Label>
-                  <Input
-                    id="title"
-                    placeholder="Enter task title"
-                    value={newTask.title}
-                    onChange={(e) => {
-                      setNewTask({ ...newTask, title: e.target.value });
+                  <Label htmlFor="task-title-preset">Task title *</Label>
+                  <Select
+                    value={
+                      newTask.taskTitleSelect
+                        ? newTask.taskTitleSelect
+                        : TASK_CATEGORY_NONE
+                    }
+                    onValueChange={(value) => {
+                      if (value === TASK_CATEGORY_NONE) {
+                        setNewTask({
+                          ...newTask,
+                          taskTitleSelect: "",
+                          taskCategory: "",
+                          title: "",
+                        });
+                        return;
+                      }
+                      if (value === TASK_TITLE_CUSTOM) {
+                        setNewTask({
+                          ...newTask,
+                          taskTitleSelect: TASK_TITLE_CUSTOM,
+                          taskCategory: "",
+                          title: "",
+                        });
+                        return;
+                      }
+                      const cat = TASK_ASSIGNMENT_CATEGORIES.find((c) => c.value === value);
+                      setNewTask({
+                        ...newTask,
+                        taskTitleSelect: value,
+                        taskCategory: value,
+                        title: cat?.label ?? newTask.title,
+                      });
                       setValidationErrors({ ...validationErrors, title: "" });
                     }}
-                    className={validationErrors.title ? "border-destructive" : ""}
-                    maxLength={200}
-                  />
+                  >
+                    <SelectTrigger id="task-title-preset" className={validationErrors.title ? "border-destructive" : ""}>
+                      <SelectValue placeholder="Select task title" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={TASK_CATEGORY_NONE}>Select…</SelectItem>
+                      {TASK_ASSIGNMENT_CATEGORIES.map((c) => (
+                        <SelectItem key={c.value} value={c.value}>
+                          {c.label}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value={TASK_TITLE_CUSTOM}>Custom title…</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {newTask.taskTitleSelect === TASK_TITLE_CUSTOM && (
+                    <>
+                      <Input
+                        id="title"
+                        className="mt-2"
+                        placeholder="Enter custom task title"
+                        value={newTask.title}
+                        onChange={(e) => {
+                          setNewTask({ ...newTask, title: e.target.value });
+                          setValidationErrors({ ...validationErrors, title: "" });
+                        }}
+                        maxLength={200}
+                      />
+                      <p className="text-xs text-muted-foreground">{newTask.title.length}/200 characters</p>
+                    </>
+                  )}
                   {validationErrors.title && (
                     <p className="text-sm text-destructive">{validationErrors.title}</p>
                   )}
-                  <p className="text-xs text-muted-foreground">{newTask.title.length}/200 characters</p>
                 </div>
+
+                {newTask.taskTitleSelect === TASK_TITLE_CUSTOM ? (
+                  <div className="space-y-2">
+                    <Label id="assignment-category-custom">Assignment categories *</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Select all that apply. Prerequisites below combine across selected categories.
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-52 overflow-y-auto rounded-md border p-3">
+                      {TASK_ASSIGNMENT_CATEGORIES.map((c) => {
+                        const selected = new Set(
+                          newTask.taskCategory.split(",").map((s) => s.trim()).filter(Boolean)
+                        );
+                        const checked = selected.has(c.value);
+                        return (
+                          <div key={c.value} className="flex items-start gap-2">
+                            <Checkbox
+                              id={`assign-cat-${c.value}`}
+                              checked={checked}
+                              onCheckedChange={(v) =>
+                                setNewTask({
+                                  ...newTask,
+                                  taskCategory: toggleCategoryCsv(
+                                    newTask.taskCategory,
+                                    c.value,
+                                    v === true
+                                  ),
+                                })
+                              }
+                            />
+                            <label
+                              htmlFor={`assign-cat-${c.value}`}
+                              className="text-sm leading-snug cursor-pointer"
+                            >
+                              {c.label}
+                            </label>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : null}
                 
                 <div className="space-y-2">
                   <Label htmlFor="description">Description</Label>
@@ -1344,145 +1717,125 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                   <p className="text-xs text-muted-foreground">{newTask.description.length}/1000 characters</p>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="priority">Priority</Label>
-                  <Select value={newTask.priority} onValueChange={(value: any) => setNewTask({ ...newTask, priority: value })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="low">Low</SelectItem>
-                      <SelectItem value="medium">Medium</SelectItem>
-                      <SelectItem value="high">High</SelectItem>
-                      <SelectItem value="urgent">Urgent</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="priority">Priority</Label>
+                    <Select value={newTask.priority} onValueChange={(value: any) => setNewTask({ ...newTask, priority: value })}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="low">Low</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="high">High</SelectItem>
+                        <SelectItem value="urgent">Urgent</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="hours">Estimated Hours</Label>
+                    <Input
+                      id="hours"
+                      type="number"
+                      step="0.5"
+                      min="0"
+                      placeholder="0.0"
+                      value={newTask.estimated_hours}
+                      onChange={(e) => {
+                        setNewTask({ ...newTask, estimated_hours: e.target.value });
+                        setValidationErrors({ ...validationErrors, estimated_hours: "" });
+                      }}
+                      className={validationErrors.estimated_hours ? "border-destructive" : ""}
+                    />
+                    {validationErrors.estimated_hours && (
+                      <p className="text-sm text-destructive">{validationErrors.estimated_hours}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="start_date">Start date</Label>
+                    <Input
+                      id="start_date"
+                      type="date"
+                      value={newTask.start_date}
+                      onChange={(e) => setNewTask({ ...newTask, start_date: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="end_date">End date</Label>
+                    <Input
+                      id="end_date"
+                      type="date"
+                      value={newTask.end_date}
+                      onChange={(e) => setNewTask({ ...newTask, end_date: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="due_date">Due date</Label>
+                    <Input
+                      id="due_date"
+                      type="datetime-local"
+                      value={newTask.due_date}
+                      onChange={(e) => setNewTask({ ...newTask, due_date: e.target.value })}
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="task-category">Assignment category</Label>
-                  <Select
-                    value={newTask.taskCategory ? newTask.taskCategory : TASK_CATEGORY_NONE}
-                    onValueChange={(value) =>
-                      setNewTask({
-                        ...newTask,
-                        taskCategory: value === TASK_CATEGORY_NONE ? "" : value,
-                      })
-                    }
-                  >
-                    <SelectTrigger id="task-category">
-                      <SelectValue placeholder="Select category (optional)" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={TASK_CATEGORY_NONE}>General</SelectItem>
-                      {TASK_ASSIGNMENT_CATEGORIES.map((c) => (
-                        <SelectItem key={c.value} value={c.value}>
-                          {c.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="hours">Estimated Hours</Label>
-                  <Input
-                    id="hours"
-                    type="number"
-                    step="0.5"
-                    min="0"
-                    placeholder="0.0"
-                    value={newTask.estimated_hours}
-                    onChange={(e) => {
-                      setNewTask({ ...newTask, estimated_hours: e.target.value });
-                      setValidationErrors({ ...validationErrors, estimated_hours: "" });
-                    }}
-                    className={validationErrors.estimated_hours ? "border-destructive" : ""}
-                  />
-                  {validationErrors.estimated_hours && (
-                    <p className="text-sm text-destructive">{validationErrors.estimated_hours}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="due_date">Due Date</Label>
-                  <Input
-                    id="due_date"
-                    type="datetime-local"
-                    value={newTask.due_date}
-                    onChange={(e) => setNewTask({ ...newTask, due_date: e.target.value })}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="assignee-name">Assignee name (manual)</Label>
+                  <Label htmlFor="assignee-name">Task assigned to (name)</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Enter the assignee name manually. One primary task per assignee name per event.
+                  </p>
                   <Input
                     id="assignee-name"
-                    placeholder="Enter assignee name if not using directory user"
+                    placeholder="Full name"
                     value={assigneeDisplayName}
                     onChange={(e) => setAssigneeDisplayName(e.target.value)}
                     maxLength={120}
                   />
                 </div>
 
-                <div className="space-y-3 border-t pt-4">
-                  <p className="text-sm font-medium">Functional role notes (optional)</p>
-                  <p className="text-xs text-muted-foreground">
-                    Short notes on who covers each functional area for this task (saved on the task row).
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {TASK_ROLE_FORM_FIELDS.map(({ field, label }) => (
-                      <div key={field} className="space-y-1">
-                        <Label htmlFor={`create-${field}`} className="text-xs text-muted-foreground">
-                          {label}
-                        </Label>
-                        <Input
-                          id={`create-${field}`}
-                          placeholder="Optional"
-                          value={newTask[field]}
-                          onChange={(e) => setNewTask({ ...newTask, [field]: e.target.value })}
-                          maxLength={200}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Task Assignments selection */}
-                <div className="space-y-2">
-                  <Label>Collaborator checklist (multi-select)</Label>
-                  <div className="max-h-48 overflow-y-auto space-y-2 border rounded-md p-2">
-                    {COLLABORATOR_TYPE_OPTIONS.map(({ value, label }) => (
-                      <div key={value} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`collab-${value}`}
-                          checked={selectedCollaboratorTypes.includes(value)}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setSelectedCollaboratorTypes([...selectedCollaboratorTypes, value]);
-                            } else {
-                              setSelectedCollaboratorTypes(selectedCollaboratorTypes.filter(t => t !== value));
+                {iepCreateOptions.length > 0 ? (
+                  <div className="space-y-3 rounded-md border border-amber-200/80 bg-amber-50/50 p-3 dark:bg-amber-950/20">
+                    <Label className="text-base">Prerequisites (required)</Label>
+                    <div className="space-y-2 max-h-56 overflow-y-auto">
+                      {iepCreateOptions.map((label) => (
+                        <div key={label} className="flex items-start gap-2">
+                          <Checkbox
+                            id={`iep-create-${label}`}
+                            checked={iepPrerequisitesConfirmed[label] === true}
+                            onCheckedChange={(checked) =>
+                              setIepPrerequisitesConfirmed((prev) => ({
+                                ...prev,
+                                [label]: checked === true,
+                              }))
                             }
-                            setNewTask({ ...newTask, assigned_user_id: "" });
-                          }}
-                        />
-                        <label htmlFor={`collab-${value}`} className="text-sm font-medium leading-none cursor-pointer">
-                          {label}
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                  {selectedCollaboratorTypes.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {selectedCollaboratorTypes.map(type => (
-                        <Badge key={type} variant="secondary" className="text-xs">
-                          {type}
-                        </Badge>
+                          />
+                          <label htmlFor={`iep-create-${label}`} className="text-sm leading-snug cursor-pointer">
+                            {label}
+                          </label>
+                        </div>
                       ))}
                     </div>
-                  )}
-                </div>
-              </div>
+                  </div>
+                ) : null}
+
+                {(() => {
+                  const tmpl = newTask.taskCategory?.trim()
+                    ? getCollaboratorTemplateForCategory(newTask.taskCategory)
+                    : null;
+                  return tmpl ? (
+                    <CollaboratorChecklistSection
+                      template={tmpl}
+                      taskStatus="not_started"
+                      forceEditable
+                      state={createCollaboratorChecklist}
+                      onChange={setCreateCollaboratorChecklist}
+                    />
+                  ) : null;
+                })()}
             </div>
             
             <div className="mt-6 flex gap-3">
@@ -1496,10 +1849,13 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     priority: "medium" as const,
                     estimated_hours: "",
                     due_date: "",
+                    start_date: "",
+                    end_date: "",
                     selected_event_id: "",
                     dependencies: [] as string[],
                     assigned_role: "",
                     taskCategory: "",
+                    taskTitleSelect: "",
                     assigned_bookings_role: "",
                     assigned_service_rental_role: "",
                     assigned_hospitality_role: "",
@@ -1508,7 +1864,8 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     assigned_external_vendor_role: "",
                   });
                   setAssigneeDisplayName("");
-                  setSelectedCollaboratorTypes([]);
+                  setIepPrerequisitesConfirmed({});
+                  setCreateCollaboratorChecklist({});
                   setValidationErrors({});
                   setShouldPreserveForm(false);
                   toast({
@@ -1531,6 +1888,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
             </div>
           </DialogContent>
         </Dialog>
+        ) : null}
       </div>
 
 
@@ -1538,7 +1896,11 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         <div className="text-center py-8">Loading tasks...</div>
       ) : tasks.length === 0 ? (
         <div className="text-center py-8">
-          <p className="text-muted-foreground">No tasks yet. Create your first task to get started!</p>
+          <p className="text-muted-foreground">
+            {embedInManageEvent
+              ? "No tasks yet. Use Add task assignment above (same form as Project Management) or open Project Management."
+              : "No tasks yet. Create your first task to get started!"}
+          </p>
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -1555,9 +1917,16 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                 }}
               >
                 <CardHeader className="pb-2">
-                  <div className="flex items-start justify-between">
-                    <CardTitle className="text-base">{task.title}</CardTitle>
-                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 space-y-1">
+                      <CardTitle className="text-base">{task.title}</CardTitle>
+                      {taskCategoryDisplayLabel(task.category) ? (
+                        <Badge variant="secondary" className="text-[10px] font-normal max-w-full truncate">
+                          {taskCategoryDisplayLabel(task.category)}
+                        </Badge>
+                      ) : null}
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
                       <Select 
                         value={task.priority} 
                         onValueChange={(value: 'low' | 'medium' | 'high' | 'urgent') => 
@@ -1606,16 +1975,17 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                                     <User className="h-3 w-3" />
                                     <span>
                                       {task.assigned_user_name ||
-                                        task.assigned_role?.replace("_", " ") ||
+                                        task.assigned_role?.replace(/_/g, " ") ||
                                         task.assigned_coordinator_name ||
                                         task.assigned_to_display_name}
                                     </span>
                                   </div>
                                 )}
 
+                {!embedInManageEvent ? (
                 <div className="border-t pt-3 mt-3 space-y-2" onClick={(e) => e.stopPropagation()}>
                   <p className="text-xs font-semibold text-foreground">
-                    {task.assigned_coordinator_name ? "Assign Collaborator to" : "Assign Collaborator task to"}
+                    {task.assigned_coordinator_name ? "Assign team member to" : "Assign team member to task"}
                   </p>
                   {task.assigned_coordinator_name && !cardCollaboratorInput[task.id] ? (
                     <div className="flex items-center justify-between gap-2 bg-blue-50 dark:bg-blue-950/30 px-3 py-2 rounded border border-blue-200 dark:border-blue-800">
@@ -1638,7 +2008,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                   ) : (
                     <div className="flex flex-col gap-2">
                       <Input
-                        placeholder="Enter task collaborator name"
+                        placeholder="Enter team member name"
                         value={cardCollaboratorInput[task.id] || ""}
                         onChange={(e) => {
                           e.stopPropagation();
@@ -1668,17 +2038,17 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                               if (error) throw error;
 
                               toast({
-                                title: "Collaborator assigned",
+                                title: "Team member assigned",
                                 description: `${collaboratorName} has been assigned to this task.`,
                               });
 
                               setCardCollaboratorInput({ ...cardCollaboratorInput, [task.id]: "" });
                               fetchTasks();
                             } catch (error) {
-                              console.error('Error assigning collaborator:', error);
+                              console.error('Error assigning team member:', error);
                               toast({
                                 title: "Error",
-                                description: "Failed to assign collaborator.",
+                                description: "Failed to assign team member.",
                                 variant: "destructive",
                               });
                             } finally {
@@ -1705,6 +2075,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     </div>
                   )}
                 </div>
+                ) : null}
 
                                 {task.estimated_hours && (
                                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -1726,27 +2097,6 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                       <span>{task.dependencies.length} dep{task.dependencies.length > 1 ? 's' : ''}</span>
                     </div>
                   )}
-
-                  <div className="flex items-center gap-2 pt-1" onClick={(e) => e.stopPropagation()}>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => archiveTask(task.id, !task.archived)}
-                      className="flex items-center gap-1 h-7 text-xs"
-                    >
-                      {task.archived ? (
-                        <>
-                          <ArchiveRestore className="h-3 w-3" />
-                          Restore
-                        </>
-                      ) : (
-                        <>
-                          <Archive className="h-3 w-3" />
-                          Archive
-                        </>
-                      )}
-                    </Button>
-                  </div>
                 </CardContent>
               </Card>
             );
@@ -1765,14 +2115,11 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
           }
           setIsEditDialogOpen(open);
         }}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Edit task assignment</DialogTitle>
-              <p className="text-sm text-muted-foreground font-normal">
-                Single-column form (Deliverable 1): no duplicated left/right fields.
-              </p>
             </DialogHeader>
-            <div className="space-y-4 max-w-2xl">
+            <div className="space-y-4 w-full">
               <div className="space-y-2">
                 <Label htmlFor="edit-title">Task Title</Label>
                 <Input
@@ -1813,6 +2160,27 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
               </div>
 
               <div className="space-y-2">
+                <Label htmlFor="edit-status">Status</Label>
+                <Select
+                  value={selectedTask.status}
+                  onValueChange={(value: Task["status"]) =>
+                    setSelectedTask({ ...selectedTask, status: value })
+                  }
+                >
+                  <SelectTrigger id="edit-status">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="not_started">Not Started</SelectItem>
+                    <SelectItem value="in_progress">In Progress</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="on_hold">On Hold</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="edit-task-category">Assignment category</Label>
                 <Select
                   value={
@@ -1822,12 +2190,19 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                       ? selectedTask.category!.trim()
                       : TASK_CATEGORY_NONE
                   }
-                  onValueChange={(value) =>
+                  onValueChange={(value) => {
+                    const cat = value === TASK_CATEGORY_NONE ? undefined : value;
                     setSelectedTask({
                       ...selectedTask,
-                      category: value === TASK_CATEGORY_NONE ? undefined : value,
-                    })
-                  }
+                      category: cat,
+                    });
+                    const opts = cat?.trim() ? getDependencyOptionsForCategories(cat) : [];
+                    const next: Record<string, boolean> = {};
+                    opts.forEach((label) => {
+                      next[label] = false;
+                    });
+                    setEditIepConfirmed(next);
+                  }}
                 >
                   <SelectTrigger id="edit-task-category">
                     <SelectValue placeholder="General" />
@@ -1842,11 +2217,52 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                   </SelectContent>
                 </Select>
                 {selectedTask.category?.includes(",") ? (
-                  <p className="text-xs text-muted-foreground">
-                    Current combined categories: {selectedTask.category}. Choose one primary above to replace, or save to keep as-is.
-                  </p>
+                  <p className="text-xs text-muted-foreground">{selectedTask.category}</p>
                 ) : null}
               </div>
+
+              {(selectedTask.category?.trim()
+                ? getDependencyOptionsForCategories(selectedTask.category)
+                : []
+              ).length > 0 ? (
+                <div className="space-y-3 rounded-md border border-amber-200/80 bg-amber-50/50 p-3 dark:bg-amber-950/20">
+                  <Label className="text-base">Prerequisites (required)</Label>
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {(selectedTask.category?.trim()
+                      ? getDependencyOptionsForCategories(selectedTask.category)
+                      : []
+                    ).map((label) => (
+                      <div key={label} className="flex items-start gap-2">
+                        <Checkbox
+                          id={`iep-edit-${label}`}
+                          checked={editIepConfirmed[label] === true}
+                          onCheckedChange={(checked) =>
+                            setEditIepConfirmed((prev) => ({
+                              ...prev,
+                              [label]: checked === true,
+                            }))
+                          }
+                        />
+                        <label htmlFor={`iep-edit-${label}`} className="text-sm leading-snug cursor-pointer">
+                          {label}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {(() => {
+                const colTmpl = getCollaboratorTemplateForCategory(selectedTask.category);
+                return colTmpl ? (
+                  <CollaboratorChecklistSection
+                    template={colTmpl}
+                    taskStatus={selectedTask.status}
+                    state={editCollaboratorChecklist}
+                    onChange={setEditCollaboratorChecklist}
+                  />
+                ) : null;
+              })()}
 
               <div className="space-y-2">
                 <Label htmlFor="edit-hours">Estimated Hours</Label>
@@ -1882,13 +2298,13 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
 
               <div className="space-y-2 p-3 border border-blue-200 rounded-lg bg-blue-50">
                 <Label htmlFor="edit-coordinator-name" className="text-base font-semibold">
-                  Assign collaborator (manual name)
+                  Task assigned to (name)
                 </Label>
-                <p className="text-xs text-muted-foreground">Enter task collaborator&apos;s name</p>
+                <p className="text-xs text-muted-foreground">Enter the team member or assignee name manually.</p>
                 <div className="flex gap-2">
                   <Input
                     id="edit-coordinator-name"
-                    placeholder="Enter task collaborator's name"
+                    placeholder="Enter team member name"
                     value={editCoordinatorName || selectedTask.assigned_coordinator_name || ""}
                     onChange={(e) => setEditCoordinatorName(e.target.value)}
                     maxLength={100}
@@ -1969,17 +2385,14 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
               {availableTasks.filter((task) => task.id !== selectedTask.id).length > 0 ? (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label>Task dependencies</Label>
+                    <Label>Depends on</Label>
                     <span className="text-xs text-muted-foreground">
                       {selectedDependencies.length} of{" "}
                       {availableTasks.filter((t) => t.id !== selectedTask.id).length} selected
                     </span>
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    Select tasks that must be completed before this task can start.
-                  </p>
                   <Input
-                    placeholder="Search by title, description, or assignee..."
+                    placeholder="Search…"
                     value={dependencySearchTerm}
                     onChange={(e) => setDependencySearchTerm(e.target.value)}
                     className="mb-2"
@@ -1990,14 +2403,19 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        const filteredTasks = availableTasks.filter(
-                          (task) =>
-                            task.id !== selectedTask.id &&
-                            (task.title.toLowerCase().includes(dependencySearchTerm.toLowerCase()) ||
-                              (task.assigned_user_name || "")
-                                .toLowerCase()
-                                .includes(dependencySearchTerm.toLowerCase())),
-                        );
+                        const q = dependencySearchTerm.toLowerCase();
+                        const filteredTasks = availableTasks.filter((task) => {
+                          if (task.id === selectedTask.id) return false;
+                          if (!q) return true;
+                          return (
+                            task.title.toLowerCase().includes(q) ||
+                            (task.assigned_user_name || "").toLowerCase().includes(q) ||
+                            (task.category || "")
+                              .toLowerCase()
+                              .split(",")
+                              .some((p) => p.trim().includes(q))
+                          );
+                        });
                         setSelectedDependencies(filteredTasks.map((t) => t.id));
                       }}
                     >
@@ -2009,14 +2427,19 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                   </div>
                   <div className="max-h-48 overflow-y-auto space-y-2 border rounded-md p-2">
                     {availableTasks
-                      .filter(
-                        (task) =>
-                          task.id !== selectedTask.id &&
-                          (task.title.toLowerCase().includes(dependencySearchTerm.toLowerCase()) ||
-                            (task.assigned_user_name || "")
-                              .toLowerCase()
-                              .includes(dependencySearchTerm.toLowerCase())),
-                      )
+                      .filter((task) => {
+                        if (task.id === selectedTask.id) return false;
+                        const q = dependencySearchTerm.toLowerCase();
+                        if (!q) return true;
+                        return (
+                          task.title.toLowerCase().includes(q) ||
+                          (task.assigned_user_name || "").toLowerCase().includes(q) ||
+                          (task.category || "")
+                            .toLowerCase()
+                            .split(",")
+                            .some((p) => p.trim().includes(q))
+                        );
+                      })
                       .map((task) => (
                         <div
                           key={task.id}
@@ -2038,7 +2461,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="text-sm font-medium">{task.title}</span>
                               <Badge variant="outline" className={statusColors[task.status]}>
-                                {task.status.replace("_", " ")}
+                                {(task.status || "").replace(/_/g, " ") || "—"}
                               </Badge>
                             </div>
                             {task.assigned_user_name ? (
@@ -2050,44 +2473,25 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                           </label>
                         </div>
                       ))}
-                    {availableTasks.filter(
-                      (task) =>
-                        task.id !== selectedTask.id &&
-                        (task.title.toLowerCase().includes(dependencySearchTerm.toLowerCase()) ||
-                          (task.assigned_user_name || "")
-                            .toLowerCase()
-                            .includes(dependencySearchTerm.toLowerCase())),
-                    ).length === 0 ? (
+                    {availableTasks.filter((task) => {
+                      if (task.id === selectedTask.id) return false;
+                      const q = dependencySearchTerm.toLowerCase();
+                      if (!q) return true;
+                      return (
+                        task.title.toLowerCase().includes(q) ||
+                        (task.assigned_user_name || "").toLowerCase().includes(q) ||
+                        (task.category || "")
+                          .toLowerCase()
+                          .split(",")
+                          .some((p) => p.trim().includes(q))
+                      );
+                    }).length === 0 ? (
                       <p className="text-sm text-muted-foreground text-center py-4">No tasks found</p>
                     ) : null}
                   </div>
                 </div>
               ) : null}
 
-              <div className="space-y-3 border-t pt-4">
-                <p className="text-sm font-medium">Functional role notes (optional)</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {TASK_ROLE_FORM_FIELDS.map(({ field, label }) => (
-                    <div key={field} className="space-y-1">
-                      <Label htmlFor={`edit-${field}`} className="text-xs text-muted-foreground">
-                        {label}
-                      </Label>
-                      <Input
-                        id={`edit-${field}`}
-                        placeholder="Optional"
-                        value={(selectedTask[field] as string | null | undefined) ?? ""}
-                        onChange={(e) =>
-                          setSelectedTask({
-                            ...selectedTask,
-                            [field]: e.target.value || null,
-                          })
-                        }
-                        maxLength={200}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
             </div>
             
             <div className="mt-6 flex gap-3">
@@ -2110,14 +2514,16 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
         </Dialog>
       )}
 
-      {/* Add Dependencies Dialog - Step 2 of Task Creation */}
+      {/* Task ordering — other tasks that must complete first */}
       <Dialog open={showDependencyDialog} onOpenChange={setShowDependencyDialog}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Add Task Dependencies (Optional)</DialogTitle>
-            <p className="text-sm text-muted-foreground mt-2">
-              Task "{taskForDependencies?.title}" has been created! Now you can add dependencies if needed.
-            </p>
+            <DialogTitle>Task ordering (dependencies)</DialogTitle>
+            <DialogDescription>
+              Choose which other tasks must finish before this one. These are{" "}
+              <strong>task-to-task</strong> dependencies from your planning guidelines — not change requests. Change
+              requests are handled under Manage Event / Project Management.
+            </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4">
@@ -2125,20 +2531,17 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
               <>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label>Select tasks that must be completed first:</Label>
+                    <Label>Depends on</Label>
                     <span className="text-xs text-muted-foreground">
                       {selectedDependencies.length} of {availableTasks.filter(t => t.id !== taskForDependencies?.id).length} selected
                     </span>
                   </div>
                   
                   <Input
-                    placeholder="Search by title, description, assignee, or category (e.g., Bookings)..."
+                    placeholder="Search…"
                     value={dependencySearchTerm}
                     onChange={(e) => setDependencySearchTerm(e.target.value)}
                   />
-                  <p className="text-xs text-muted-foreground">
-                    💡 Tip: Category search only works for tasks created with collaborator types selected
-                  </p>
                   
                   <div className="flex gap-2">
                     <Button
@@ -2146,13 +2549,19 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        const filteredTasks = availableTasks.filter(task => 
-                          task.id !== taskForDependencies?.id && (
-                            task.title.toLowerCase().includes(dependencySearchTerm.toLowerCase()) ||
-                            (task.assigned_user_name || '').toLowerCase().includes(dependencySearchTerm.toLowerCase()) ||
-                            (task.category || '').toLowerCase().includes(dependencySearchTerm.toLowerCase())
-                          )
-                        );
+                        const q = dependencySearchTerm.toLowerCase();
+                        const filteredTasks = availableTasks.filter((task) => {
+                          if (task.id === taskForDependencies?.id) return false;
+                          if (!q) return true;
+                          return (
+                            task.title.toLowerCase().includes(q) ||
+                            (task.assigned_user_name || "").toLowerCase().includes(q) ||
+                            (task.category || "")
+                              .toLowerCase()
+                              .split(",")
+                              .some((p) => p.trim().includes(q))
+                          );
+                        });
                         setSelectedDependencies(filteredTasks.map(t => t.id));
                       }}
                     >
@@ -2171,13 +2580,19 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
 
                 <div className="max-h-96 overflow-y-auto space-y-2 border rounded-md p-3">
                   {availableTasks
-                    .filter(task => 
-                      task.id !== taskForDependencies?.id && (
-                        task.title.toLowerCase().includes(dependencySearchTerm.toLowerCase()) ||
-                        (task.assigned_user_name || '').toLowerCase().includes(dependencySearchTerm.toLowerCase()) ||
-                        (task.category || '').toLowerCase().includes(dependencySearchTerm.toLowerCase())
-                      )
-                    )
+                    .filter((task) => {
+                      if (task.id === taskForDependencies?.id) return false;
+                      const q = dependencySearchTerm.toLowerCase();
+                      if (!q) return true;
+                      return (
+                        task.title.toLowerCase().includes(q) ||
+                        (task.assigned_user_name || "").toLowerCase().includes(q) ||
+                        (task.category || "")
+                          .toLowerCase()
+                          .split(",")
+                          .some((p) => p.trim().includes(q))
+                      );
+                    })
                     .map((task) => (
                       <div key={task.id} className="flex items-start space-x-2 p-2 rounded hover:bg-accent/50 transition-colors">
                         <Checkbox
@@ -2196,7 +2611,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-sm font-medium">{task.title}</span>
                             <Badge variant="outline" className={statusColors[task.status]}>
-                              {task.status.replace('_', ' ')}
+                              {(task.status || "").replace(/_/g, " ") || "—"}
                             </Badge>
                             {task.category && task.category.split(', ').map((cat, idx) => (
                               <Badge key={idx} variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
@@ -2214,26 +2629,25 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                       </div>
                     ))}
                   {(() => {
-                    const filteredTasks = availableTasks.filter(task => 
-                      task.id !== taskForDependencies?.id && (
-                        task.title.toLowerCase().includes(dependencySearchTerm.toLowerCase()) ||
-                        (task.assigned_user_name || '').toLowerCase().includes(dependencySearchTerm.toLowerCase()) ||
-                        (task.category || '').toLowerCase().includes(dependencySearchTerm.toLowerCase())
-                      )
-                    );
+                    const q = dependencySearchTerm.toLowerCase();
+                    const filteredTasks = availableTasks.filter((task) => {
+                      if (task.id === taskForDependencies?.id) return false;
+                      if (!q) return true;
+                      return (
+                        task.title.toLowerCase().includes(q) ||
+                        (task.assigned_user_name || "").toLowerCase().includes(q) ||
+                        (task.category || "")
+                          .toLowerCase()
+                          .split(",")
+                          .some((p) => p.trim().includes(q))
+                      );
+                    });
                     
                     if (filteredTasks.length === 0 && dependencySearchTerm) {
-                      const tasksWithoutCategory = availableTasks.filter(t => t.id !== taskForDependencies?.id && !t.category).length;
                       return (
-                        <div className="text-center py-4 space-y-2">
-                          <p className="text-sm text-muted-foreground">No tasks found matching "{dependencySearchTerm}"</p>
-                          {tasksWithoutCategory > 0 && (
-                            <p className="text-xs text-yellow-600">
-                              💡 {tasksWithoutCategory} task(s) don't have categories. 
-                              Tip: Select collaborator types when creating tasks to enable category search.
-                            </p>
-                          )}
-                        </div>
+                        <p className="text-sm text-muted-foreground text-center py-4">
+                          No results
+                        </p>
                       );
                     }
                     
@@ -2246,13 +2660,8 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                 </div>
               </>
             ) : (
-              <div className="text-center py-8 space-y-3">
-                <p className="text-sm text-muted-foreground">
-                  No other tasks available yet.
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Create more tasks first, then you can add dependencies between them.
-                </p>
+              <div className="text-center py-8">
+                <p className="text-sm text-muted-foreground">No other tasks</p>
               </div>
             )}
           </div>
@@ -2264,7 +2673,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
               onCheckedChange={(checked) => setClearFormAfterSave(checked === true)}
             />
             <label htmlFor="clear-form" className="text-sm text-muted-foreground cursor-pointer">
-              Clear form after saving (uncheck to create similar tasks)
+              Clear form after save
             </label>
           </div>
 
@@ -2287,22 +2696,31 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                     priority: "medium",
                     estimated_hours: "",
                     due_date: "",
+                    start_date: "",
+                    end_date: "",
                     selected_event_id: "",
                     dependencies: [],
-                    assigned_role: ""
+                    assigned_role: "",
+                    taskCategory: "",
+                    taskTitleSelect: "",
+                    assigned_bookings_role: "",
+                    assigned_service_rental_role: "",
+                    assigned_hospitality_role: "",
+                    assigned_entertainment_role: "",
+                    assigned_transportation_role: "",
+                    assigned_external_vendor_role: "",
                   });
-                  setSelectedCollaboratorTypes([]);
+                  setIepPrerequisitesConfirmed({});
                   setClearFormAfterSave(false);
                 }
                 
                 toast({
-                  title: "Task Created",
-                  description: "Task created successfully without dependencies.",
+                  title: "Saved",
                 });
               }}
               className="flex-1"
             >
-              Skip Dependencies
+              Skip
             </Button>
             <Button
               onClick={async () => {
@@ -2328,21 +2746,28 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
                       priority: "medium",
                       estimated_hours: "",
                       due_date: "",
+                      start_date: "",
+                      end_date: "",
                       selected_event_id: "",
                       dependencies: [],
-                      assigned_role: ""
+                      assigned_role: "",
+                      taskCategory: "",
+                      taskTitleSelect: "",
+                      assigned_bookings_role: "",
+                      assigned_service_rental_role: "",
+                      assigned_hospitality_role: "",
+                      assigned_entertainment_role: "",
+                      assigned_transportation_role: "",
+                      assigned_external_vendor_role: "",
                     });
-                    setSelectedCollaboratorTypes([]);
+                    setIepPrerequisitesConfirmed({});
                     setClearFormAfterSave(false);
                   }
                   
                   await fetchTasks();
                   
                   toast({
-                    title: "Dependencies Added",
-                    description: selectedDependencies.length > 0 
-                      ? `${selectedDependencies.length} dependenc${selectedDependencies.length === 1 ? 'y' : 'ies'} added successfully.`
-                      : "Task created successfully.",
+                    title: "Saved",
                   });
                 } catch (error) {
                   console.error('Error saving dependencies:', error);
@@ -2355,7 +2780,7 @@ export function TaskManager({ eventId, selectedEventFilter }: TaskManagerProps) 
               }}
               className="flex-1"
             >
-              Save Dependencies
+              Save
             </Button>
           </div>
         </DialogContent>

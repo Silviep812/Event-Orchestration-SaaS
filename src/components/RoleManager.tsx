@@ -32,12 +32,22 @@ interface User {
 interface Event {
   id: string;
   title: string;
-  start_date: string;
+  start_date?: string | null;
+  end_date?: string | null;
+  status?: string | null;
+  archived?: boolean | null;
   created_at: string;
   organizer_name?: string;
 }
 
-export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilter?: string }) {
+export function RoleManager({
+  selectedEventFilter = "all",
+  showAddTaskShortcut = true,
+}: {
+  selectedEventFilter?: string;
+  /** When false, hides the PM → Add Task card (e.g. Team tab has its own entry points). */
+  showAddTaskShortcut?: boolean;
+}) {
   const [userRoles, setUserRoles] = useState<UserRole[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [usersWithoutRoles, setUsersWithoutRoles] = useState<User[]>([]);
@@ -155,7 +165,7 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
       // Fetch events
       const { data: eventsData, error: eventsError } = await supabase
         .from('events')
-        .select('id, title, start_date, created_at, user_id')
+        .select('id, title, start_date, end_date, status, archived, created_at, user_id')
         .order('created_at', { ascending: false });
 
       if (eventsError) throw eventsError;
@@ -184,6 +194,9 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
             id: event.id,
             title: event.title,
             start_date: event.start_date,
+            end_date: event.end_date,
+            status: event.status,
+            archived: event.archived,
             created_at: event.created_at,
             organizer_name: profilesMap.get(event.user_id) || 'Unknown'
           }));
@@ -568,27 +581,30 @@ export function RoleManager({ selectedEventFilter = "all" }: { selectedEventFilt
         </div>
       )}
 
-      <Card className="mt-8">
-        <CardHeader>
-          <CardTitle>Add task assignment</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Same form as Project Management &gt; Tasks &gt; Add Task. Select an event in the filter at the top of this page first.
-          </p>
-          <Button
-            type="button"
-            disabled={selectedEventFilter === "all"}
-            onClick={() =>
-              navigate(
-                `/dashboard/project-management?eventId=${selectedEventFilter}&openModal=true`
-              )
-            }
-          >
-            Open Add Task
-          </Button>
-        </CardContent>
-      </Card>
+      {showAddTaskShortcut ? (
+        <Card className="mt-8">
+          <CardHeader>
+            <CardTitle>Add task assignment</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Same form as Project Management &gt; Tasks &gt; Add Task. Select an event in the filter at
+              the top of this page first.
+            </p>
+            <Button
+              type="button"
+              disabled={selectedEventFilter === "all"}
+              onClick={() =>
+                navigate(
+                  `/dashboard/project-management?eventId=${selectedEventFilter}&openModal=true`
+                )
+              }
+            >
+              Open Add Task
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
     </div>
   );
 }

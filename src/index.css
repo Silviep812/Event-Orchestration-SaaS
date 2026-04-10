@@ -38,13 +38,13 @@ All colors MUST be HSL.
 
     --radius: 0.5rem;
 
-    /* Vibrant Dashboard Gradients */
-    --gradient-primary: linear-gradient(135deg, 250 95% 65%, 280 85% 75%);
-    --gradient-secondary: linear-gradient(135deg, 195 85% 70%, 220 90% 75%);
-    --gradient-accent: linear-gradient(135deg, 280 85% 75%, 320 80% 70%);
-    --gradient-success: linear-gradient(135deg, 120 60% 60%, 150 70% 65%);
-    --gradient-warning: linear-gradient(135deg, 45 95% 65%, 60 90% 70%);
-    --gradient-info: linear-gradient(135deg, 210 90% 70%, 240 80% 75%);
+    /* Vibrant Dashboard Gradients — stops must be valid colors (hsl(...)) or the background paints nothing and text can disappear on light surfaces */
+    --gradient-primary: linear-gradient(135deg, hsl(250 95% 65%), hsl(280 85% 75%));
+    --gradient-secondary: linear-gradient(135deg, hsl(195 85% 70%), hsl(220 90% 75%));
+    --gradient-accent: linear-gradient(135deg, hsl(280 85% 75%), hsl(320 80% 70%));
+    --gradient-success: linear-gradient(135deg, hsl(120 60% 60%), hsl(150 70% 65%));
+    --gradient-warning: linear-gradient(135deg, hsl(45 95% 65%), hsl(60 90% 70%));
+    --gradient-info: linear-gradient(135deg, hsl(210 90% 70%), hsl(240 80% 75%));
 
     /* Vibrant Shadow Effects */
     --shadow-primary: 0 10px 30px -10px hsl(250 95% 65% / 0.3);

@@ -5,15 +5,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Wrench, Users, Camera, UtensilsCrossed, Music, Car, CheckCircle2, Building } from "lucide-react";
+import { Wrench, Users, Camera, UtensilsCrossed, Music, Car, CheckCircle2, Building, Mail, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface VendorSupplier {
   id: string;
   business_name: string;
   contact_name: string | null;
   email: string;
-  phone_number: string;
+  phone_number?: string | null;
   city: string;
   state: string;
   zip: string;
@@ -34,7 +35,7 @@ interface VendorRental {
   business_name: string;
   contact_name: string | null;
   email: string;
-  phone_number: string;
+  phone_number?: string | null;
   city: string;
   state: string;
   zip: string;
@@ -65,6 +66,8 @@ interface Service {
   contact_name?: string;
   location: string;
   description: string;
+  /** Contact is email-only in the UI (no phone). */
+  email?: string;
 }
 
 interface ServiceSelectorProps {
@@ -148,7 +151,8 @@ export function ServiceSelector({ onSelectServiceVendor, onSelectServiceRental, 
       business_name: vendor.business_name || "Unknown Business",
       contact_name: vendor.contact_name || undefined,
       location: location,
-      description: `Email: ${vendor.email} | Phone: ${vendor.phone_number}`
+      description: vendor.email?.trim() ? "Contact via email below." : "Add email on file to enable contact.",
+      email: vendor.email?.trim() || undefined,
     };
   });
 
@@ -173,7 +177,8 @@ export function ServiceSelector({ onSelectServiceVendor, onSelectServiceRental, 
       business_name: rental.business_name || "Unknown Business",
       contact_name: rental.contact_name || undefined,
       location: location,
-      description: `Email: ${rental.email} | Phone: ${rental.phone_number}`
+      description: rental.email?.trim() ? "Contact via email below." : "Add email on file to enable contact.",
+      email: rental.email?.trim() || undefined,
     };
   });
 
@@ -207,6 +212,15 @@ export function ServiceSelector({ onSelectServiceVendor, onSelectServiceRental, 
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <Alert className="border-primary/30 bg-primary/5">
+            <Info className="h-4 w-4" />
+            <AlertTitle>Rentals &amp; service vendors (equipment)</AlertTitle>
+            <AlertDescription className="text-sm">
+              This step lists <strong>service vendor / rental</strong> profiles (<code className="text-xs">serv_vendor_*</code>).
+              <strong> External procurement vendors</strong> are chosen on the next step — <strong>Select External Vendors</strong> —
+              from <code className="text-xs">public.suppliers</code>, not this list.
+            </AlertDescription>
+          </Alert>
           {/* Filters */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -301,6 +315,18 @@ export function ServiceSelector({ onSelectServiceVendor, onSelectServiceRental, 
                                     <strong>Contact:</strong> {service.contact_name}
                                   </p>
                                 )}
+                                {service.email?.trim() ? (
+                                  <div className="flex items-start gap-1 text-xs">
+                                    <Mail className="h-3 w-3 shrink-0 mt-0.5 text-muted-foreground" />
+                                    <a
+                                      href={`mailto:${service.email.trim()}`}
+                                      className="text-primary hover:underline break-all"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      {service.email}
+                                    </a>
+                                  </div>
+                                ) : null}
                                 <p className="text-xs">
                                   <strong>Location:</strong> {service.location}
                                 </p>
@@ -395,6 +421,18 @@ export function ServiceSelector({ onSelectServiceVendor, onSelectServiceRental, 
                                     <strong>Contact:</strong> {service.contact_name}
                                   </p>
                                 )}
+                                {service.email?.trim() ? (
+                                  <div className="flex items-start gap-1 text-xs">
+                                    <Mail className="h-3 w-3 shrink-0 mt-0.5 text-muted-foreground" />
+                                    <a
+                                      href={`mailto:${service.email.trim()}`}
+                                      className="text-primary hover:underline break-all"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      {service.email}
+                                    </a>
+                                  </div>
+                                ) : null}
                                 <p className="text-xs">
                                   <strong>Location:</strong> {service.location}
                                 </p>

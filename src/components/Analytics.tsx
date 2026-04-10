@@ -13,6 +13,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format, subDays, subMonths } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
+import { eventSelectLifecycleLabel } from "@/lib/eventStatus";
+import {
+  buildResourceUtilizationChart,
+  buildTaskCompletionChart,
+  computeAnalyticsKpis,
+} from "@/lib/analyticsMetrics";
 
 interface AnalyticsFilters {
   dateRange: {
@@ -41,12 +47,18 @@ interface UserInteraction {
 }
 
 interface AnalyticsProps {
-  /** When set (e.g. from Manage Event), metrics are scoped to this event only */
+  /** When set (e.g. from Manage Event), metrics default to this event */
   eventId?: string;
+  /** In Manage Event tab: show event dropdown so planners can switch scope without leaving the tab */
+  showEventScopePicker?: boolean;
   onInteractionTrack?: (interaction: UserInteraction) => void;
 }
 
-export default function Analytics({ eventId, onInteractionTrack }: AnalyticsProps = {}) {
+export default function Analytics({
+  eventId,
+  showEventScopePicker,
+  onInteractionTrack,
+}: AnalyticsProps = {}) {
   const [filters, setFilters] = useState<AnalyticsFilters>({
     dateRange: {
       from: subDays(new Date(), 30),
@@ -66,25 +78,29 @@ export default function Analytics({ eventId, onInteractionTrack }: AnalyticsProp
   
   const [loading, setLoading] = useState(true);
   const [themeOptions, setThemeOptions] = useState<{ id: number; name: string }[]>([]);
-  const [eventOptions, setEventOptions] = useState<{ id: string; title: string }[]>([]);
+  const [eventOptions, setEventOptions] = useState<
+    {
+      id: string;
+      title: string;
+      start_date?: string | null;
+      end_date?: string | null;
+      status?: string | null;
+      archived?: boolean | null;
+    }[]
+  >([]);
   const [selectedEventId, setSelectedEventId] = useState<string>("all");
   const [scopedEventTitle, setScopedEventTitle] = useState<string | null>(null);
+  /** Which quick range is active; `custom` when the calendar was used; `null` until user picks a preset. */
+  const [datePreset, setDatePreset] = useState<
+    "weekly" | "monthly" | "quarterly" | "custom" | null
+  >(null);
   const { toast } = useToast();
   const { user } = useAuth();
 
   useEffect(() => {
-    if (!eventId) {
-      setScopedEventTitle(null);
-      return;
+    if (eventId) {
+      setSelectedEventId(eventId);
     }
-    supabase
-      .from("events")
-      .select("title")
-      .eq("id", eventId)
-      .maybeSingle()
-      .then(({ data }) => {
-        setScopedEventTitle(data?.title ?? null);
-      });
   }, [eventId]);
 
   useEffect(() => {
@@ -97,7 +113,7 @@ export default function Analytics({ eventId, onInteractionTrack }: AnalyticsProp
     if (!user) return;
     supabase
       .from("events")
-      .select("id, title")
+      .select("id, title, start_date, end_date, status, archived")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .then(({ data }) => {
@@ -105,13 +121,35 @@ export default function Analytics({ eventId, onInteractionTrack }: AnalyticsProp
       });
   }, [user?.id]);
 
+  const scopeEventId =
+    eventId && !showEventScopePicker
+      ? eventId
+      : selectedEventId !== "all"
+        ? selectedEventId
+        : eventId || undefined;
+
+  useEffect(() => {
+    if (!scopeEventId) {
+      setScopedEventTitle(null);
+      return;
+    }
+    supabase
+      .from("events")
+      .select("title")
+      .eq("id", scopeEventId)
+      .maybeSingle()
+      .then(({ data }) => {
+        setScopedEventTitle(data?.title ?? null);
+      });
+  }, [scopeEventId]);
+
   // Track user interactions
   const trackInteraction = (action: string, details: any = {}) => {
     const interaction: UserInteraction = {
       id: crypto.randomUUID(),
       action,
       timestamp: new Date(),
-      user_id: 'current-user', // Replace with actual user ID
+      user_id: user?.id ?? "anonymous",
       details
     };
     
@@ -130,8 +168,7 @@ export default function Analytics({ eventId, onInteractionTrack }: AnalyticsProp
       const fromIso = filters.dateRange.from.toISOString();
       const toIso = filters.dateRange.to.toISOString();
 
-      // Resolve the active event scope: prop takes priority, then local picker
-      const activeEventId = eventId || (selectedEventId !== "all" ? selectedEventId : undefined);
+      const activeEventId = scopeEventId;
 
       let eventsQuery = supabase
         .from("events")
@@ -162,39 +199,45 @@ export default function Analytics({ eventId, onInteractionTrack }: AnalyticsProp
         let tasksQuery = supabase
           .from("tasks")
           .select("*")
-          .gte("created_at", fromIso)
-          .lte("created_at", toIso)
-          .in("event_id", taskScopeIds);
+          .in("event_id", taskScopeIds)
+          .eq("archived", false);
+        // Planner-wide: tasks created in the selected window. Single event: all non-archived tasks for accurate KPIs.
+        if (!activeEventId) {
+          tasksQuery = tasksQuery.gte("created_at", fromIso).lte("created_at", toIso);
+        }
         const { data: tdata, error: tasksError } = await tasksQuery;
         if (tasksError) throw tasksError;
         tasks = tdata || [];
       }
 
-      const { data: budgetItems, error: budgetError } = await supabase
+      let budgetQuery = supabase
         .from("budget_items")
         .select("*")
         .gte("created_at", fromIso)
         .lte("created_at", toIso);
+      if (taskScopeIds.length > 0) {
+        budgetQuery = budgetQuery.in("event_id", taskScopeIds);
+      } else if (user?.id) {
+        budgetQuery = budgetQuery.eq("created_by", user.id);
+      }
+      const { data: budgetItems, error: budgetError } = await budgetQuery;
 
       if (budgetError) throw budgetError;
 
       const totalEvents = events.length;
-      const completedTasks = tasks?.filter((t) => t.status === "completed").length || 0;
-      const activeTasks =
-        tasks?.filter((t) => t.status === "in_progress" || t.status === "not_started").length || 0;
-      const totalTasks = tasks?.length || 0;
-      const taskCompletionRate =
-        totalTasks > 0 ? ((completedTasks / totalTasks) * 100).toFixed(1) : "0";
-
-      const avgTaskDuration =
-        tasks?.reduce((acc, task) => {
-          return acc + (task.actual_hours || task.estimated_hours || 0);
-        }, 0) / (tasks?.length || 1);
-
-      const resourceUtilizationRate =
-        totalTasks > 0
-          ? ((activeTasks / totalTasks) * 100).toFixed(1)
-          : "0";
+      const kpisComputed = computeAnalyticsKpis(tasks || []);
+      const {
+        completedTasks,
+        activeTasks,
+        totalTasks,
+        taskCompletionRate,
+        avgTaskDuration,
+        durationSampleCount,
+        sumEstimated,
+        sumActual,
+        resourceUtilizationRate,
+        resourceUtilizationDetail,
+      } = kpisComputed;
 
       const kpis: KPIData[] = [
         {
@@ -208,9 +251,9 @@ export default function Analytics({ eventId, onInteractionTrack }: AnalyticsProp
         {
           title: "Tasks Active",
           value: activeTasks.toString(),
-          change: "In progress + not started",
+          change: "Not started + in progress + on hold",
           icon: Activity,
-          description: "Currently active",
+          description: "Open work items",
           trend: activeTasks > 0 ? "up" : "neutral",
         },
         {
@@ -223,18 +266,18 @@ export default function Analytics({ eventId, onInteractionTrack }: AnalyticsProp
         },
         {
           title: "Avg Task Duration",
-          value: `${avgTaskDuration.toFixed(1)}h`,
-          change: "Est. + actual hours",
+          value: durationSampleCount ? `${avgTaskDuration.toFixed(1)}h` : "—",
+          change: durationSampleCount ? "Mean of tasks with duration" : "Add estimates or dates",
           icon: Clock,
-          description: "Average hours per task",
+          description: "Only tasks with estimated/actual hours or start→end span",
           trend: "neutral",
         },
         {
           title: "Resource Utilization",
           value: `${resourceUtilizationRate}%`,
-          change: "Active / total tasks",
+          change: resourceUtilizationDetail,
           icon: Users,
-          description: "Workflow load",
+          description: activeEventId ? "Hours logged vs planned when estimates exist" : "Per scope and date window",
           trend: "neutral",
         },
       ];
@@ -263,20 +306,21 @@ export default function Analytics({ eventId, onInteractionTrack }: AnalyticsProp
         return acc;
       }, []) || [];
 
-      // Task completion trends
-      const taskCompletion = [
-        { status: 'Completed', value: completedTasks, color: '#22c55e' },
-        { status: 'In Progress', value: tasks?.filter(t => t.status === 'in_progress').length || 0, color: '#f59e0b' },
-        { status: 'Pending', value: tasks?.filter(t => t.status === 'not_started').length || 0, color: '#ef4444' },
-        { status: 'On Hold', value: tasks?.filter(t => t.status === 'on_hold').length || 0, color: '#6b7280' },
-      ];
+      const taskCompletion = buildTaskCompletionChart(completedTasks, tasks || []);
+
+      const resourceUtilization = buildResourceUtilizationChart(
+        sumEstimated,
+        sumActual,
+        activeTasks,
+        totalTasks,
+      );
 
       setAnalyticsData({
         kpis,
         eventTrends,
         taskCompletion,
-        resourceUtilization: [], // Placeholder
-        conversionRates: [], // Placeholder
+        resourceUtilization,
+        conversionRates: [],
         eventsByLocation
       });
 
@@ -323,7 +367,7 @@ export default function Analytics({ eventId, onInteractionTrack }: AnalyticsProp
 
   useEffect(() => {
     fetchAnalyticsData();
-  }, [filters, eventId, selectedEventId, user?.id]);
+  }, [filters, eventId, selectedEventId, showEventScopePicker, user?.id]);
 
   const handleFilterChange = (filterType: keyof AnalyticsFilters, value: any) => {
     setFilters(prev => ({
@@ -349,11 +393,11 @@ export default function Analytics({ eventId, onInteractionTrack }: AnalyticsProp
             Analytics Dashboard
           </h2>
           <p className="text-muted-foreground">
-            {eventId
+            {eventId && !showEventScopePicker
               ? "Metrics for the selected event (date range and theme filters apply)."
               : "Planner totals for your events. Use weekly, monthly, or quarterly presets."}
           </p>
-          {eventId && scopedEventTitle && (
+          {scopeEventId && scopedEventTitle && (
             <p className="text-sm font-medium text-foreground">
               Event: {scopedEventTitle}
             </p>
@@ -369,43 +413,64 @@ export default function Analytics({ eventId, onInteractionTrack }: AnalyticsProp
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Quick date range">
               <Button
                 type="button"
-                variant="outline"
+                variant={datePreset === "weekly" ? "default" : "outline"}
                 size="sm"
-                onClick={() =>
+                className={
+                  datePreset === "weekly"
+                    ? "shadow-sm ring-2 ring-primary/30 ring-offset-2 ring-offset-background"
+                    : undefined
+                }
+                aria-pressed={datePreset === "weekly"}
+                onClick={() => {
+                  setDatePreset("weekly");
                   handleFilterChange("dateRange", {
                     from: subDays(new Date(), 7),
                     to: new Date(),
-                  })
-                }
+                  });
+                }}
               >
                 Weekly
               </Button>
               <Button
                 type="button"
-                variant="outline"
+                variant={datePreset === "monthly" ? "default" : "outline"}
                 size="sm"
-                onClick={() =>
+                className={
+                  datePreset === "monthly"
+                    ? "shadow-sm ring-2 ring-primary/30 ring-offset-2 ring-offset-background"
+                    : undefined
+                }
+                aria-pressed={datePreset === "monthly"}
+                onClick={() => {
+                  setDatePreset("monthly");
                   handleFilterChange("dateRange", {
                     from: subMonths(new Date(), 1),
                     to: new Date(),
-                  })
-                }
+                  });
+                }}
               >
                 Monthly
               </Button>
               <Button
                 type="button"
-                variant="outline"
+                variant={datePreset === "quarterly" ? "default" : "outline"}
                 size="sm"
-                onClick={() =>
+                className={
+                  datePreset === "quarterly"
+                    ? "shadow-sm ring-2 ring-primary/30 ring-offset-2 ring-offset-background"
+                    : undefined
+                }
+                aria-pressed={datePreset === "quarterly"}
+                onClick={() => {
+                  setDatePreset("quarterly");
                   handleFilterChange("dateRange", {
                     from: subMonths(new Date(), 3),
                     to: new Date(),
-                  })
-                }
+                  });
+                }}
               >
                 Quarterly
               </Button>
@@ -414,22 +479,35 @@ export default function Analytics({ eventId, onInteractionTrack }: AnalyticsProp
               <Label htmlFor="date-range" className="text-xs">Date Range</Label>
               <DatePickerWithRange
                 date={filters.dateRange}
-                onDateChange={(dateRange) => handleFilterChange('dateRange', dateRange)}
+                onDateChange={(dateRange) => {
+                  setDatePreset("custom");
+                  handleFilterChange("dateRange", dateRange);
+                }}
               />
+              <p className="text-xs text-muted-foreground mt-2">
+                {scopeEventId
+                  ? `Scope: one event — KPIs use all non-archived tasks. Presets (${format(filters.dateRange.from, "MMM d")}–${format(filters.dateRange.to, "MMM d, yyyy")}) still shape trend charts.`
+                  : `Reporting window: ${format(filters.dateRange.from, "MMM d, yyyy")} – ${format(filters.dateRange.to, "MMM d, yyyy")} (tasks created in this range; events created in this range).`}
+              </p>
             </div>
             
-            {!eventId && (
+            {(!eventId || showEventScopePicker) && (
               <div>
-                <Label htmlFor="event-filter" className="text-xs">Event</Label>
+                <Label htmlFor="event-filter" className="text-xs">
+                  {showEventScopePicker ? "Event scope" : "Event"}
+                </Label>
                 <Select value={selectedEventId} onValueChange={setSelectedEventId}>
                   <SelectTrigger className="h-8" id="event-filter">
-                    <SelectValue placeholder="All Events" />
+                    <SelectValue placeholder={showEventScopePicker ? "Select event" : "All Events"} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Events</SelectItem>
+                    {!(showEventScopePicker && eventId) && (
+                      <SelectItem value="all">All Events</SelectItem>
+                    )}
                     {eventOptions.map((e) => (
                       <SelectItem key={e.id} value={e.id}>
                         {e.title}
+                        <span className="text-muted-foreground">{` · ${eventSelectLifecycleLabel(e)}`}</span>
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -497,17 +575,33 @@ export default function Analytics({ eventId, onInteractionTrack }: AnalyticsProp
 
       {/* Analytics Tabs */}
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="overview" onClick={() => trackInteraction('tab_viewed', { tab: 'overview' })}>
+        <TabsList className="grid h-auto min-h-10 w-full grid-cols-2 gap-1 p-1 sm:grid-cols-4">
+          <TabsTrigger
+            className="w-full"
+            value="overview"
+            onClick={() => trackInteraction("tab_viewed", { tab: "overview" })}
+          >
             Overview
           </TabsTrigger>
-          <TabsTrigger value="events" onClick={() => trackInteraction('tab_viewed', { tab: 'events' })}>
+          <TabsTrigger
+            className="w-full"
+            value="events"
+            onClick={() => trackInteraction("tab_viewed", { tab: "events" })}
+          >
             Events
           </TabsTrigger>
-          <TabsTrigger value="tasks" onClick={() => trackInteraction('tab_viewed', { tab: 'tasks' })}>
+          <TabsTrigger
+            className="w-full"
+            value="tasks"
+            onClick={() => trackInteraction("tab_viewed", { tab: "tasks" })}
+          >
             Tasks
           </TabsTrigger>
-          <TabsTrigger value="behavior" onClick={() => trackInteraction('tab_viewed', { tab: 'behavior' })}>
+          <TabsTrigger
+            className="w-full"
+            value="behavior"
+            onClick={() => trackInteraction("tab_viewed", { tab: "behavior" })}
+          >
             User Behavior
           </TabsTrigger>
         </TabsList>
@@ -571,6 +665,28 @@ export default function Analytics({ eventId, onInteractionTrack }: AnalyticsProp
               </CardContent>
             </Card>
           </div>
+
+          {analyticsData.resourceUtilization.length > 0 ? (
+            <Card className="shadow-elegant border-0 bg-gradient-subtle">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5 text-primary" />
+                  Resource utilization (hours or task mix)
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={280}>
+                  <BarChart data={analyticsData.resourceUtilization}>
+                    <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                    <XAxis dataKey="category" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="value" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          ) : null}
 
           <Card className="shadow-elegant border-0 bg-gradient-subtle">
             <CardHeader>
@@ -684,9 +800,11 @@ export default function Analytics({ eventId, onInteractionTrack }: AnalyticsProp
               </CardHeader>
               <CardContent className="space-y-4">
                 {analyticsData.taskCompletion.map((task, index) => (
-                  <div key={task.status} className="space-y-2">
+                  <div key={`${task.status}-${index}`} className="space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span>{task.status}</span>
+                      <span className="capitalize">
+                        {String(task.status || "").replace(/_/g, " ") || "—"}
+                      </span>
                       <span>{task.value} tasks</span>
                     </div>
                     <Progress 

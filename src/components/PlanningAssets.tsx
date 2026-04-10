@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { eventSelectLifecycleLabel } from "@/lib/eventStatus";
 
 const PlanningAssets = () => {
   const navigate = useNavigate();
@@ -99,7 +100,7 @@ const PlanningAssets = () => {
     try {
       const { data, error } = await supabase
         .from('events')
-        .select('id, title, start_date')
+        .select('id, title, start_date, end_date, status, archived')
         .eq('user_id', user?.id)
         .order('created_at', { ascending: false });
       
@@ -330,11 +331,14 @@ const PlanningAssets = () => {
                       >
                         <CardHeader className="p-4">
                           <CardTitle className="text-base">{event.title}</CardTitle>
-                          {event.start_date && (
-                            <CardDescription>
-                              {new Date(event.start_date).toLocaleDateString()}
-                            </CardDescription>
-                          )}
+                          <CardDescription className="space-y-0.5">
+                            {event.start_date ? (
+                              <span>{new Date(event.start_date).toLocaleDateString()}</span>
+                            ) : null}
+                            <span className="block text-muted-foreground">
+                              {eventSelectLifecycleLabel(event)}
+                            </span>
+                          </CardDescription>
                         </CardHeader>
                       </Card>
                     ))}

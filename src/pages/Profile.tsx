@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { AvatarWithBrandFallback } from "@/components/AvatarWithBrandFallback";
 import { Upload } from "lucide-react";
 import { getAuthErrorDescription } from "@/lib/authErrors";
 
@@ -173,6 +173,8 @@ const Profile = () => {
         title: "Profile updated",
         description: "Your profile has been updated successfully."
       });
+
+      window.dispatchEvent(new Event("profileUpdated"));
     } catch (err: any) {
       toast({
         title: "Error",
@@ -404,12 +406,18 @@ const Profile = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center gap-4">
-              <Avatar className="h-20 w-20">
-                <AvatarImage src={profile.avatar_url} alt="Profile picture" />
-                <AvatarFallback className="text-lg">
-                  {profile.display_name.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
-                </AvatarFallback>
-              </Avatar>
+              <AvatarWithBrandFallback
+                className="h-20 w-20"
+                src={profile.avatar_url}
+                alt="Profile picture"
+                displayName={
+                  profile.display_name ||
+                  profile.username ||
+                  user?.email?.split("@")[0] ||
+                  "User"
+                }
+                fallbackClassName="text-2xl"
+              />
               <div className="grid gap-2">
                 <Label htmlFor="avatar">Profile Picture</Label>
                 <div className="flex items-center gap-2">

@@ -7,6 +7,14 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -707,7 +715,7 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
             </Button>
           )}
           <Button variant="default" size="sm" onClick={() => setIsAddDialogOpen(true)}>
-            + Add Resource
+            + Change Request
           </Button>
           <span className="text-sm text-muted-foreground">Quick Filters</span>
           <Select value={groupBy} onValueChange={(value: 'location' | 'category') => setGroupBy(value)}>
@@ -726,9 +734,9 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Add New Resource</DialogTitle>
+            <DialogTitle>Change Request</DialogTitle>
             <DialogDescription>
-              Add a new resource to your event inventory
+              Request a resource change for this event (same flow as adding a tracked resource).
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -814,7 +822,7 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
             <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleAddResource}>Add Resource</Button>
+            <Button onClick={handleAddResource}>Save change request</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -985,6 +993,7 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
           <TabsList>
             <TabsTrigger value="drag-drop">Drag & Drop View</TabsTrigger>
             <TabsTrigger value="standard">Standard View</TabsTrigger>
+            <TabsTrigger value="table">Table view</TabsTrigger>
           </TabsList>
           
           <TabsContent value="drag-drop" className="space-y-6">
@@ -1040,6 +1049,61 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
                 </div>
               )
             ))}
+          </TabsContent>
+
+          <TabsContent value="table" className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Tracked allocations for this event. Use <span className="font-medium text-foreground">Create Change Request</span>{" "}
+              to request updates (same flow as the button above). Checklist-style work lives in Project Management.
+            </p>
+            <div className="rounded-md border overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Location</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Utilization</TableHead>
+                    <TableHead className="text-right w-[12rem]">Create Change Request</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredResources.map((resource) => (
+                    <TableRow key={resource.id}>
+                      <TableCell className="font-medium">{resource.name}</TableCell>
+                      <TableCell>{resource.category_name ?? "—"}</TableCell>
+                      <TableCell className="text-muted-foreground">{resource.location}</TableCell>
+                      <TableCell>{resource.status_name ?? "—"}</TableCell>
+                      <TableCell className="text-right text-sm">
+                        {resource.allocated}/{resource.total}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setNewResource({
+                              name: resource.name,
+                              category_id: resource.category_id.toString(),
+                              status_id: resource.status_id.toString(),
+                              location: resource.location,
+                              allocated: resource.allocated,
+                              total: resource.total,
+                              event_id: eventId || "",
+                            });
+                            setIsAddDialogOpen(true);
+                          }}
+                        >
+                          Create Change Request
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </TabsContent>
         </Tabs>
       )}

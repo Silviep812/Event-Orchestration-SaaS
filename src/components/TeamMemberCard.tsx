@@ -1,6 +1,6 @@
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { AvatarWithBrandFallback } from "@/components/AvatarWithBrandFallback";
 import { TeamMember } from "../pages/Collaborate";
 
 interface TeamMemberCardProps {
@@ -26,12 +26,13 @@ export function TeamMemberCard({ member, onClick }: TeamMemberCardProps) {
       <CardHeader className="pb-3">
         <div className="flex items-center gap-3">
           <div className="relative">
-            <Avatar>
-              <AvatarImage src={member.avatar} />
-              <AvatarFallback>
-                {member.name.split(' ').map(n => n[0]).join('')}
-              </AvatarFallback>
-            </Avatar>
+            <AvatarWithBrandFallback
+              src={member.avatar}
+              alt=""
+              displayName={member.name}
+              className="h-10 w-10"
+              fallbackClassName="text-xs"
+            />
             <div className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-white ${getStatusColor(member.status)}`} />
           </div>
           <div className="flex-1 min-w-0">

@@ -6,6 +6,8 @@ interface Event {
   id: string;
   title: string;
   start_date?: string;
+  end_date?: string | null;
+  status?: string | null;
   archived?: boolean | null;
 }
 
@@ -23,7 +25,7 @@ export function useEventFilter() {
       try {
         const { data, error } = await supabase
           .from('events')
-          .select('id, title, start_date, archived')
+          .select('id, title, start_date, end_date, status, archived')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false });
         

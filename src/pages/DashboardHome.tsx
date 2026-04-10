@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -11,8 +12,11 @@ import Analytics from "@/components/Analytics";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { trialBannerText } from "@/lib/trialLimits";
 import { computeEventNudges } from "@/lib/nudges";
+import { cn } from "@/lib/utils";
+import { getDashboardRecentEventStatusBadge } from "@/lib/eventStatus";
 
 const DashboardHome = () => {
+  const navigate = useNavigate();
   const [analytics, setAnalytics] = useState({
     totalEvents: 0,
     taskCompletionRate: 0,
@@ -45,7 +49,7 @@ const DashboardHome = () => {
         // Fetch events data for current user only
         const { data: events, error: eventsError } = await supabase
           .from('events')
-          .select('id, user_id, title, description, start_date, created_at, venue, status, archived')
+          .select('id, user_id, title, description, start_date, end_date, created_at, venue, status, archived')
           .eq('user_id', userId)
           .order('created_at', { ascending: false })
           .limit(10);
@@ -409,17 +413,30 @@ const DashboardHome = () => {
                       <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
                     </div>
                   ) : analytics.recentEvents.length > 0 ? (
-                    analytics.recentEvents.map((event: any, index) => (
-                      <div key={event.userid || index} className="flex items-center justify-between p-3 rounded-lg bg-gradient-success bg-opacity-10">
+                    analytics.recentEvents.map((event: any, index) => {
+                      const badge = getDashboardRecentEventStatusBadge(event);
+                      return (
+                      <div key={event.id ?? index} className="flex items-center justify-between p-3 rounded-lg bg-gradient-success bg-opacity-10">
                         <div>
                           <p className="font-medium">{event.title || event.description || 'Unnamed Event'}</p>
-                          <p className="text-sm text-muted-foreground">{event.description || 'Event'} • {new Date(event.start_date + 'T00:00:00').toLocaleDateString()}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {event.description || 'Event'} •{' '}
+                            {event.start_date
+                              ? new Date(String(event.start_date).split('T')[0] + 'T00:00:00').toLocaleDateString()
+                              : 'Date TBD'}
+                          </p>
                         </div>
-                        <span className="px-2 py-1 text-xs rounded-full bg-gradient-success text-white">
-                          Active
+                        <span
+                          className={cn(
+                            "px-2 py-1 text-xs rounded-full capitalize shrink-0",
+                            badge.className,
+                          )}
+                        >
+                          {badge.label}
                         </span>
                       </div>
-                    ))
+                    );
+                    })
                   ) : (
                     <div className="text-center p-8 text-muted-foreground">
                       <Calendar className="h-8 w-8 mx-auto mb-2 opacity-50" />
@@ -476,10 +493,11 @@ const DashboardHome = () => {
                 <Button 
                   variant="outline" 
                   className="w-full justify-start bg-gradient-primary bg-opacity-10 border-primary/20 hover:text-white transition-all duration-300"
-                  onClick={() => window.location.href = '/dashboard/create-event'}
+                  type="button"
+                  onClick={() => navigate("/dashboard/manage-event")}
                 >
-                  <Calendar className="mr-2 h-4 w-4" />
-                  New resource (theme & event)
+                  <Plus className="mr-2 h-4 w-4" />
+                  + Change Request
                 </Button>
                 <Button 
                   variant="outline" 

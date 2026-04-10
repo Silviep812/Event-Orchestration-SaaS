@@ -9,17 +9,21 @@ import { format, isSameDay, parseISO } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { getLifecycleTableBadge } from "@/lib/eventStatus";
 
 interface Event {
   id: string;
   title: string;
   date: Date;
+  start_date: string | null;
+  end_date: string | null;
+  archived: boolean;
   start_time: string;
   location: string;
   type: "meeting" | "event" | "deadline" | "other";
   attendees: number;
   description?: string;
-  status: "pending" | "in_progress" | "completed" | "cancelled";
+  status: string | null;
 }
 
 const EventCalendar = () => {
@@ -45,17 +49,25 @@ const EventCalendar = () => {
       if (error) throw error;
 
       // Transform database events to component format
-      const transformedEvents: Event[] = data?.map(event => ({
-        id: event.id,
-        title: event.title,
-        date: parseISO(event.start_date),
-        start_time: event.start_time ? event?.start_time.slice(0, 5) : '',
-        location: event.venue || 'TBD',
-        type: getEventTypeFromDatabase('general'),
-        attendees: event.expected_attendees || 0,
-        description: event.description || '',
-        status: event.status
-      })) || [];
+      const transformedEvents: Event[] = data?.map((event) => {
+        const start = event.start_date
+          ? parseISO(String(event.start_date).split("T")[0])
+          : new Date();
+        return {
+          id: event.id,
+          title: event.title,
+          date: start,
+          start_date: event.start_date,
+          end_date: event.end_date ?? null,
+          archived: !!event.archived,
+          start_time: event.start_time ? event.start_time.slice(0, 5) : "",
+          location: event.venue || "TBD",
+          type: getEventTypeFromDatabase("general"),
+          attendees: event.expected_attendees || 0,
+          description: event.description || "",
+          status: event.status ?? null,
+        };
+      }) || [];
 
       setEvents(transformedEvents);
     } catch (error) {
@@ -96,15 +108,6 @@ const EventCalendar = () => {
   //     default: return "bg-gray-500";
   //   }
   // };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "completed": return "text-green-600";
-      case "in-progress": return "text-blue-600";
-      case "cancelled": return "text-red-600";
-      default: return "text-gray-600";
-    }
-  };
 
   const getEventsForDate = (date: Date) => {
     return events.filter(event => isSameDay(event.date, date));
@@ -190,7 +193,14 @@ const EventCalendar = () => {
             <CardContent>
               {eventsForSelectedDate.length > 0 ? (
                 <div className="space-y-3">
-                  {eventsForSelectedDate.map((event) => (
+                  {eventsForSelectedDate.map((event) => {
+                    const lifecycleBadge = getLifecycleTableBadge({
+                      status: event.status,
+                      start_date: event.start_date,
+                      end_date: event.end_date,
+                      archived: event.archived,
+                    });
+                    return (
                     <div key={event.id} className="border rounded-lg p-3 space-y-2">
                       <div className="flex items-center justify-between">
                         <h4 className="font-semibold text-sm">{event.title}</h4>
@@ -213,16 +223,17 @@ const EventCalendar = () => {
                           </div>
                         )}
                       </div>
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
                         <Badge variant="outline" className="text-xs">
                           {event.type}
                         </Badge>
-                        <span className={`text-xs font-medium ${getStatusColor(event.status)}`}>
-                          {event.status.replace('_', ' ')}
-                        </span>
+                        <Badge variant={lifecycleBadge.variant} className="text-xs capitalize">
+                          {lifecycleBadge.label}
+                        </Badge>
                       </div>
                     </div>
-                  ))}
+                  );
+                  })}
                 </div>
               ) : (
                 <div className="text-center py-6 text-muted-foreground">

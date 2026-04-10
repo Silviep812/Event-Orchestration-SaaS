@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { AvatarWithBrandFallback } from "@/components/AvatarWithBrandFallback";
+import { IEP_LOGO_COLORED } from "@/lib/brandAssets";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -94,11 +95,6 @@ export function DashboardHeader() {
     return 'User';
   };
 
-  const getUserInitials = () => {
-    const name = getUserDisplayName();
-    return name.split(' ').map(n => n[0]).join('').toUpperCase();
-  };
-
   return (
     <header className="h-16 border-b bg-card flex items-center justify-between px-4 lg:px-6">
       <div className="flex items-center gap-3 lg:gap-4">
@@ -106,10 +102,10 @@ export function DashboardHeader() {
         <div className="flex items-center gap-4 lg:gap-6">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2" aria-label="IEP Dashboard">
-            <img 
-              src="/lovable-uploads/e8e18250-fa27-4ae4-a4bc-867e063bcfd1.png" 
-              alt="IEP logo" 
-              className="h-8 w-8 object-contain" 
+            <img
+              src={IEP_LOGO_COLORED}
+              alt="IEP logo"
+              className="h-8 w-auto object-contain"
             />
             <span className="hidden sm:block text-xl font-bold text-primary">IEP</span>
           </Link>
@@ -141,12 +137,13 @@ export function DashboardHeader() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="flex items-center gap-2 h-10">
-              <Avatar className="h-8 w-8">
-                <AvatarImage src={userProfile?.avatar_url || ""} />
-                <AvatarFallback className="text-xs bg-primary text-primary-foreground">
-                  {getUserInitials()}
-                </AvatarFallback>
-              </Avatar>
+              <AvatarWithBrandFallback
+                className="h-8 w-8"
+                src={userProfile?.avatar_url}
+                alt=""
+                displayName={getUserDisplayName()}
+                fallbackClassName="text-xs"
+              />
               <span className="hidden md:block text-sm font-medium">{getUserDisplayName()}</span>
             </Button>
           </DropdownMenuTrigger>

@@ -3,11 +3,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PermissionLevel } from "@/lib/permissions";
+import { eventSelectLifecycleLabel } from "@/lib/eventStatus";
 
 interface Event {
   id: string;
   title: string;
-  start_date: string;
+  start_date?: string;
+  end_date?: string | null;
+  status?: string | null;
+  archived?: boolean | null;
 }
 
 interface UnassignedUserCardProps {
@@ -68,6 +72,7 @@ export function UnassignedUserCard({
                   {events.map((event) => (
                     <SelectItem key={event.id} value={event.id}>
                       {event.title || `Event ${event.id.slice(0, 8)}`}
+                      <span className="text-muted-foreground">{` · ${eventSelectLifecycleLabel(event)}`}</span>
                     </SelectItem>
                   ))}
                 </SelectContent>

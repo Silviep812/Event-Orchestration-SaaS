@@ -243,7 +243,7 @@ export default function MarketingCampaign() {
         </CardHeader>
         <CardContent>
           {recent.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No subscribers yet. Use Contact or an Edge Function to insert.</p>
+            <p className="text-sm text-muted-foreground">No subscribers yet. Use an Edge Function or direct insert to add subscribers.</p>
           ) : (
             <Table>
               <TableHeader>

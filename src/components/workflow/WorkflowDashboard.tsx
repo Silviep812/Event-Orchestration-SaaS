@@ -552,8 +552,17 @@ export const WorkflowDashboard = ({
         <div>
           <h1 className="text-3xl font-bold">{"Workflow Dashboard - " + eventTitle}</h1>
           <p className="text-muted-foreground">
-            {userType.replace("-", " ").replace(/\b\w/g, l => l.toUpperCase())}
+            {userType.replace("-", " ").replace(/\b\w/g, (l) => l.toUpperCase())}
           </p>
+          {selections.theme ? (
+            <p className="text-sm text-foreground/90 mt-1 max-w-2xl">
+              Active theme: <span className="font-medium">{selections.theme}</span>. Tasks, progress, and resource picks on this page follow this workflow&apos;s event and theme.
+            </p>
+          ) : (
+            <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
+              Use Customize to set your theme and categories so vendor and service selections stay aligned with this event.
+            </p>
+          )}
         </div>
         <div className="flex flex-wrap gap-2">
           {onNewWorkflowForAnotherEvent && (
@@ -643,7 +652,7 @@ export const WorkflowDashboard = ({
                 {
                   type: "supplier",
                   title: "External vendor",
-                  description: "Supplies and materials provider",
+                  description: "External vendor for supplies and materials",
                   value: selections.supplier || "Not selected",
                   icon: Package,
                 },

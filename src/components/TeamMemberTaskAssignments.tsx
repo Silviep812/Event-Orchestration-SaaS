@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ClipboardList, CheckCircle2, Clock, AlertCircle, UserPlus, Check, X } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { eventSelectLifecycleLabel } from "@/lib/eventStatus";
 
 interface TaskAssignment {
   id: string;
@@ -19,6 +20,8 @@ interface TaskAssignment {
   taskPriority: string;
   taskDueDate: string | null;
   eventTitle: string | null;
+  /** Shared lifecycle label (active / past / …) when `eventTitle` is set */
+  eventLifecycleLabel: string | null;
   taskCategory: string | null;
 }
 
@@ -84,7 +87,7 @@ export function TeamMemberTaskAssignments({ eventId }: TeamMemberTaskAssignments
     try {
       setLoading(true);
 
-      // Unique collaborator names (scoped to event when eventId is set)
+      // Unique assignee names (assigned_coordinator_name; scoped to event when eventId is set)
       let collabNameQuery = supabase
         .from('tasks')
         .select('assigned_coordinator_name')
@@ -96,7 +99,7 @@ export function TeamMemberTaskAssignments({ eventId }: TeamMemberTaskAssignments
 
       if (collaboratorsError) throw collaboratorsError;
 
-      // Extract unique collaborator names
+      // Extract unique assignee names
       const uniqueCollaborators = [...new Set(
         allTasksForCollaborators?.map(t => t.assigned_coordinator_name) || []
       )].sort();
@@ -126,33 +129,48 @@ export function TeamMemberTaskAssignments({ eventId }: TeamMemberTaskAssignments
       const filteredTasks =
         tasks?.filter((task) => taskCategoryMatchesResourceFilter(task.category)) || [];
 
-      // Fetch event titles separately
+      // Fetch event rows for titles + lifecycle labels
       const eventIds = [...new Set(filteredTasks?.map(t => t.event_id).filter(Boolean))];
-      const { data: events } = await supabase
-        .from('events')
-        .select('id, title')
-        .in('id', eventIds);
-      
-      const eventMap = new Map(events?.map(e => [e.id, e.title]) || []);
+      let events: {
+        id: string;
+        title: string;
+        start_date: string | null;
+        end_date: string | null;
+        status: string | null;
+        archived: boolean | null;
+      }[] = [];
+      if (eventIds.length > 0) {
+        const { data } = await supabase
+          .from('events')
+          .select('id, title, start_date, end_date, status, archived')
+          .in('id', eventIds);
+        events = data ?? [];
+      }
+
+      const eventById = new Map(events.map((e) => [e.id, e]));
 
       // Count unassigned tasks and store them
       const unassigned = filteredTasks?.filter(task => !task.assigned_coordinator_name) || [];
       setUnassignedTasksCount(unassigned.length);
       
       // Convert unassigned tasks to TaskAssignment format
-      const unassignedTasksList = unassigned.map((task: any) => ({
-        id: task.id,
-        user_id: '',
-        userName: '',
-        userEmail: '',
-        taskId: task.id,
-        taskTitle: task.title,
-        taskStatus: task.status,
-        taskPriority: task.priority,
-        taskDueDate: task.due_date,
-        eventTitle: task.event_id ? eventMap.get(task.event_id) || null : null,
-        taskCategory: task.category
-      }));
+      const unassignedTasksList = unassigned.map((task: any) => {
+        const ev = task.event_id ? eventById.get(task.event_id) : undefined;
+        return {
+          id: task.id,
+          user_id: '',
+          userName: '',
+          userEmail: '',
+          taskId: task.id,
+          taskTitle: task.title,
+          taskStatus: task.status,
+          taskPriority: task.priority,
+          taskDueDate: task.due_date,
+          eventTitle: ev?.title ?? null,
+          eventLifecycleLabel: ev ? eventSelectLifecycleLabel(ev) : null,
+          taskCategory: task.category,
+        };
+      });
       setUnassignedTasks(unassignedTasksList);
 
       // Group tasks by user
@@ -162,6 +180,7 @@ export function TeamMemberTaskAssignments({ eventId }: TeamMemberTaskAssignments
         if (task.assigned_coordinator_name) {
           const user = allUsers.find((u: any) => u.name === task.assigned_coordinator_name);
           if (user) {
+            const ev = task.event_id ? eventById.get(task.event_id) : undefined;
             const assignment: TaskAssignment = {
               id: task.id,
               user_id: user.name, // Use name as ID
@@ -172,8 +191,9 @@ export function TeamMemberTaskAssignments({ eventId }: TeamMemberTaskAssignments
               taskStatus: task.status,
               taskPriority: task.priority,
               taskDueDate: task.due_date,
-              eventTitle: task.event_id ? eventMap.get(task.event_id) || null : null,
-              taskCategory: task.category
+              eventTitle: ev?.title ?? null,
+              eventLifecycleLabel: ev ? eventSelectLifecycleLabel(ev) : null,
+              taskCategory: task.category,
             };
 
             if (!userTasksMap.has(user.name)) {
@@ -341,7 +361,12 @@ export function TeamMemberTaskAssignments({ eventId }: TeamMemberTaskAssignments
                           )}
                         </div>
                         {task.eventTitle && (
-                          <p className="text-xs text-muted-foreground mt-1">Event: {task.eventTitle}</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Event: {task.eventTitle}
+                            {task.eventLifecycleLabel ? (
+                              <span>{` · ${task.eventLifecycleLabel}`}</span>
+                            ) : null}
+                          </p>
                         )}
                         {task.taskDueDate && (
                           <p className="text-xs text-muted-foreground mt-1">
@@ -401,9 +426,9 @@ export function TeamMemberTaskAssignments({ eventId }: TeamMemberTaskAssignments
         </div>
       )}
 
-      {/* Assignments by collaborator */}
+      {/* Assignments by team member (assigned_coordinator_name / PM) */}
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold">Task assignments by collaborator</h3>
+        <h3 className="text-lg font-semibold">Task assignments by team member</h3>
         
         {teamMembers.length === 0 ? (
           <Card className="p-6 text-center">
@@ -457,11 +482,16 @@ export function TeamMemberTaskAssignments({ eventId }: TeamMemberTaskAssignments
                               </Badge>
                             )}
                             <Badge variant={task.taskStatus === 'completed' ? 'default' : 'outline'}>
-                              {task.taskStatus}
+                              {(task.taskStatus || "").replace(/_/g, " ") || "—"}
                             </Badge>
                           </div>
                           {task.eventTitle && (
-                            <p className="text-xs text-muted-foreground mt-1">Event: {task.eventTitle}</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Event: {task.eventTitle}
+                              {task.eventLifecycleLabel ? (
+                                <span>{` · ${task.eventLifecycleLabel}`}</span>
+                              ) : null}
+                            </p>
                           )}
                           {task.taskDueDate && (
                             <p className="text-xs text-muted-foreground mt-1">

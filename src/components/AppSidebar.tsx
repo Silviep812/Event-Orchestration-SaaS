@@ -5,7 +5,6 @@ import {
   Users,
   BarChart3,
   FileText,
-  MessageSquare,
   TrendingUp,
   Plus,
   Bell,
@@ -81,13 +80,6 @@ const menuGroups = [
         hoverColor: "hover:bg-purple-50"
       },
       {
-        title: "Event Summary",
-        url: "/dashboard/event-summary",
-        icon: FileText,
-        color: "text-purple-600",
-        hoverColor: "hover:bg-purple-50"
-      },
-      {
         title: "Calendar",
         url: "/dashboard/calendar",
         icon: CalendarDays,
@@ -116,6 +108,13 @@ const menuGroups = [
         hoverColor: "hover:bg-green-50"
       },
       {
+        title: "Change Management",
+        url: "/dashboard/project-management?tab=change-management",
+        icon: FileText,
+        color: "text-green-600",
+        hoverColor: "hover:bg-green-50",
+      },
+      {
         title: "Project Management",
         url: "/dashboard/project-management",
         icon: CheckSquare,
@@ -130,11 +129,32 @@ const menuGroups = [
         hoverColor: "hover:bg-green-50"
       },
       {
-        title: "Task timeline",
+        title: "Event Timeline",
         url: "/dashboard/task-timeline",
         icon: BarChart3,
         color: "text-green-600",
         hoverColor: "hover:bg-green-50"
+      }
+    ]
+  },
+  {
+    title: "Reports",
+    color: "text-teal-600",
+    bgColor: "bg-teal-50",
+    items: [
+      {
+        title: "Event Plan Report",
+        url: "/dashboard/reports?tab=event-plan",
+        icon: FileText,
+        color: "text-teal-600",
+        hoverColor: "hover:bg-teal-50"
+      },
+      {
+        title: "Change Request Report",
+        url: "/dashboard/reports?tab=change-requests",
+        icon: FileText,
+        color: "text-teal-600",
+        hoverColor: "hover:bg-teal-50"
       }
     ]
   },
@@ -193,7 +213,7 @@ const menuGroups = [
         hoverColor: "hover:bg-orange-50"
       },
       {
-        title: "Transportation",
+        title: "Transportation Directory",
         url: "/dashboard/transportation",
         icon: Car,
         color: "text-orange-600",
@@ -214,13 +234,6 @@ const menuGroups = [
         hoverColor: "hover:bg-orange-50"
       },
       {
-        title: "Event Plan Report",
-        url: "/dashboard/reports",
-        icon: FileText,
-        color: "text-orange-600",
-        hoverColor: "hover:bg-orange-50"
-      },
-      {
         title: "Resource map",
         url: "/dashboard/resource-map",
         icon: MapPin,
@@ -235,16 +248,9 @@ const menuGroups = [
     bgColor: "bg-pink-50",
     items: [
       {
-        title: "Collaborate",
+        title: "Team",
         url: "/dashboard/collaborate",
         icon: Users,
-        color: "text-pink-600",
-        hoverColor: "hover:bg-pink-50"
-      },
-      {
-        title: "Comments",
-        url: "/dashboard/comments",
-        icon: MessageSquare,
         color: "text-pink-600",
         hoverColor: "hover:bg-pink-50"
       },
@@ -268,8 +274,37 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const cmFooter = cmSidebarFooterText();
 
-  /** Exact path match so parent routes (e.g. /dashboard) are not active on child pages. */
-  const pathIsActive = (url: string) => currentPath === url || currentPath === `${url}/`;
+  /**
+   * Active state: pathname must match. Query rules:
+   * - Reports: tab must match (event-plan treats missing tab as overview).
+   * - Project Management: link without `tab` = Tasks/Budget (not Team / Change Management tab).
+   *   `tab=collaborator` and `tab=change-management` each match only their own link.
+   */
+  const pathIsActive = (url: string) => {
+    const [path, query] = url.split("?");
+    const base = currentPath === path || currentPath === `${path}/`;
+    if (!base) return false;
+
+    const have = new URLSearchParams(location.search);
+    const tabHave = have.get("tab");
+
+    if (path === "/dashboard/project-management") {
+      if (query) {
+        const want = new URLSearchParams(query);
+        return tabHave === want.get("tab");
+      }
+      return tabHave !== "collaborator" && tabHave !== "change-management";
+    }
+
+    if (!query) return true;
+
+    const want = new URLSearchParams(query);
+    const tabW = want.get("tab");
+    if (tabW === "event-plan") {
+      return have.get("tab") === "event-plan" || have.get("tab") === null;
+    }
+    return have.get("tab") === tabW;
+  };
 
   const getNavClass = (item: { color: string; hoverColor: string }, active: boolean) => {
     const base =
@@ -316,7 +351,7 @@ export function AppSidebar() {
                         <NavLink
                           to={item.url}
                           end
-                          className={({ isActive }) => getNavClass(item, isActive)}
+                          className={() => getNavClass(item, active)}
                         >
                           <item.icon
                             className={`h-5 w-5 shrink-0 ${collapsed ? "mx-auto" : "mr-2"} transition-colors duration-200`}

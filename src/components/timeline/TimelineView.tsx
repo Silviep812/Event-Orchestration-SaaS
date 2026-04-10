@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format, addDays, isAfter, isBefore, isWithinInterval, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
+import { computeEventLifecycle } from "@/lib/eventStatus";
 import { 
   CalendarIcon, 
   Clock, 
@@ -43,8 +44,18 @@ interface TimelineViewProps {
 }
 
 
+type EventRow = {
+  id: string;
+  title: string;
+  status?: string | null;
+  start_date?: string | null;
+  end_date?: string | null;
+  archived?: boolean | null;
+};
+
 const TimelineView = ({ eventId }: TimelineViewProps) => {
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [eventRow, setEventRow] = useState<EventRow | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [viewMode, setViewMode] = useState<'all' | 'day' | 'week' | 'month'>('all');
   const [conflicts, setConflicts] = useState<string[]>([]);
@@ -113,21 +124,31 @@ const TimelineView = ({ eventId }: TimelineViewProps) => {
   //    }
 
 
-  // Fetch real tasks for the selected event
+  // Fetch event row (status for active / timeline context) and tasks
   useEffect(() => {
     if (!eventId) {
       setTasks([]);
+      setEventRow(null);
       setLoading(false);
       return;
     }
     setLoading(true);
     const fetchTasks = async () => {
       try {
-        const { data, error } = await supabase
-          .from('tasks')
-          .select('*')
-          .eq('event_id', eventId)
-          .order('due_date', { ascending: true });
+        const [{ data: evData, error: evErr }, { data, error }] = await Promise.all([
+          supabase
+            .from("events")
+            .select("id, title, status, start_date, end_date, archived")
+            .eq("id", eventId)
+            .maybeSingle(),
+          supabase
+            .from('tasks')
+            .select('*')
+            .eq('event_id', eventId)
+            .order('due_date', { ascending: true }),
+        ]);
+        if (evErr) console.warn(evErr);
+        setEventRow(evData ? { ...evData } : null);
         if (error) throw error;
         setTasks(data || []);
         analyzeConstraints(data || []);
@@ -411,14 +432,44 @@ const TimelineView = ({ eventId }: TimelineViewProps) => {
 
   const hasTimelineIssues = conflicts.length > 0 || overdueFlags.length > 0;
 
+  const lifecycle = computeEventLifecycle(eventRow ?? undefined);
+  const eventStatusLabel = lifecycle?.eventStatusLabel ?? "";
+  const isPastEvent = lifecycle?.isPastEvent ?? false;
+  const isCancelled = lifecycle?.isCancelled ?? false;
+  const isActiveEvent = !!(eventRow && lifecycle?.isActiveEvent);
+  const isArchivedEvent = lifecycle?.isArchived ?? false;
+
   return (
     <div className="space-y-6">
+      {eventRow && (
+        <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/40 px-3 py-2 text-sm">
+          <Badge variant="secondary" className="font-normal">
+            {eventRow.title}
+          </Badge>
+          {eventStatusLabel ? (
+            <Badge variant="outline" className="capitalize">
+              Event: {eventStatusLabel}
+            </Badge>
+          ) : null}
+          {isArchivedEvent ? (
+            <Badge variant="secondary">Archived</Badge>
+          ) : isCancelled ? (
+            <Badge variant="destructive">Cancelled</Badge>
+          ) : isPastEvent ? (
+            <Badge variant="secondary">Past event</Badge>
+          ) : isActiveEvent ? (
+            <Badge className="bg-primary text-primary-foreground">Active event</Badge>
+          ) : null}
+        </div>
+      )}
       {/* Header Controls */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-semibold">Timeline View</h2>
           <p className="text-sm text-muted-foreground">
-            Manage task schedules and identify conflicts
+            {isActiveEvent
+              ? "Task statuses stay in sync with Project Management; overdue highlights apply to open work."
+              : "Manage task schedules and identify conflicts"}
           </p>
         </div>
         

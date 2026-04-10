@@ -34,3 +34,17 @@ COMMENT ON VIEW public.create_event_safe IS 'Sanitized view of Create Event with
 
 -- Enable RLS on the view (inherits from base table but explicit is better)
 ALTER VIEW public.create_event_safe SET (security_invoker = true);
+
+-- Current user's rows from the sanitized view (compact definition avoids 08P01 on some hosts)
+DROP FUNCTION IF EXISTS public.get_my_events_safe() CASCADE;
+
+CREATE FUNCTION public.get_my_events_safe()
+RETURNS SETOF public.create_event_safe
+LANGUAGE sql
+STABLE
+SET search_path = public
+AS $function$
+  SELECT *
+  FROM public.create_event_safe
+  WHERE userid = (auth.uid())::text;
+$function$;

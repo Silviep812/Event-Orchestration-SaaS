@@ -6,9 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Hotel, Home, MapPin, Coffee, Phone, Mail, Globe, DollarSign, Users, ExternalLink } from "lucide-react";
+import { Hotel, Home, MapPin, Coffee, Mail, Globe, DollarSign, Users, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { DirectoryPageHeader } from "@/components/resource-directory/DirectoryPageHeader";
+import { openReservationUrl } from "@/lib/openExternalOrMailto";
 
 const HospitalityDirectory = () => {
   const [hospitalityProfiles, setHospitalityProfiles] = useState<any[]>([]);
@@ -20,7 +21,6 @@ const HospitalityDirectory = () => {
     business_name: "",
     address: "",
     email: "",
-    phone: ""
   });
   const { toast } = useToast();
 
@@ -129,7 +129,7 @@ const HospitalityDirectory = () => {
       const otherType = hospitalityTypes.find(type => type.name.toLowerCase() === "other");
       if (otherType && typeId === otherType.id.toString()) {
         setShowOtherForm(false);
-        setOtherFormData({ business_name: "", address: "", email: "", phone: "" });
+        setOtherFormData({ business_name: "", address: "", email: "" });
       }
     }
   };
@@ -155,7 +155,7 @@ const HospitalityDirectory = () => {
             business_name: otherFormData.business_name,
             city: otherFormData.address,
             contact_name: otherFormData.business_name,
-            phone_number: otherFormData.phone,
+            phone_number: null,
             email: otherFormData.email,
             hospitality_type: otherType.id
           }
@@ -168,7 +168,7 @@ const HospitalityDirectory = () => {
         description: "Hospitality provider added successfully"
       });
 
-      setOtherFormData({ business_name: "", address: "", email: "", phone: "" });
+      setOtherFormData({ business_name: "", address: "", email: "" });
       fetchHospitalityProfiles();
     } catch (error) {
       console.error('Error adding hospitality provider:', error);
@@ -252,17 +252,6 @@ const HospitalityDirectory = () => {
                     placeholder="Enter email"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number *</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    required
-                    value={otherFormData.phone}
-                    onChange={(e) => setOtherFormData({...otherFormData, phone: e.target.value})}
-                    placeholder="Enter phone number"
-                  />
-                </div>
               </div>
               <Button type="submit" className="w-full md:w-auto">
                 Add Provider
@@ -284,7 +273,7 @@ const HospitalityDirectory = () => {
           {(selectedHospitalityTypes.length > 0 || locationFilter) && (
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
-                Showing {filteredProfiles.length} of {hospitalityProfiles.length} external vendors
+                Showing {filteredProfiles.length} of {hospitalityProfiles.length} hospitality profiles
               </p>
               <Button
                 variant="outline"
@@ -341,14 +330,7 @@ const HospitalityDirectory = () => {
                     <CardContent className="space-y-3">
                       {profile.contact_name && (
                         <div className="flex items-center gap-2 text-sm">
-                          <Phone size={16} className="text-muted-foreground" />
-                          <span>{profile.contact_name}</span>
-                          {profile.phone_number && (
-                            <>
-                              <span className="text-muted-foreground">•</span>
-                              <span>{profile.phone_number}</span>
-                            </>
-                          )}
+                          <span className="font-medium">{profile.contact_name}</span>
                         </div>
                       )}
                       
@@ -362,7 +344,12 @@ const HospitalityDirectory = () => {
                       {profile.email && (
                         <div className="flex items-center gap-2 text-sm">
                           <Mail size={16} className="text-muted-foreground" />
-                          <span className="text-sm">{profile.email}</span>
+                          <a
+                            href={`mailto:${profile.email}`}
+                            className="text-sm text-primary hover:underline"
+                          >
+                            {profile.email}
+                          </a>
                         </div>
                       )}
 
@@ -394,17 +381,36 @@ const HospitalityDirectory = () => {
                         </div>
                       )}
 
-                      {profile.make_reservations && (
-                        <div className="pt-2">
-                          <Button 
-                            variant="default" 
-                            size="sm" 
+                      {(profile.make_reservations?.toString().trim() ||
+                        profile.website?.toString().trim() ||
+                        profile.email?.toString().trim()) && (
+                        <div className="pt-2 space-y-2">
+                          <Button
+                            variant="default"
+                            size="sm"
                             className="w-full"
-                            onClick={() => window.open(profile.make_reservations, '_blank')}
+                            type="button"
+                            onClick={() =>
+                              openReservationUrl(
+                                profile.make_reservations || profile.website || "",
+                                toast,
+                                profile.email,
+                              )
+                            }
                           >
                             <ExternalLink size={14} className="mr-2" />
-                            Make Reservation
+                            {profile.make_reservations?.toString().trim() || profile.website?.toString().trim()
+                              ? "Make reservation"
+                              : "Contact by email"}
                           </Button>
+                          {profile.email?.toString().trim() ? (
+                            <Button variant="outline" size="sm" className="w-full" type="button" asChild>
+                              <a href={`mailto:${String(profile.email).trim()}`}>
+                                <Mail size={14} className="mr-2 inline" />
+                                Email only (if the site link fails)
+                              </a>
+                            </Button>
+                          ) : null}
                         </div>
                       )}
                     </CardContent>

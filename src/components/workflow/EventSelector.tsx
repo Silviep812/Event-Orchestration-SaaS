@@ -1,16 +1,22 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { getLifecycleTableBadge } from "@/lib/eventStatus";
 
 interface Event {
   id: string;
   user_id: string;
   title: string;
-  description: string;
+  description: string | null;
+  start_date?: string | null;
+  end_date?: string | null;
+  status?: string | null;
+  archived?: boolean | null;
 }
 
 interface EventSelectorProps {
@@ -115,7 +121,14 @@ export function EventSelector({ onSelectEvent, selectedEvent, refreshKey = 0 }: 
       </Card>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {events.map((event) => (
+        {events.map((event) => {
+          const lifecycleBadge = getLifecycleTableBadge({
+            status: event.status,
+            start_date: event.start_date,
+            end_date: event.end_date,
+            archived: event.archived,
+          });
+          return (
           <Card
             key={event.id}
             className={`cursor-pointer transition-all hover:shadow-lg ${
@@ -131,6 +144,9 @@ export function EventSelector({ onSelectEvent, selectedEvent, refreshKey = 0 }: 
                   <CardTitle className="text-lg">
                     {event.title || "Untitled Event"}
                   </CardTitle>
+                  <Badge variant={lifecycleBadge.variant} className="mt-2 capitalize text-xs">
+                    {lifecycleBadge.label}
+                  </Badge>
                   <CardDescription className="mt-2">
                     {event.description}
                   </CardDescription>
@@ -141,7 +157,8 @@ export function EventSelector({ onSelectEvent, selectedEvent, refreshKey = 0 }: 
               </div>
             </CardHeader>
           </Card>
-        ))}
+          );
+        })}
       </div>
 
       {selectedEvent && (

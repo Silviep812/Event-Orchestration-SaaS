@@ -8,8 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { 
   MapPin, 
-  Phone, 
-  Mail, 
+  Mail,
+  Globe,
   DollarSign, 
   Star, 
   Calendar,
@@ -28,6 +28,7 @@ interface HospitalityOption {
   id: string;
   business_name: string;
   contact_name: string;
+  email?: string | null;
   phone_number: string;
   website: string;
   city: string;
@@ -242,15 +243,20 @@ export const HospitalitySelector = ({ onSelectHospitality, selectedHospitality }
                       <span>{[hospitality.city, hospitality.state, hospitality.zip].filter(Boolean).join(', ')}</span>
                     </div>
                   )}
-                  {hospitality.phone_number && (
+                  {hospitality.email && String(hospitality.email).trim() !== "" && (
                     <div className="flex items-center gap-2 text-sm">
-                      <Phone className="h-4 w-4 text-muted-foreground" />
-                      <span>{hospitality.phone_number}</span>
+                      <Mail className="h-4 w-4 text-muted-foreground" />
+                      <a
+                        href={`mailto:${hospitality.email}`}
+                        className="truncate text-primary hover:underline"
+                      >
+                        {hospitality.email}
+                      </a>
                     </div>
                   )}
                   {hospitality.website && (
                     <div className="flex items-center gap-2 text-sm">
-                      <Mail className="h-4 w-4 text-muted-foreground" />
+                      <Globe className="h-4 w-4 text-muted-foreground shrink-0" />
                       <span className="truncate">{hospitality.website}</span>
                     </div>
                   )}

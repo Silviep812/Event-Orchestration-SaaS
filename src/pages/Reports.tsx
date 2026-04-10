@@ -62,6 +62,9 @@ import {
 import { DateRange } from "react-day-picker";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { useSearchParams, Link } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { getLifecycleTableBadge } from "@/lib/eventStatus";
 
 interface ChangeLog {
   id: string;
@@ -82,7 +85,24 @@ interface ReportData {
   userActivity: { user: string; changes: number }[];
 }
 
+interface EventPlanRow {
+  id: string;
+  title: string;
+  start_date: string | null;
+  end_date: string | null;
+  status: string | null;
+  venue: string | null;
+  budget: number | null;
+  expected_attendees: number | null;
+  themeName: string;
+  tasksDone: number;
+  tasksTotal: number;
+  updated_at: string | null;
+}
+
 const Reports = () => {
+  const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [changeLogs, setChangeLogs] = useState<ChangeLog[]>([]);
   const [reportData, setReportData] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -91,7 +111,41 @@ const Reports = () => {
   const [actionFilter, setActionFilter] = useState<string>("all");
   const [dueSoonCount, setDueSoonCount] = useState<number | null>(null);
   const [vendorCategoryRows, setVendorCategoryRows] = useState<number | null>(null);
+  const [eventPlanRows, setEventPlanRows] = useState<EventPlanRow[]>([]);
+  const [eventPlanLoading, setEventPlanLoading] = useState(false);
   const { toast } = useToast();
+
+  const tabFromUrl = searchParams.get("tab");
+  const urlToPanel = (p: string | null): string => {
+    if (p === "change-requests") return "change-requests";
+    if (p === "analytics") return "analytics";
+    if (p === "detailed") return "detailed";
+    if (p === "trends") return "trends";
+    return "overview";
+  };
+  const panelToUrl = (panel: string): string => {
+    if (panel === "overview") return "event-plan";
+    return panel;
+  };
+
+  const [activeTab, setActiveTab] = useState(() => urlToPanel(tabFromUrl));
+  useEffect(() => {
+    setActiveTab(urlToPanel(searchParams.get("tab")));
+  }, [searchParams]);
+
+  const changeRequestLogs = changeLogs.filter((l) => {
+    const meta = l.metadata ? JSON.stringify(l.metadata).toLowerCase() : "";
+    return (
+      /change.?request/i.test(l.entity_type || "") ||
+      /change.?request/i.test(l.action || "") ||
+      meta.includes("change request")
+    );
+  });
+
+  const onReportTabChange = (v: string) => {
+    setActiveTab(v);
+    setSearchParams({ tab: panelToUrl(v) }, { replace: true });
+  };
 
   useEffect(() => {
     fetchChangeData();
@@ -107,6 +161,79 @@ const Reports = () => {
       if (!e2) setVendorCategoryRows(vc?.length ?? 0);
     })();
   }, []);
+
+  useEffect(() => {
+    if (!user?.id) {
+      setEventPlanRows([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      setEventPlanLoading(true);
+      try {
+        const { data: evs, error: evErr } = await supabase
+          .from("events")
+          .select("id, title, start_date, end_date, status, venue, budget, expected_attendees, theme_id, updated_at, archived")
+          .eq("user_id", user.id)
+          .eq("archived", false)
+          .order("start_date", { ascending: true });
+        if (evErr) throw evErr;
+        const list = evs || [];
+        const themeIds = [...new Set(list.map((e) => e.theme_id).filter((x): x is number => x != null))];
+        let themeMap: Record<number, string> = {};
+        if (themeIds.length > 0) {
+          const { data: th } = await supabase.from("event_themes").select("id, name").in("id", themeIds);
+          themeMap = Object.fromEntries((th || []).map((t) => [t.id, t.name || ""]));
+        }
+        const eventIds = list.map((e) => e.id);
+        let taskByEvent: Record<string, { total: number; done: number }> = {};
+        if (eventIds.length > 0) {
+          const { data: tasks } = await supabase
+            .from("tasks")
+            .select("event_id, status")
+            .in("event_id", eventIds);
+          for (const id of eventIds) {
+            taskByEvent[id] = { total: 0, done: 0 };
+          }
+          for (const t of tasks || []) {
+            const eid = t.event_id as string;
+            if (!eid || !taskByEvent[eid]) continue;
+            taskByEvent[eid].total += 1;
+            if (t.status === "completed" || t.status === "cancelled") {
+              taskByEvent[eid].done += 1;
+            }
+          }
+        }
+        const rows: EventPlanRow[] = list.map((e) => {
+          const tid = e.theme_id ?? undefined;
+          const tstat = e.id ? taskByEvent[e.id] : { total: 0, done: 0 };
+          return {
+            id: e.id,
+            title: e.title,
+            start_date: e.start_date,
+            end_date: e.end_date,
+            status: e.status,
+            venue: e.venue,
+            budget: e.budget,
+            expected_attendees: e.expected_attendees,
+            themeName: tid != null ? themeMap[tid] || "—" : "—",
+            tasksDone: tstat.done,
+            tasksTotal: tstat.total,
+            updated_at: e.updated_at,
+          };
+        });
+        if (!cancelled) setEventPlanRows(rows);
+      } catch (e: unknown) {
+        console.error(e);
+        if (!cancelled) setEventPlanRows([]);
+      } finally {
+        if (!cancelled) setEventPlanLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
 
   const [userDisplayNames, setUserDisplayNames] = useState<Record<string, string>>({});
   useEffect(() => {
@@ -151,8 +278,8 @@ const Reports = () => {
       setLoading(true);
 
       // Prefer activity_feed (explicit GRANT in migrations, same rows as cm_activity, same RLS).
-      const runQuery = (source: "activity_feed" | "cm_activity") => {
-        let query = supabase.from(source).select("*").order("created_at", { ascending: false });
+      const runQuery = (source: string) => {
+        let query = (supabase.from as any)(source).select("*").order("created_at", { ascending: false });
         if (dateRange?.from) {
           query = query.gte("created_at", dateRange.from.toISOString());
         }
@@ -314,9 +441,9 @@ const Reports = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Change Management Reports</h1>
-          <p className="text-muted-foreground">
-            Track and analyze all change activities across your events and systems
+          <h1 className="text-3xl font-bold tracking-tight">Reports</h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            Event plan snapshot and change-request activity — details are in each tab below.
           </p>
         </div>
         <Button onClick={exportReport} className="flex items-center gap-2">
@@ -414,133 +541,165 @@ const Reports = () => {
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
+      <Tabs value={activeTab} onValueChange={onReportTabChange} className="space-y-4">
+        <TabsList className="flex flex-wrap h-auto gap-1">
+          <TabsTrigger value="overview">Event Plan Report</TabsTrigger>
+          <TabsTrigger value="change-requests">Change Request Report</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
           <TabsTrigger value="detailed">Detailed Logs</TabsTrigger>
           <TabsTrigger value="trends">Trends</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
-          {/* KPI Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Changes</CardTitle>
-                <Activity className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{reportData?.totalChanges || 0}</div>
-                <p className="text-xs text-muted-foreground">
-                  All tracked changes
+          <Card>
+            <CardHeader>
+              <CardTitle>Event Plan Report</CardTitle>
+              <CardDescription>
+                Event plan report is a single schema-style table: one row per active (non-archived) event. Columns
+                update as you work in Manage event, Project Management, and timelines, so planners see how the plan
+                evolves. Resource line items and collaborator checklists are maintained in{" "}
+                <strong>Project Management</strong> (not duplicated here). Use <strong>Manage event</strong> or{" "}
+                <strong>Create change request</strong> in the last columns as needed.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {eventPlanLoading ? (
+                <p className="text-sm text-muted-foreground py-8 text-center">Loading event plans…</p>
+              ) : eventPlanRows.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-8 text-center">
+                  No active events yet. Create an event to see your plan here.
                 </p>
-              </CardContent>
-            </Card>
+              ) : (
+                <ScrollArea className="h-[min(70vh,560px)] rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Event</TableHead>
+                        <TableHead>Theme</TableHead>
+                        <TableHead>Dates</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Venue</TableHead>
+                        <TableHead className="text-right">Budget</TableHead>
+                        <TableHead className="text-right">Attendees</TableHead>
+                        <TableHead>Tasks (done / total)</TableHead>
+                        <TableHead>Updated</TableHead>
+                        <TableHead className="text-right">Manage event</TableHead>
+                        <TableHead className="text-right">Create change request</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {eventPlanRows.map((row) => {
+                        const statusBadge = getLifecycleTableBadge({
+                          status: row.status,
+                          start_date: row.start_date,
+                          end_date: row.end_date,
+                          archived: false,
+                        });
+                        return (
+                        <TableRow key={row.id}>
+                          <TableCell className="font-medium max-w-[12rem] truncate">{row.title}</TableCell>
+                          <TableCell className="text-sm">{row.themeName}</TableCell>
+                          <TableCell className="text-xs whitespace-nowrap">
+                            {row.start_date
+                              ? format(new Date(row.start_date + "T12:00:00"), "MMM d, yyyy")
+                              : "—"}
+                            {row.end_date ? ` → ${format(new Date(row.end_date + "T12:00:00"), "MMM d, yyyy")}` : ""}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={statusBadge.variant} className="capitalize">
+                              {statusBadge.label}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-sm max-w-[10rem] truncate">{row.venue || "—"}</TableCell>
+                          <TableCell className="text-right tabular-nums">
+                            {row.budget != null ? `$${Number(row.budget).toLocaleString()}` : "—"}
+                          </TableCell>
+                          <TableCell className="text-right tabular-nums">
+                            {row.expected_attendees != null ? row.expected_attendees : "—"}
+                          </TableCell>
+                          <TableCell className="text-sm tabular-nums">
+                            {row.tasksTotal === 0
+                              ? "—"
+                              : `${row.tasksDone} / ${row.tasksTotal}`}
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                            {row.updated_at
+                              ? format(new Date(row.updated_at), "MMM d, yyyy HH:mm")
+                              : "—"}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="link" className="h-auto p-0" asChild>
+                              <Link to={`/dashboard/manage-event?eventId=${row.id}`}>Open</Link>
+                            </Button>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="link" className="h-auto p-0" asChild>
+                              <Link
+                                to={`/dashboard/project-management?eventId=${encodeURIComponent(row.id)}&tab=change-management`}
+                              >
+                                Open
+                              </Link>
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                      })}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Entity Types</CardTitle>
-                <FileText className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{uniqueEntityTypes.length}</div>
-                <p className="text-xs text-muted-foreground">
-                  Different entity types
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Active Users</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {[...new Set(changeLogs.map(log => log.changed_by).filter(Boolean))].length}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Users making changes
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Recent Activity</CardTitle>
-                <Clock className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {changeLogs.filter(log => 
-                    new Date(log.created_at) > new Date(Date.now() - 24 * 60 * 60 * 1000)
-                  ).length}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Changes in last 24h
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Charts */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Changes by Type</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={reportData?.changesByType || []}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {reportData?.changesByType.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-                {/* Legend for entity types */}
-                <div className="flex flex-wrap gap-2 mt-4 justify-center">
-                  {reportData?.changesByType.map((entry, idx) => (
-                    <span key={idx} className="flex items-center gap-2 text-s">
-                      <span style={{ background: entry.color, width: 12, height: 12, display: 'inline-block', borderRadius: 2 }} />
-                      {entry.name}
-                    </span>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>User Activity</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={(reportData?.userActivity || []).map(({ user, changes }) => {
-                    const displayName = userDisplayNames[user] || user.substring(0, 8) + '...';
-                    return { user: displayName, changes };
-                  })}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="user" />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="changes" fill="hsl(var(--primary))" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </div>
+        <TabsContent value="change-requests" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Change Request Report</CardTitle>
+              <CardDescription>
+                Activity rows tied to change requests. Adjust filters above to change the date range.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className="h-[420px] rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date/Time</TableHead>
+                      <TableHead>Entity</TableHead>
+                      <TableHead>Action</TableHead>
+                      <TableHead>User</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {changeRequestLogs.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                          No change request rows in this range.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      changeRequestLogs.map((log) => (
+                        <TableRow key={log.id}>
+                          <TableCell className="font-mono text-xs">
+                            {format(new Date(log.created_at), "MMM dd, yyyy HH:mm")}
+                          </TableCell>
+                          <TableCell>{log.entity_type}</TableCell>
+                          <TableCell>{log.action}</TableCell>
+                          <TableCell className="text-xs">
+                            {log.changed_by
+                              ? userDisplayNames[log.changed_by] ||
+                                `${log.changed_by.substring(0, 8)}…`
+                              : "—"}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </ScrollArea>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="analytics" className="space-y-4">

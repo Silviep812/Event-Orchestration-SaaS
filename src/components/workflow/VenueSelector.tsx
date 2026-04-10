@@ -8,7 +8,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { 
   MapPin, 
-  Phone, 
   Mail, 
   Building,
   Calendar,
@@ -316,12 +315,6 @@ export const VenueSelector = ({ onSelectVenue, selectedVenue }: VenueSelectorPro
                       {[venue.city, venue.state, venue.zip].filter(Boolean).join(', ') || 'Location not specified'}
                     </span>
                   </div>
-                  {venue.phone_number && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <Phone className="h-4 w-4 text-muted-foreground" />
-                      <span>{venue.phone_number}</span>
-                    </div>
-                  )}
                   {venue.email && (
                     <div className="flex items-center gap-2 text-sm">
                       <Mail className="h-4 w-4 text-muted-foreground" />
@@ -394,10 +387,6 @@ export const VenueSelector = ({ onSelectVenue, selectedVenue }: VenueSelectorPro
               <Label>Email</Label>
               <Input value={newVenue.email} onChange={e => setNewVenue({ ...newVenue, email: e.target.value })} />
             </div>
-            <div>
-              <Label>Phone Number</Label>
-              <Input value={newVenue.phone_number} onChange={e => setNewVenue({ ...newVenue, phone_number: e.target.value })} />
-            </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
               <div>
                 <Label>City</Label>
@@ -445,7 +434,7 @@ export const VenueSelector = ({ onSelectVenue, selectedVenue }: VenueSelectorPro
                 business_name: newVenue.business_name,
                 contact_name: newVenue.contact_name,
                 email: newVenue.email,
-                phone_number: newVenue.phone_number,
+                phone_number: null,
                 city: newVenue.city,
                 state: newVenue.state,
                 zip: newVenue.zip,

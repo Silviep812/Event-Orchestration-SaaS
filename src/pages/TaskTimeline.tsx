@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useEventFilter } from "@/hooks/useEventFilter";
+import { eventSelectLifecycleLabel } from "@/lib/eventStatus";
 import { useToast } from "@/hooks/use-toast";
 import { differenceInCalendarDays, parseISO, format } from "date-fns";
 import { BarChart3 } from "lucide-react";
@@ -27,6 +29,7 @@ function parseDay(s: string | null | undefined): Date | null {
 }
 
 export default function TaskTimeline() {
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { toast } = useToast();
   const { events, eventsLoading } = useEventFilter();
@@ -35,10 +38,15 @@ export default function TaskTimeline() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    const q = searchParams.get("eventId");
+    if (q && events.some((e) => e.id === q)) {
+      setEventId(q);
+      return;
+    }
     if (events.length && !eventId) {
       setEventId(events[0].id);
     }
-  }, [events, eventId]);
+  }, [events, eventId, searchParams]);
 
   useEffect(() => {
     const load = async () => {
@@ -62,7 +70,13 @@ export default function TaskTimeline() {
         });
         setTasks([]);
       } else {
-        setTasks((data ?? []) as TaskRow[]);
+        const raw = (data ?? []) as TaskRow[];
+        setTasks(
+          raw.filter((t) => {
+            if (!t.due_date) return true;
+            return !String(t.due_date).startsWith("2025");
+          })
+        );
       }
       setLoading(false);
     };
@@ -112,16 +126,46 @@ export default function TaskTimeline() {
     return { rangeStart: minD!, rangeEnd: maxD!, rows: computed };
   }, [tasks]);
 
+  const statusSummary = useMemo(() => {
+    let active = 0;
+    let notStarted = 0;
+    let completed = 0;
+    let inProgress = 0;
+    for (const t of tasks) {
+      const s = (t.status ?? "").toLowerCase();
+      if (s === "completed") completed++;
+      else if (s === "in_progress") {
+        inProgress++;
+        active++;
+      } else if (s === "not_started") notStarted++;
+      else if (s && s !== "cancelled") active++;
+    }
+    return { active, notStarted, completed, inProgress, total: tasks.length };
+  }, [tasks]);
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-bold flex items-center gap-2">
           <BarChart3 className="h-8 w-8 text-primary" />
-          Task timeline
+          Event Timeline
         </h1>
         <p className="text-muted-foreground max-w-2xl">
-          Milestone-style bars from each task&apos;s start/end/due dates (Deliverable 2 visual timeline).
+          Milestone-style bars from each task&apos;s start/end/due dates. Legacy tasks with due dates
+          in 2025 are hidden (client data cleanup).
         </p>
+        {eventId && tasks.length > 0 && (
+          <p className="text-sm font-medium text-foreground">
+            Timeline status:{" "}
+            <span className="text-primary">{statusSummary.inProgress} in progress</span>
+            {" · "}
+            <span className="text-muted-foreground">{statusSummary.notStarted} not started</span>
+            {" · "}
+            <span className="text-green-600">{statusSummary.completed} completed</span>
+            {" · "}
+            {statusSummary.total} tasks plotted
+          </p>
+        )}
       </div>
 
       <Card>
@@ -142,6 +186,7 @@ export default function TaskTimeline() {
               {events.map((e) => (
                 <SelectItem key={e.id} value={e.id}>
                   {e.title}
+                  <span className="text-muted-foreground">{` · ${eventSelectLifecycleLabel(e)}`}</span>
                 </SelectItem>
               ))}
             </SelectContent>
@@ -173,7 +218,9 @@ export default function TaskTimeline() {
                 <div key={task.id} className="space-y-1">
                   <div className="flex justify-between text-sm gap-2">
                     <span className="font-medium truncate">{task.title}</span>
-                    <span className="text-muted-foreground shrink-0 capitalize">{task.status ?? ""}</span>
+                    <span className="text-muted-foreground shrink-0 capitalize">
+                      {(task.status ?? "").replace(/_/g, " ") || "—"}
+                    </span>
                   </div>
                   <div className="relative h-8 rounded-md bg-muted overflow-hidden">
                     <div

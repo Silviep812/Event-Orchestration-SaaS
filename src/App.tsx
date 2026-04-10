@@ -1,8 +1,7 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -21,7 +20,6 @@ import Reports from "./pages/Reports";
 import Collaborate from "./pages/Collaborate";
 import TrackProgress from "./pages/TrackProgress";
 import Notifications from "./pages/Notifications";
-import Comments from "./pages/Comments";
 import NotFound from "./pages/NotFound";
 import BookingsDirectory from "./pages/BookingsDirectory";
 import VenueDirectory from "./pages/VenueDirectory";
@@ -32,30 +30,30 @@ import TransportationDirectory from "./pages/TransportationDirectory";
 import EntertainmentDirectory from "./pages/EntertainmentDirectory";
 import SupplierDirectory from "./pages/SupplierDirectory";
 import Profile from "./pages/Profile";
-import Contact from "./pages/Contact";
-import EventSummary from "./pages/EventSummary";
 import TaskTimeline from "./pages/TaskTimeline";
 import ResourceMap from "./pages/ResourceMap";
 import MarketingCampaign from "./pages/MarketingCampaign";
 
-const queryClient = new QueryClient();
-
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
+  <AuthProvider>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
+        <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/contact" element={<Navigate to="/" replace />} />
             <Route path="/auth" element={<Auth />} />
-            <Route path="/contact" element={<Contact />} />
             <Route path="/dashboard" element={<Dashboard />}>
               <Route index element={<DashboardHome />} />
               <Route path="workflow-dashboard" element={<WorkflowDashboard />} />
               <Route path="themes" element={<ThemesDirectory />} />
               <Route path="project-management" element={<ProjectManagement />} />
+              {/* Short URL → PM Change Management tab (change requests list + link to Manage Event log) */}
+              <Route
+                path="change-management"
+                element={<Navigate to="/dashboard/project-management?tab=change-management" replace />}
+              />
               <Route path="planning-assets" element={<PlanningAssets />} />
               <Route path="planning-assets/:templateId" element={<EditTemplate />} />
               <Route path="analytics" element={<Analytics />} />
@@ -63,14 +61,14 @@ const App = () => (
               <Route path="task-timeline" element={<TaskTimeline />} />
               <Route path="resource-map" element={<ResourceMap />} />
               <Route path="create-event" element={<CreateEvent />} />
-              <Route path="event-summary" element={<EventSummary />} />
+              <Route path="event-summary" element={<Navigate to="/dashboard/manage-event" replace />} />
               <Route path="manage-event" element={<ManageEventPage />} />
               <Route path="collaborate" element={<Collaborate />} />
               <Route path="track-progress" element={<TrackProgress />} />
               <Route path="reports" element={<Reports />} />
               <Route path="marketing-campaign" element={<MarketingCampaign />} />
               <Route path="notification" element={<Notifications />} />
-              <Route path="comments" element={<Comments />} />
+              <Route path="comments" element={<Navigate to="/dashboard/collaborate" replace />} />
               <Route path="bookings" element={<BookingsDirectory />} />
               <Route path="venue" element={<VenueDirectory />} />
               <Route path="hospitality" element={<HospitalityDirectory />} />
@@ -85,9 +83,8 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
-  </QueryClientProvider>
+    </TooltipProvider>
+  </AuthProvider>
 );
 
 export default App;

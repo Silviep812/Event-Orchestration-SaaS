@@ -8,11 +8,18 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DatePickerWithRange } from "@/components/ui/date-picker";
-import { Plus, X, Calendar, MapPin, Users, DollarSign, ArrowLeft } from "lucide-react";
+import { Calendar, MapPin, Users, DollarSign, ArrowLeft } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { DateRange } from "react-day-picker";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { assertCanCreateEvent } from "@/lib/trialLimits";
+import {
+  isHealthWellnessThemeName,
+  isRetreatsThemeName,
+  loadHealthWellnessEventTypeGroups,
+  loadRetreatsEventTypeGroups,
+  type HealthWellnessKey,
+} from "@/lib/themeEventTypeHierarchy";
 
 interface EventFormData {
   title: string;
@@ -24,8 +31,6 @@ interface EventFormData {
   budget: string;
   expectedAttendees: string;
   theme_id: number;
-  entertainment_id: string;
-  serv_vendor_rental_id: string;
 }
 
 export default function CreateEvent() {
@@ -45,8 +50,6 @@ export default function CreateEvent() {
       location: "",
       budget: "",
       expectedAttendees: "",
-      entertainment_id: "",
-      serv_vendor_rental_id: "",
     },
   });
 
@@ -73,30 +76,82 @@ export default function CreateEvent() {
   const selectedVenueDetail = venueProfiles.find((v) => v.business_name === venueName);
 
   const [themesLoaded, setThemesLoaded] = useState(false);
-  const [budgetInput, setBudgetInput] = useState('');
   const [entertainmentTypes, setEntertainmentTypes] = useState<{ id: number; name: string }[]>([]);
   const [entertainmentProfiles, setEntertainmentProfiles] = useState<
     { id: string; business_name: string; ent_type_id: number | null }[]
   >([]);
   const [selectedEntTypeId, setSelectedEntTypeId] = useState<number | null>(null);
-  const [vendorRentalTypes, setVendorRentalTypes] = useState<{ id: number; name: string }[]>([]);
-  const [rentalProfiles, setRentalProfiles] = useState<
-    {
-      id: string;
-      business_name: string;
-      serv_vendor_rental_assignments?: { vendor_rental_types: { id: number; name: string } | null }[];
-    }[]
+  /** External Vendor directory: procurement (`suppliers`), not rental equipment (`serv_vendor_suppliers`). */
+  const [supplierCategories, setSupplierCategories] = useState<{ id: number; name: string }[]>([]);
+  const [externalSupplierProfiles, setExternalSupplierProfiles] = useState<
+    { id: string; business_name: string; category_id: number | null }[]
   >([]);
-  const [selectedRentalTypeId, setSelectedRentalTypeId] = useState<number | null>(null);
+  const [selectedSupplierCategoryId, setSelectedSupplierCategoryId] = useState<number | null>(null);
+  const [selectedEntertainmentIds, setSelectedEntertainmentIds] = useState<string[]>([]);
+  const [selectedExternalSupplierIds, setSelectedExternalSupplierIds] = useState<string[]>([]);
+
+  /** Same directory > category > type hierarchy as Browse Event Themes (Health & Wellness + Retreats). */
+  const [hwHierarchy, setHwHierarchy] = useState<Awaited<
+    ReturnType<typeof loadHealthWellnessEventTypeGroups>
+  > | null>(null);
+  const [retreatHierarchy, setRetreatHierarchy] = useState<Awaited<
+    ReturnType<typeof loadRetreatsEventTypeGroups>
+  > | null>(null);
+  const [hwCategoryKey, setHwCategoryKey] = useState<HealthWellnessKey | "">("");
+  const [retreatBranchLabel, setRetreatBranchLabel] = useState("");
 
   const watchedTitle = watch("title");
   const watchedTheme = watch("theme_id");
   const watchedType = watch("type");
   const watchedSubType = watch("subType");
   const watchedVenue = watch("venue");
+  const watchedBudget = watch("budget");
+  const watchedAttendees = watch("expectedAttendees");
 
-  const eventTypeSelectionOk =
-    subEventTypes.length > 0 ? Boolean(watchedSubType) : Boolean(watchedType);
+  const selectedThemeName = useMemo(
+    () => eventThemes.find((t) => t.id === selectedThemeId)?.name ?? "",
+    [eventThemes, selectedThemeId],
+  );
+
+  const themeHierarchyMode = useMemo((): "default" | "hw" | "retreats" => {
+    if (!selectedThemeName) return "default";
+    if (isHealthWellnessThemeName(selectedThemeName)) return "hw";
+    if (isRetreatsThemeName(selectedThemeName)) return "retreats";
+    return "default";
+  }, [selectedThemeName]);
+
+  const eventTypeSelectionOk = useMemo(() => {
+    if (themeHierarchyMode === "hw") {
+      const pid = hwCategoryKey ? hwHierarchy?.parentIds[hwCategoryKey] : undefined;
+      return Boolean(pid && watchedSubType);
+    }
+    if (themeHierarchyMode === "retreats") {
+      const rid = retreatBranchLabel ? retreatHierarchy?.rootIdByBranch[retreatBranchLabel] : undefined;
+      return Boolean(rid && watchedSubType);
+    }
+    return subEventTypes.length > 0 ? Boolean(watchedSubType) : Boolean(watchedType);
+  }, [
+    themeHierarchyMode,
+    hwCategoryKey,
+    hwHierarchy,
+    retreatBranchLabel,
+    retreatHierarchy,
+    watchedSubType,
+    watchedType,
+    subEventTypes.length,
+  ]);
+
+  const budgetOk =
+    watchedBudget != null &&
+    String(watchedBudget).trim() !== "" &&
+    !Number.isNaN(parseFloat(String(watchedBudget))) &&
+    parseFloat(String(watchedBudget)) > 0;
+
+  const attendeesOk =
+    watchedAttendees != null &&
+    String(watchedAttendees).trim() !== "" &&
+    /^\d+$/.test(String(watchedAttendees).trim()) &&
+    parseInt(String(watchedAttendees).trim(), 10) > 0;
 
   const createEventReady = Boolean(
     watchedTitle?.trim() &&
@@ -104,13 +159,16 @@ export default function CreateEvent() {
     eventTypeSelectionOk &&
     watchedVenue?.trim() &&
     selectedVenueType != null &&
-    dateRange?.from
+    dateRange?.from &&
+    budgetOk &&
+    attendeesOk
   );
 
   const wizardStep = useMemo(() => {
     if (!watchedTitle?.trim() || watchedTheme == null) return 1;
     if (!eventTypeSelectionOk || !dateRange?.from) return 2;
     if (!watchedVenue?.trim() || selectedVenueType == null) return 3;
+    if (!budgetOk || !attendeesOk) return 3;
     return 4;
   }, [
     watchedTitle,
@@ -119,6 +177,8 @@ export default function CreateEvent() {
     dateRange?.from,
     watchedVenue,
     selectedVenueType,
+    budgetOk,
+    attendeesOk,
   ]);
 
   const wizardLabels = ["Basics", "Venue & directories", "Budget & extras", "Ready"];
@@ -185,7 +245,7 @@ export default function CreateEvent() {
   }, []);
 
   useEffect(() => {
-    const loadEntAndRental = async () => {
+    const loadEntAndSuppliers = async () => {
       const [{ data: entTypes, error: e1 }, { data: entProfs, error: e2 }] = await Promise.all([
         supabase.from("entertainment_types").select("id, name").order("name"),
         supabase.from("entertainments").select("id, business_name, ent_type_id"),
@@ -193,16 +253,14 @@ export default function CreateEvent() {
       if (!e1) setEntertainmentTypes(entTypes || []);
       if (!e2) setEntertainmentProfiles(entProfs || []);
 
-      const [{ data: vrTypes, error: r1 }, { data: vrProfs, error: r2 }] = await Promise.all([
-        supabase.from("vendor_rental_types").select("id, name").order("name"),
-        supabase.from("serv_vendor_rentals").select(
-          `id, business_name, serv_vendor_rental_assignments(vendor_rental_types(id, name))`
-        ),
+      const [{ data: catData, error: s1 }, { data: supProfs, error: s2 }] = await Promise.all([
+        supabase.from("supplier_categories").select("id, name").order("name"),
+        supabase.from("suppliers").select("id, business_name, category_id").order("business_name"),
       ]);
-      if (!r1) setVendorRentalTypes(vrTypes || []);
-      if (!r2) setRentalProfiles(vrProfs || []);
+      if (!s1) setSupplierCategories(catData || []);
+      if (!s2) setExternalSupplierProfiles(supProfs || []);
     };
-    loadEntAndRental();
+    loadEntAndSuppliers();
   }, []);
 
   const [isFormCleared, setIsFormCleared] = useState(false);
@@ -224,8 +282,79 @@ export default function CreateEvent() {
   }, [themesLoaded, searchParams, setValue, isFormCleared]);
 
   useEffect(() => {
+    if (!selectedThemeId) {
+      setHwHierarchy(null);
+      setRetreatHierarchy(null);
+      setHwCategoryKey("");
+      setRetreatBranchLabel("");
+      return;
+    }
+    const name = eventThemes.find((t) => t.id === selectedThemeId)?.name ?? "";
+    if (isHealthWellnessThemeName(name)) {
+      loadHealthWellnessEventTypeGroups().then(setHwHierarchy);
+      setRetreatHierarchy(null);
+      setRetreatBranchLabel("");
+      setHwCategoryKey("");
+      setValue("type", "");
+      setValue("subType", "");
+    } else if (isRetreatsThemeName(name)) {
+      loadRetreatsEventTypeGroups().then(setRetreatHierarchy);
+      setHwHierarchy(null);
+      setHwCategoryKey("");
+      setRetreatBranchLabel("");
+      setValue("type", "");
+      setValue("subType", "");
+    } else {
+      setHwHierarchy(null);
+      setRetreatHierarchy(null);
+      setHwCategoryKey("");
+      setRetreatBranchLabel("");
+    }
+  }, [selectedThemeId, eventThemes, setValue]);
+
+  // Pre-fill category + type from ?theme=&subType= when using Health & Wellness or Retreats (workflow wizard).
+  useEffect(() => {
+    const subName = searchParams.get("subType");
+    if (!subName || !selectedThemeId) return;
+
+    const tname = eventThemes.find((x) => x.id === selectedThemeId)?.name ?? "";
+    if (isHealthWellnessThemeName(tname) && hwHierarchy) {
+      const keys: HealthWellnessKey[] = ["peaceful", "spiritual", "rejuvenating", "holistic"];
+      for (const k of keys) {
+        const leaf = (hwHierarchy.groups[k] ?? []).find((x) => x.name === subName);
+        const pid = hwHierarchy.parentIds[k];
+        if (leaf && pid) {
+          setHwCategoryKey(k);
+          setValue("type", String(pid));
+          setValue("subType", String(leaf.id));
+          return;
+        }
+      }
+    }
+    if (isRetreatsThemeName(tname) && retreatHierarchy) {
+      for (const branch of Object.keys(retreatHierarchy.typesByBranch)) {
+        const leaf = (retreatHierarchy.typesByBranch[branch] ?? []).find((x) => x.name === subName);
+        const rid = retreatHierarchy.rootIdByBranch[branch];
+        if (leaf && rid) {
+          setRetreatBranchLabel(branch);
+          setValue("type", String(rid));
+          setValue("subType", String(leaf.id));
+          return;
+        }
+      }
+    }
+  }, [searchParams, selectedThemeId, eventThemes, hwHierarchy, retreatHierarchy, setValue]);
+
+  useEffect(() => {
     const fetchEventTypes = async () => {
       if (!selectedThemeId) {
+        setEventTypes([]);
+        setSubEventTypes([]);
+        return;
+      }
+
+      const tname = eventThemes.find((x) => x.id === selectedThemeId)?.name ?? "";
+      if (isHealthWellnessThemeName(tname) || isRetreatsThemeName(tname)) {
         setEventTypes([]);
         setSubEventTypes([]);
         return;
@@ -279,11 +408,16 @@ export default function CreateEvent() {
     };
     
     fetchEventTypes();
-  }, [selectedThemeId, searchParams, setValue]);
+  }, [selectedThemeId, searchParams, setValue, eventThemes]);
 
   // Fetch sub-types when a parent event type is selected (only if not from URL)
   useEffect(() => {
     const fetchSubEventTypes = async () => {
+      const tname = eventThemes.find((x) => x.id === selectedThemeId)?.name ?? "";
+      if (isHealthWellnessThemeName(tname) || isRetreatsThemeName(tname)) {
+        return;
+      }
+
       // Don't refetch if we already loaded from URL params
       const subTypeParam = searchParams.get('subType');
       if (subTypeParam && subEventTypes.length > 0) {
@@ -317,17 +451,7 @@ export default function CreateEvent() {
     };
     
     fetchSubEventTypes();
-  }, [selectedEventType, searchParams, subEventTypes.length]);
-
-  // Sync budget input with react-hook-form
-  useEffect(() => {
-    const sub = watch((value, { name }) => {
-      if (name === 'budget') {
-        setBudgetInput(value.budget ?? '');
-      }
-    });
-    return () => sub.unsubscribe();
-  }, [watch]);
+  }, [selectedEventType, searchParams, subEventTypes.length, selectedThemeId, eventThemes]);
 
   const collectErrorMessages = (errs: FieldErrors<EventFormData>): string[] => {
     const msgs: string[] = [];
@@ -352,10 +476,10 @@ export default function CreateEvent() {
     const description =
       messages.length > 0
         ? messages.join(" ")
-        : "Check fields marked with * (attendees and budget are optional).";
+        : "Check fields marked with * — budget and expected attendees are required.";
 
     toast({
-      title: "Fix the issues below",
+      title: "Complete required fields",
       description,
       variant: "destructive",
     });
@@ -386,32 +510,21 @@ export default function CreateEvent() {
       return;
     }
 
-    // Trial version date restriction
-    const trialEnd = new Date('2026-04-30T23:59:59');
-    if (dateRange.from > trialEnd) {
+    const budgetNum = parseFloat(String(data.budget).trim());
+    if (Number.isNaN(budgetNum) || budgetNum <= 0) {
       toast({
-        title: "Trial Limitation",
-        description: "The trial version doesn't allow creating events after April 30th, 2026.",
+        title: "Budget required",
+        description: "Enter a budget greater than zero.",
         variant: "destructive",
       });
       return;
     }
 
-    // Validate budget if provided
-    if (data.budget && parseFloat(data.budget) < 0) {
+    const attendeesNum = parseInt(String(data.expectedAttendees).trim(), 10);
+    if (Number.isNaN(attendeesNum) || attendeesNum < 1) {
       toast({
-        title: "Invalid Budget",
-        description: "Budget must be a positive number.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Validate attendees if provided
-    if (data.expectedAttendees && parseInt(data.expectedAttendees) < 0) {
-      toast({
-        title: "Invalid Attendee Count",
-        description: "Expected attendees must be a positive number.",
+        title: "Attendees required",
+        description: "Enter the expected number of attendees (at least 1).",
         variant: "destructive",
       });
       return;
@@ -433,26 +546,34 @@ export default function CreateEvent() {
         return;
       }
 
-      const trial = await assertCanCreateEvent(user.id, supabase);
-      if (!trial.ok) {
+      const themeNum = Number(data.theme_id);
+      if (!Number.isFinite(themeNum) || themeNum < 1) {
         toast({
-          title: "Trial limit",
-          description: trial.message,
+          title: "Theme required",
+          description: "Select an event theme before creating the event.",
           variant: "destructive",
         });
         setIsSubmitting(false);
         return;
       }
 
-      // Prepare event data for the new events table
-      // Use subType if available, otherwise use type
-      const typeId = data.subType ? parseInt(data.subType) : parseInt(data.type);
+      // Prepare event data for the new events table — subType (leaf) when set, else type
+      const typeStr = (data.subType?.trim() || data.type?.trim() || "").trim();
+      const typeId = parseInt(typeStr, 10);
+      if (!Number.isFinite(typeId) || typeId < 1) {
+        toast({
+          title: "Event type required",
+          description: "Select a category and event type (or sub-type) so we can save your plan.",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
       
-      const entId = data.entertainment_id?.trim() || null;
-      const rentalId = data.serv_vendor_rental_id?.trim() || null;
+      const entIds = selectedEntertainmentIds;
+      const extSupplierIds = selectedExternalSupplierIds;
+      const primaryEnt = entIds[0] ?? null;
 
-      // Core row only: optional FK columns need migration 20260327120000 on Supabase.
-      // Insert succeeds without them; profile links are applied in a follow-up update.
       const eventData = {
         user_id: user.id,
         title: data.title,
@@ -462,9 +583,14 @@ export default function CreateEvent() {
         location: data.location?.trim() || null,
         start_date: dateRange.from.toISOString().split('T')[0],
         end_date: dateRange.to ? dateRange.to.toISOString().split('T')[0] : null,
-        budget: data.budget ? parseFloat(data.budget) : null,
-        expected_attendees: data.expectedAttendees ? parseInt(data.expectedAttendees) : null,
-        theme_id: data.theme_id,
+        budget: budgetNum,
+        expected_attendees: attendeesNum,
+        theme_id: themeNum,
+        entertainment_id: primaryEnt,
+        entertainment_ids: entIds.length ? entIds : null,
+        external_supplier_ids: extSupplierIds.length ? extSupplierIds : null,
+        service_vendor_id: null,
+        service_vendor_ids: null,
       };
 
       const { data: insertedRow, error: insertError } = await supabase
@@ -487,26 +613,9 @@ export default function CreateEvent() {
         return;
       }
 
-      let profileLinkFailed = false;
-      if (insertedRow?.id && (entId || rentalId)) {
-        const { error: linkError } = await supabase
-          .from("events")
-          .update({
-            ...(entId ? { entertainment_id: entId } : {}),
-            ...(rentalId ? { serv_vendor_rental_id: rentalId } : {}),
-          })
-          .eq("id", insertedRow.id);
-        if (linkError) {
-          console.warn("Optional profile links not saved:", linkError);
-          profileLinkFailed = true;
-        }
-      }
-
       toast({
         title: "Event Created Successfully!",
-        description: profileLinkFailed
-          ? `Your event "${data.title}" was saved. Entertainment or rental profile links were not stored (run the Supabase migration deliverable1_events_tasks or set profiles in Manage Event).`
-          : `Your event "${data.title}" has been created and saved.`,
+        description: `Your event "${data.title}" has been created and saved.`,
       });
 
       if (insertedRow?.id && user.email) {
@@ -530,28 +639,31 @@ export default function CreateEvent() {
         subType: "",
         venue: "",
         location: "",
-        entertainment_id: "",
-        serv_vendor_rental_id: "",
         budget: "",
         expectedAttendees: "",
         description: ""
       });
       setDateRange(undefined);
-      setBudgetInput('');
       setSubEventTypes([]);
       setEventTypes([]);
       setSelectedVenueType(null);
       setSelectedEntTypeId(null);
-      setSelectedRentalTypeId(null);
+      setSelectedSupplierCategoryId(null);
+      setSelectedEntertainmentIds([]);
+      setSelectedExternalSupplierIds([]);
 
       // Redirect to manage event page
       navigate('/dashboard/manage-event');
 
     } catch (error) {
       console.error('Error creating event:', error);
+      const msg =
+        error instanceof Error && error.message
+          ? error.message
+          : "Something went wrong while saving. Please try again, or refresh the page if this keeps happening.";
       toast({
-        title: "Error Creating Event",
-        description: "There was an unexpected error. Please try again.",
+        title: "Could not create event",
+        description: msg,
         variant: "destructive",
       });
     } finally {
@@ -661,68 +773,177 @@ export default function CreateEvent() {
                 )}
               </div>
 
-              <div>
-                <Label htmlFor="type">Event Category *</Label>
-                <Controller
-                  name="type"
-                  control={control}
-                  rules={{ required: subEventTypes.length > 0 ? false : "Event category is required" }}
-                  render={({ field }) => (
-                    <Select 
-                      value={field.value} 
-                      onValueChange={field.onChange}
-                      disabled={!selectedThemeId}
+              {themeHierarchyMode === "hw" && hwHierarchy && (
+                <>
+                  <div>
+                    <Label>Category (Health &amp; Wellness) *</Label>
+                    <Select
+                      value={hwCategoryKey}
+                      onValueChange={(v) => {
+                        const k = v as HealthWellnessKey;
+                        setHwCategoryKey(k);
+                        setValue("subType", "");
+                        const pid = hwHierarchy.parentIds[k];
+                        if (pid) setValue("type", String(pid));
+                      }}
                     >
                       <SelectTrigger>
-                        <SelectValue 
-                          placeholder={
-                            selectedThemeId 
-                              ? "Select event category" 
-                              : "Select theme first"
-                          } 
-                        />
+                        <SelectValue placeholder="Peaceful, Spiritual, Rejuvenating, Holistic" />
                       </SelectTrigger>
-                       <SelectContent>
-                         {eventTypes.map((type) => (
-                           <SelectItem key={type.id} value={type.id.toString()}>
-                             {type.name}
-                           </SelectItem>
-                         ))}
-                       </SelectContent>
-                    </Select>
-                  )}
-                />
-                {errors.type && subEventTypes.length === 0 && (
-                  <p className="text-sm text-destructive mt-1">{errors.type.message}</p>
-                )}
-              </div>
-
-              {subEventTypes.length > 0 && (
-                <div>
-                  <Label htmlFor="subType">Event Type *</Label>
-                  <Controller
-                    name="subType"
-                    control={control}
-                    rules={{ required: "Event type is required" }}
-                    render={({ field }) => (
-                      <Select 
-                        value={field.value} 
-                        onValueChange={field.onChange}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select specific event type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {subEventTypes.map((type) => (
-                            <SelectItem key={type.id} value={type.id.toString()}>
-                              {type.name}
+                      <SelectContent>
+                        {(["peaceful", "spiritual", "rejuvenating", "holistic"] as const).map((k) => {
+                          const pid = hwHierarchy.parentIds[k];
+                          if (!pid) return null;
+                          const label = k.charAt(0).toUpperCase() + k.slice(1);
+                          return (
+                            <SelectItem key={k} value={k}>
+                              {label}
                             </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {hwCategoryKey ? (
+                    <div>
+                      <Label htmlFor="subType-hw">Event type *</Label>
+                      <Controller
+                        name="subType"
+                        control={control}
+                        rules={{ required: "Event type is required" }}
+                        render={({ field }) => (
+                          <Select value={field.value} onValueChange={field.onChange}>
+                            <SelectTrigger id="subType-hw">
+                              <SelectValue placeholder="Select specific event type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {(hwHierarchy.groups[hwCategoryKey] ?? []).map((row) => (
+                                <SelectItem key={row.id} value={String(row.id)}>
+                                  {row.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
+                    </div>
+                  ) : null}
+                </>
+              )}
+
+              {themeHierarchyMode === "retreats" && retreatHierarchy && (
+                <>
+                  <div>
+                    <Label>Retreat branch *</Label>
+                    <Select
+                      value={retreatBranchLabel}
+                      onValueChange={(b) => {
+                        setRetreatBranchLabel(b);
+                        setValue("subType", "");
+                        const rid = retreatHierarchy.rootIdByBranch[b];
+                        if (rid) setValue("type", String(rid));
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select branch" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.keys(retreatHierarchy.typesByBranch).map((b) => (
+                          <SelectItem key={b} value={b}>
+                            {b}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {retreatBranchLabel ? (
+                    <div>
+                      <Label htmlFor="subType-retreat">Event type *</Label>
+                      <Controller
+                        name="subType"
+                        control={control}
+                        rules={{ required: "Event type is required" }}
+                        render={({ field }) => (
+                          <Select value={field.value} onValueChange={field.onChange}>
+                            <SelectTrigger id="subType-retreat">
+                              <SelectValue placeholder="Select specific event type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {(retreatHierarchy.typesByBranch[retreatBranchLabel] ?? []).map((row) => (
+                                <SelectItem key={row.id} value={String(row.id)}>
+                                  {row.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
+                    </div>
+                  ) : null}
+                </>
+              )}
+
+              {themeHierarchyMode === "default" && (
+                <>
+                  <div>
+                    <Label htmlFor="type">Event Category *</Label>
+                    <Controller
+                      name="type"
+                      control={control}
+                      rules={{ required: subEventTypes.length > 0 ? false : "Event category is required" }}
+                      render={({ field }) => (
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                          disabled={!selectedThemeId}
+                        >
+                          <SelectTrigger>
+                            <SelectValue
+                              placeholder={
+                                selectedThemeId ? "Select event category" : "Select theme first"
+                              }
+                            />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {eventTypes.map((type) => (
+                              <SelectItem key={type.id} value={type.id.toString()}>
+                                {type.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                    {errors.type && subEventTypes.length === 0 && (
+                      <p className="text-sm text-destructive mt-1">{errors.type.message}</p>
                     )}
-                  />
-                </div>
+                  </div>
+
+                  {subEventTypes.length > 0 && (
+                    <div>
+                      <Label htmlFor="subType">Event Type *</Label>
+                      <Controller
+                        name="subType"
+                        control={control}
+                        rules={{ required: "Event type is required" }}
+                        render={({ field }) => (
+                          <Select value={field.value} onValueChange={field.onChange}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select specific event type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {subEventTypes.map((type) => (
+                                <SelectItem key={type.id} value={type.id.toString()}>
+                                  {type.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
+                    </div>
+                  )}
+                </>
               )}
 
               <div>
@@ -838,20 +1059,20 @@ export default function CreateEvent() {
                   )}
               </div>
 
-              {/* Entertainment: Type → Profile */}
+              {/* Entertainment: filter by type, multi-select profiles */}
               <div className="space-y-2 border rounded-md p-3 bg-muted/30">
                 <Label className="text-sm font-medium">Entertainment (optional)</Label>
+                <p className="text-xs text-muted-foreground">Select one or more entertainment profiles.</p>
                 <div>
-                  <Label htmlFor="entType" className="text-xs text-muted-foreground">Entertainment Type</Label>
+                  <Label htmlFor="entType" className="text-xs text-muted-foreground">Filter by entertainment type</Label>
                   <Select
                     value={selectedEntTypeId === null ? "__all__" : String(selectedEntTypeId)}
                     onValueChange={(v) => {
                       setSelectedEntTypeId(v === "__all__" ? null : Number(v));
-                      setValue("entertainment_id", "");
                     }}
                   >
                     <SelectTrigger id="entType">
-                      <SelectValue placeholder="Select entertainment type" />
+                      <SelectValue placeholder="All types" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="__all__">All types</SelectItem>
@@ -863,55 +1084,46 @@ export default function CreateEvent() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
-                  <Label htmlFor="entProfile" className="text-xs text-muted-foreground">Entertainment Profile</Label>
-                  <Controller
-                    name="entertainment_id"
-                    control={control}
-                    render={({ field }) => (
-                      <Select
-                        value={field.value ? field.value : "__none__"}
-                        onValueChange={(v) => field.onChange(v === "__none__" ? "" : v)}
-                      >
-                        <SelectTrigger id="entProfile">
-                          <SelectValue placeholder="Select entertainment profile" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="__none__">None</SelectItem>
-                          {entertainmentProfiles
-                            .filter((p) =>
-                              selectedEntTypeId == null || p.ent_type_id === selectedEntTypeId
-                            )
-                            .map((p) => (
-                              <SelectItem key={p.id} value={p.id}>
-                                {p.business_name}
-                              </SelectItem>
-                            ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                  />
+                <div className="max-h-40 overflow-y-auto space-y-2 pr-1">
+                  {entertainmentProfiles
+                    .filter((p) => selectedEntTypeId == null || p.ent_type_id === selectedEntTypeId)
+                    .map((p) => (
+                      <label key={p.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                        <Checkbox
+                          checked={selectedEntertainmentIds.includes(p.id)}
+                          onCheckedChange={(c) => {
+                            const on = c === true;
+                            setSelectedEntertainmentIds((prev) =>
+                              on ? [...prev, p.id] : prev.filter((id) => id !== p.id)
+                            );
+                          }}
+                        />
+                        <span>{p.business_name}</span>
+                      </label>
+                    ))}
                 </div>
               </div>
 
-              {/* External Vendor: Type → Profile */}
+              {/* External vendor: public.suppliers (procurement), not serv_vendor_suppliers (rentals) */}
               <div className="space-y-2 border rounded-md p-3 bg-muted/30">
-                <Label className="text-sm font-medium">External Vendor (optional)</Label>
+                <Label className="text-sm font-medium">External vendor (optional)</Label>
+                <p className="text-xs text-muted-foreground">
+                  Select one or more external vendors from the procurement directory (same list as External Vendors under Resources).
+                </p>
                 <div>
-                  <Label htmlFor="vendorType" className="text-xs text-muted-foreground">External Vendor Type</Label>
+                  <Label htmlFor="supplierCategory" className="text-xs text-muted-foreground">Filter by category</Label>
                   <Select
-                    value={selectedRentalTypeId === null ? "__all__" : String(selectedRentalTypeId)}
+                    value={selectedSupplierCategoryId === null ? "__all__" : String(selectedSupplierCategoryId)}
                     onValueChange={(v) => {
-                      setSelectedRentalTypeId(v === "__all__" ? null : Number(v));
-                      setValue("serv_vendor_rental_id", "");
+                      setSelectedSupplierCategoryId(v === "__all__" ? null : Number(v));
                     }}
                   >
-                    <SelectTrigger id="vendorType">
-                      <SelectValue placeholder="Select vendor type" />
+                    <SelectTrigger id="supplierCategory">
+                      <SelectValue placeholder="All categories" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="__all__">All types</SelectItem>
-                      {vendorRentalTypes.map((t) => (
+                      <SelectItem value="__all__">All categories</SelectItem>
+                      {supplierCategories.map((t) => (
                         <SelectItem key={t.id} value={t.id.toString()}>
                           {t.name}
                         </SelectItem>
@@ -919,46 +1131,33 @@ export default function CreateEvent() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
-                  <Label htmlFor="vendorProfile" className="text-xs text-muted-foreground">External Vendor Profile</Label>
-                  <Controller
-                    name="serv_vendor_rental_id"
-                    control={control}
-                    render={({ field }) => (
-                      <Select
-                        value={field.value ? field.value : "__none__"}
-                        onValueChange={(v) => field.onChange(v === "__none__" ? "" : v)}
-                      >
-                        <SelectTrigger id="vendorProfile">
-                          <SelectValue placeholder="Select vendor profile" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="__none__">None</SelectItem>
-                          {rentalProfiles
-                            .filter((p) => {
-                              if (selectedRentalTypeId == null) return true;
-                              return p.serv_vendor_rental_assignments?.some(
-                                (a: { vendor_rental_types?: { id: number } | null }) =>
-                                  a.vendor_rental_types?.id === selectedRentalTypeId
-                              );
-                            })
-                            .map((p) => (
-                              <SelectItem key={p.id} value={p.id}>
-                                {p.business_name}
-                              </SelectItem>
-                            ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                  />
+                <div className="max-h-40 overflow-y-auto space-y-2 pr-1">
+                  {externalSupplierProfiles
+                    .filter(
+                      (p) =>
+                        selectedSupplierCategoryId == null || p.category_id === selectedSupplierCategoryId
+                    )
+                    .map((p) => (
+                      <label key={p.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                        <Checkbox
+                          checked={selectedExternalSupplierIds.includes(p.id)}
+                          onCheckedChange={(c) => {
+                            const on = c === true;
+                            setSelectedExternalSupplierIds((prev) =>
+                              on ? [...prev, p.id] : prev.filter((id) => id !== p.id)
+                            );
+                          }}
+                        />
+                        <span>{p.business_name}</span>
+                      </label>
+                    ))}
                 </div>
               </div>
 
               <div>
                 <Label htmlFor="expectedAttendees" className="flex items-center gap-2">
                   <Users className="h-4 w-4" />
-                  Number of Attendees
-                  <span className="text-xs text-muted-foreground font-normal">(optional)</span>
+                  Number of attendees *
                 </Label>
                 <Input
                   id="expectedAttendees"
@@ -966,40 +1165,56 @@ export default function CreateEvent() {
                   inputMode="numeric"
                   autoComplete="off"
                   {...register("expectedAttendees", {
+                    required: "Expected attendees is required",
                     validate: (v) =>
-                      v === "" || v === undefined || /^\d+$/.test(String(v).trim()) || "Enter a whole number or leave blank",
+                      /^\d+$/.test(String(v).trim()) && parseInt(String(v).trim(), 10) > 0
+                        ? true
+                        : "Enter a whole number of attendees (at least 1)",
                   })}
                   placeholder="Number of people attending"
                 />
+                {errors.expectedAttendees && (
+                  <p className="text-sm text-destructive mt-1">{errors.expectedAttendees.message}</p>
+                )}
+                <p className="text-xs text-muted-foreground mt-1">
+                  Required for planning: expected attendance drives capacity, staffing, and budget decisions.
+                </p>
               </div>
 
               <div>
                 <Label htmlFor="budget" className="flex items-center gap-2">
                   <DollarSign className="h-4 w-4" />
-                  Budget Amount
-                  <span className="text-xs text-muted-foreground font-normal">(optional)</span>
+                  Budget amount *
                 </Label>
                 <Input
                   id="budget"
-                  value={budgetInput}
-                  onChange={e => {
-                    setBudgetInput(e.target.value);
-                    setValue('budget', e.target.value);
-                  }}
-                  onBlur={() => {
-                    if (budgetInput) {
-                      const formatted = parseFloat(budgetInput).toFixed(2);
-                      setBudgetInput(formatted);
-                      setValue('budget', formatted);
+                  {...register("budget", {
+                    required: "Budget is required",
+                    validate: (v) => {
+                      const n = parseFloat(String(v).trim());
+                      return (!Number.isNaN(n) && n > 0) || "Enter a budget greater than zero";
+                    },
+                  })}
+                  onBlur={(e) => {
+                    const raw = e.target.value.trim();
+                    if (raw && !Number.isNaN(parseFloat(raw))) {
+                      const formatted = parseFloat(raw).toFixed(2);
+                      setValue("budget", formatted, { shouldValidate: true });
                     }
                   }}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') {
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
                       (e.target as HTMLInputElement).blur();
                     }
                   }}
                   placeholder="Enter budget amount"
                 />
+                {errors.budget && (
+                  <p className="text-sm text-destructive mt-1">{errors.budget.message}</p>
+                )}
+                <p className="text-xs text-muted-foreground mt-1">
+                  Required: a positive budget must be set before the event can be created.
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -1019,19 +1234,18 @@ export default function CreateEvent() {
               subType: "",
               venue: "",
               location: "",
-              entertainment_id: "",
-              serv_vendor_rental_id: "",
               budget: "",
               expectedAttendees: "",
               description: ""
             });
             setDateRange(undefined);
-            setBudgetInput('');
             setSubEventTypes([]);
             setEventTypes([]);
             setSelectedVenueType(null);
             setSelectedEntTypeId(null);
-            setSelectedRentalTypeId(null);
+            setSelectedSupplierCategoryId(null);
+            setSelectedEntertainmentIds([]);
+            setSelectedExternalSupplierIds([]);
             
             // Clear URL parameters to prevent form repopulation
             navigate('/dashboard/create-event', { replace: true });

@@ -4,12 +4,19 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  fetchMeetupTopLevelBranch,
+  fetchThemedChildren,
+  loadHealthWellnessEventTypeGroups,
+  loadRetreatsEventTypeGroups,
+} from "@/lib/themeEventTypeHierarchy";
 import { 
   Heart, 
   Building, 
@@ -19,7 +26,6 @@ import {
   Coffee, 
   Network,
   Search,
-  Filter,
   Star,
   Palette,
   CheckCircle2,
@@ -45,6 +51,21 @@ interface ThemeDetails {
   bgColor: string;
   usageCount: number;
   premium: boolean;
+}
+
+/** Coerce DB / PostgREST values that may not be strict booleans */
+function normalizePremium(value: unknown): boolean {
+  if (value === true || value === 1) return true;
+  if (value === false || value === 0 || value == null) return false;
+  if (typeof value === "string") {
+    const v = value.trim().toLowerCase();
+    return v === "true" || v === "1" || v === "yes" || v === "t";
+  }
+  return false;
+}
+
+function themeIsPremium(theme: ThemeDetails): boolean {
+  return theme.premium === true;
 }
 
 // Theme icon mapping
@@ -91,34 +112,119 @@ const getThemeStyles = (category: string) => {
     social: { color: "text-green-600", bgColor: "bg-green-50" },
     conference: { color: "text-indigo-600", bgColor: "bg-indigo-50" },
     health: { color: "text-emerald-600", bgColor: "bg-emerald-50" },
+    retreat: { color: "text-teal-700", bgColor: "bg-teal-50" },
   };
   
   return styleMap[category] || { color: "text-gray-600", bgColor: "bg-gray-50" };
 };
 
-// Get category from theme name
+// Get category from theme name (drives filter chips + card styling; keep aligned with Browse filters)
 const getCategoryFromName = (themeName: string): string => {
   const name = themeName.toLowerCase();
-  
-  if (name.includes('wedding') || name.includes('bridal') || name.includes('baby shower') || 
-      name.includes('birthday') || name.includes('party') || name.includes('celebration')) {
+
+  if (name.includes("wedding") || name.includes("bridal") || name.includes("baby shower") ||
+      name.includes("birthday") || name.includes("party") || name.includes("celebration")) {
     return "celebration";
   }
-  if (name.includes('business') || name.includes('corporate') || name.includes('conference') || 
-      name.includes('seminar') || name.includes('networking')) {
+  if (name.includes("market") || name.includes("marketplace") || name.includes("vendor fair")) {
     return "business";
   }
-  if (name.includes('festival') || name.includes('music') || name.includes('entertainment') || 
-      name.includes('concert') || name.includes('show')) {
+  if (name.includes("business") || name.includes("corporate") || name.includes("conference") ||
+      name.includes("seminar") || name.includes("networking")) {
+    return "business";
+  }
+  if (name.includes("festival") || name.includes("music") || name.includes("entertainment") ||
+      name.includes("concert") || name.includes("show") || name.includes("sporting")) {
     return "entertainment";
   }
-  if (name.includes('health') || name.includes('wellness') || name.includes('fitness') || 
-      name.includes('yoga') || name.includes('spa')) {
+  if (name.includes("health") || name.includes("wellness") || name.includes("fitness") ||
+      name.includes("yoga") || name.includes("spa")) {
     return "health";
   }
-  
+  if (name.includes("retreat")) {
+    return "retreat";
+  }
+  if (name.includes("dining") || name.includes("culinary") || name.includes("banquet") || name.includes("gala")) {
+    return "social";
+  }
+  if (name.includes("meetup") || (name.includes("meet") && name.includes("up")) || name.includes("mixer")) {
+    return "social";
+  }
+
   return "social";
 };
+
+/** Human-friendly label for category dropdown (handles multi-word tags). */
+function formatCategoryLabel(cat: string): string {
+  if (cat === "all") return "All Categories";
+  return cat
+    .trim()
+    .split(/[\s_-]+/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(" ");
+}
+
+const BUCKET_SYNONYMS: Record<string, readonly string[]> = {
+  celebration: ["celebration", "holiday", "personal", "wedding", "party"],
+  business: ["business", "corporate", "marketplace", "market", "professional", "vendor fair"],
+  entertainment: ["entertainment", "festival", "music", "concert", "show"],
+  social: ["social", "community", "meetup", "mixer", "dining", "gala", "culinary"],
+  health: ["health", "wellness", "fitness", "yoga", "spa", "holistic"],
+  retreat: ["retreat", "retreats", "offsite", "team building"],
+  conference: ["conference", "seminar", "summit"],
+};
+
+/** Normalize filter labels: "Health & Wellness", extra spaces, etc. */
+function normalizeCategoryToken(s: string): string {
+  return s
+    .trim()
+    .toLowerCase()
+    .replace(/&/g, " ")
+    .replace(/\s+/g, " ");
+}
+
+/** Category dropdown + search: match primary bucket, synonyms, tags, or theme name substring */
+function themeMatchesCategoryFilter(theme: ThemeDetails, selectedCategory: string): boolean {
+  if (selectedCategory === "all") return true;
+  const sel = selectedCategory.trim().toLowerCase();
+  const selNorm = normalizeCategoryToken(selectedCategory);
+  const cat = theme.category.toLowerCase();
+  if (cat === sel) return true;
+
+  // "Health & Wellness" / "Health and Wellness" ↔ health bucket + HW theme names
+  const hwFilter =
+    selNorm.includes("health") &&
+    (selNorm.includes("wellness") || selNorm.includes("well being") || sel === "health");
+  if (hwFilter) {
+    if (cat === "health") return true;
+    const nm = theme.name.toLowerCase();
+    if (nm.includes("health") && nm.includes("wellness")) return true;
+    if (theme.tags?.some((tag) => /health/i.test(tag) && /wellness/i.test(tag))) return true;
+  }
+
+  // Synonym buckets (dropdown may include both bucket names and tag labels)
+  for (const [bucket, synonyms] of Object.entries(BUCKET_SYNONYMS)) {
+    if (cat !== bucket) continue;
+    if (synonyms.some((s) => s === sel || sel.includes(s) || s.includes(sel))) return true;
+  }
+  if (sel === "health" && cat === "health") return true;
+  if (sel === "retreat" && cat === "retreat") return true;
+
+  const name = theme.name.toLowerCase();
+  if (sel === "health" && name.includes("health") && name.includes("wellness")) return true;
+  if (sel === "retreat" && (/\bretreats?\b/i.test(theme.name) || /^retreat\b/i.test(theme.name.trim()))) return true;
+
+  for (const tag of theme.tags ?? []) {
+    const t = tag.trim().toLowerCase();
+    if (!t) continue;
+    if (t === sel) return true;
+    if (sel.length >= 3 && (t.includes(sel) || sel.includes(t))) return true;
+  }
+  const tn = theme.name.toLowerCase();
+  if (sel.length >= 3 && tn.includes(sel)) return true;
+  return false;
+}
 
 interface EventThemesDirectoryProps {
   onSelectTheme: (themeId: number, themeName: string, subType?: string) => void;
@@ -152,19 +258,17 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
   const [holisticEventTypes, setHolisticEventTypes] = useState<{id: number; name: string}[]>([]);
   const [meetupCommunityEventTypes, setMeetupCommunityEventTypes] = useState<{id: number; name: string}[]>([]);
   const [meetupInclusiveEventTypes, setMeetupInclusiveEventTypes] = useState<{id: number; name: string}[]>([]);
+  const [retreatBranchTypes, setRetreatBranchTypes] = useState<Record<string, { id: number; name: string }[]>>({});
 
   // Fetch themes from Supabase
   useEffect(() => {
     const fetchThemes = async () => {
       try {
         setLoading(true);
-        console.log('Fetching themes from event_themes table...');
         const { data, error } = await supabase
           .from('event_themes')
           .select('id, name, description, tags, premium, created_at')
           .order('name');
-
-        console.log('Supabase response:', { data, error });
 
         if (error) {
           console.error('Error fetching themes:', error);
@@ -174,7 +278,6 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
         }
 
         if (!data || data.length === 0) {
-          console.log('No themes found in database');
           setThemes([]);
           setLoading(false);
           return;
@@ -184,8 +287,6 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
           .map((theme) => {
             const category = getCategoryFromName(theme.name);
             const styles = getThemeStyles(category);
-            console.log('Transforming theme:', theme.name, 'Category:', category, 'Styles:', styles);
-            
             return {
               id: theme.id,
               name: theme.name,
@@ -196,11 +297,10 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
               color: styles.color,
               bgColor: styles.bgColor,
               usageCount: Math.floor(Math.random() * 2000) + 100,
-              premium: theme.premium,
+              premium: normalizePremium(theme.premium),
             };
           });
 
-        console.log('Transformed themes:', transformedThemes);
         setThemes(transformedThemes);
       } catch (error) {
         console.error('Error in fetchThemes:', error);
@@ -216,354 +316,75 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
   // Fetch holiday, personal, cultural, and community event types
   useEffect(() => {
     const fetchEventTypes = async () => {
-      const { data: holidaysData } = await supabase
-        .from('event_types')
-        .select('id, name')
-        .eq('parent_id', 2)
-        .order('name');
-      
-      const { data: personalData } = await supabase
-        .from('event_types')
-        .select('id, name')
-        .eq('parent_id', 3)
-        .order('name');
-      
-      const { data: culturalParent } = await supabase
-        .from('event_types')
-        .select('id')
-        .eq('name', 'Cultural')
-        .eq('theme_id', 4)
-        .single();
-      
-      if (culturalParent) {
-        const { data: culturalData } = await supabase
-          .from('event_types')
-          .select('id, name')
-          .eq('parent_id', culturalParent.id)
-          .order('name');
-        
-        setCulturalEventTypes(culturalData || []);
-        console.log('Cultural event types:', culturalData);
-      }
-      
-      const { data: communityParent } = await supabase
-        .from('event_types')
-        .select('id')
-        .eq('name', 'Community')
-        .eq('theme_id', 4)
-        .single();
-      
-      if (communityParent) {
-        const { data: communityData } = await supabase
-          .from('event_types')
-          .select('id, name')
-          .eq('parent_id', communityParent.id)
-          .order('name');
-        
-        setCommunityEventTypes(communityData || []);
-        console.log('Community event types:', communityData);
-      }
-      
-      const { data: artisansParent } = await supabase
-        .from('event_types')
-        .select('id')
-        .eq('name', 'Artisans')
-        .eq('theme_id', 11)
-        .single();
-      
-      if (artisansParent) {
-        const { data: artisansData } = await supabase
-          .from('event_types')
-          .select('id, name')
-          .eq('parent_id', artisansParent.id)
-          .order('name');
-        
-        setArtisanEventTypes(artisansData || []);
-        console.log('Artisan event types:', artisansData);
-      }
-      
-      const { data: foodParent } = await supabase
-        .from('event_types')
-        .select('id')
-        .eq('name', 'Food')
-        .eq('theme_id', 11)
-        .single();
-      
-      if (foodParent) {
-        const { data: foodData } = await supabase
-          .from('event_types')
-          .select('id, name')
-          .eq('parent_id', foodParent.id)
-          .order('name');
-        
-        setFoodEventTypes(foodData || []);
-        console.log('Food event types:', foodData);
-      }
-      
-      const { data: vendorsParent } = await supabase
-        .from('event_types')
-        .select('id')
-        .eq('name', 'Vendors')
-        .eq('theme_id', 11)
-        .single();
-      
-      if (vendorsParent) {
-        const { data: vendorsData } = await supabase
-          .from('event_types')
-          .select('id, name')
-          .eq('parent_id', vendorsParent.id)
-          .order('name');
-        
-        setVendorEventTypes(vendorsData || []);
-        console.log('Vendor event types:', vendorsData);
-      }
-      
-      const { data: vintageParent } = await supabase
-        .from('event_types')
-        .select('id')
-        .eq('name', 'Vintage')
-        .eq('theme_id', 11)
-        .single();
-      
-      if (vintageParent) {
-        const { data: vintageData } = await supabase
-          .from('event_types')
-          .select('id, name')
-          .eq('parent_id', vintageParent.id)
-          .order('name');
-        
-        setVintageEventTypes(vintageData || []);
-        console.log('Vintage event types:', vintageData);
-      }
-      
-      const { data: contemporaryParent } = await supabase
-        .from('event_types')
-        .select('id')
-        .eq('name', 'Contemporary')
-        .eq('theme_id', 7)
-        .single();
-      
-      if (contemporaryParent) {
-        const { data: contemporaryData } = await supabase
-          .from('event_types')
-          .select('id, name')
-          .eq('parent_id', contemporaryParent.id)
-          .order('name');
-        
-        setContemporaryEventTypes(contemporaryData || []);
-        console.log('Contemporary event types:', contemporaryData);
-      }
-      
-      console.log('Fetching Buffet parent...');
-      const { data: buffetParent, error: buffetParentError } = await supabase
-        .from('event_types')
-        .select('id')
-        .eq('name', 'Buffet')
-        .eq('theme_id', 7)
-        .single();
-      
-      console.log('Buffet parent result:', { buffetParent, buffetParentError });
-      
-      if (buffetParent) {
-        console.log('Fetching buffet types for parent id:', buffetParent.id);
-        const { data: buffetData, error: buffetDataError } = await supabase
-          .from('event_types')
-          .select('id, name')
-          .eq('parent_id', buffetParent.id)
-          .order('name');
-        
-        console.log('Buffet data result:', { buffetData, buffetDataError });
-        setBuffetEventTypes(buffetData || []);
-        console.log('Buffet event types set to:', buffetData);
-      } else {
-        console.error('Buffet parent not found or error:', buffetParentError);
-      }
+      const festivalMatchers = [
+        (n: string) => /festival/i.test(n),
+        (n: string) => /celebration|party|special/i.test(n),
+      ];
+      const marketplaceMatchers = [
+        (n: string) => /market/i.test(n),
+        (n: string) => /marketplace|vendor fair/i.test(n),
+      ];
+      const diningMatchers = [
+        (n: string) => /dining/i.test(n),
+        (n: string) => /culinary|banquet|gala|food service/i.test(n),
+      ];
+      const meetupMatchers = [
+        (n: string) => /meet\s*up|meetup/i.test(n),
+        (n: string) => /mixer|gathering|social/i.test(n),
+      ];
 
-      console.log('Fetching Fine Dining parent...');
-      const { data: fineDiningParent, error: fineDiningParentError } = await supabase
-        .from('event_types')
-        .select('id')
-        .eq('name', 'Fine Dining')
-        .eq('theme_id', 7)
-        .single();
-      
-      console.log('Fine Dining parent result:', { fineDiningParent, fineDiningParentError });
-      
-      if (fineDiningParent) {
-        console.log('Fetching fine dining types for parent id:', fineDiningParent.id);
-        const { data: fineDiningData, error: fineDiningDataError } = await supabase
-          .from('event_types')
-          .select('id, name')
-          .eq('parent_id', fineDiningParent.id)
-          .order('name');
-        
-        console.log('Fine Dining data result:', { fineDiningData, fineDiningDataError });
-        setFineDiningEventTypes(fineDiningData || []);
-        console.log('Fine Dining event types set to:', fineDiningData);
-      } else {
-        console.error('Fine Dining parent not found or error:', fineDiningParentError);
-      }
+      const [
+        holidaysRes,
+        personalRes,
+        culturalData,
+        communityData,
+        artisansData,
+        foodData,
+        vendorsData,
+        vintageData,
+        contemporaryData,
+        buffetData,
+        fineDiningData,
+        meetupCommunityData,
+        meetupInclusiveData,
+        hwGroups,
+        retreatGroups,
+      ] = await Promise.all([
+        supabase.from("event_types").select("id, name").eq("parent_id", 2).order("name"),
+        supabase.from("event_types").select("id, name").eq("parent_id", 3).order("name"),
+        fetchThemedChildren(festivalMatchers, 4, "Cultural"),
+        fetchThemedChildren(festivalMatchers, 4, "Community"),
+        fetchThemedChildren(marketplaceMatchers, 11, "Artisans"),
+        fetchThemedChildren(marketplaceMatchers, 11, "Food"),
+        fetchThemedChildren(marketplaceMatchers, 11, "Vendors"),
+        fetchThemedChildren(marketplaceMatchers, 11, "Vintage"),
+        fetchThemedChildren(diningMatchers, 7, "Contemporary"),
+        fetchThemedChildren(diningMatchers, 7, "Buffet"),
+        fetchThemedChildren(diningMatchers, 7, "Fine Dining"),
+        fetchMeetupTopLevelBranch(meetupMatchers, 1, "Community"),
+        fetchMeetupTopLevelBranch(meetupMatchers, 1, "Inclusive"),
+        loadHealthWellnessEventTypeGroups(),
+        loadRetreatsEventTypeGroups(),
+      ]);
 
-      console.log('Fetching Peaceful parent...');
-      const { data: peacefulParent, error: peacefulParentError } = await supabase
-        .from('event_types')
-        .select('id')
-        .eq('name', 'Peaceful')
-        .eq('parent_id', 16)
-        .eq('theme_id', 8)
-        .single();
-      
-      console.log('Peaceful parent result:', { peacefulParent, peacefulParentError });
-      
-      if (peacefulParent) {
-        console.log('Fetching peaceful types for parent id:', peacefulParent.id);
-        const { data: peacefulData, error: peacefulDataError } = await supabase
-          .from('event_types')
-          .select('id, name')
-          .eq('parent_id', peacefulParent.id)
-          .order('name');
-        
-        console.log('Peaceful data result:', { peacefulData, peacefulDataError });
-        setPeacefulEventTypes(peacefulData || []);
-        console.log('Peaceful event types set to:', peacefulData);
-      } else {
-        console.error('Peaceful parent not found or error:', peacefulParentError);
-      }
-
-      console.log('Fetching Spiritual parent...');
-      const { data: spiritualParent, error: spiritualParentError } = await supabase
-        .from('event_types')
-        .select('id')
-        .eq('name', 'Spiritual')
-        .eq('parent_id', 16)
-        .eq('theme_id', 8)
-        .single();
-      
-      console.log('Spiritual parent result:', { spiritualParent, spiritualParentError });
-      
-      if (spiritualParent) {
-        console.log('Fetching spiritual types for parent id:', spiritualParent.id);
-        const { data: spiritualData, error: spiritualDataError } = await supabase
-          .from('event_types')
-          .select('id, name')
-          .eq('parent_id', spiritualParent.id)
-          .order('name');
-        
-        console.log('Spiritual data result:', { spiritualData, spiritualDataError });
-        setSpiritualEventTypes(spiritualData || []);
-        console.log('Spiritual event types set to:', spiritualData);
-      } else {
-        console.error('Spiritual parent not found or error:', spiritualParentError);
-      }
-
-      console.log('Fetching Rejuvenating parent...');
-      const { data: rejuvenatingParent, error: rejuvenatingParentError } = await supabase
-        .from('event_types')
-        .select('id')
-        .eq('name', 'Rejuvenating')
-        .eq('parent_id', 16)
-        .eq('theme_id', 8)
-        .single();
-      
-      console.log('Rejuvenating parent result:', { rejuvenatingParent, rejuvenatingParentError });
-      
-      if (rejuvenatingParent) {
-        console.log('Fetching rejuvenating types for parent id:', rejuvenatingParent.id);
-        const { data: rejuvenatingData, error: rejuvenatingDataError } = await supabase
-          .from('event_types')
-          .select('id, name')
-          .eq('parent_id', rejuvenatingParent.id)
-          .order('name');
-        
-        console.log('Rejuvenating data result:', { rejuvenatingData, rejuvenatingDataError });
-        setRejuvenatingEventTypes(rejuvenatingData || []);
-        console.log('Rejuvenating event types set to:', rejuvenatingData);
-      } else {
-        console.error('Rejuvenating parent not found or error:', rejuvenatingParentError);
-      }
-
-      console.log('Fetching Holistic parent...');
-      const { data: holisticParent, error: holisticParentError } = await supabase
-        .from('event_types')
-        .select('id')
-        .eq('name', 'Holistic')
-        .eq('parent_id', 16)
-        .eq('theme_id', 8)
-        .single();
-      
-      console.log('Holistic parent result:', { holisticParent, holisticParentError });
-      
-      if (holisticParent) {
-        console.log('Fetching holistic types for parent id:', holisticParent.id);
-        const { data: holisticData, error: holisticDataError } = await supabase
-          .from('event_types')
-          .select('id, name')
-          .eq('parent_id', holisticParent.id)
-          .order('name');
-        
-        console.log('Holistic data result:', { holisticData, holisticDataError });
-        setHolisticEventTypes(holisticData || []);
-        console.log('Holistic event types set to:', holisticData);
-      } else {
-        console.error('Holistic parent not found or error:', holisticParentError);
-      }
-
-      console.log('Fetching Meetup Community parent...');
-      const { data: meetupCommunityParent, error: meetupCommunityParentError } = await supabase
-        .from('event_types')
-        .select('id')
-        .eq('name', 'Community')
-        .eq('theme_id', 1)
-        .is('parent_id', null)
-        .single();
-      
-      console.log('Meetup Community parent result:', { meetupCommunityParent, meetupCommunityParentError });
-      
-      if (meetupCommunityParent) {
-        console.log('Fetching meetup community types for parent id:', meetupCommunityParent.id);
-        const { data: meetupCommunityData, error: meetupCommunityDataError } = await supabase
-          .from('event_types')
-          .select('id, name')
-          .eq('parent_id', meetupCommunityParent.id)
-          .order('name');
-        
-        console.log('Meetup Community data result:', { meetupCommunityData, meetupCommunityDataError });
-        setMeetupCommunityEventTypes(meetupCommunityData || []);
-        console.log('Meetup Community event types set to:', meetupCommunityData);
-      } else {
-        console.error('Meetup Community parent not found or error:', meetupCommunityParentError);
-      }
-
-      console.log('Fetching Meetup Inclusive parent...');
-      const { data: meetupInclusiveParent, error: meetupInclusiveParentError } = await supabase
-        .from('event_types')
-        .select('id')
-        .eq('name', 'Inclusive')
-        .eq('theme_id', 1)
-        .is('parent_id', null)
-        .single();
-      
-      console.log('Meetup Inclusive parent result:', { meetupInclusiveParent, meetupInclusiveParentError });
-      
-      if (meetupInclusiveParent) {
-        console.log('Fetching meetup inclusive types for parent id:', meetupInclusiveParent.id);
-        const { data: meetupInclusiveData, error: meetupInclusiveDataError } = await supabase
-          .from('event_types')
-          .select('id, name')
-          .eq('parent_id', meetupInclusiveParent.id)
-          .order('name');
-        
-        console.log('Meetup Inclusive data result:', { meetupInclusiveData, meetupInclusiveDataError });
-        setMeetupInclusiveEventTypes(meetupInclusiveData || []);
-        console.log('Meetup Inclusive event types set to:', meetupInclusiveData);
-      } else {
-        console.error('Meetup Inclusive parent not found or error:', meetupInclusiveParentError);
-      }
-      
-      setHolidayEventTypes(holidaysData || []);
-      setPersonalEventTypes(personalData || []);
-      console.log('Holiday event types:', holidaysData);
-      console.log('Personal event types:', personalData);
+      setHolidayEventTypes(holidaysRes.data || []);
+      setPersonalEventTypes(personalRes.data || []);
+      setCulturalEventTypes(culturalData);
+      setCommunityEventTypes(communityData);
+      setArtisanEventTypes(artisansData);
+      setFoodEventTypes(foodData);
+      setVendorEventTypes(vendorsData);
+      setVintageEventTypes(vintageData);
+      setContemporaryEventTypes(contemporaryData);
+      setBuffetEventTypes(buffetData);
+      setFineDiningEventTypes(fineDiningData);
+      setMeetupCommunityEventTypes(meetupCommunityData);
+      setMeetupInclusiveEventTypes(meetupInclusiveData);
+      setPeacefulEventTypes(hwGroups.groups.peaceful);
+      setSpiritualEventTypes(hwGroups.groups.spiritual);
+      setRejuvenatingEventTypes(hwGroups.groups.rejuvenating);
+      setHolisticEventTypes(hwGroups.groups.holistic);
+      setRetreatBranchTypes(retreatGroups.typesByBranch);
     };
 
     fetchEventTypes();
@@ -607,24 +428,64 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
       entertainment: "Ideal for festivals and entertainment events",
       business: "Professional events and corporate gatherings",
       health: "Perfect for wellness retreats, health seminars, and mindful gatherings",
+      retreat: "Corporate retreats, team building, and focused off-site experiences",
     };
     return descriptions[category] || "Versatile theme for any occasion";
   };
 
+  /** Ensure Health & Wellness and Retreats show directory > category > type tags even if `event_themes.tags` is sparse. */
+  const displayThemes = useMemo(() => {
+    return themes.map((t) => {
+      const name = t.name ?? "";
+      const trimmed = name.trim();
+      if (/health/i.test(name) && /wellness/i.test(name)) {
+        const hwTags = ["Peaceful", "Spiritual", "Rejuvenating", "Holistic"];
+        return { ...t, tags: [...new Set([...(t.tags ?? []), ...hwTags])] };
+      }
+      if (/^retreats?$/i.test(trimmed) || /^retreat\b/i.test(trimmed)) {
+        const keys = Object.keys(retreatBranchTypes);
+        if (keys.length) {
+          return { ...t, tags: [...new Set([...(t.tags ?? []), ...keys])] };
+        }
+      }
+      return t;
+    });
+  }, [themes, retreatBranchTypes]);
+
   const categories = useMemo(() => {
-    const cats = Array.from(new Set(themes.map(theme => theme.category)));
+    const set = new Set<string>();
+    for (const theme of displayThemes) {
+      set.add(theme.category);
+      for (const tag of theme.tags ?? []) {
+        if (tag?.trim()) set.add(tag.trim());
+      }
+    }
+    const cats = Array.from(set).sort((a, b) => a.localeCompare(b));
     return ["all", ...cats];
-  }, [themes]);
+  }, [displayThemes]);
+
+  useEffect(() => {
+    if (selectedCategory !== "all" && !categories.includes(selectedCategory)) {
+      setSelectedCategory("all");
+    }
+  }, [categories, selectedCategory]);
 
   const filteredAndSortedThemes = useMemo(() => {
-    let filtered = themes.filter(theme => {
-      const matchesSearch = theme.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           theme.description.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCategory = selectedCategory === "all" || theme.category === selectedCategory;
-      const matchesPricing = selectedPricing === "all" || 
-                            (selectedPricing === "free" && !theme.premium) ||
-                            (selectedPricing === "premium" && theme.premium);
-      
+    const q = searchTerm.trim().toLowerCase();
+    let filtered = displayThemes.filter((theme) => {
+      const matchesSearch =
+        !q ||
+        theme.name.toLowerCase().includes(q) ||
+        theme.description.toLowerCase().includes(q) ||
+        theme.category.toLowerCase().includes(q) ||
+        (theme.tags ?? []).some((tag) => tag.toLowerCase().includes(q));
+      const matchesCategory = themeMatchesCategoryFilter(theme, selectedCategory);
+      const premium = themeIsPremium(theme);
+      const matchesPricing =
+        selectedPricing === "all" ||
+        (selectedPricing === "free" && !premium) ||
+        (selectedPricing === "premium" && premium);
+
       return matchesSearch && matchesCategory && matchesPricing;
     });
 
@@ -637,15 +498,15 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
           return a.name.localeCompare(b.name);
       }
     });
-  }, [themes, searchTerm, selectedCategory, selectedPricing, sortBy]);
+  }, [displayThemes, searchTerm, selectedCategory, selectedPricing, sortBy]);
 
   const recommendedThemes = useMemo(() => {
-    // Hardcode recommended themes: Celebration, Festival, Marketplace
+    // Hardcode recommended themes: Celebration, Festival, Marketplace — respect category/search/pricing filters
     const recommendedNames = ['Celebration', 'Festival', 'Marketplace'];
-    return themes.filter(theme => 
+    return filteredAndSortedThemes.filter(theme =>
       recommendedNames.some(name => theme.name.toLowerCase() === name.toLowerCase())
     );
-  }, [themes]);
+  }, [filteredAndSortedThemes]);
 
   const allThemes = useMemo(() => {
     // Show all non-recommended themes in All Themes section
@@ -669,16 +530,34 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
       'Dining-Contemporary': { types: contemporaryEventTypes, themeName: 'Dining', tagName: 'Contemporary' },
       'Dining-Buffet': { types: buffetEventTypes, themeName: 'Dining', tagName: 'Buffet' },
       'Dining-Fine Dining': { types: fineDiningEventTypes, themeName: 'Dining', tagName: 'Fine Dining' },
-      'Health and Wellness-Peaceful': { types: peacefulEventTypes, themeName: 'Health and Wellness', tagName: 'Peaceful' },
-      'Health and Wellness-Spiritual': { types: spiritualEventTypes, themeName: 'Health and Wellness', tagName: 'Spiritual' },
-      'Health and Wellness-Rejuvenating': { types: rejuvenatingEventTypes, themeName: 'Health and Wellness', tagName: 'Rejuvenating' },
-      'Health and Wellness-Holistic': { types: holisticEventTypes, themeName: 'Health and Wellness', tagName: 'Holistic' },
       'Meetup-Community': { types: meetupCommunityEventTypes, themeName: 'Meetup', tagName: 'Community' },
       'Meetup-Inclusive': { types: meetupInclusiveEventTypes, themeName: 'Meetup', tagName: 'Inclusive' },
     };
 
-    const configKey = `${theme.name}-${tag}`;
-    const config = dropdownConfig[configKey];
+    const hwSubTags = ['Peaceful', 'Spiritual', 'Rejuvenating', 'Holistic'] as const;
+    const hwTypeLists = [peacefulEventTypes, spiritualEventTypes, rejuvenatingEventTypes, holisticEventTypes];
+
+    let config: { types: { id: number; name: string }[]; themeName: string; tagName: string } | undefined;
+
+    if (
+      (hwSubTags as readonly string[]).includes(tag) &&
+      /health/i.test(theme.name) &&
+      /wellness/i.test(theme.name)
+    ) {
+      const idx = hwSubTags.indexOf(tag as (typeof hwSubTags)[number]);
+      if (idx >= 0) {
+        config = { types: hwTypeLists[idx], themeName: theme.name, tagName: tag };
+      }
+    }
+
+    if (!config && /retreat/i.test(theme.name) && Object.prototype.hasOwnProperty.call(retreatBranchTypes, tag)) {
+      config = { types: retreatBranchTypes[tag] ?? [], themeName: theme.name, tagName: tag };
+    }
+
+    if (!config) {
+      const configKey = `${theme.name}-${tag}`;
+      config = dropdownConfig[configKey];
+    }
 
     if (config) {
       return (
@@ -705,17 +584,21 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                   <button
                     key={item.id}
                     className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
-                    onClick={() => {
+                      onClick={() => {
                       setSelectedSubTypes(prev => ({ ...prev, [theme.id]: item.name }));
                       onSelectTheme(theme.id, theme.name, item.name);
-                      console.log(`Selected ${tag} type:`, item.name);
                     }}
                   >
                     {item.name}
                   </button>
                 ))
               ) : (
-                <div className="px-3 py-2 text-sm text-muted-foreground">Loading...</div>
+                <div className="px-3 py-2 text-sm text-muted-foreground leading-snug">
+                  No types found for <span className="font-medium text-foreground">{config.themeName}</span> →{" "}
+                  <span className="font-medium text-foreground">{config.tagName}</span>. Add{" "}
+                  <code className="text-xs">event_types</code> children under that category in Supabase, or ask your
+                  admin to load reference data (same pattern as other theme branches).
+                </div>
               )}
             </div>
           </PopoverContent>
@@ -752,7 +635,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                     <h3 className="text-lg font-semibold flex items-center gap-2">
                       {theme.name}
                       {isRecommended && <Badge variant="secondary" className="text-xs">Recommended</Badge>}
-                      {theme.premium == true && <Badge variant="outline" className="text-xs">Premium</Badge>}
+                      {themeIsPremium(theme) && <Badge variant="outline" className="text-xs">Premium</Badge>}
                     </h3>
                     <p className="text-sm text-muted-foreground">{theme.description}</p>
                   </div>
@@ -802,7 +685,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
               <div className="flex items-center gap-2 flex-wrap">
                 <CardTitle className="text-lg leading-none">{theme.name}</CardTitle>
                 {isRecommended && <Badge variant="secondary" className="text-xs h-5 flex items-center">Recommended</Badge>}
-                {theme.premium == true && <Badge variant="outline" className="text-xs h-5 flex items-center">Premium</Badge>}
+                {themeIsPremium(theme) && <Badge variant="outline" className="text-xs h-5 flex items-center">Premium</Badge>}
               </div>
               <CardDescription className="text-sm">{theme.description}</CardDescription>
             </div>
@@ -835,10 +718,6 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
     );
   }
 
-  console.log('Themes loaded:', themes.length);
-  console.log('Filtered themes:', filteredAndSortedThemes.length);
-  console.log('Loading state:', loading);
-
   return (
     <div className="space-y-6">
       <Card>
@@ -862,60 +741,49 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
               </div>
             </div>
             
-            <div className="flex gap-2">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    <Filter className="h-4 w-4 mr-2" />
-                    Filter
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-64 p-4 bg-background border shadow-lg z-50">
-                  <div className="space-y-4">
-                    <div>
-                      <h4 className="font-medium mb-2">Category</h4>
-                      <select
-                        value={selectedCategory}
-                        onChange={(e) => setSelectedCategory(e.target.value)}
-                        className="w-full p-2 border rounded-md bg-background"
-                      >
-                        {categories.map((cat) => (
-                          <option key={cat} value={cat}>
-                            {cat === "all" ? "All Categories" : cat.charAt(0).toUpperCase() + cat.slice(1)}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    
-                    <div>
-                      <h4 className="font-medium mb-2">Pricing</h4>
-                      <select
-                        value={selectedPricing}
-                        onChange={(e) => setSelectedPricing(e.target.value)}
-                        className="w-full p-2 border rounded-md bg-background"
-                      >
-                        <option value="all">All Themes</option>
-                        <option value="free">Free Only</option>
-                        <option value="premium">Premium Only</option>
-                      </select>
-                    </div>
-                    
-                    <div>
-                      <h4 className="font-medium mb-2">Sort By</h4>
-                      <select
-                        value={sortBy}
-                        onChange={(e) => setSortBy(e.target.value)}
-                        className="w-full p-2 border rounded-md bg-background"
-                      >
-                        <option value="name">Name</option>
-                        <option value="popular">Most Popular</option>
-                      </select>
-                    </div>
-                  </div>
-                </PopoverContent>
-              </Popover>
+            <div className="flex flex-col xl:flex-row flex-wrap gap-3 items-stretch xl:items-end">
+              <div className="space-y-1.5 min-w-[10rem]">
+                <span className="text-xs font-medium text-muted-foreground">Category</span>
+                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                  <SelectTrigger className="w-full xl:w-[11rem]">
+                    <SelectValue placeholder="Category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat} value={cat}>
+                        {formatCategoryLabel(cat)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5 min-w-[10rem]">
+                <span className="text-xs font-medium text-muted-foreground">Pricing</span>
+                <Select value={selectedPricing} onValueChange={setSelectedPricing}>
+                  <SelectTrigger className="w-full xl:w-[11rem]">
+                    <SelectValue placeholder="Pricing" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Themes</SelectItem>
+                    <SelectItem value="free">Free Only</SelectItem>
+                    <SelectItem value="premium">Premium Only</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5 min-w-[10rem]">
+                <span className="text-xs font-medium text-muted-foreground">Sort</span>
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger className="w-full xl:w-[11rem]">
+                    <SelectValue placeholder="Sort" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="name">Name</SelectItem>
+                    <SelectItem value="popular">Most Popular</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 pb-0.5">
                 <Button
                   variant={viewMode === "grid" ? "default" : "outline"}
                   size="sm"

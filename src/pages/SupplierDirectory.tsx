@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Package, Truck, ShoppingCart, Store, Building, MapPin, Phone, Mail } from "lucide-react";
+import { Package, Truck, ShoppingCart, Store, Building, MapPin, Mail } from "lucide-react";
 import { DirectoryPageHeader } from "@/components/resource-directory/DirectoryPageHeader";
 
 interface Supplier {
@@ -14,7 +14,6 @@ interface Supplier {
   business_name: string;
   contact_name?: string;
   email?: string;
-  phone_number?: string;
   city?: string;
   state?: string;
   zip?: string;
@@ -69,9 +68,13 @@ export default function SupplierDirectory() {
 
   const uniqueCategories = [...new Set(suppliers.map(s => s.supplier_categories?.name).filter(Boolean))];
 
+  const normCat = (s: string) => s.toLowerCase().replace(/[\s_-]+/g, "");
   const filteredSuppliers = suppliers.filter(supplier => {
-    const matchesCategory = selectedCategories.length === 0 || 
-      (supplier.supplier_categories?.name && selectedCategories.includes(supplier.supplier_categories.name));
+    const dbName = supplier.supplier_categories?.name;
+    const matchesCategory =
+      selectedCategories.length === 0 ||
+      (dbName != null &&
+        selectedCategories.some((sel) => normCat(sel) === normCat(dbName)));
     const matchesLocation = !locationFilter || 
       [supplier.city, supplier.state, supplier.zip].some(field => 
         field?.toLowerCase().includes(locationFilter.toLowerCase())
@@ -148,7 +151,7 @@ export default function SupplierDirectory() {
           {(selectedCategories.length > 0 || locationFilter) && (
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
-                Showing {filteredSuppliers.length} of {suppliers.length} external vendors
+                Showing {filteredSuppliers.length} of {suppliers.length} vendor profiles
               </p>
               <Button
                 variant="outline"
@@ -178,7 +181,7 @@ export default function SupplierDirectory() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-muted-foreground">Loading external vendor profiles...</p>
+            <p className="text-muted-foreground">Loading vendor profiles…</p>
           ) : filteredSuppliers.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredSuppliers.map((supplier) => (
@@ -203,16 +206,15 @@ export default function SupplierDirectory() {
                         {supplier.contact_name && (
                           <p className="text-xs"><strong>Contact:</strong> {supplier.contact_name}</p>
                         )}
-                        {supplier.email && (
+                        {supplier.email?.trim() && (
                           <div className="flex items-center gap-1">
-                            <Mail className="h-3 w-3" />
-                            <span className="text-xs">{supplier.email}</span>
-                          </div>
-                        )}
-                        {supplier.phone_number && (
-                          <div className="flex items-center gap-1">
-                            <Phone className="h-3 w-3" />
-                            <span className="text-xs">{supplier.phone_number}</span>
+                            <Mail className="h-3 w-3 shrink-0" />
+                            <a
+                              href={`mailto:${String(supplier.email).trim()}`}
+                              className="text-xs text-primary hover:underline break-all"
+                            >
+                              {supplier.email}
+                            </a>
                           </div>
                         )}
                         {(supplier.city || supplier.state || supplier.zip) && (
@@ -223,23 +225,21 @@ export default function SupplierDirectory() {
                             </span>
                           </div>
                         )}
-                        {supplier.price != null && supplier.price !== "" && (
+                        {supplier.price != null && String(supplier.price) !== "" && (
                           <p className="text-sm font-semibold text-primary mt-2">
                             Starting at ${Number(supplier.price).toLocaleString()}
                           </p>
                         )}
                         {supplier.supplier_cost != null && (
                           <p className="text-sm font-medium text-muted-foreground">
-                            Supplier cost: ${Number(supplier.supplier_cost).toLocaleString()}
+                            External vendor cost: ${Number(supplier.supplier_cost).toLocaleString()}
                           </p>
                         )}
                       </div>
                       <div className="flex gap-2 mt-3">
-                        <Button className="flex-1" size="sm" onClick={() => supplier.email && window.open(`mailto:${supplier.email}`)} disabled={!supplier.email}>
-                          <Mail className="h-4 w-4" />
-                        </Button>
-                        <Button className="flex-1" size="sm" onClick={() => supplier.phone_number && window.open(`tel:${supplier.phone_number}`)} disabled={!supplier.phone_number}>
-                          <Phone className="h-4 w-4" />
+                        <Button className="w-full" size="sm" onClick={() => supplier.email && window.open(`mailto:${supplier.email}`)} disabled={!supplier.email}>
+                          <Mail className="h-4 w-4 mr-2" />
+                          Email
                         </Button>
                       </div>
                     </div>
@@ -250,7 +250,7 @@ export default function SupplierDirectory() {
           ) : (
             <div className="text-center py-8 text-muted-foreground">
               <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No external vendors found matching your criteria.</p>
+              <p>No vendors match your filters.</p>
               <p className="text-sm">Try adjusting your filters.</p>
             </div>
           )}

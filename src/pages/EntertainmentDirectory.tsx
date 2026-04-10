@@ -4,9 +4,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Music, Mic, Users, MessageCircle, Presentation, Theater, HelpCircle, Mail, Phone } from "lucide-react";
+import { Music, Mic, Users, MessageCircle, Presentation, Theater, HelpCircle, Mail } from "lucide-react";
 import { DirectoryPageHeader } from "@/components/resource-directory/DirectoryPageHeader";
 import { useToast } from "@/hooks/use-toast";
+
+function entertainmentTypeRowKey(type: { id?: unknown; name?: string | null }, index: number): string {
+  if (type?.id != null && String(type.id) !== "") return String(type.id);
+  const slug = (type?.name || "type").replace(/\s+/g, "-").slice(0, 24);
+  return `new-${index}-${slug}`;
+}
 
 const EntertainmentDirectory = () => {
   const [entertainmentTypes, setEntertainmentTypes] = useState<any[]>([]);
@@ -116,24 +122,25 @@ const EntertainmentDirectory = () => {
               <div className="space-y-3">
                 <label className="text-sm font-medium">Entertainment Types (select all that apply)</label>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {entertainmentTypes.map((type) => {
+                  {entertainmentTypes.map((type, idx) => {
                     const IconComponent = getEntertainmentIcon(type.name || '');
-                    const isChecked = selectedEntertainmentTypes.includes(type.id?.toString());
+                    const typeKey = entertainmentTypeRowKey(type, idx);
+                    const isChecked = selectedEntertainmentTypes.includes(typeKey);
+                    const inputId = `entertainment-type-${typeKey.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
                     return (
-                      <div key={type.id} className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50">
+                      <div key={inputId} className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50">
                         <Checkbox
-                          id={type.id?.toString()}
+                          id={inputId}
                           checked={isChecked}
                           onCheckedChange={(checked) => {
-                            const typeId = type.id?.toString();
                             if (checked) {
-                              setSelectedEntertainmentTypes([...selectedEntertainmentTypes, typeId]);
+                              setSelectedEntertainmentTypes([...selectedEntertainmentTypes, typeKey]);
                             } else {
-                              setSelectedEntertainmentTypes(selectedEntertainmentTypes.filter(id => id !== typeId));
+                              setSelectedEntertainmentTypes(selectedEntertainmentTypes.filter((id) => id !== typeKey));
                             }
                           }}
                         />
-                        <label htmlFor={type.id?.toString()} className="flex items-center gap-2 cursor-pointer text-sm font-medium">
+                        <label htmlFor={inputId} className="flex items-center gap-2 cursor-pointer text-sm font-medium">
                           <IconComponent size={16} />
                           {type.name}
                         </label>
@@ -147,8 +154,8 @@ const EntertainmentDirectory = () => {
                 <div className="p-4 bg-muted rounded-lg">
                   <h3 className="font-medium mb-2">Selected Entertainment Types:</h3>
                   <div className="flex flex-wrap gap-2">
-                    {selectedEntertainmentTypes.map(typeId => {
-                      const type = entertainmentTypes.find(t => t.id?.toString() === typeId);
+                    {selectedEntertainmentTypes.map((typeId) => {
+                      const type = entertainmentTypes.find((t, i) => entertainmentTypeRowKey(t, i) === typeId);
                       return (
                         <span key={typeId} className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
                           {type?.name}
@@ -179,9 +186,13 @@ const EntertainmentDirectory = () => {
           <CardTitle>
             {selectedEntertainmentTypes.length > 0 ? (
               <>
-                {selectedEntertainmentTypes.map(typeId =>
-                  entertainmentTypes.find(t => t.id?.toString() === typeId)?.name
-                ).filter(Boolean).join(', ')} ({filteredProfiles.length})
+                {selectedEntertainmentTypes
+                  .map((typeId) =>
+                    entertainmentTypes.find((t, i) => entertainmentTypeRowKey(t, i) === typeId)?.name
+                  )
+                  .filter(Boolean)
+                  .join(", ")}{" "}
+                ({filteredProfiles.length})
               </>
             ) : (
               <>Entertainment Profiles ({filteredProfiles.length})</>
@@ -214,11 +225,19 @@ const EntertainmentDirectory = () => {
                     </CardHeader>
                     <CardContent className="space-y-3">
                       <div>
-                        <p className="font-semibold">{profile.contact_name}</p>
-                        <p className="text-sm text-muted-foreground">{profile.email}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {profile.phone_number ? profile.phone_number : 'No phone provided'}
-                        </p>
+                        {profile.contact_name ? (
+                          <p className="font-semibold">{profile.contact_name}</p>
+                        ) : null}
+                        {profile.email?.trim() ? (
+                          <a
+                            href={`mailto:${String(profile.email).trim()}`}
+                            className="text-sm text-primary hover:underline"
+                          >
+                            {profile.email}
+                          </a>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">Email not provided</p>
+                        )}
                       </div>
                       
                       <div className="space-y-2 text-sm">
@@ -233,11 +252,9 @@ const EntertainmentDirectory = () => {
                       )}
                       
                       <div className="flex gap-2 mt-2">
-                        <Button className="flex-1" size="sm" onClick={() => profile.email && window.open(`mailto:${profile.email}`)} disabled={!profile.email}>
-                          <Mail className="h-4 w-4" />
-                        </Button>
-                        <Button className="flex-1" size="sm" onClick={() => profile.phone_number && window.open(`tel:${profile.phone_number}`)} disabled={!profile.phone_number}>
-                          <Phone className="h-4 w-4" />
+                        <Button className="w-full" size="sm" onClick={() => profile.email && window.open(`mailto:${profile.email}`)} disabled={!profile.email}>
+                          <Mail className="h-4 w-4 mr-2" />
+                          Email
                         </Button>
                       </div>
                     </CardContent>
