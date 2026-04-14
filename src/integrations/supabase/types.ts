@@ -981,6 +981,91 @@ export type Database = {
         }
         Relationships: []
       }
+      discussion_comment_likes: {
+        Row: {
+          comment_id: string
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          comment_id: string
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          comment_id?: string
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discussion_comment_likes_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "discussion_comments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      discussion_comments: {
+        Row: {
+          attachments: Json
+          author_avatar_url: string | null
+          author_display_name: string | null
+          content: string
+          created_at: string
+          entity_id: string
+          entity_title: string
+          entity_type: string
+          id: string
+          is_edited: boolean
+          mentions: string[]
+          parent_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attachments?: Json
+          author_avatar_url?: string | null
+          author_display_name?: string | null
+          content: string
+          created_at?: string
+          entity_id?: string
+          entity_title?: string
+          entity_type?: string
+          id?: string
+          is_edited?: boolean
+          mentions?: string[]
+          parent_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attachments?: Json
+          author_avatar_url?: string | null
+          author_display_name?: string | null
+          content?: string
+          created_at?: string
+          entity_id?: string
+          entity_title?: string
+          entity_type?: string
+          id?: string
+          is_edited?: boolean
+          mentions?: string[]
+          parent_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discussion_comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "discussion_comments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_events: {
         Row: {
           created_at: string
@@ -1727,8 +1812,8 @@ export type Database = {
           end_time: string | null
           entertainment_id: string | null
           entertainment_ids: string[] | null
-          external_supplier_ids: string[] | null
           expected_attendees: number | null
+          external_supplier_ids: string[] | null
           id: string
           location: string | null
           serv_vendor_rental_id: string | null
@@ -1754,8 +1839,8 @@ export type Database = {
           end_time?: string | null
           entertainment_id?: string | null
           entertainment_ids?: string[] | null
-          external_supplier_ids?: string[] | null
           expected_attendees?: number | null
+          external_supplier_ids?: string[] | null
           id?: string
           location?: string | null
           serv_vendor_rental_id?: string | null
@@ -1781,8 +1866,8 @@ export type Database = {
           end_time?: string | null
           entertainment_id?: string | null
           entertainment_ids?: string[] | null
-          external_supplier_ids?: string[] | null
           expected_attendees?: number | null
+          external_supplier_ids?: string[] | null
           id?: string
           location?: string | null
           serv_vendor_rental_id?: string | null
@@ -1812,6 +1897,13 @@ export type Database = {
             columns: ["serv_vendor_rental_id"]
             isOneToOne: false
             referencedRelation: "serv_vendor_rentals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_service_vendor_id_fkey"
+            columns: ["service_vendor_id"]
+            isOneToOne: false
+            referencedRelation: "serv_vendor_suppliers"
             referencedColumns: ["id"]
           },
           {
