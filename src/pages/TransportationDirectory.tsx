@@ -12,9 +12,9 @@ import {
 } from "@/components/ui/select";
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Bus, Car, Truck, Crown, Package, ExternalLink } from "lucide-react";
+import { Bus, Car, Truck, Crown, Package, ExternalLink, RefreshCw } from "lucide-react";
 import { DirectoryPageHeader } from "@/components/resource-directory/DirectoryPageHeader";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { normalizeExternalUrl, openReservationUrl } from "@/lib/openExternalOrMailto";
@@ -46,9 +46,10 @@ const TransportationDirectory = () => {
   const [loading, setLoading] = useState(false);
   const [profilesLoadError, setProfilesLoadError] = useState<string | null>(null);
   const [typesLoadError, setTypesLoadError] = useState<string | null>(null);
-  const { toast } = useToast();
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
+    let cancelled = false;
     const fetchData = async () => {
       try {
         setLoading(true);
@@ -57,12 +58,15 @@ const TransportationDirectory = () => {
         setTypesLoadError(null);
         setProfilesLoadError(null);
 
+        // Ensure persisted session is applied before REST calls (avoids first-load race with RLS).
+        await supabase.auth.getSession();
+
         const { data: typesData, error: typesError } = await supabase
           .from("transportation_types")
           .select("*");
         if (typesError) {
           console.error("transportation_types:", typesError);
-          setTypesLoadError(typesError.message);
+          if (!cancelled) setTypesLoadError(typesError.message);
           if (!isMissingTableOrSchemaCacheError(typesError.message)) {
             toast({
               title: "Transportation types",
@@ -71,7 +75,7 @@ const TransportationDirectory = () => {
             });
           }
         }
-        setTransportationTypes(typesData || []);
+        if (!cancelled) setTransportationTypes(typesData || []);
 
         // Plain select avoids embed errors; join type names client-side.
         const { data: profilesData, error: profilesError } = await supabase
@@ -79,7 +83,7 @@ const TransportationDirectory = () => {
           .select("*");
         if (profilesError) {
           console.error("transportations:", profilesError);
-          setProfilesLoadError(profilesError.message);
+          if (!cancelled) setProfilesLoadError(profilesError.message);
           if (!isMissingTableOrSchemaCacheError(profilesError.message)) {
             toast({
               title: "Transportation profiles",
@@ -89,11 +93,11 @@ const TransportationDirectory = () => {
           }
         }
         const directProfiles = profilesData || [];
-        setTransportationProfiles(directProfiles);
+        if (!cancelled) setTransportationProfiles(directProfiles);
 
         // Fallback: if dedicated transportation tables are empty/unavailable, reuse service vendor profiles
         // with transportation-like supplier types so the directory is not blank.
-        if (directProfiles.length === 0) {
+        if (!cancelled && directProfiles.length === 0) {
           const { data: fallbackProfilesData, error: fallbackProfilesError } = await supabase
             .from("serv_vendor_suppliers")
             .select("*, vendor_supplier_types(id, name)");
@@ -104,7 +108,7 @@ const TransportationDirectory = () => {
               const typeName = String(row.vendor_supplier_types?.name || "").toLowerCase();
               return /(transport|bus|shuttle|limo|logistics|car|van|coach)/i.test(typeName);
             });
-            if (fallbackProfiles.length > 0) {
+            if (!cancelled && fallbackProfiles.length > 0) {
               const fallbackTypeMap = new Map<string, { id: string; name: string }>();
               fallbackProfiles.forEach((row: any) => {
                 const t = row.vendor_supplier_types;
@@ -126,11 +130,25 @@ const TransportationDirectory = () => {
                 profile_url: row.profile_url,
                 booking_url: row.booking_url,
               }));
-              setTransportationTypes(Array.from(fallbackTypeMap.values()));
-              setTransportationProfiles(mapped);
-              setUsedServiceVendorFallback(true);
-              setTypesLoadError(null);
-              setProfilesLoadError(null);
+              if (!cancelled) {
+                // Never replace canonical `transportation_types` (Bus, Van, Limo, …) with only vendor
+                // supplier labels — that produced a single "Transportation" checkbox when `transportations` was empty.
+                const fallbackTypesList = Array.from(fallbackTypeMap.values());
+                setTransportationTypes((prev) => {
+                  const byId = new Map<string, { id: string | number; name: string }>();
+                  for (const t of prev) {
+                    byId.set(String(t.id), { id: t.id, name: String(t.name ?? "").trim() || `Type (${t.id})` });
+                  }
+                  for (const ft of fallbackTypesList) {
+                    if (!byId.has(String(ft.id))) byId.set(String(ft.id), ft);
+                  }
+                  return Array.from(byId.values());
+                });
+                setTransportationProfiles(mapped);
+                setUsedServiceVendorFallback(true);
+                setTypesLoadError(null);
+                setProfilesLoadError(null);
+              }
             }
           }
         }
@@ -138,18 +156,23 @@ const TransportationDirectory = () => {
         console.error('Error fetching transportation data:', err);
         toast({ title: "Error", description: "Failed to load transportation directory.", variant: "destructive" });
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
-    fetchData();
-  }, []);
+    void fetchData();
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshKey]);
 
   const filteredProfiles = transportationProfiles.filter((profile) => {
+    const pid = profile.transp_type_id;
     const matchesType =
       selectedTransportationTypes.length === 0 ||
-      (profile.transp_type_id != null &&
-        selectedTransportationTypes.includes(String(profile.transp_type_id)));
+      (pid != null &&
+        pid !== "" &&
+        selectedTransportationTypes.some((sel) => String(sel) === String(pid)));
 
     const matchesLocation =
       !locationFilter ||
@@ -211,17 +234,40 @@ const TransportationDirectory = () => {
     ((profilesLoadError && isMissingTableOrSchemaCacheError(profilesLoadError)) ||
       (typesLoadError && isMissingTableOrSchemaCacheError(typesLoadError)));
 
-  /** When `transportation_types` is empty but profiles have `transp_type_id`, still show type options. */
+  /**
+   * Type filters: all rows from `transportation_types`, plus any `transp_type_id` on profiles that
+   * is missing from that list (stale IDs after reseed, string vs number, or fallback-* ids) so
+   * categories stay selectable and profiles are not hidden until data is fixed.
+   */
   const displayTransportationTypes = useMemo(() => {
-    if (transportationTypes.length > 0) return transportationTypes;
-    const raw = transportationProfiles
-      .map((p) => p.transp_type_id)
-      .filter((id): id is number => id != null && !Number.isNaN(Number(id)));
-    const unique = [...new Set(raw.map(Number))].sort((a, b) => a - b);
-    return unique.map((id) => ({
-      id,
-      name: `Transportation type (${id})`,
-    }));
+    const byId = new Map<string, { id: string | number; name: string }>();
+
+    for (const t of transportationTypes) {
+      const sid = String(t.id);
+      byId.set(sid, {
+        id: t.id,
+        name: String(t.name ?? "").trim() || `Type (${sid})`,
+      });
+    }
+
+    for (const p of transportationProfiles) {
+      const tid = p.transp_type_id;
+      if (tid === null || tid === undefined || tid === "") continue;
+      const sid = String(tid);
+      if (byId.has(sid)) continue;
+      const name =
+        sid.startsWith("fallback-")
+          ? "Transport & logistics"
+          : `Transportation type (${tid})`;
+      byId.set(sid, {
+        id: /^\d+$/.test(sid) ? Number(sid) : tid,
+        name,
+      });
+    }
+
+    return Array.from(byId.values()).sort((a, b) =>
+      (a.name || "").localeCompare(b.name || "", undefined, { sensitivity: "base" }),
+    );
   }, [transportationTypes, transportationProfiles]);
 
   return (
@@ -282,9 +328,10 @@ const TransportationDirectory = () => {
               </div>
 
               <div className="space-y-3">
-                <Label className="text-sm font-medium">Types (multi-select)</Label>
+                <Label className="text-sm font-medium">Vehicle / service categories</Label>
                 <p className="text-xs text-muted-foreground">
-                  Leave all unchecked for every type, or select one or more to narrow the list.
+                  Each row is a category (for example Bus, Van, Limousine), not the whole Transportation section.
+                  Leave all unchecked to show every category, or pick one or more to narrow the list.
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {displayTransportationTypes.map((type) => {
@@ -330,17 +377,29 @@ const TransportationDirectory = () => {
             </>
           )}
 
-          <Button
-            type="button"
-            onClick={() => {
-              setSelectedTransportationTypes([]);
-              setLocationFilter("");
-            }}
-            variant="outline"
-            disabled={selectedTransportationTypes.length === 0 && !locationFilter}
-          >
-            Clear filters
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              onClick={() => {
+                setSelectedTransportationTypes([]);
+                setLocationFilter("");
+              }}
+              variant="outline"
+              disabled={selectedTransportationTypes.length === 0 && !locationFilter}
+            >
+              Clear filters
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              className="gap-2"
+              disabled={loading}
+              onClick={() => setRefreshKey((k) => k + 1)}
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} aria-hidden />
+              Reload profiles
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -361,9 +420,12 @@ const TransportationDirectory = () => {
           {loading ? (
             <p className="text-center py-8">Loading transportation profiles...</p>
           ) : profilesLoadError && !setupError ? (
-            <p className="text-muted-foreground text-center py-8">
-              {workflowPlannerCopy.transportationProfilesLoadFailed}
-            </p>
+            <div className="text-center py-8 space-y-2">
+              <p className="text-muted-foreground">{workflowPlannerCopy.transportationProfilesLoadFailed}</p>
+              <p className="text-xs text-muted-foreground font-mono break-words max-w-prose mx-auto">
+                {profilesLoadError}
+              </p>
+            </div>
           ) : setupError && filteredProfiles.length === 0 ? (
             <p className="text-muted-foreground text-center py-8">
               {workflowPlannerCopy.transportationProfilesPendingBody}
