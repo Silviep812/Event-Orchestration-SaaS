@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Building, Home, Utensils, MapPin, Trees, Dumbbell, Warehouse, Users, Building2, Hotel, ShoppingBag, HelpCircle, Calendar, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { formatDirectoryPrice } from "@/lib/formatDirectoryPrice";
 
 const VenueDirectory = () => {
   const [venueProfiles, setVenueProfiles] = useState<any[]>([]);
@@ -271,12 +272,14 @@ const VenueDirectory = () => {
                       <div className="text-sm space-y-1">
                         {profile.price != null && profile.price !== "" && (
                           <p className="text-primary font-semibold text-base">
-                            <strong>Price:</strong> ${Number(profile.price).toLocaleString()}
+                            <strong>Price:</strong>{" "}
+                            {formatDirectoryPrice(profile.price) ?? String(profile.price)}
                           </p>
                         )}
                         {profile.cost != null && profile.cost !== "" && (
                           <p className="text-primary font-semibold text-base">
-                            <strong>Cost:</strong> ${Number(profile.cost).toLocaleString()}
+                            <strong>Cost:</strong>{" "}
+                            {formatDirectoryPrice(profile.cost) ?? String(profile.cost)}
                           </p>
                         )}
                         {profile.capacity && (

@@ -19,26 +19,28 @@ export class ErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.error) {
+      const dev = import.meta.env.DEV;
       return (
         <div className="min-h-screen bg-background text-foreground p-6 md:p-10 max-w-3xl mx-auto">
           <h1 className="text-xl font-semibold mb-2">Something went wrong</h1>
           <p className="text-sm text-muted-foreground mb-4">
-            The app hit an error while rendering. This screen only appears when a view throws; it is not part of normal
-            planning workflows. Check the browser console (F12) for details. After a deployment, a hard refresh
-            (Ctrl+Shift+R) clears stale cached JavaScript.
+            A screen didn’t load correctly. That can be a one-off glitch—try continuing or reloading. If it keeps
+            happening, contact support and describe what you clicked just before this screen.
           </p>
-          <pre className="text-xs bg-muted p-4 rounded-md overflow-auto whitespace-pre-wrap border">
-            {this.state.error.message}
-            {"\n\n"}
-            {this.state.error.stack}
-          </pre>
+          {dev ? (
+            <pre className="text-xs bg-muted p-4 rounded-md overflow-auto whitespace-pre-wrap border">
+              {this.state.error.message}
+              {"\n\n"}
+              {this.state.error.stack}
+            </pre>
+          ) : null}
           <div className="mt-6 flex flex-wrap gap-3">
             <button
               type="button"
               className="text-sm font-medium rounded-md border border-input bg-background px-4 py-2 hover:bg-accent"
               onClick={() => this.setState({ error: null })}
             >
-              Try again (recover this view)
+              Continue
             </button>
             <button
               type="button"

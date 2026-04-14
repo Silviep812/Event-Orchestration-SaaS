@@ -1,14 +1,13 @@
-import { useState, useEffect, useMemo } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { AvatarWithBrandFallback } from "@/components/AvatarWithBrandFallback";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -17,7 +16,6 @@ import {
   MessageSquare, 
   FileText, 
   Plus,
-  Send,
   UserPlus,
   Clock,
   CheckCircle,
@@ -28,6 +26,9 @@ import {
 } from "lucide-react";
 import { TeamMemberCard } from "@/components/TeamMemberCard";
 import { NoTeamMembersCard } from "@/components/NoTeamMembersCard";
+import { TaskManager } from "@/components/TaskManager";
+import { useEventFilter } from "@/hooks/useEventFilter";
+import { Label } from "@/components/ui/label";
 
 export interface TeamMember {
   id: string;
@@ -39,15 +40,6 @@ export interface TeamMember {
   joinedAt: string;
   collaboratorTypes?: string[];
   isConfiguration?: boolean;
-}
-
-interface Message {
-  id: string;
-  content: string;
-  sender: string;
-  senderName: string;
-  timestamp: string;
-  type: 'text' | 'file' | 'system';
 }
 
 interface SharedFile {
@@ -81,15 +73,56 @@ const COLLABORATOR_TYPE_OPTIONS: { value: string; label: string }[] = [
   { value: 'Marketing', label: 'Marketing' },
 ];
 
+type CollaborateTab = "team" | "activity";
+
 export default function Collaborate() {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-  
-  const [activeTab, setActiveTab] = useState("team");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { selectedEventFilter, setSelectedEventFilter, events, eventsLoading } = useEventFilter();
+  const urlEventId = searchParams.get("eventId");
+
+  const [activeTab, setActiveTab] = useState<CollaborateTab>(() => {
+    const t = searchParams.get("tab");
+    if (t === "activity") return t;
+    return "team";
+  });
+
+  useEffect(() => {
+    const t = searchParams.get("tab");
+    if (t === "activity") setActiveTab(t);
+    else setActiveTab("team");
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (eventsLoading || events.length === 0) return;
+    if (urlEventId && events.some((e) => e.id === urlEventId)) {
+      setSelectedEventFilter(urlEventId);
+    }
+  }, [urlEventId, events, eventsLoading, setSelectedEventFilter]);
+
+  const handleCollaborateEventScope = useCallback(
+    (value: string) => {
+      setSelectedEventFilter(value);
+      const next = new URLSearchParams(searchParams);
+      if (value === "all") next.delete("eventId");
+      else next.set("eventId", value);
+      setSearchParams(next, { replace: true });
+    },
+    [searchParams, setSearchParams, setSelectedEventFilter],
+  );
+
+  const handleCollaborateTabChange = (v: string) => {
+    const next = v as CollaborateTab;
+    setActiveTab(next);
+    if (next === "team") {
+      setSearchParams({}, { replace: true });
+    } else {
+      setSearchParams({ tab: next }, { replace: true });
+    }
+  };
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [newMessage, setNewMessage] = useState("");
   const [sharedFiles, setSharedFiles] = useState<SharedFile[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
@@ -470,27 +503,6 @@ export default function Collaborate() {
     };
     fetchUserTeams();
   }, [user, refreshTrigger]);
-
-  const handleSendMessage = () => {
-    if (!newMessage.trim() || !user) return;
-
-    const message: Message = {
-      id: Date.now().toString(),
-      content: newMessage,
-      sender: user.id,
-      senderName: user.email || "Current User",
-      timestamp: new Date().toISOString(),
-      type: "text"
-    };
-
-    setMessages(prev => [...prev, message]);
-    setNewMessage("");
-
-    toast({
-      title: "Message sent",
-      description: "Your message has been sent to the team.",
-    });
-  };
 
   const handleInviteMember = async () => {
     if (!inviteRole || selectedCollaboratorTypes.length === 0) {
@@ -1028,7 +1040,7 @@ export default function Collaborate() {
         </Dialog>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      <Tabs value={activeTab} onValueChange={handleCollaborateTabChange} className="space-y-6">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="team" className="flex items-center gap-2">
             <Users className="w-4 h-4" />
@@ -1041,6 +1053,70 @@ export default function Collaborate() {
         </TabsList>
 
         <TabsContent value="team" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Task assignments (collaborator workspace)</CardTitle>
+              <CardDescription>
+                Same Add Task flow as Project Management. Choose an event to add a task, or browse all assignments
+                across events.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2 max-w-md">
+                <Label htmlFor="collab-event-scope">Event scope</Label>
+                <Select
+                  value={selectedEventFilter}
+                  onValueChange={handleCollaborateEventScope}
+                  disabled={eventsLoading}
+                >
+                  <SelectTrigger id="collab-event-scope">
+                    <SelectValue placeholder={eventsLoading ? "Loading events…" : "All events"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All events</SelectItem>
+                    {events.map((e) => (
+                      <SelectItem key={e.id} value={e.id}>
+                        {e.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {!eventsLoading ? (
+                <div className="space-y-4">
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      disabled={selectedEventFilter === "all"}
+                      onClick={() =>
+                        navigate(
+                          `/dashboard/project-management?eventId=${selectedEventFilter}&openModal=true`,
+                        )
+                      }
+                    >
+                      Add task assignment
+                    </Button>
+                    <Button type="button" variant="outline" asChild>
+                      <Link to="/dashboard/project-management">Open Project Management</Link>
+                    </Button>
+                  </div>
+                  {selectedEventFilter === "all" ? (
+                    <p className="text-sm text-muted-foreground">
+                      Select a specific event above to enable Add task assignment, or manage tasks in Project
+                      Management.
+                    </p>
+                  ) : null}
+                  <TaskManager
+                    selectedEventFilter={selectedEventFilter}
+                    embedInManageEvent
+                  />
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Loading events…</p>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Show all teams the user belongs to and their members */}
           {userTeams.length > 0 && (
             <div className="space-y-8 mt-4">
@@ -1148,9 +1224,7 @@ export default function Collaborate() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {activities
-                  .filter((activity) => activity.type !== "comment")
-                  .map((activity) => {
+                {activities.map((activity) => {
                   const IconComponent = getActivityIcon(activity.type);
                   return (
                     <div key={activity.id} className="flex items-center gap-3">

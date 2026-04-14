@@ -65,6 +65,11 @@ import { useToast } from "@/hooks/use-toast";
 import { useSearchParams, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { getLifecycleTableBadge } from "@/lib/eventStatus";
+import { plannerSafeErrorToastDescription, plannerToolsCopy } from "@/lib/nudges";
+
+/*
+ * Change log data: prefers view activity_feed, falls back to cm_activity. Not shown in UI.
+ */
 
 interface ChangeLog {
   id: string;
@@ -105,7 +110,8 @@ const Reports = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [changeLogs, setChangeLogs] = useState<ChangeLog[]>([]);
   const [reportData, setReportData] = useState<ReportData | null>(null);
-  const [loading, setLoading] = useState(true);
+  /** Change-log / analytics data only — do not block the Event Plan tab. */
+  const [changeLogsLoading, setChangeLogsLoading] = useState(false);
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [entityTypeFilter, setEntityTypeFilter] = useState<string>("all");
   const [actionFilter, setActionFilter] = useState<string>("all");
@@ -171,14 +177,56 @@ const Reports = () => {
     (async () => {
       setEventPlanLoading(true);
       try {
-        const { data: evs, error: evErr } = await supabase
+        const { data: ownedEvs, error: evErr } = await supabase
           .from("events")
           .select("id, title, start_date, end_date, status, venue, budget, expected_attendees, theme_id, updated_at, archived")
           .eq("user_id", user.id)
           .eq("archived", false)
           .order("start_date", { ascending: true });
         if (evErr) throw evErr;
-        const list = evs || [];
+
+        const { data: memberRows, error: memErr } = await supabase
+          .from("cm_event_members")
+          .select("event_id")
+          .eq("user_id", user.id);
+        if (memErr) console.warn("cm_event_members:", memErr);
+
+        const owned = ownedEvs || [];
+        const ownedIds = new Set(owned.map((e) => e.id).filter(Boolean) as string[]);
+        const memberExtraIds = [
+          ...new Set(
+            (memberRows || [])
+              .map((r) => r.event_id)
+              .filter((id): id is string => typeof id === "string" && !!id && !ownedIds.has(id)),
+          ),
+        ];
+
+        let memberEvents: typeof owned = [];
+        if (memberExtraIds.length > 0) {
+          const { data: memEvs, error: memEvErr } = await supabase
+            .from("events")
+            .select("id, title, start_date, end_date, status, venue, budget, expected_attendees, theme_id, updated_at, archived")
+            .in("id", memberExtraIds)
+            .eq("archived", false);
+          if (memEvErr) {
+            console.warn("events (team member):", memEvErr);
+          } else {
+            memberEvents = memEvs || [];
+          }
+        }
+
+        const mergedById = new Map<string, (typeof owned)[number]>();
+        for (const e of owned) {
+          if (e?.id) mergedById.set(e.id, e);
+        }
+        for (const e of memberEvents) {
+          if (e?.id && !mergedById.has(e.id)) mergedById.set(e.id, e);
+        }
+        const list = [...mergedById.values()].sort((a, b) => {
+          const ad = a.start_date || "";
+          const bd = b.start_date || "";
+          return ad.localeCompare(bd);
+        });
         const themeIds = [...new Set(list.map((e) => e.theme_id).filter((x): x is number => x != null))];
         let themeMap: Record<number, string> = {};
         if (themeIds.length > 0) {
@@ -225,7 +273,14 @@ const Reports = () => {
         if (!cancelled) setEventPlanRows(rows);
       } catch (e: unknown) {
         console.error(e);
-        if (!cancelled) setEventPlanRows([]);
+        if (!cancelled) {
+          setEventPlanRows([]);
+          toast({
+            title: "Error",
+            description: plannerSafeErrorToastDescription(e, plannerToolsCopy.reportsEventPlanFailed),
+            variant: "destructive",
+          });
+        }
       } finally {
         if (!cancelled) setEventPlanLoading(false);
       }
@@ -275,9 +330,8 @@ const Reports = () => {
 
   const fetchChangeData = async () => {
     try {
-      setLoading(true);
+      setChangeLogsLoading(true);
 
-      // Prefer activity_feed (explicit GRANT in migrations, same rows as cm_activity, same RLS).
       const runQuery = (source: string) => {
         let query = (supabase.from as any)(source).select("*").order("created_at", { ascending: false });
         if (dateRange?.from) {
@@ -311,19 +365,15 @@ const Reports = () => {
       generateReportData(logs);
     } catch (error: unknown) {
       console.error("Error fetching change data:", error);
-      const detail =
-        error && typeof error === "object" && "message" in error
-          ? String((error as { message: unknown }).message)
-          : "Unknown error";
       toast({
         title: "Error",
-        description: `Failed to fetch change management data: ${detail}`,
+        description: plannerSafeErrorToastDescription(error, plannerToolsCopy.reportsChangeActivityFailed),
         variant: "destructive",
       });
       setChangeLogs([]);
       setReportData(null);
     } finally {
-      setLoading(false);
+      setChangeLogsLoading(false);
     }
   };
 
@@ -426,17 +476,6 @@ const Reports = () => {
   const uniqueEntityTypes = [...new Set(changeLogs.map(log => log.entity_type))];
   const uniqueActions = [...new Set(changeLogs.map(log => log.action))];
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-2 text-muted-foreground">Loading change management reports...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -452,94 +491,101 @@ const Reports = () => {
         </Button>
       </div>
 
-      {(dueSoonCount !== null || vendorCategoryRows !== null) && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Events starting within 48h</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold">{dueSoonCount ?? "—"}</p>
-              <p className="text-xs text-muted-foreground">From view due_soon_events</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Vendor / resource selection rows</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold">{vendorCategoryRows ?? "—"}</p>
-              <p className="text-xs text-muted-foreground">From view vendor_category_counts</p>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+      {activeTab !== "overview" && (
+        <>
+          {(dueSoonCount !== null || vendorCategoryRows !== null) && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Events starting within 48h</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-2xl font-bold">{dueSoonCount ?? "—"}</p>
+                  <p className="text-xs text-muted-foreground">Events starting in the next two days</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Vendor / resource selection rows</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-2xl font-bold">{vendorCategoryRows ?? "—"}</p>
+                  <p className="text-xs text-muted-foreground">Vendor categories in use across events</p>
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
-      {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            Filters
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 lg:grid-cols-4 md:grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium mb-2 block">Date Range</label>
-              <DatePickerWithRange
-                date={dateRange}
-                onDateChange={setDateRange}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-2 block">Entity Type</label>
-              <Select value={entityTypeFilter} onValueChange={setEntityTypeFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All types" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  {uniqueEntityTypes.map(type => (
-                    <SelectItem key={type} value={type}>
-                      {type.replace('_', ' ').toUpperCase()}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-2 block">Action</label>
-              <Select value={actionFilter} onValueChange={setActionFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All actions" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Actions</SelectItem>
-                  {uniqueActions.map(action => (
-                    <SelectItem key={action} value={action}>
-                      {action.toUpperCase()}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-end">
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  setDateRange(undefined);
-                  setEntityTypeFilter('all');
-                  setActionFilter('all');
-                }}
-                className="w-full"
-              >
-                Clear Filters
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          {/* Filters (change logs & derived analytics) */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Filter className="h-5 w-5" />
+                Filters
+                {changeLogsLoading ? (
+                  <span className="text-xs font-normal text-muted-foreground ml-2">(updating…)</span>
+                ) : null}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 lg:grid-cols-4 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Date Range</label>
+                  <DatePickerWithRange
+                    date={dateRange}
+                    onDateChange={setDateRange}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Entity Type</label>
+                  <Select value={entityTypeFilter} onValueChange={setEntityTypeFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All types" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Types</SelectItem>
+                      {uniqueEntityTypes.map(type => (
+                        <SelectItem key={type} value={type}>
+                          {type.replace('_', ' ').toUpperCase()}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Action</label>
+                  <Select value={actionFilter} onValueChange={setActionFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All actions" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Actions</SelectItem>
+                      {uniqueActions.map(action => (
+                        <SelectItem key={action} value={action}>
+                          {action.toUpperCase()}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-end">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setDateRange(undefined);
+                      setEntityTypeFilter('all');
+                      setActionFilter('all');
+                    }}
+                    className="w-full"
+                  >
+                    Clear Filters
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </>
+      )}
 
       <Tabs value={activeTab} onValueChange={onReportTabChange} className="space-y-4">
         <TabsList className="flex flex-wrap h-auto gap-1">
@@ -554,13 +600,6 @@ const Reports = () => {
           <Card>
             <CardHeader>
               <CardTitle>Event Plan Report</CardTitle>
-              <CardDescription>
-                Event plan report is a single schema-style table: one row per active (non-archived) event. Columns
-                update as you work in Manage event, Project Management, and timelines, so planners see how the plan
-                evolves. Resource line items and collaborator checklists are maintained in{" "}
-                <strong>Project Management</strong> (not duplicated here). Use <strong>Manage event</strong> or{" "}
-                <strong>Create change request</strong> in the last columns as needed.
-              </CardDescription>
             </CardHeader>
             <CardContent>
               {eventPlanLoading ? (

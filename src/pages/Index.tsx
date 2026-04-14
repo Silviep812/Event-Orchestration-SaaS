@@ -21,101 +21,124 @@ const Index = () => {
   const features = [
     {
       icon: Calendar,
-      title: "Event Creation",
-      description: "Create Event with drop and drag",
-      color: "from-purple-500 to-pink-500",
-      bgColor: "bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/20"
+      title: "Event creation",
+      description: "Shape your event with clear steps and flexible details",
+      color: "from-rose-400 to-orange-400",
+      bgColor: "bg-gradient-to-br from-rose-100/90 to-orange-100/80 dark:from-rose-900/25 dark:to-orange-900/20",
     },
     {
       icon: FolderOpen,
       title: "Directories",
-      description: "Find Venue Hospitality Vendors Entertainment",
-      color: "from-yellow-500 to-orange-500",
-      bgColor: "bg-gradient-to-br from-yellow-100 to-orange-100 dark:from-yellow-900/20 dark:to-orange-900/20"
+      description: "Venues, hospitality, vendors, and entertainment in one place",
+      color: "from-amber-400 to-yellow-400",
+      bgColor: "bg-gradient-to-br from-amber-100/90 to-yellow-100/80 dark:from-amber-900/25 dark:to-yellow-900/20",
     },
     {
       icon: Calendar,
-      title: "Manage Events",
-      description: "Changes and Updates With ease",
-      color: "from-blue-500 to-cyan-500",
-      bgColor: "bg-gradient-to-br from-blue-100 to-cyan-100 dark:from-blue-900/20 dark:to-cyan-900/20"
+      title: "Manage events",
+      description: "Update plans and keep everyone aligned as things change",
+      color: "from-sky-400 to-cyan-400",
+      bgColor: "bg-gradient-to-br from-sky-100/90 to-cyan-100/80 dark:from-sky-900/25 dark:to-cyan-900/20",
     },
 
     {
       icon: Users,
-      title: "Team Collaboration",
-      description: "Work together with your team members",
-      color: "from-green-500 to-emerald-500",
-      bgColor: "bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/20 dark:to-emerald-900/20"
+      title: "Team collaboration",
+      description: "Work together with your team in one shared workspace",
+      color: "from-emerald-400 to-teal-400",
+      bgColor: "bg-gradient-to-br from-emerald-100/90 to-teal-100/80 dark:from-emerald-900/25 dark:to-teal-900/20",
     },
     {
       icon: BarChart3,
-      title: "Analytics & Reports",
-      description: "Track progress and generate insights",
-      color: "from-orange-500 to-red-500",
-      bgColor: "bg-gradient-to-br from-orange-100 to-red-100 dark:from-orange-900/20 dark:to-red-900/20"
+      title: "Analytics & reports",
+      description: "See progress and insights without digging through spreadsheets",
+      color: "from-orange-400 to-rose-400",
+      bgColor: "bg-gradient-to-br from-orange-100/90 to-rose-100/80 dark:from-orange-900/25 dark:to-rose-900/20",
     },
     {
       icon: Bell,
       title: "Notifications",
-      description: "Stay updated with real-time alerts",
-      color: "from-indigo-500 to-purple-500",
-      bgColor: "bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/20 dark:to-purple-900/20"
-    }
+      description: "Stay on top of what matters before the big day",
+      color: "from-violet-400 to-purple-400",
+      bgColor: "bg-gradient-to-br from-violet-100/90 to-purple-100/80 dark:from-violet-900/25 dark:to-purple-900/20",
+    },
   ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-b from-amber-50/95 via-orange-50/50 to-rose-50/40 dark:from-background dark:via-background dark:to-background">
       <MarketingTopBar page="home" />
 
-      {/* Hero: transparent SVG logo with clean spacing and no background panel. */}
-      <section className="px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-20">
-        <div className="max-w-7xl mx-auto text-center">
+      <section className="relative px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-20 overflow-hidden">
+        <div
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,rgba(251,191,36,0.22),transparent_55%),radial-gradient(ellipse_60%_50%_at_100%_50%,rgba(244,114,182,0.12),transparent_50%)]"
+          aria-hidden
+        />
+        <div className="relative max-w-7xl mx-auto text-center">
           <div className="flex justify-center mb-8">
             <img
               src={IEP_LOGO_HERO}
               alt="Ida Event Partners — We Got You"
-              className="block w-full max-w-[min(100vw,35rem)] h-auto mx-auto object-contain object-center"
+              className="block w-full max-w-[min(100vw,35rem)] h-auto mx-auto object-contain object-center drop-shadow-md"
               width={640}
               height={192}
               loading="eager"
               decoding="async"
             />
           </div>
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
-            Welcome to Ida Event Partners
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4 text-balance text-foreground tracking-tight">
+            Plan memorable events — without the chaos
           </h1>
-          <p className="text-lg sm:text-xl text-muted-foreground mb-10 max-w-3xl mx-auto leading-relaxed">
-            Streamline your event planning with our comprehensive SaaS platform.
-            Create, manage, and track events while collaborating with your team — clean, compelling, easy flow.
+          <p className="text-lg sm:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed text-pretty">
+            Ida Event Partners helps you organize, collaborate, and stay ahead. Try it free while we welcome planners — warm,
+            professional, and built for real events.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center flex-wrap">
             <Link to="/auth">
-              <Button size="lg" className="w-full sm:w-auto text-lg px-8 py-3">
-                Start 14-day free trial
+              <Button size="lg" className="w-full sm:w-auto text-lg px-8 py-3 shadow-md">
+                Start your free trial
               </Button>
             </Link>
             <Button
               type="button"
               variant="outline"
               size="lg"
-              className="text-lg px-8 py-3 w-full sm:w-auto"
+              className="text-lg px-8 py-3 w-full sm:w-auto border-amber-200/80 bg-white/60 backdrop-blur-sm"
               onClick={() => scrollToId("demo")}
             >
-              View demo
+              See how it works
             </Button>
           </div>
         </div>
       </section>
 
-      {/* Anchor only: payment copy lives in MarketingTopBar (PDF: not in page body). */}
-      <div id="payment-plan" className="sr-only" aria-hidden="true" />
+      <section
+        id="payment-plan"
+        className="px-4 sm:px-6 lg:px-8 py-12 sm:py-14 border-y border-amber-200/40 bg-gradient-to-br from-rose-50/80 via-amber-50/60 to-orange-50/70 dark:from-muted/40 dark:via-muted/30 dark:to-muted/40"
+      >
+        <div className="max-w-3xl mx-auto text-center space-y-4">
+          <h2 className="text-2xl sm:text-3xl font-bold text-balance">Simple pricing — tailored to how you work</h2>
+          <p className="text-muted-foreground text-sm sm:text-base leading-relaxed text-pretty">
+            For clarity: pricing varies depending on the user. Examples:{" "}
+            <span className="font-medium text-foreground">Trial</span> — free.{" "}
+            <span className="font-medium text-foreground">Subscriber</span> — monthly / annual: $97.00 / $1,000.00.{" "}
+            <span className="font-medium text-foreground">One-time</span> use — $249.00 (theme: Celebration; user type: Host or
+            Event Planner; attendees: 100 or less; due date: before 08/31/2026).{" "}
+            <span className="font-medium text-foreground">Special promotion</span> — $59.00 App Kick Off intro until cancelled.
+            When the trial period expires, we retain your user ID and related account information and may archive it for later
+            promotional use.
+          </p>
+          <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => scrollToId("features")}>
+            Explore features
+          </Button>
+        </div>
+      </section>
 
-      <section id="demo" className="px-4 sm:px-6 lg:px-8 py-12 sm:py-14 border-y bg-muted/30">
+      <section id="demo" className="px-4 sm:px-6 lg:px-8 py-12 sm:py-14 border-y border-amber-100/50 bg-white/40 dark:bg-muted/20 backdrop-blur-sm">
         <div className="max-w-3xl mx-auto text-center space-y-4">
           <h2 className="text-2xl sm:text-3xl font-bold">See it in action</h2>
           <p className="text-muted-foreground">
-            Start your trial to explore directories, project management, workflows, and team tools — no payment required during the trial period.
+            Start your trial to explore directories, project tools, workflows, and team features — no payment required during
+            the trial.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
             <Link to="/auth">
@@ -128,27 +151,27 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Features Grid */}
       <section id="features" className="px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
         <div className="max-w-7xl mx-auto">
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-center mb-12">
-            Everything You Need for Event Success
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-center mb-12 text-balance">
+            Everything you need for event success
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {features.map((feature, index) => (
-              <Card key={index} className={`text-center h-full border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 ${feature.bgColor}`}>
+              <Card
+                key={index}
+                className={`text-center h-full border border-amber-100/60 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-[1.02] ${feature.bgColor}`}
+              >
                 <CardHeader>
-                  <div className={`mx-auto mb-4 p-4 bg-gradient-to-br ${feature.color} rounded-full w-fit shadow-lg`}>
+                  <div
+                    className={`mx-auto mb-4 p-4 bg-gradient-to-br ${feature.color} rounded-full w-fit shadow-md`}
+                  >
                     <feature.icon className="h-8 w-8 text-white" />
                   </div>
-                  <CardTitle className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-200 bg-clip-text text-transparent">
-                    {feature.title}
-                  </CardTitle>
+                  <CardTitle className="text-xl font-bold text-foreground">{feature.title}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <CardDescription className="text-base text-gray-700 dark:text-gray-300">
-                    {feature.description}
-                  </CardDescription>
+                  <CardDescription className="text-base text-muted-foreground">{feature.description}</CardDescription>
                 </CardContent>
               </Card>
             ))}
@@ -156,17 +179,16 @@ const Index = () => {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="px-4 sm:px-6 lg:px-8 py-12 sm:py-16 bg-muted">
+      <section className="px-4 sm:px-6 lg:px-8 py-12 sm:py-16 bg-gradient-to-r from-amber-100/50 via-rose-50/40 to-orange-50/50 dark:from-muted/50 dark:via-muted/40 dark:to-muted/50 border-t border-amber-200/30">
         <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-6">
-            Ready to Transform Your Events?
-          </h2>
-          <p className="text-lg sm:text-xl text-muted-foreground mb-8">
-            Join thousands of event professionals who trust IEP for their event management needs.
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-6 text-balance">Ready when you are</h2>
+          <p className="text-lg sm:text-xl text-muted-foreground mb-8 text-pretty">
+            Join planners who want less stress and more clarity — starting with a free trial built for you.
           </p>
           <Link to="/auth">
-            <Button size="lg" className="text-lg px-8 py-3">Start Your Free Trial Today</Button>
+            <Button size="lg" className="text-lg px-8 py-3 shadow-md">
+              Start your free trial
+            </Button>
           </Link>
         </div>
       </section>

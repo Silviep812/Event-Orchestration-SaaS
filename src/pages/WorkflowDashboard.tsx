@@ -15,6 +15,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Loader2, CheckCircle2, ArrowLeft, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  plannerSafeErrorToastDescription,
+  plannerToolsCopy,
+  workflowPlannerCopy,
+} from "@/lib/nudges";
 
 type SetupStep = "event" | "user-type" | "theme" | "hospitality" | "venue" | "services" | "suppliers" | "dashboard";
 
@@ -347,7 +352,7 @@ export default function WorkflowDashboard() {
   const handleSuppliersStepContinue = async () => {
     if (selectedSupplierIds.length === 0) {
       const skip = window.confirm(
-        "Continue without selecting external vendors? You can add them later under Resources → External Vendors or event details.",
+        workflowPlannerCopy.skipExternalVendorsConfirm,
       );
       if (!skip) return;
     }
@@ -369,7 +374,7 @@ export default function WorkflowDashboard() {
       if (evErr) {
         toast({
           title: "Could not save vendor list on event",
-          description: evErr.message,
+          description: plannerSafeErrorToastDescription(evErr, plannerToolsCopy.workflowVendorSaveFailed),
           variant: "destructive",
         });
         return;
@@ -449,7 +454,7 @@ export default function WorkflowDashboard() {
     if (!data) {
       toast({
         title: "Error",
-        description: "Could not load workflow data.",
+        description: plannerToolsCopy.workflowLoadFailed,
         variant: "destructive",
       });
       return;

@@ -9,6 +9,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ClipboardList, ExternalLink, Loader2, RefreshCw } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { applyChangeRequestToEvent } from "@/lib/applyChangeRequestToEvent";
+import {
+  commentsPlannerCopy,
+  plannerSafeErrorToastDescription,
+  plannerToolsCopy,
+} from "@/lib/nudges";
 
 type ChangeRequestRow = {
   id: string;
@@ -65,7 +70,7 @@ export function ChangeManagementPanel({ selectedEventFilter }: ChangeManagementP
       console.warn("cm_change_requests:", error);
       toast({
         title: "Could not load change requests",
-        description: error.message,
+        description: plannerSafeErrorToastDescription(error, plannerToolsCopy.changeManagementLoadFailed),
         variant: "destructive",
       });
       setRows([]);
@@ -216,9 +221,15 @@ export function ChangeManagementPanel({ selectedEventFilter }: ChangeManagementP
                                 new_value: r.new_value,
                               });
                               if (!applied.ok) {
+                                const rawMsg = (applied.message || "").trim();
                                 toast({
                                   title: "Could not apply change",
-                                  description: applied.message ?? "Unknown error",
+                                  description: rawMsg
+                                    ? plannerSafeErrorToastDescription(
+                                        { message: rawMsg },
+                                        commentsPlannerCopy.toastGeneric,
+                                      )
+                                    : commentsPlannerCopy.toastGeneric,
                                   variant: "destructive",
                                 });
                                 return;
@@ -246,7 +257,7 @@ export function ChangeManagementPanel({ selectedEventFilter }: ChangeManagementP
                             } catch (e) {
                               toast({
                                 title: "Error",
-                                description: e instanceof Error ? e.message : "Failed to approve",
+                                description: plannerSafeErrorToastDescription(e, commentsPlannerCopy.toastGeneric),
                                 variant: "destructive",
                               });
                             } finally {
@@ -278,7 +289,7 @@ export function ChangeManagementPanel({ selectedEventFilter }: ChangeManagementP
                             } catch (e) {
                               toast({
                                 title: "Error",
-                                description: e instanceof Error ? e.message : "Failed to reject",
+                                description: plannerSafeErrorToastDescription(e, commentsPlannerCopy.toastGeneric),
                                 variant: "destructive",
                               });
                             } finally {

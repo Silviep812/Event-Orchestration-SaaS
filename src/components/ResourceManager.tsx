@@ -16,6 +16,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
+import { resourceCategoriesMissingDirectory } from "@/lib/resourceCategoryDirectory";
+import { plannerToolsCopy } from "@/lib/nudges";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
@@ -149,7 +151,18 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
         .select('*')
         .order('name');
       if (categoriesError) throw categoriesError;
-      setCategories(categoriesData || []);
+      const cats = categoriesData || [];
+      setCategories(cats);
+      const unmapped = resourceCategoriesMissingDirectory(cats);
+      if (unmapped.length > 0) {
+        // Dev/ops: extend `src/lib/resourceCategoryDirectory.ts` when adding new `resource_categories.name` values.
+        console.warn("[ResourceManager] Resource categories without directory mapping:", unmapped);
+        toast({
+          title: "Resource directories",
+          description: plannerToolsCopy.resourceCategoriesDirectoryGap,
+          variant: "default",
+        });
+      }
       // Fetch statuses
       const { data: statusesData, error: statusesError } = await supabase
         .from('resource_status')
@@ -1054,7 +1067,7 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
           <TabsContent value="table" className="space-y-4">
             <p className="text-sm text-muted-foreground">
               Tracked allocations for this event. Use <span className="font-medium text-foreground">Create Change Request</span>{" "}
-              to request updates (same flow as the button above). Checklist-style work lives in Project Management.
+              to request updates (same as the button above). For task checklists and team follow-up, use Project Management.
             </p>
             <div className="rounded-md border overflow-x-auto">
               <Table>

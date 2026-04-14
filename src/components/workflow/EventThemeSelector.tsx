@@ -9,8 +9,8 @@ import {
   isRetreatsThemeName,
   loadHealthWellnessEventTypeGroups,
   loadRetreatsEventTypeGroups,
-  type HealthWellnessKey,
 } from "@/lib/themeEventTypeHierarchy";
+import { plannerToolsCopy } from "@/lib/nudges";
 import { 
   Heart, 
   Building, 
@@ -155,7 +155,7 @@ export const EventThemeSelector = ({ userType, onSelectTheme, selectedTheme, eve
     ReturnType<typeof loadHealthWellnessEventTypeGroups>
   > | null>(null);
   const [hwPhase, setHwPhase] = useState<"cats" | "types">("cats");
-  const [hwCategoryKey, setHwCategoryKey] = useState<HealthWellnessKey | "">("");
+  const [hwCategoryKey, setHwCategoryKey] = useState<string>("");
 
   const [showRetreatFlow, setShowRetreatFlow] = useState(false);
   const [retreatThemeId, setRetreatThemeId] = useState<number | null>(null);
@@ -320,9 +320,10 @@ export const EventThemeSelector = ({ userType, onSelectTheme, selectedTheme, eve
     setSelectedCategory(category);
   };
 
-  const handleEventTypeClick = (eventType: any) => {
-    // Navigate to create event with pre-filled theme and sub-type
-    navigate(`/dashboard/create-event?theme=${celebrationThemeId}&subType=${eventType.name}`);
+  const handleEventTypeClick = (eventType: { id: number; name: string }) => {
+    navigate(
+      `/dashboard/create-event?theme=${celebrationThemeId}&subType=${encodeURIComponent(eventType.name)}&subTypeId=${eventType.id}`,
+    );
   };
 
   const handleBack = () => {
@@ -425,11 +426,9 @@ export const EventThemeSelector = ({ userType, onSelectTheme, selectedTheme, eve
     );
   }
 
-  const hwKeys: HealthWellnessKey[] = ["peaceful", "spiritual", "rejuvenating", "holistic"];
-
   if (showHwFlow && hwPhase === "types" && hwCategoryKey && hwHierarchy && hwThemeId != null) {
     const hwTypes = hwHierarchy.groups[hwCategoryKey] ?? [];
-    const label = hwCategoryKey.charAt(0).toUpperCase() + hwCategoryKey.slice(1);
+    const label = hwHierarchy.keyLabel[hwCategoryKey] ?? hwCategoryKey;
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-4">
@@ -443,9 +442,7 @@ export const EventThemeSelector = ({ userType, onSelectTheme, selectedTheme, eve
           </div>
         </div>
         {hwTypes.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center">
-            No event types found for this category. Add <code className="text-xs">event_types</code> in Supabase or check Browse Event Themes.
-          </p>
+          <p className="text-sm text-muted-foreground text-center">{plannerToolsCopy.workflowHwTypesEmpty}</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 w-full">
             {hwTypes.map((type) => (
@@ -454,7 +451,7 @@ export const EventThemeSelector = ({ userType, onSelectTheme, selectedTheme, eve
                 className="cursor-pointer transition-all duration-300 hover:scale-105 border-2 hover:border-primary"
                 onClick={() =>
                   navigate(
-                    `/dashboard/create-event?theme=${hwThemeId}&subType=${encodeURIComponent(type.name)}`,
+                    `/dashboard/create-event?theme=${hwThemeId}&subType=${encodeURIComponent(type.name)}&subTypeId=${type.id}`,
                   )
                 }
               >
@@ -493,10 +490,10 @@ export const EventThemeSelector = ({ userType, onSelectTheme, selectedTheme, eve
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-3xl mx-auto">
-            {hwKeys.map((k) => {
+            {hwHierarchy.orderedCategoryKeys.map((k) => {
               const pid = hwHierarchy.parentIds[k];
               if (!pid) return null;
-              const label = k.charAt(0).toUpperCase() + k.slice(1);
+              const label = hwHierarchy.keyLabel[k] ?? k;
               return (
                 <Card
                   key={k}
@@ -547,9 +544,7 @@ export const EventThemeSelector = ({ userType, onSelectTheme, selectedTheme, eve
           </div>
         </div>
         {rTypes.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center">
-            No types under this branch yet. Configure <code className="text-xs">event_types</code> children in Supabase.
-          </p>
+          <p className="text-sm text-muted-foreground text-center">{plannerToolsCopy.workflowRetreatTypesEmpty}</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 w-full">
             {rTypes.map((type) => (
@@ -558,7 +553,7 @@ export const EventThemeSelector = ({ userType, onSelectTheme, selectedTheme, eve
                 className="cursor-pointer transition-all duration-300 hover:scale-105 border-2 hover:border-primary"
                 onClick={() =>
                   navigate(
-                    `/dashboard/create-event?theme=${retreatThemeId}&subType=${encodeURIComponent(type.name)}`,
+                    `/dashboard/create-event?theme=${retreatThemeId}&subType=${encodeURIComponent(type.name)}&subTypeId=${type.id}`,
                   )
                 }
               >
@@ -593,9 +588,7 @@ export const EventThemeSelector = ({ userType, onSelectTheme, selectedTheme, eve
           </div>
         </div>
         {branches.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center">
-            No retreat branches found. Add top-level rows under the Retreats theme in <code className="text-xs">event_types</code>.
-          </p>
+          <p className="text-sm text-muted-foreground text-center">{plannerToolsCopy.workflowRetreatBranchesEmpty}</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
             {branches.map((b) => (
@@ -748,7 +741,7 @@ export const EventThemeSelector = ({ userType, onSelectTheme, selectedTheme, eve
 
       {themes.length === 0 && !loading && (
         <div className="text-center p-8 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <p className="text-yellow-800">No themes available. Please check your database configuration.</p>
+          <p className="text-yellow-800">{plannerToolsCopy.workflowThemesUnavailable}</p>
         </div>
       )}
 
@@ -781,9 +774,7 @@ export const EventThemeSelector = ({ userType, onSelectTheme, selectedTheme, eve
         <div className="text-center py-8">
           <Palette className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
           <h3 className="text-lg font-semibold mb-2">No themes found</h3>
-          <p className="text-muted-foreground">
-            Please add some event themes to the database to get started.
-          </p>
+          <p className="text-muted-foreground">{plannerToolsCopy.workflowThemesEmptyHint}</p>
         </div>
       )}
     </div>

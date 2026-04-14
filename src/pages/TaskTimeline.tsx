@@ -70,13 +70,7 @@ export default function TaskTimeline() {
         });
         setTasks([]);
       } else {
-        const raw = (data ?? []) as TaskRow[];
-        setTasks(
-          raw.filter((t) => {
-            if (!t.due_date) return true;
-            return !String(t.due_date).startsWith("2025");
-          })
-        );
+        setTasks((data ?? []) as TaskRow[]);
       }
       setLoading(false);
     };
@@ -151,8 +145,7 @@ export default function TaskTimeline() {
           Event Timeline
         </h1>
         <p className="text-muted-foreground max-w-2xl">
-          Milestone-style bars from each task&apos;s start/end/due dates. Legacy tasks with due dates
-          in 2025 are hidden (client data cleanup).
+          Milestone-style bars from each task&apos;s start/end/due dates for the selected event.
         </p>
         {eventId && tasks.length > 0 && (
           <p className="text-sm font-medium text-foreground">

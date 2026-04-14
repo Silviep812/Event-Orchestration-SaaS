@@ -27,6 +27,11 @@ import {
   storageKeyForCollaboratorChecklists,
 } from "@/lib/collaboratorChecklists";
 import { Bell, Plus } from "lucide-react";
+import {
+  commentsPlannerCopy,
+  plannerSafeErrorToastDescription,
+  plannerToolsCopy,
+} from "@/lib/nudges";
 
 type RequestType = "change_request" | "new_requirement" | "issue";
 
@@ -123,7 +128,7 @@ export function CollaboratorPanel({
     if (!user?.id || !eventId) {
       toast({
         title: "Select an event",
-        description: "Choose an event with the filter at the top of Project Management.",
+        description: plannerToolsCopy.taskSelectEventHint,
         variant: "destructive",
       });
       return;
@@ -197,7 +202,7 @@ export function CollaboratorPanel({
       console.error(e);
       toast({
         title: "Error",
-        description: e instanceof Error ? e.message : "Failed to submit",
+        description: plannerSafeErrorToastDescription(e, commentsPlannerCopy.toastGeneric),
         variant: "destructive",
       });
     } finally {

@@ -2,13 +2,18 @@ import { useState, useEffect, createContext, useContext } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 
+export type SignUpProfileFields = {
+  user_category?: string;
+  user_type?: string;
+};
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
   userRoles: string[];
   signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, profile?: SignUpProfileFields) => Promise<{ error: any }>;
   signOut: () => Promise<{ error: any }>;
   resetPassword: (email: string) => Promise<{ error: any }>;
   signInWithMagicLink: (email: string) => Promise<{ error: any }>;
@@ -97,15 +102,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error };
   };
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = async (email: string, password: string, profile?: SignUpProfileFields) => {
     const redirectUrl = `${window.location.origin}/dashboard`;
-    
+
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: redirectUrl
-      }
+        emailRedirectTo: redirectUrl,
+        data: {
+          user_category: profile?.user_category?.trim() ?? "",
+          user_type: profile?.user_type?.trim() ?? "",
+        },
+      },
     });
     return { error };
   };

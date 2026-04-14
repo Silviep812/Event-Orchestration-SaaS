@@ -18,6 +18,14 @@ import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { normalizeExternalUrl, openReservationUrl } from "@/lib/openExternalOrMailto";
+import { commentsPlannerCopy, workflowPlannerCopy } from "@/lib/nudges";
+import { formatDirectoryPrice } from "@/lib/formatDirectoryPrice";
+
+/*
+ * If transportations / transportation_types are missing from the API, operators apply migrations
+ * (e.g. 20260329190000_create_transportations_if_missing.sql, 20260413120000_seed_transportation_types_by_name.sql)
+ * via Supabase SQL Editor or `supabase db push` — not shown in the UI.
+ */
 
 function isMissingTableOrSchemaCacheError(message: string): boolean {
   const m = message.toLowerCase();
@@ -31,6 +39,7 @@ function isMissingTableOrSchemaCacheError(message: string): boolean {
 const TransportationDirectory = () => {
   const [transportationTypes, setTransportationTypes] = useState<any[]>([]);
   const [transportationProfiles, setTransportationProfiles] = useState<any[]>([]);
+  const [usedServiceVendorFallback, setUsedServiceVendorFallback] = useState(false);
   /** Empty = all types; otherwise match any selected `transp_type_id` (OR). */
   const [selectedTransportationTypes, setSelectedTransportationTypes] = useState<string[]>([]);
   const [locationFilter, setLocationFilter] = useState("");
@@ -43,6 +52,7 @@ const TransportationDirectory = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
+        setUsedServiceVendorFallback(false);
 
         setTypesLoadError(null);
         setProfilesLoadError(null);
@@ -56,14 +66,14 @@ const TransportationDirectory = () => {
           if (!isMissingTableOrSchemaCacheError(typesError.message)) {
             toast({
               title: "Transportation types",
-              description: typesError.message,
+              description: commentsPlannerCopy.toastGeneric,
               variant: "destructive",
             });
           }
         }
         setTransportationTypes(typesData || []);
 
-        // Plain select avoids PostgREST embed errors; join type names client-side.
+        // Plain select avoids embed errors; join type names client-side.
         const { data: profilesData, error: profilesError } = await supabase
           .from("transportations")
           .select("*");
@@ -73,14 +83,57 @@ const TransportationDirectory = () => {
           if (!isMissingTableOrSchemaCacheError(profilesError.message)) {
             toast({
               title: "Transportation profiles",
-              description:
-                profilesError.message ||
-                "Could not load profiles. Run migrations or check RLS in Supabase.",
+              description: commentsPlannerCopy.toastGeneric,
               variant: "destructive",
             });
           }
         }
-        setTransportationProfiles(profilesData || []);
+        const directProfiles = profilesData || [];
+        setTransportationProfiles(directProfiles);
+
+        // Fallback: if dedicated transportation tables are empty/unavailable, reuse service vendor profiles
+        // with transportation-like supplier types so the directory is not blank.
+        if (directProfiles.length === 0) {
+          const { data: fallbackProfilesData, error: fallbackProfilesError } = await supabase
+            .from("serv_vendor_suppliers")
+            .select("*, vendor_supplier_types(id, name)");
+          if (fallbackProfilesError) {
+            console.error("serv_vendor_suppliers fallback:", fallbackProfilesError);
+          } else {
+            const fallbackProfiles = (fallbackProfilesData || []).filter((row: any) => {
+              const typeName = String(row.vendor_supplier_types?.name || "").toLowerCase();
+              return /(transport|bus|shuttle|limo|logistics|car|van|coach)/i.test(typeName);
+            });
+            if (fallbackProfiles.length > 0) {
+              const fallbackTypeMap = new Map<string, { id: string; name: string }>();
+              fallbackProfiles.forEach((row: any) => {
+                const t = row.vendor_supplier_types;
+                if (!t?.id) return;
+                const key = `fallback-${t.id}`;
+                if (!fallbackTypeMap.has(key)) {
+                  const label = String(t.name ?? "").trim();
+                  fallbackTypeMap.set(key, {
+                    id: key,
+                    name: label || "Transport & logistics",
+                  });
+                }
+              });
+              const mapped = fallbackProfiles.map((row: any) => ({
+                ...row,
+                transp_type_id: row.vendor_supplier_types?.id
+                  ? `fallback-${row.vendor_supplier_types.id}`
+                  : null,
+                profile_url: row.profile_url,
+                booking_url: row.booking_url,
+              }));
+              setTransportationTypes(Array.from(fallbackTypeMap.values()));
+              setTransportationProfiles(mapped);
+              setUsedServiceVendorFallback(true);
+              setTypesLoadError(null);
+              setProfilesLoadError(null);
+            }
+          }
+        }
       } catch (err: any) {
         console.error('Error fetching transportation data:', err);
         toast({ title: "Error", description: "Failed to load transportation directory.", variant: "destructive" });
@@ -154,8 +207,9 @@ const TransportationDirectory = () => {
   };
 
   const setupError =
-    (profilesLoadError && isMissingTableOrSchemaCacheError(profilesLoadError)) ||
-    (typesLoadError && isMissingTableOrSchemaCacheError(typesLoadError));
+    !usedServiceVendorFallback &&
+    ((profilesLoadError && isMissingTableOrSchemaCacheError(profilesLoadError)) ||
+      (typesLoadError && isMissingTableOrSchemaCacheError(typesLoadError)));
 
   /** When `transportation_types` is empty but profiles have `transp_type_id`, still show type options. */
   const displayTransportationTypes = useMemo(() => {
@@ -180,16 +234,9 @@ const TransportationDirectory = () => {
       {setupError && (
         <Alert>
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Supabase needs the directory tables</AlertTitle>
-          <AlertDescription className="mt-2 space-y-2 text-pretty">
-            <p>
-              The linked project does not expose <code className="text-xs">public.transportations</code>{" "}
-              (and possibly <code className="text-xs">transportation_types</code>) to the API yet. Apply the
-              migration in Supabase: <strong>SQL Editor</strong> → paste and run{" "}
-              <code className="text-xs">supabase/migrations/20260329190000_create_transportations_if_missing.sql</code>{" "}
-              from this repo, then reload this page. If you use the Supabase CLI, run{" "}
-              <code className="text-xs">supabase db push</code> against this project.
-            </p>
+          <AlertTitle>{workflowPlannerCopy.transportationSetupTitle}</AlertTitle>
+          <AlertDescription className="mt-2 text-pretty">
+            <p>{workflowPlannerCopy.transportationSetupBody}</p>
           </AlertDescription>
         </Alert>
       )}
@@ -206,14 +253,9 @@ const TransportationDirectory = () => {
               {!setupError && displayTransportationTypes.length === 0 && (
                 <Alert>
                   <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>No transportation types loaded</AlertTitle>
+                  <AlertTitle>{workflowPlannerCopy.transportationNoTypesTitle}</AlertTitle>
                   <AlertDescription className="text-pretty">
-                    <p className="text-sm">
-                      Apply migrations in Supabase (including seeding{" "}
-                      <code className="text-xs">transportation_types</code>, e.g.{" "}
-                      <code className="text-xs">20260413120000_seed_transportation_types_by_name.sql</code> from this
-                      repo), then reload. If profiles exist but types are empty, check RLS and that the table has rows.
-                    </p>
+                    <p className="text-sm">{workflowPlannerCopy.transportationNoTypesBody}</p>
                   </AlertDescription>
                 </Alert>
               )}
@@ -320,11 +362,11 @@ const TransportationDirectory = () => {
             <p className="text-center py-8">Loading transportation profiles...</p>
           ) : profilesLoadError && !setupError ? (
             <p className="text-muted-foreground text-center py-8">
-              Could not load profiles: {profilesLoadError}
+              {workflowPlannerCopy.transportationProfilesLoadFailed}
             </p>
           ) : setupError && filteredProfiles.length === 0 ? (
             <p className="text-muted-foreground text-center py-8">
-              No profiles until the database migration has been applied.
+              {workflowPlannerCopy.transportationProfilesPendingBody}
             </p>
           ) : filteredProfiles.length === 0 ? (
             <p className="text-muted-foreground text-center py-8">
@@ -334,7 +376,8 @@ const TransportationDirectory = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredProfiles.map((profile) => {
                 const transportationType =
-                  transportationTypes.find((t) => t.id === profile.transp_type_id)?.name || "Transportation";
+                  displayTransportationTypes.find((t) => String(t.id) === String(profile.transp_type_id))?.name ||
+                  "Transportation";
                 const IconComponent = getTransportationIcon(transportationType);
                 
                 return (
@@ -370,7 +413,9 @@ const TransportationDirectory = () => {
                           <p><strong>Capacity:</strong> {profile.seating_capacity} seats</p>
                         )}
                         {profile.price && (
-                          <p><strong>Price:</strong> ${profile.price}</p>
+                          <p>
+                            <strong>Price:</strong> {formatDirectoryPrice(profile.price) ?? String(profile.price)}
+                          </p>
                         )}
                         <p><strong>Location:</strong> {[profile.city, profile.state, profile.zip].filter(Boolean).join(', ') || 'Location not specified'}</p>
                       </div>

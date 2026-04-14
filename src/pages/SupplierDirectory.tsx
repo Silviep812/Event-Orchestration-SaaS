@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Package, Truck, ShoppingCart, Store, Building, MapPin, Mail } from "lucide-react";
 import { DirectoryPageHeader } from "@/components/resource-directory/DirectoryPageHeader";
+import { formatDirectoryPrice } from "@/lib/formatDirectoryPrice";
 
 interface Supplier {
   id: string;
@@ -227,7 +228,7 @@ export default function SupplierDirectory() {
                         )}
                         {supplier.price != null && String(supplier.price) !== "" && (
                           <p className="text-sm font-semibold text-primary mt-2">
-                            Starting at ${Number(supplier.price).toLocaleString()}
+                            Starting at {formatDirectoryPrice(supplier.price) ?? String(supplier.price)}
                           </p>
                         )}
                         {supplier.supplier_cost != null && (

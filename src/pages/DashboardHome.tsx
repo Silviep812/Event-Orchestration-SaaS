@@ -11,12 +11,14 @@ import { useToast } from "@/hooks/use-toast";
 import Analytics from "@/components/Analytics";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { trialBannerText } from "@/lib/trialLimits";
-import { computeEventNudges } from "@/lib/nudges";
+import { computeEventNudges, plannerToolsCopy } from "@/lib/nudges";
 import { cn } from "@/lib/utils";
 import { getDashboardRecentEventStatusBadge } from "@/lib/eventStatus";
+import { useCreateEventEntryPath } from "@/hooks/useCreateEventEntryPath";
 
 const DashboardHome = () => {
   const navigate = useNavigate();
+  const createEventPath = useCreateEventEntryPath();
   const [analytics, setAnalytics] = useState({
     totalEvents: 0,
     taskCompletionRate: 0,
@@ -111,7 +113,7 @@ const DashboardHome = () => {
         console.error('Error fetching dashboard analytics:', error);
         toast({
           title: "Error",
-          description: "Failed to fetch dashboard data",
+          description: plannerToolsCopy.dashboardLoadFailed,
           variant: "destructive",
         });
       } finally {
@@ -306,7 +308,7 @@ const DashboardHome = () => {
         <div className="space-y-2">
           {nudgeMessages.map((n) => (
             <Alert key={n.id}>
-              <AlertTitle>Tip</AlertTitle>
+              <AlertTitle>Suggestion</AlertTitle>
               <AlertDescription>{n.message}</AlertDescription>
             </Alert>
           ))}
@@ -336,7 +338,7 @@ const DashboardHome = () => {
             <CheckSquare className="h-4 w-4 mr-2" />
             Manage Projects
           </Button>
-          <Button variant="outline" onClick={() => window.location.href = '/dashboard/create-event'} className="flex items-center gap-2 bg-gradient-primary hover:opacity-90">
+          <Button variant="outline" onClick={() => navigate(createEventPath)} className="flex items-center gap-2 bg-gradient-primary hover:opacity-90">
             <Plus className="h-4 w-4" />
             Create event
           </Button>

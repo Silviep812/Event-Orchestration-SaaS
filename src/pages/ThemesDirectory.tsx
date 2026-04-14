@@ -1,29 +1,48 @@
 import { useState } from "react";
 import { EventThemesDirectory } from "@/components/themes/EventThemesDirectory";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Palette, Download, Star, Users } from "lucide-react";
+import { ArrowLeft, Palette } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 export default function ThemesDirectory() {
-  const [selectedTheme, setSelectedTheme] = useState<{ id: number; name: string; subType?: string } | undefined>();
+  const [selectedTheme, setSelectedTheme] = useState<{
+    id: number;
+    name: string;
+    subType?: string;
+    subTypeId?: number;
+  } | undefined>();
   const navigate = useNavigate();
 
-  const handleThemeSelection = (themeId: number, themeName?: string, subType?: string) => {
-    setSelectedTheme({ id: themeId, name: themeName || `Theme #${themeId}`, subType });
+  const handleThemeSelection = (
+    themeId: number,
+    themeName?: string,
+    subType?: string,
+    subTypeId?: number,
+  ) => {
+    setSelectedTheme({
+      id: themeId,
+      name: themeName || `Theme #${themeId}`,
+      subType,
+      subTypeId,
+    });
   };
 
   const handleUseTheme = () => {
     if (selectedTheme) {
-      // Navigate to create event with selected theme and sub-type
       const params = new URLSearchParams({ theme: selectedTheme.id.toString() });
       if (selectedTheme.subType) {
-        params.append('subType', selectedTheme.subType);
+        params.append("subType", selectedTheme.subType);
+      }
+      if (selectedTheme.subTypeId != null) {
+        params.append("subTypeId", String(selectedTheme.subTypeId));
       }
       navigate(`/dashboard/create-event?${params.toString()}`);
     }
   };
+
+  const handleClearSelection = () => setSelectedTheme(undefined);
 
   return (
     <div className="space-y-6">
@@ -66,19 +85,26 @@ export default function ThemesDirectory() {
                   </div>
                 </div>
               </div>
-              <Button onClick={handleUseTheme}>
-                Use This Theme
-              </Button>
+              <div className="flex flex-wrap gap-2 justify-end">
+                <Button type="button" variant="outline" onClick={handleClearSelection}>
+                  Clear selection
+                </Button>
+                <Button type="button" onClick={handleUseTheme}>
+                  Use This Theme
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
       )}
 
       {/* Themes Directory */}
-      <EventThemesDirectory 
-        onSelectTheme={(themeId, themeName, subType) => handleThemeSelection(themeId, themeName, subType)}
+      <EventThemesDirectory
+        onSelectTheme={(themeId, themeName, subType, subTypeId) =>
+          handleThemeSelection(themeId, themeName, subType, subTypeId)
+        }
         selectedTheme={selectedTheme?.id}
-        userType="professional-planner" // This could be dynamic based on user profile
+        onClearSelection={handleClearSelection}
       />
     </div>
   );

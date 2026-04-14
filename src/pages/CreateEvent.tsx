@@ -14,12 +14,21 @@ import { DateRange } from "react-day-picker";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import {
+  dedupeSportThemesForPicker,
   isHealthWellnessThemeName,
   isRetreatsThemeName,
+  isSportThemeName,
   loadHealthWellnessEventTypeGroups,
   loadRetreatsEventTypeGroups,
-  type HealthWellnessKey,
+  loadSportingLeafEventTypes,
+  sportThemeRootCategoryDisplayLabel,
+  sportingUiName,
 } from "@/lib/themeEventTypeHierarchy";
+import {
+  commentsPlannerCopy,
+  plannerSafeErrorToastDescription,
+  plannerToolsCopy,
+} from "@/lib/nudges";
 
 interface EventFormData {
   title: string;
@@ -97,8 +106,9 @@ export default function CreateEvent() {
   const [retreatHierarchy, setRetreatHierarchy] = useState<Awaited<
     ReturnType<typeof loadRetreatsEventTypeGroups>
   > | null>(null);
-  const [hwCategoryKey, setHwCategoryKey] = useState<HealthWellnessKey | "">("");
+  const [hwCategoryKey, setHwCategoryKey] = useState<string>("");
   const [retreatBranchLabel, setRetreatBranchLabel] = useState("");
+  const [sportingLeafTypes, setSportingLeafTypes] = useState<{ id: number; name: string }[]>([]);
 
   const watchedTitle = watch("title");
   const watchedTheme = watch("theme_id");
@@ -113,10 +123,11 @@ export default function CreateEvent() {
     [eventThemes, selectedThemeId],
   );
 
-  const themeHierarchyMode = useMemo((): "default" | "hw" | "retreats" => {
+  const themeHierarchyMode = useMemo((): "default" | "hw" | "retreats" | "sporting" => {
     if (!selectedThemeName) return "default";
     if (isHealthWellnessThemeName(selectedThemeName)) return "hw";
     if (isRetreatsThemeName(selectedThemeName)) return "retreats";
+    if (isSportThemeName(selectedThemeName)) return "sporting";
     return "default";
   }, [selectedThemeName]);
 
@@ -129,7 +140,11 @@ export default function CreateEvent() {
       const rid = retreatBranchLabel ? retreatHierarchy?.rootIdByBranch[retreatBranchLabel] : undefined;
       return Boolean(rid && watchedSubType);
     }
-    return subEventTypes.length > 0 ? Boolean(watchedSubType) : Boolean(watchedType);
+    if (themeHierarchyMode === "sporting") {
+      return Boolean(watchedSubType?.trim());
+    }
+    if (subEventTypes.length > 0) return Boolean(watchedSubType);
+    return Boolean(watchedType);
   }, [
     themeHierarchyMode,
     hwCategoryKey,
@@ -184,6 +199,10 @@ export default function CreateEvent() {
   const wizardLabels = ["Basics", "Venue & directories", "Budget & extras", "Ready"];
 
   useEffect(() => {
+    void loadSportingLeafEventTypes().then(setSportingLeafTypes);
+  }, []);
+
+  useEffect(() => {
     const fetchThemes = async () => {
       const { data, error } = await supabase
         .from('event_themes')
@@ -196,11 +215,19 @@ export default function CreateEvent() {
         setThemesLoaded(true);
         return;
       }
-      setEventThemes(data || []);
+      setEventThemes(dedupeSportThemesForPicker(data || []));
       setThemesLoaded(true);
     };
     fetchThemes();
   }, []);
+
+  // Dedupe can drop a duplicate sport-themed row; Radix Select shows placeholder if value is missing from items.
+  useEffect(() => {
+    if (!themesLoaded || eventThemes.length === 0 || selectedThemeId == null) return;
+    if (eventThemes.some((t) => t.id === selectedThemeId)) return;
+    const sport = eventThemes.find((t) => isSportThemeName(t.name));
+    if (sport) setValue("theme_id", sport.id, { shouldValidate: true });
+  }, [themesLoaded, eventThemes, selectedThemeId, setValue]);
 
   useEffect(() => {
     const fetchVenueData = async () => {
@@ -304,6 +331,13 @@ export default function CreateEvent() {
       setRetreatBranchLabel("");
       setValue("type", "");
       setValue("subType", "");
+    } else if (isSportThemeName(name)) {
+      setHwHierarchy(null);
+      setRetreatHierarchy(null);
+      setHwCategoryKey("");
+      setRetreatBranchLabel("");
+      setValue("type", "");
+      setValue("subType", "");
     } else {
       setHwHierarchy(null);
       setRetreatHierarchy(null);
@@ -312,15 +346,73 @@ export default function CreateEvent() {
     }
   }, [selectedThemeId, eventThemes, setValue]);
 
-  // Pre-fill category + type from ?theme=&subType= when using Health & Wellness or Retreats (workflow wizard).
+  // Pre-fill from ?subTypeId= (stable) or ?subType= name (browse themes).
   useEffect(() => {
+    const subTypeIdParam = searchParams.get("subTypeId");
+    if (!subTypeIdParam || !selectedThemeId) return;
+    const leafId = parseInt(subTypeIdParam, 10);
+    if (Number.isNaN(leafId)) return;
+
+    let cancelled = false;
+    void (async () => {
+      const { data: leaf } = await supabase
+        .from("event_types")
+        .select("id, name, parent_id, theme_id")
+        .eq("id", leafId)
+        .maybeSingle();
+      if (cancelled || !leaf || leaf.theme_id !== selectedThemeId) return;
+
+      const tname = eventThemes.find((x) => x.id === selectedThemeId)?.name ?? "";
+
+      if (isHealthWellnessThemeName(tname) && hwHierarchy) {
+        for (const k of hwHierarchy.orderedCategoryKeys) {
+          const rows = hwHierarchy.groups[k] ?? [];
+          if (rows.some((r) => r.id === leaf.id)) {
+            setHwCategoryKey(k);
+            const pid = hwHierarchy.parentIds[k];
+            if (pid) setValue("type", String(pid));
+            setValue("subType", String(leaf.id));
+            return;
+          }
+        }
+      }
+      if (isRetreatsThemeName(tname) && retreatHierarchy) {
+        for (const branch of Object.keys(retreatHierarchy.typesByBranch)) {
+          const rows = retreatHierarchy.typesByBranch[branch] ?? [];
+          if (rows.some((r) => r.id === leaf.id)) {
+            setRetreatBranchLabel(branch);
+            const rid = retreatHierarchy.rootIdByBranch[branch];
+            if (rid) setValue("type", String(rid));
+            setValue("subType", String(leaf.id));
+            return;
+          }
+        }
+      }
+      if (!isHealthWellnessThemeName(tname) && !isRetreatsThemeName(tname) && leaf.parent_id) {
+        const { data: siblings } = await supabase
+          .from("event_types")
+          .select("id, name, theme_id, parent_id")
+          .eq("parent_id", leaf.parent_id)
+          .order("name");
+        if (cancelled) return;
+        setSubEventTypes(siblings ?? []);
+        setValue("type", String(leaf.parent_id), { shouldValidate: true });
+        setValue("subType", String(leaf.id), { shouldValidate: true });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams, selectedThemeId, eventThemes, hwHierarchy, retreatHierarchy, setValue]);
+
+  useEffect(() => {
+    if (searchParams.get("subTypeId")) return;
     const subName = searchParams.get("subType");
     if (!subName || !selectedThemeId) return;
 
     const tname = eventThemes.find((x) => x.id === selectedThemeId)?.name ?? "";
     if (isHealthWellnessThemeName(tname) && hwHierarchy) {
-      const keys: HealthWellnessKey[] = ["peaceful", "spiritual", "rejuvenating", "holistic"];
-      for (const k of keys) {
+      for (const k of hwHierarchy.orderedCategoryKeys) {
         const leaf = (hwHierarchy.groups[k] ?? []).find((x) => x.name === subName);
         const pid = hwHierarchy.parentIds[k];
         if (leaf && pid) {
@@ -354,7 +446,7 @@ export default function CreateEvent() {
       }
 
       const tname = eventThemes.find((x) => x.id === selectedThemeId)?.name ?? "";
-      if (isHealthWellnessThemeName(tname) || isRetreatsThemeName(tname)) {
+      if (isHealthWellnessThemeName(tname) || isRetreatsThemeName(tname) || isSportThemeName(tname)) {
         setEventTypes([]);
         setSubEventTypes([]);
         return;
@@ -375,6 +467,10 @@ export default function CreateEvent() {
       }
       
       setEventTypes(data || []);
+
+      if (searchParams.get("subTypeId")) {
+        return;
+      }
 
       // If we have a subType from URL, find and select the parent category
       const subTypeParam = searchParams.get('subType');
@@ -414,7 +510,11 @@ export default function CreateEvent() {
   useEffect(() => {
     const fetchSubEventTypes = async () => {
       const tname = eventThemes.find((x) => x.id === selectedThemeId)?.name ?? "";
-      if (isHealthWellnessThemeName(tname) || isRetreatsThemeName(tname)) {
+      if (isHealthWellnessThemeName(tname) || isRetreatsThemeName(tname) || isSportThemeName(tname)) {
+        return;
+      }
+
+      if (searchParams.get("subTypeId")) {
         return;
       }
 
@@ -601,12 +701,12 @@ export default function CreateEvent() {
 
       if (insertError) {
         console.error("Error creating event:", insertError);
-        const detail =
-          insertError.message ||
-          "There was an error saving your event. Please try again.";
         toast({
           title: "Error Creating Event",
-          description: detail,
+          description: plannerSafeErrorToastDescription(
+            insertError,
+            commentsPlannerCopy.toastGeneric,
+          ),
           variant: "destructive",
         });
         setIsSubmitting(false);
@@ -652,18 +752,17 @@ export default function CreateEvent() {
       setSelectedEntertainmentIds([]);
       setSelectedExternalSupplierIds([]);
 
-      // Redirect to manage event page
+      // After save, everyone lands on Event Management (manage event) to review the new event — not on Browse Themes.
       navigate('/dashboard/manage-event');
 
     } catch (error) {
       console.error('Error creating event:', error);
-      const msg =
-        error instanceof Error && error.message
-          ? error.message
-          : "Something went wrong while saving. Please try again, or refresh the page if this keeps happening.";
       toast({
         title: "Could not create event",
-        description: msg,
+        description: plannerSafeErrorToastDescription(
+          error,
+          "Something went wrong while saving. Please try again, or refresh the page if this keeps happening.",
+        ),
         variant: "destructive",
       });
     } finally {
@@ -753,14 +852,17 @@ export default function CreateEvent() {
                   control={control}
                   rules={{ required: "Event theme is required" }}
                   render={({ field }) => (
-                    <Select value={field.value?.toString() || ""} onValueChange={(value) => field.onChange(Number(value))}>
+                    <Select
+                      value={field.value != null ? String(field.value) : undefined}
+                      onValueChange={(value) => field.onChange(Number(value))}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Select event theme" />
                       </SelectTrigger>
                       <SelectContent>
                         {eventThemes.map((theme) => (
                           <SelectItem key={theme.id} value={theme.id.toString()}>
-                            {theme.name}
+                            {sportingUiName(theme.name)}
                             {theme.premium ? " (Premium)" : ""}
                           </SelectItem>
                         ))}
@@ -778,9 +880,8 @@ export default function CreateEvent() {
                   <div>
                     <Label>Category (Health &amp; Wellness) *</Label>
                     <Select
-                      value={hwCategoryKey}
-                      onValueChange={(v) => {
-                        const k = v as HealthWellnessKey;
+                      value={hwCategoryKey || undefined}
+                      onValueChange={(k) => {
                         setHwCategoryKey(k);
                         setValue("subType", "");
                         const pid = hwHierarchy.parentIds[k];
@@ -788,13 +889,13 @@ export default function CreateEvent() {
                       }}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Peaceful, Spiritual, Rejuvenating, Holistic" />
+                        <SelectValue placeholder="Select category" />
                       </SelectTrigger>
                       <SelectContent>
-                        {(["peaceful", "spiritual", "rejuvenating", "holistic"] as const).map((k) => {
+                        {hwHierarchy.orderedCategoryKeys.map((k) => {
                           const pid = hwHierarchy.parentIds[k];
                           if (!pid) return null;
-                          const label = k.charAt(0).toUpperCase() + k.slice(1);
+                          const label = hwHierarchy.keyLabel[k] ?? k;
                           return (
                             <SelectItem key={k} value={k}>
                               {label}
@@ -883,6 +984,45 @@ export default function CreateEvent() {
                 </>
               )}
 
+              {themeHierarchyMode === "sporting" && (
+                <div>
+                  <Label htmlFor="subType-sporting">Event type *</Label>
+                  <Controller
+                    name="subType"
+                    control={control}
+                    rules={{ required: "Event type is required" }}
+                    render={({ field }) => (
+                      <Select
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        disabled={!selectedThemeId}
+                      >
+                        <SelectTrigger id="subType-sporting">
+                          <SelectValue
+                            placeholder={
+                              selectedThemeId ? "Select event type" : "Select theme first"
+                            }
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {sportingLeafTypes.map((row) => (
+                            <SelectItem key={row.id} value={String(row.id)}>
+                              {row.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  {errors.subType && (
+                    <p className="text-sm text-destructive mt-1">{errors.subType.message}</p>
+                  )}
+                  {selectedThemeId && sportingLeafTypes.length === 0 ? (
+                    <p className="text-sm text-muted-foreground mt-1">{plannerToolsCopy.sportingTypesUnavailable}</p>
+                  ) : null}
+                </div>
+              )}
+
               {themeHierarchyMode === "default" && (
                 <>
                   <div>
@@ -907,7 +1047,7 @@ export default function CreateEvent() {
                           <SelectContent>
                             {eventTypes.map((type) => (
                               <SelectItem key={type.id} value={type.id.toString()}>
-                                {type.name}
+                                {sportThemeRootCategoryDisplayLabel(selectedThemeName, type.name)}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -1104,11 +1244,10 @@ export default function CreateEvent() {
                 </div>
               </div>
 
-              {/* External vendor: public.suppliers (procurement), not serv_vendor_suppliers (rentals) */}
               <div className="space-y-2 border rounded-md p-3 bg-muted/30">
                 <Label className="text-sm font-medium">External vendor (optional)</Label>
                 <p className="text-xs text-muted-foreground">
-                  Select one or more external vendors from the procurement directory (same list as External Vendors under Resources).
+                  Select one or more procurement vendors (same list as External Vendors in the sidebar). This is separate from equipment rentals.
                 </p>
                 <div>
                   <Label htmlFor="supplierCategory" className="text-xs text-muted-foreground">Filter by category</Label>

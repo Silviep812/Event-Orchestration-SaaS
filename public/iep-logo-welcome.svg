@@ -25,8 +25,8 @@
          C-160 90 -180 56 -180 16
          C-180 -24 -160 -58 -126 -82
          Z"
-      fill="#050505"
-      stroke="#111111"
+      fill="#2a1810"
+      stroke="#3d2418"
       stroke-width="26"
       stroke-linejoin="round"
     />
@@ -53,7 +53,7 @@
          C-180 -24 -160 -58 -126 -82
          Z"
       fill="none"
-      stroke="#FFFFFF"
+      stroke="#FFF8F0"
       stroke-width="16"
       stroke-linejoin="round"
     />
@@ -61,7 +61,7 @@
       x="0"
       y="46"
       text-anchor="middle"
-      fill="#FFFFFF"
+      fill="#FFFDF7"
       font-family="Georgia, Times New Roman, serif"
       font-size="112"
       font-weight="500"
@@ -75,7 +75,7 @@
     x="625"
     y="250"
     text-anchor="start"
-    fill="#171717"
+    fill="#4a3428"
     font-family="Georgia, Times New Roman, serif"
     font-size="200"
     font-weight="500"

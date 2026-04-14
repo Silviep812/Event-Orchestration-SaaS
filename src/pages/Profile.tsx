@@ -492,6 +492,32 @@ const Profile = () => {
               <Label>Email</Label>
               <Input value={user?.email || ""} readOnly />
             </div>
+            <div className="grid gap-2">
+              <Label>User ID</Label>
+              <Input value={user.id} readOnly className="font-mono text-xs" />
+            </div>
+            {(() => {
+              const meta = user.user_metadata as { user_category?: string; user_type?: string } | undefined;
+              const cat = meta?.user_category?.trim();
+              const typ = meta?.user_type?.trim();
+              if (!cat && !typ) return null;
+              return (
+                <>
+                  {cat ? (
+                    <div className="grid gap-2">
+                      <Label>Your category</Label>
+                      <Input value={cat} readOnly />
+                    </div>
+                  ) : null}
+                  {typ ? (
+                    <div className="grid gap-2">
+                      <Label>Your planner type</Label>
+                      <Input value={typ} readOnly />
+                    </div>
+                  ) : null}
+                </>
+              );
+            })()}
             <Button onClick={updateProfile} disabled={profileLoading}>
               {profileLoading ? "Updating..." : "Update Profile"}
             </Button>

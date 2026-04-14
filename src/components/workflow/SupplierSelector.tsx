@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { MapPin, Mail, Package, Building } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { workflowPlannerCopy } from "@/lib/nudges";
 
 interface Supplier {
   id: string;
@@ -23,7 +24,7 @@ interface Supplier {
 }
 
 interface SupplierSelectorProps {
-  /** Selected procurement vendor ids (`public.suppliers` — not rental/service equipment). */
+  /** Selected procurement vendor ids from `suppliers` (not equipment/rental vendors). */
   selectedSupplierIds: string[];
   onSelectedIdsChange: (ids: string[]) => void;
   /** Called when the user finishes the step (multi-select). */
@@ -126,10 +127,7 @@ export function SupplierSelector({
             <Package className="h-5 w-5" />
             Select External Vendors
           </CardTitle>
-          <p className="text-sm text-muted-foreground font-normal mt-1">
-            Lists <strong>procurement vendors</strong> from <code className="text-xs">public.suppliers</code> (external
-            vendor / procurement). Service equipment rentals are chosen in the previous Services step — not here.
-          </p>
+          <p className="text-sm text-muted-foreground font-normal mt-1">{workflowPlannerCopy.supplierSelectorHelper}</p>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Filters */}

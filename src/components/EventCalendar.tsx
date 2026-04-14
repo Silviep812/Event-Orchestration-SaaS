@@ -10,6 +10,8 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { getLifecycleTableBadge } from "@/lib/eventStatus";
+import { useCreateEventEntryPath } from "@/hooks/useCreateEventEntryPath";
+import { plannerToolsCopy } from "@/lib/nudges";
 
 interface Event {
   id: string;
@@ -30,6 +32,7 @@ const EventCalendar = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const createEventPath = useCreateEventEntryPath();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
@@ -74,7 +77,7 @@ const EventCalendar = () => {
       console.error('Error fetching events:', error);
       toast({
         title: "Error",
-        description: "Failed to fetch your events.",
+        description: plannerToolsCopy.calendarLoadFailed,
         variant: "destructive"
       });
     } finally {
@@ -142,7 +145,7 @@ const EventCalendar = () => {
           <h2 className="text-2xl font-bold">Event Calendar</h2>
           <p className="text-muted-foreground">Manage and track your events and important dates</p>
         </div>
-        <Button onClick={() => navigate("/dashboard/create-event")}>
+        <Button onClick={() => navigate(createEventPath)}>
           <Plus className="h-4 w-4 mr-2" />
           Add Event
         </Button>
@@ -243,7 +246,7 @@ const EventCalendar = () => {
                     variant="outline"
                     size="sm"
                     className="mt-2"
-                    onClick={() => navigate("/dashboard/create-event")}
+                    onClick={() => navigate(createEventPath)}
                   >
                     Add Event
                   </Button>

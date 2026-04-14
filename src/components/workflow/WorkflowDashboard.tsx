@@ -243,8 +243,8 @@ const workflowSteps: Record<string, WorkflowStep[]> = {
     },
     {
       id: "3",
-      title: "Technical Setup",
-      description: "Configure AV, lighting, and technical requirements",
+      title: "AV & lighting",
+      description: "Confirm sound, lighting, and staging setup for the room",
       status: "not_started",
       priority: "medium"
     },

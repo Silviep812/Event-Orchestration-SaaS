@@ -600,7 +600,7 @@ export function RoleManager({
                 )
               }
             >
-              Open Add Task
+              Add task assignment
             </Button>
           </CardContent>
         </Card>

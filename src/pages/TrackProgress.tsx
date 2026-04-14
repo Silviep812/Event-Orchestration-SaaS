@@ -11,6 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useEventFilter } from "@/hooks/useEventFilter";
+import { plannerToolsCopy } from "@/lib/nudges";
 import { 
   TrendingUp, 
   Calendar as CalendarIcon, 
@@ -119,7 +120,7 @@ export default function TrackProgress() {
       console.error('Error fetching tasks:', error);
       toast({
         title: "Error",
-        description: "Failed to fetch tasks",
+        description: plannerToolsCopy.trackProgressLoadFailed,
         variant: "destructive",
       });
     } finally {

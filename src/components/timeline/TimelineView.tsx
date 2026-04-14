@@ -41,6 +41,8 @@ interface Task {
 
 interface TimelineViewProps {
   eventId?: string;
+  /** Bumps when the parent saves the event or posts a request so timeline + event status stay fresh. */
+  refreshKey?: number;
 }
 
 
@@ -53,7 +55,7 @@ type EventRow = {
   archived?: boolean | null;
 };
 
-const TimelineView = ({ eventId }: TimelineViewProps) => {
+const TimelineView = ({ eventId, refreshKey = 0 }: TimelineViewProps) => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [eventRow, setEventRow] = useState<EventRow | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
@@ -165,7 +167,7 @@ const TimelineView = ({ eventId }: TimelineViewProps) => {
     };
     fetchTasks();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [eventId]);
+  }, [eventId, refreshKey]);
 
   const analyzeConstraints = (taskList: Task[]) => {
     const now = new Date();

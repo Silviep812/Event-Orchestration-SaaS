@@ -8,6 +8,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Wrench, Users, Camera, UtensilsCrossed, Music, Car, CheckCircle2, Building, Mail, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { workflowPlannerCopy } from "@/lib/nudges";
+
+/**
+ * Data: `serv_vendor_suppliers` / `serv_vendor_rentals` (equipment & service partners).
+ * External procurement vendors use `suppliers` — see SupplierSelector (next wizard step).
+ */
 
 interface VendorSupplier {
   id: string;
@@ -214,12 +220,8 @@ export function ServiceSelector({ onSelectServiceVendor, onSelectServiceRental, 
         <CardContent className="space-y-4">
           <Alert className="border-primary/30 bg-primary/5">
             <Info className="h-4 w-4" />
-            <AlertTitle>Rentals &amp; service vendors (equipment)</AlertTitle>
-            <AlertDescription className="text-sm">
-              This step lists <strong>service vendor / rental</strong> profiles (<code className="text-xs">serv_vendor_*</code>).
-              <strong> External procurement vendors</strong> are chosen on the next step — <strong>Select External Vendors</strong> —
-              from <code className="text-xs">public.suppliers</code>, not this list.
-            </AlertDescription>
+            <AlertTitle>{workflowPlannerCopy.serviceSelectorAlertTitle}</AlertTitle>
+            <AlertDescription className="text-sm">{workflowPlannerCopy.serviceSelectorAlertBody}</AlertDescription>
           </Alert>
           {/* Filters */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

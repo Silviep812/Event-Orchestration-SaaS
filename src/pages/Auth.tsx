@@ -14,6 +14,9 @@ import { MarketingTopBar } from '@/components/MarketingTopBar';
 export default function Auth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  /** Collected at sign-up; stored on the auth user record (metadata) for profile and offers. */
+  const [userCategory, setUserCategory] = useState('');
+  const [userType, setUserType] = useState('');
   const [resetEmail, setResetEmail] = useState('');
   const [magicLinkEmail, setMagicLinkEmail] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -58,7 +61,10 @@ export default function Auth() {
     e.preventDefault();
     setLoading(true);
     
-    const { error } = await signUp(email, password);
+    const { error } = await signUp(email, password, {
+      user_category: userCategory,
+      user_type: userType,
+    });
     
     if (error) {
       toast({
@@ -247,6 +253,29 @@ export default function Auth() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-category">Your category</Label>
+                    <Input
+                      id="signup-category"
+                      type="text"
+                      autoComplete="organization-title"
+                      placeholder="e.g. Corporate, Wedding, Nonprofit"
+                      value={userCategory}
+                      onChange={(e) => setUserCategory(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">Helps us tailor your experience.</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-type">Your planner type</Label>
+                    <Input
+                      id="signup-type"
+                      type="text"
+                      autoComplete="off"
+                      placeholder="e.g. Event planner, Host, Coordinator"
+                      value={userType}
+                      onChange={(e) => setUserType(e.target.value)}
                     />
                   </div>
                   <div className="space-y-2">

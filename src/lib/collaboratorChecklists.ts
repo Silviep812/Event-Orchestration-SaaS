@@ -131,7 +131,7 @@ export const COLLABORATOR_TEMPLATES: Record<string, CollaboratorTemplate> = {
     sections: [
       sec("service_vendor", 0, "Pre-Engagement", [
         "Confirm scope of services",
-        "Review technical requirements",
+        "Review setup, equipment, and service needs",
         "Validate compatibility with venue",
         "Confirm staffing and equipment needs",
       ]),
@@ -223,7 +223,7 @@ export const COLLABORATOR_TEMPLATES: Record<string, CollaboratorTemplate> = {
         "Confirm entertainment type and format (band, DJ, speaker, performer, MC)",
         "Validate availability for event date and time window",
         "Confirm performance duration and set structure",
-        "Review technical, staging, and space requirements",
+        "Review staging, space, and production needs",
         "Confirm audience interaction or content constraints",
       ]),
       sec("entertainment", 1, "Contract & Compliance", [
@@ -240,7 +240,7 @@ export const COLLABORATOR_TEMPLATES: Record<string, CollaboratorTemplate> = {
       ]),
       sec("entertainment", 3, "Event-Day Execution", [
         "Confirm talent arrival and check-in",
-        "Complete soundcheck / technical rehearsal",
+        "Complete soundcheck and rehearsal",
         "Execute performance as scheduled",
         "Resolve on-site issues or timing adjustments",
       ]),

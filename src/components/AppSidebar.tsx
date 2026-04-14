@@ -21,9 +21,13 @@ import {
   Car,
   MapPin,
   Megaphone,
+  MessageSquare,
 } from "lucide-react";
 
 import { useAuth } from "@/hooks/useAuth";
+import { useMemo } from "react";
+import { useCreateEventEntryPath } from "@/hooks/useCreateEventEntryPath";
+import { CREATE_EVENT_PATH_NEW_PLANNER } from "@/lib/createEventEntryPath";
 import { cmSidebarFooterText } from "@/lib/cmEnv";
 import {
   Sidebar,
@@ -255,6 +259,13 @@ const menuGroups = [
         hoverColor: "hover:bg-pink-50"
       },
       {
+        title: "Comments",
+        url: "/dashboard/comments",
+        icon: MessageSquare,
+        color: "text-pink-600",
+        hoverColor: "hover:bg-pink-50"
+      },
+      {
         title: "Notification",
         url: "/dashboard/notification",
         icon: Bell,
@@ -268,11 +279,23 @@ const menuGroups = [
 export function AppSidebar() {
   const { state } = useSidebar();
   const { userRoles } = useAuth();
+  const createEventUrl = useCreateEventEntryPath();
   const isAdmin = userRoles.includes("admin");
   const location = useLocation();
   const currentPath = location.pathname;
   const collapsed = state === "collapsed";
   const cmFooter = cmSidebarFooterText();
+
+  const resolvedMenuGroups = useMemo(
+    () =>
+      menuGroups.map((g) => ({
+        ...g,
+        items: g.items.map((item) =>
+          item.title === "Create event" ? { ...item, url: createEventUrl } : item,
+        ),
+      })),
+    [createEventUrl],
+  );
 
   /**
    * Active state: pathname must match. Query rules:
@@ -294,6 +317,14 @@ export function AppSidebar() {
         return tabHave === want.get("tab");
       }
       return tabHave !== "collaborator" && tabHave !== "change-management";
+    }
+
+    if (path === "/dashboard/collaborate") {
+      if (!query) {
+        return tabHave === null || tabHave === "team";
+      }
+      const want = new URLSearchParams(query);
+      return tabHave === want.get("tab");
     }
 
     if (!query) return true;
@@ -332,7 +363,7 @@ export function AppSidebar() {
           </div>
         )}
         
-        {menuGroups.map((group) => (
+        {resolvedMenuGroups.map((group) => (
           <SidebarGroup key={group.title} className="mb-4">
             {!collapsed && (
               <SidebarGroupLabel className={`text-xs font-semibold ${group.color} uppercase tracking-wider px-4 py-2 ${group.bgColor} rounded-lg mx-2 mb-2`}>
@@ -344,7 +375,11 @@ export function AppSidebar() {
                 {group.items
                   .filter((item) => !(item as { adminOnly?: boolean }).adminOnly || isAdmin)
                   .map((item) => {
-                  const active = pathIsActive(item.url);
+                  const active =
+                    item.title === "Create event" && createEventUrl === CREATE_EVENT_PATH_NEW_PLANNER
+                      ? currentPath === "/dashboard/themes" ||
+                        currentPath.startsWith("/dashboard/create-event")
+                      : pathIsActive(item.url);
                   return (
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton asChild isActive={active}>

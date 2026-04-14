@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Popover,
   PopoverContent,
@@ -12,11 +11,19 @@ import {
 } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import {
+  dedupeSportThemesForPicker,
   fetchMeetupTopLevelBranch,
   fetchThemedChildren,
+  filterSportishTags,
+  isSportThemeName,
   loadHealthWellnessEventTypeGroups,
   loadRetreatsEventTypeGroups,
+  loadEventTypesByParentTag,
+  loadSportingLeafEventTypes,
+  SPORTING_THEME_V4_DESCRIPTION,
+  sportingUiName,
 } from "@/lib/themeEventTypeHierarchy";
+import { plannerToolsCopy } from "@/lib/nudges";
 import { 
   Heart, 
   Building, 
@@ -51,6 +58,8 @@ interface ThemeDetails {
   bgColor: string;
   usageCount: number;
   premium: boolean;
+  /** V4 Sporting: show event types as a list under the theme (not a "Sporting" tag popover). */
+  sportInlineTypes?: { id: number; name: string }[];
 }
 
 /** Coerce DB / PostgREST values that may not be strict booleans */
@@ -133,6 +142,9 @@ const getCategoryFromName = (themeName: string): string => {
       name.includes("seminar") || name.includes("networking")) {
     return "business";
   }
+  if (isSportThemeName(themeName)) {
+    return "entertainment";
+  }
   if (name.includes("festival") || name.includes("music") || name.includes("entertainment") ||
       name.includes("concert") || name.includes("show") || name.includes("sporting")) {
     return "entertainment";
@@ -154,93 +166,20 @@ const getCategoryFromName = (themeName: string): string => {
   return "social";
 };
 
-/** Human-friendly label for category dropdown (handles multi-word tags). */
-function formatCategoryLabel(cat: string): string {
-  if (cat === "all") return "All Categories";
-  return cat
-    .trim()
-    .split(/[\s_-]+/)
-    .filter(Boolean)
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-    .join(" ");
-}
-
-const BUCKET_SYNONYMS: Record<string, readonly string[]> = {
-  celebration: ["celebration", "holiday", "personal", "wedding", "party"],
-  business: ["business", "corporate", "marketplace", "market", "professional", "vendor fair"],
-  entertainment: ["entertainment", "festival", "music", "concert", "show"],
-  social: ["social", "community", "meetup", "mixer", "dining", "gala", "culinary"],
-  health: ["health", "wellness", "fitness", "yoga", "spa", "holistic"],
-  retreat: ["retreat", "retreats", "offsite", "team building"],
-  conference: ["conference", "seminar", "summit"],
-};
-
-/** Normalize filter labels: "Health & Wellness", extra spaces, etc. */
-function normalizeCategoryToken(s: string): string {
-  return s
-    .trim()
-    .toLowerCase()
-    .replace(/&/g, " ")
-    .replace(/\s+/g, " ");
-}
-
-/** Category dropdown + search: match primary bucket, synonyms, tags, or theme name substring */
-function themeMatchesCategoryFilter(theme: ThemeDetails, selectedCategory: string): boolean {
-  if (selectedCategory === "all") return true;
-  const sel = selectedCategory.trim().toLowerCase();
-  const selNorm = normalizeCategoryToken(selectedCategory);
-  const cat = theme.category.toLowerCase();
-  if (cat === sel) return true;
-
-  // "Health & Wellness" / "Health and Wellness" ↔ health bucket + HW theme names
-  const hwFilter =
-    selNorm.includes("health") &&
-    (selNorm.includes("wellness") || selNorm.includes("well being") || sel === "health");
-  if (hwFilter) {
-    if (cat === "health") return true;
-    const nm = theme.name.toLowerCase();
-    if (nm.includes("health") && nm.includes("wellness")) return true;
-    if (theme.tags?.some((tag) => /health/i.test(tag) && /wellness/i.test(tag))) return true;
-  }
-
-  // Synonym buckets (dropdown may include both bucket names and tag labels)
-  for (const [bucket, synonyms] of Object.entries(BUCKET_SYNONYMS)) {
-    if (cat !== bucket) continue;
-    if (synonyms.some((s) => s === sel || sel.includes(s) || s.includes(sel))) return true;
-  }
-  if (sel === "health" && cat === "health") return true;
-  if (sel === "retreat" && cat === "retreat") return true;
-
-  const name = theme.name.toLowerCase();
-  if (sel === "health" && name.includes("health") && name.includes("wellness")) return true;
-  if (sel === "retreat" && (/\bretreats?\b/i.test(theme.name) || /^retreat\b/i.test(theme.name.trim()))) return true;
-
-  for (const tag of theme.tags ?? []) {
-    const t = tag.trim().toLowerCase();
-    if (!t) continue;
-    if (t === sel) return true;
-    if (sel.length >= 3 && (t.includes(sel) || sel.includes(t))) return true;
-  }
-  const tn = theme.name.toLowerCase();
-  if (sel.length >= 3 && tn.includes(sel)) return true;
-  return false;
-}
-
 interface EventThemesDirectoryProps {
-  onSelectTheme: (themeId: number, themeName: string, subType?: string) => void;
+  onSelectTheme: (themeId: number, themeName: string, subType?: string, subTypeId?: number) => void;
   selectedTheme?: number;
-  userType?: string;
+  /** Clears the current theme selection (parent should reset `selectedTheme`). */
+  onClearSelection?: () => void;
 }
 
-export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }: EventThemesDirectoryProps) => {
+export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSelection }: EventThemesDirectoryProps) => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
-  const [selectedPricing, setSelectedPricing] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [sortBy, setSortBy] = useState("name");
   const [themes, setThemes] = useState<ThemeDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSubTypes, setSelectedSubTypes] = useState<Record<number, string>>({});
+  const [selectedSubTypeIds, setSelectedSubTypeIds] = useState<Record<number, number>>({});
   const [holidayEventTypes, setHolidayEventTypes] = useState<{id: number; name: string}[]>([]);
   const [personalEventTypes, setPersonalEventTypes] = useState<{id: number; name: string}[]>([]);
   const [culturalEventTypes, setCulturalEventTypes] = useState<{id: number; name: string}[]>([]);
@@ -252,13 +191,23 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
   const [contemporaryEventTypes, setContemporaryEventTypes] = useState<{id: number; name: string}[]>([]);
   const [buffetEventTypes, setBuffetEventTypes] = useState<{id: number; name: string}[]>([]);
   const [fineDiningEventTypes, setFineDiningEventTypes] = useState<{id: number; name: string}[]>([]);
-  const [peacefulEventTypes, setPeacefulEventTypes] = useState<{id: number; name: string}[]>([]);
-  const [spiritualEventTypes, setSpiritualEventTypes] = useState<{id: number; name: string}[]>([]);
-  const [rejuvenatingEventTypes, setRejuvenatingEventTypes] = useState<{id: number; name: string}[]>([]);
-  const [holisticEventTypes, setHolisticEventTypes] = useState<{id: number; name: string}[]>([]);
   const [meetupCommunityEventTypes, setMeetupCommunityEventTypes] = useState<{id: number; name: string}[]>([]);
   const [meetupInclusiveEventTypes, setMeetupInclusiveEventTypes] = useState<{id: number; name: string}[]>([]);
   const [retreatBranchTypes, setRetreatBranchTypes] = useState<Record<string, { id: number; name: string }[]>>({});
+  const [browseHwHierarchy, setBrowseHwHierarchy] = useState<Awaited<
+    ReturnType<typeof loadHealthWellnessEventTypeGroups>
+  > | null>(null);
+  const [sportLeafTypes, setSportLeafTypes] = useState<{ id: number; name: string }[]>([]);
+  const [dynamicHierarchyByThemeId, setDynamicHierarchyByThemeId] = useState<
+    Record<number, Record<string, { id: number; name: string }[]>>
+  >({});
+
+  useEffect(() => {
+    if (selectedTheme == null) {
+      setSelectedSubTypes({});
+      setSelectedSubTypeIds({});
+    }
+  }, [selectedTheme]);
 
   // Fetch themes from Supabase
   useEffect(() => {
@@ -283,7 +232,14 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
           return;
         }
 
-        const transformedThemes: ThemeDetails[] = data
+        const keptIds = new Set(
+          dedupeSportThemesForPicker(
+            data.map((t) => ({ id: t.id, name: t.name ?? "", premium: t.premium })),
+          ).map((t) => t.id),
+        );
+        const uniqueData = data.filter((t) => keptIds.has(t.id));
+
+        const transformedThemes: ThemeDetails[] = uniqueData
           .map((theme) => {
             const category = getCategoryFromName(theme.name);
             const styles = getThemeStyles(category);
@@ -380,15 +336,32 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
       setFineDiningEventTypes(fineDiningData);
       setMeetupCommunityEventTypes(meetupCommunityData);
       setMeetupInclusiveEventTypes(meetupInclusiveData);
-      setPeacefulEventTypes(hwGroups.groups.peaceful);
-      setSpiritualEventTypes(hwGroups.groups.spiritual);
-      setRejuvenatingEventTypes(hwGroups.groups.rejuvenating);
-      setHolisticEventTypes(hwGroups.groups.holistic);
+      setBrowseHwHierarchy(hwGroups);
       setRetreatBranchTypes(retreatGroups.typesByBranch);
+
+      setSportLeafTypes(await loadSportingLeafEventTypes());
     };
 
     fetchEventTypes();
   }, []);
+
+  useEffect(() => {
+    if (themes.length === 0) return;
+    let cancelled = false;
+    void (async () => {
+      const next: Record<number, Record<string, { id: number; name: string }[]>> = {};
+      for (const t of themes) {
+        const n = t.name.toLowerCase();
+        if (/reunion|special event/i.test(n)) {
+          next[t.id] = await loadEventTypesByParentTag(t.id);
+        }
+      }
+      if (!cancelled) setDynamicHierarchyByThemeId(next);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [themes]);
 
   // Helper functions to extract theme data
   const getCategoryFromTheme = (theme: any): string => {
@@ -433,75 +406,83 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
     return descriptions[category] || "Versatile theme for any occasion";
   };
 
-  /** Ensure Health & Wellness and Retreats show directory > category > type tags even if `event_themes.tags` is sparse. */
+  /** Tags + captions for directory → category → type (Health & Wellness, Retreats, Reunion, Meetup, Sporting). */
   const displayThemes = useMemo(() => {
     return themes.map((t) => {
       const name = t.name ?? "";
       const trimmed = name.trim();
-      if (/health/i.test(name) && /wellness/i.test(name)) {
-        const hwTags = ["Peaceful", "Spiritual", "Rejuvenating", "Holistic"];
-        return { ...t, tags: [...new Set([...(t.tags ?? []), ...hwTags])] };
+      const lower = name.toLowerCase();
+      const sportTheme = isSportThemeName(name);
+
+      let description = t.description;
+      if (/reunion/i.test(lower)) {
+        description = "Great for reconnecting with family and friends";
+      }
+      if (/meet\s*up|meetup/i.test(lower)) {
+        description = "Perfect to meet like minded people for a community experience";
+      }
+      if (/^retreats?$/i.test(trimmed) || /^retreat\b/i.test(trimmed)) {
+        description =
+          "Perfect for building and strengthening personal, workplace and community relationships.";
+      }
+      if (/health/i.test(lower) && /wellness/i.test(lower)) {
+        description = "Practice holistic health and exercises with like minded people";
+      }
+      if (sportTheme) {
+        description = SPORTING_THEME_V4_DESCRIPTION;
+      }
+      if (/special event/i.test(lower)) {
+        description = "Tailored gatherings that need a clear category and type";
+      }
+
+      let tags = [...(t.tags ?? [])];
+      if (/health/i.test(name) && /wellness/i.test(name) && browseHwHierarchy) {
+        const hwTags = browseHwHierarchy.orderedCategoryKeys.map((k) => browseHwHierarchy.keyLabel[k] ?? k);
+        tags = [...new Set([...tags, ...hwTags])];
       }
       if (/^retreats?$/i.test(trimmed) || /^retreat\b/i.test(trimmed)) {
         const keys = Object.keys(retreatBranchTypes);
         if (keys.length) {
-          return { ...t, tags: [...new Set([...(t.tags ?? []), ...keys])] };
+          tags = [...new Set([...tags, ...keys])];
         }
       }
-      return t;
-    });
-  }, [themes, retreatBranchTypes]);
-
-  const categories = useMemo(() => {
-    const set = new Set<string>();
-    for (const theme of displayThemes) {
-      set.add(theme.category);
-      for (const tag of theme.tags ?? []) {
-        if (tag?.trim()) set.add(tag.trim());
+      // V4 Sporting: no Sport/Sporting tag chips — types render under the theme title as a plain list.
+      if (sportTheme) {
+        tags = filterSportishTags(tags);
       }
-    }
-    const cats = Array.from(set).sort((a, b) => a.localeCompare(b));
-    return ["all", ...cats];
-  }, [displayThemes]);
 
-  useEffect(() => {
-    if (selectedCategory !== "all" && !categories.includes(selectedCategory)) {
-      setSelectedCategory("all");
-    }
-  }, [categories, selectedCategory]);
+      const displayName = sportingUiName(t.name);
+      const sportInlineTypes =
+        sportTheme && sportLeafTypes.length > 0 ? sportLeafTypes : undefined;
+
+      return {
+        ...t,
+        name: displayName,
+        description,
+        tags,
+        icon: getThemeIcon(displayName),
+        sportInlineTypes,
+      };
+    });
+  }, [themes, retreatBranchTypes, browseHwHierarchy, sportLeafTypes]);
 
   const filteredAndSortedThemes = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
-    let filtered = displayThemes.filter((theme) => {
+    const filtered = displayThemes.filter((theme) => {
       const matchesSearch =
         !q ||
         theme.name.toLowerCase().includes(q) ||
         theme.description.toLowerCase().includes(q) ||
         theme.category.toLowerCase().includes(q) ||
-        (theme.tags ?? []).some((tag) => tag.toLowerCase().includes(q));
-      const matchesCategory = themeMatchesCategoryFilter(theme, selectedCategory);
-      const premium = themeIsPremium(theme);
-      const matchesPricing =
-        selectedPricing === "all" ||
-        (selectedPricing === "free" && !premium) ||
-        (selectedPricing === "premium" && premium);
-
-      return matchesSearch && matchesCategory && matchesPricing;
+        (theme.tags ?? []).some((tag) => tag.toLowerCase().includes(q)) ||
+        (theme.sportInlineTypes ?? []).some((item) => item.name.toLowerCase().includes(q));
+      return matchesSearch;
     });
-
-    return filtered.sort((a, b) => {
-      switch (sortBy) {
-        case "popular":
-          return b.usageCount - a.usageCount;
-        case "name":
-        default:
-          return a.name.localeCompare(b.name);
-      }
-    });
-  }, [displayThemes, searchTerm, selectedCategory, selectedPricing, sortBy]);
+    return filtered.sort((a, b) => a.name.localeCompare(b.name));
+  }, [displayThemes, searchTerm]);
 
   const recommendedThemes = useMemo(() => {
-    // Hardcode recommended themes: Celebration, Festival, Marketplace — respect category/search/pricing filters
+    // Recommended themes: Celebration, Festival, Marketplace (also filtered by search above)
     const recommendedNames = ['Celebration', 'Festival', 'Marketplace'];
     return filteredAndSortedThemes.filter(theme =>
       recommendedNames.some(name => theme.name.toLowerCase() === name.toLowerCase())
@@ -534,25 +515,31 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
       'Meetup-Inclusive': { types: meetupInclusiveEventTypes, themeName: 'Meetup', tagName: 'Inclusive' },
     };
 
-    const hwSubTags = ['Peaceful', 'Spiritual', 'Rejuvenating', 'Holistic'] as const;
-    const hwTypeLists = [peacefulEventTypes, spiritualEventTypes, rejuvenatingEventTypes, holisticEventTypes];
-
     let config: { types: { id: number; name: string }[]; themeName: string; tagName: string } | undefined;
 
     if (
-      (hwSubTags as readonly string[]).includes(tag) &&
+      browseHwHierarchy &&
       /health/i.test(theme.name) &&
       /wellness/i.test(theme.name)
     ) {
-      const idx = hwSubTags.indexOf(tag as (typeof hwSubTags)[number]);
-      if (idx >= 0) {
-        config = { types: hwTypeLists[idx], themeName: theme.name, tagName: tag };
+      const slug = browseHwHierarchy.orderedCategoryKeys.find(
+        (k) => (browseHwHierarchy.keyLabel[k] ?? k) === tag,
+      );
+      if (slug && (browseHwHierarchy.groups[slug] ?? []).length > 0) {
+        config = { types: browseHwHierarchy.groups[slug] ?? [], themeName: theme.name, tagName: tag };
       }
     }
 
     if (!config && /retreat/i.test(theme.name) && Object.prototype.hasOwnProperty.call(retreatBranchTypes, tag)) {
       config = { types: retreatBranchTypes[tag] ?? [], themeName: theme.name, tagName: tag };
     }
+
+    const dyn = dynamicHierarchyByThemeId[theme.id];
+    if (!config && dyn && (dyn[tag] ?? []).length > 0) {
+      config = { types: dyn[tag] ?? [], themeName: theme.name, tagName: tag };
+    }
+
+    // Sporting: types are only in `renderSportingInlineTypes` (V4). Never use a "Sporting" tag popover.
 
     if (!config) {
       const configKey = `${theme.name}-${tag}`;
@@ -585,8 +572,9 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                     key={item.id}
                     className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
                       onClick={() => {
-                      setSelectedSubTypes(prev => ({ ...prev, [theme.id]: item.name }));
-                      onSelectTheme(theme.id, theme.name, item.name);
+                      setSelectedSubTypes((prev) => ({ ...prev, [theme.id]: item.name }));
+                      setSelectedSubTypeIds((prev) => ({ ...prev, [theme.id]: item.id }));
+                      onSelectTheme(theme.id, theme.name, item.name, item.id);
                     }}
                   >
                     {item.name}
@@ -594,10 +582,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                 ))
               ) : (
                 <div className="px-3 py-2 text-sm text-muted-foreground leading-snug">
-                  No types found for <span className="font-medium text-foreground">{config.themeName}</span> →{" "}
-                  <span className="font-medium text-foreground">{config.tagName}</span>. Add{" "}
-                  <code className="text-xs">event_types</code> children under that category in Supabase, or ask your
-                  admin to load reference data (same pattern as other theme branches).
+                  {plannerToolsCopy.themeBrowseCategoryTypesEmpty}
                 </div>
               )}
             </div>
@@ -613,7 +598,56 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
     );
   };
 
-  const ThemeCard = ({ theme, isRecommended = false }: { theme: ThemeDetails; isRecommended?: boolean }) => {
+  /** V4 Sporting: theme row → visible type list (no nested “Sporting” tag dropdown). */
+  const renderSportingInlineTypes = (theme: ThemeDetails) => {
+    const types = theme.sportInlineTypes;
+    if (types?.length) {
+      return (
+        <div className="rounded-md border border-border bg-muted/20 p-3 space-y-2">
+          <p className="text-xs font-semibold text-foreground">Choose event type</p>
+          <ul className="space-y-1" role="list">
+            {types.map((item) => {
+              const picked = selectedSubTypes[theme.id] === item.name;
+              return (
+                <li key={item.id}>
+                  <button
+                    type="button"
+                    className={[
+                      "w-full rounded-md border px-3 py-2 text-left text-sm transition-colors",
+                      picked
+                        ? "border-primary bg-primary/10"
+                        : "border-border hover:bg-accent hover:text-accent-foreground",
+                    ].join(" ")}
+                    onClick={() => {
+                      setSelectedSubTypes((prev) => ({ ...prev, [theme.id]: item.name }));
+                      setSelectedSubTypeIds((prev) => ({ ...prev, [theme.id]: item.id }));
+                      onSelectTheme(theme.id, theme.name, item.name, item.id);
+                    }}
+                  >
+                    {item.name}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      );
+    }
+    if (isSportThemeName(theme.name)) {
+      return (
+        <p className="text-xs text-muted-foreground">{plannerToolsCopy.sportingTypesBrowsePending}</p>
+      );
+    }
+    return null;
+  };
+
+  const ThemeCard = ({
+    theme,
+    isRecommended = false,
+  }: {
+    theme: ThemeDetails;
+    isRecommended?: boolean;
+  }) => {
     const IconComponent = theme.icon;
     const isSelected = selectedTheme === theme.id;
     const currentSubType = selectedSubTypes[theme.id];
@@ -646,11 +680,14 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                     {theme.tags.map((tag, index) => renderTagDropdown(theme, tag, index))}
                   </div>
                   
-                  <div className="flex gap-2">
-                    <Button 
-                      size="sm" 
+                  <div className="flex flex-wrap gap-2 justify-end">
+                    <Button
+                      type="button"
+                      size="sm"
                       variant={isSelected ? "default" : "outline"}
-                      onClick={() => onSelectTheme(theme.id, theme.name, currentSubType)}
+                      onClick={() =>
+                        onSelectTheme(theme.id, theme.name, currentSubType, selectedSubTypeIds[theme.id])
+                      }
                     >
                       {isSelected ? (
                         <>
@@ -661,8 +698,14 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
                         "Select Theme"
                       )}
                     </Button>
+                    {isSelected && onClearSelection ? (
+                      <Button type="button" size="sm" variant="outline" onClick={() => onClearSelection()}>
+                        Clear selection
+                      </Button>
+                    ) : null}
                   </div>
                 </div>
+                {renderSportingInlineTypes(theme)}
               </div>
             </div>
           </CardContent>
@@ -696,14 +739,30 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
           <div className="flex flex-wrap gap-1">
             {theme.tags.map((tag, index) => renderTagDropdown(theme, tag, index))}
           </div>
-          
-          <Button 
-            className="w-full"
-            variant={isSelected ? "default" : "outline"}
-            onClick={() => onSelectTheme(theme.id, theme.name, currentSubType)}
-          >
-            {isSelected ? "Selected" : "Select Theme"}
-          </Button>
+          {renderSportingInlineTypes(theme)}
+          <div className="space-y-2">
+            <Button
+              type="button"
+              className="w-full"
+              variant={isSelected ? "default" : "outline"}
+              onClick={() =>
+                onSelectTheme(theme.id, theme.name, currentSubType, selectedSubTypeIds[theme.id])
+              }
+            >
+              {isSelected ? "Selected" : "Select Theme"}
+            </Button>
+            {isSelected && onClearSelection ? (
+              <Button
+                type="button"
+                className="w-full"
+                variant="outline"
+                size="sm"
+                onClick={() => onClearSelection()}
+              >
+                Clear selection
+              </Button>
+            ) : null}
+          </div>
         </CardContent>
       </Card>
     );
@@ -728,77 +787,35 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, userType }:
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input
-                  placeholder="Search themes..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+          <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+            <div className="relative flex-1 min-w-0">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder="Search themes..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
             </div>
-            
-            <div className="flex flex-col xl:flex-row flex-wrap gap-3 items-stretch xl:items-end">
-              <div className="space-y-1.5 min-w-[10rem]">
-                <span className="text-xs font-medium text-muted-foreground">Category</span>
-                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                  <SelectTrigger className="w-full xl:w-[11rem]">
-                    <SelectValue placeholder="Category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((cat) => (
-                      <SelectItem key={cat} value={cat}>
-                        {formatCategoryLabel(cat)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5 min-w-[10rem]">
-                <span className="text-xs font-medium text-muted-foreground">Pricing</span>
-                <Select value={selectedPricing} onValueChange={setSelectedPricing}>
-                  <SelectTrigger className="w-full xl:w-[11rem]">
-                    <SelectValue placeholder="Pricing" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Themes</SelectItem>
-                    <SelectItem value="free">Free Only</SelectItem>
-                    <SelectItem value="premium">Premium Only</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5 min-w-[10rem]">
-                <span className="text-xs font-medium text-muted-foreground">Sort</span>
-                <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="w-full xl:w-[11rem]">
-                    <SelectValue placeholder="Sort" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="name">Name</SelectItem>
-                    <SelectItem value="popular">Most Popular</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex items-center gap-2 pb-0.5">
-                <Button
-                  variant={viewMode === "grid" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setViewMode("grid")}
-                >
-                  <Grid3X3 className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant={viewMode === "list" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setViewMode("list")}
-                >
-                  <List className="h-4 w-4" />
-                </Button>
-              </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                type="button"
+                variant={viewMode === "grid" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setViewMode("grid")}
+                aria-label="Grid view"
+              >
+                <Grid3X3 className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                variant={viewMode === "list" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setViewMode("list")}
+                aria-label="List view"
+              >
+                <List className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         </CardContent>

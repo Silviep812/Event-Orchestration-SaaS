@@ -19,6 +19,7 @@ import {
   buildTaskCompletionChart,
   computeAnalyticsKpis,
 } from "@/lib/analyticsMetrics";
+import { plannerToolsCopy } from "@/lib/nudges";
 
 interface AnalyticsFilters {
   dateRange: {
@@ -201,7 +202,7 @@ export default function Analytics({
           .select("*")
           .in("event_id", taskScopeIds)
           .eq("archived", false);
-        // Planner-wide: tasks created in the selected window. Single event: all non-archived tasks for accurate KPIs.
+        // All events: tasks created in the selected window. One event: all active (non-archived) tasks for KPIs.
         if (!activeEventId) {
           tasksQuery = tasksQuery.gte("created_at", fromIso).lte("created_at", toIso);
         }
@@ -245,7 +246,7 @@ export default function Analytics({
           value: totalTasks.toString(),
           change: "Selected period",
           icon: Target,
-          description: activeEventId ? "Planner total for this event" : "Planner totals in scope",
+          description: activeEventId ? "All tasks for this event in the current view" : "Tasks across your selected scope",
           trend: "neutral",
         },
         {
@@ -269,7 +270,7 @@ export default function Analytics({
           value: durationSampleCount ? `${avgTaskDuration.toFixed(1)}h` : "—",
           change: durationSampleCount ? "Mean of tasks with duration" : "Add estimates or dates",
           icon: Clock,
-          description: "Only tasks with estimated/actual hours or start→end span",
+          description: "Tasks that include time estimates or start and end dates",
           trend: "neutral",
         },
         {
@@ -277,7 +278,7 @@ export default function Analytics({
           value: `${resourceUtilizationRate}%`,
           change: resourceUtilizationDetail,
           icon: Users,
-          description: activeEventId ? "Hours logged vs planned when estimates exist" : "Per scope and date window",
+          description: activeEventId ? "Hours worked vs planned when estimates exist" : "Across your scope and dates",
           trend: "neutral",
         },
       ];
@@ -330,7 +331,7 @@ export default function Analytics({
       console.error('Error fetching analytics data:', error);
       toast({
         title: "Error",
-        description: "Failed to fetch analytics data",
+        description: plannerToolsCopy.analyticsLoadFailed,
         variant: "destructive",
       });
     } finally {
@@ -392,10 +393,12 @@ export default function Analytics({
           <h2 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
             Analytics Dashboard
           </h2>
-          <p className="text-muted-foreground">
-            {eventId && !showEventScopePicker
-              ? "Metrics for the selected event (date range and theme filters apply)."
-              : "Planner totals for your events. Use weekly, monthly, or quarterly presets."}
+          <p className="text-muted-foreground max-w-3xl">
+            {eventId && showEventScopePicker
+              ? "Task counts, completion, timing, and resource use for this event. Pick a date range for charts; task KPIs stay tied to the full event."
+              : eventId && !showEventScopePicker
+                ? "Metrics for the event you selected. Filters above apply."
+                : "Totals across your events. Use weekly, monthly, or quarterly presets to change the reporting window."}
           </p>
           {scopeEventId && scopedEventTitle && (
             <p className="text-sm font-medium text-foreground">
@@ -486,8 +489,8 @@ export default function Analytics({
               />
               <p className="text-xs text-muted-foreground mt-2">
                 {scopeEventId
-                  ? `Scope: one event — KPIs use all non-archived tasks. Presets (${format(filters.dateRange.from, "MMM d")}–${format(filters.dateRange.to, "MMM d, yyyy")}) still shape trend charts.`
-                  : `Reporting window: ${format(filters.dateRange.from, "MMM d, yyyy")} – ${format(filters.dateRange.to, "MMM d, yyyy")} (tasks created in this range; events created in this range).`}
+                  ? `One event · ${format(filters.dateRange.from, "MMM d")}–${format(filters.dateRange.to, "MMM d, yyyy")} · KPIs use open tasks for this event; charts follow the dates above.`
+                  : `Reporting window: ${format(filters.dateRange.from, "MMM d, yyyy")} – ${format(filters.dateRange.to, "MMM d, yyyy")} · includes tasks and events created in this period.`}
               </p>
             </div>
             
@@ -543,29 +546,29 @@ export default function Analytics({
           const isDown = kpi.trend === "down"
           
           return (
-            <Card key={kpi.title} className="shadow-elegant border-0 bg-gradient-subtle hover:shadow-lg transition-shadow">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
+            <Card key={kpi.title} className="shadow-elegant border-0 bg-gradient-subtle hover:shadow-lg transition-shadow min-w-0">
+              <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium leading-snug min-w-0 pr-1">
                   {kpi.title}
                 </CardTitle>
-                <Icon className="h-4 w-4 text-primary" />
+                <Icon className="h-4 w-4 text-primary shrink-0 mt-0.5" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{kpi.value}</div>
-                <div className="flex items-center space-x-2">
-                  <div className={`flex items-center text-xs ${
-                    isPositive ? "text-green-600" : isDown ? "text-red-600" : "text-muted-foreground"
-                  }`}>
+                <div className="text-2xl font-bold tabular-nums">{kpi.value}</div>
+                <div className="mt-2 flex flex-col gap-1.5 min-w-0">
+                  <div
+                    className={`flex flex-wrap items-center gap-x-1 text-xs ${
+                      isPositive ? "text-green-600" : isDown ? "text-red-600" : "text-muted-foreground"
+                    }`}
+                  >
                     {isPositive ? (
-                      <TrendingUp className="h-3 w-3 mr-1" />
+                      <TrendingUp className="h-3 w-3 shrink-0" />
                     ) : isDown ? (
-                      <TrendingDown className="h-3 w-3 mr-1" />
+                      <TrendingDown className="h-3 w-3 shrink-0" />
                     ) : null}
-                    {kpi.change}
+                    <span className="leading-snug">{kpi.change}</span>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    {kpi.description}
-                  </p>
+                  <p className="text-xs text-muted-foreground leading-snug">{kpi.description}</p>
                 </div>
               </CardContent>
             </Card>

@@ -26,16 +26,16 @@ export type TaskAssignmentCategory = (typeof TASK_ASSIGNMENT_CATEGORIES)[number]
  * Keys match `TASK_ASSIGNMENT_CATEGORIES[].value` (DB `tasks.category`).
  *
  * Guidelines name "Rent Service Vendor" and "External Vendor (Procurement)" explicitly.
- * "Service Vendor" uses the same gates as Rent Service Vendor until product splits them.
+ * "Service Vendor" (security, cleaning, tech, etc.) is distinct from equipment rental.
  */
 export const DEPENDENCY_OPTIONS_BY_CATEGORY: Record<string, readonly string[]> = {
   Bookings: ["Event scope finalized", "Budget approval"],
   Venue: ["Booking confirmed", "Plan and budget approved", "Contract signed/Deposit made"],
   Hospitality: ["Amenities confirmed", "Final agenda approved"],
-  /** Rent Service Vendor */
+  /** Rent Service Vendor — tables, chairs, rental equipment */
   "Vendor Service Rental/Buy": ["Budget approval", "Rental availability"],
-  /** Same gates as Rent Service Vendor until Vendor Service vs Service Rental are split */
-  "Service Vendor": ["Budget approval", "Rental availability"],
+  /** Service Vendor — security, cleaning, volunteers, tech (guidelines §9 vs rental) */
+  "Service Vendor": ["Budget approval", "Scope of services confirmed", "Venue compatibility confirmed"],
   /** External Vendor (Procurement) */
   Suppliers: ["Procurement approved", "Availability confirmed", "Contract signed"],
   Vendors: ["Venue Confirmed", "Vendors Decision/Approved", "Contract signed"],

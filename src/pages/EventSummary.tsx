@@ -107,8 +107,7 @@ export default function EventSummary() {
         <div>
           <h1 className="text-2xl font-bold">Event summary</h1>
           <p className="text-muted-foreground mt-2">
-            Choose an event below, or open this page from Manage Event with an event selected (URL includes{" "}
-            <code className="text-xs bg-muted px-1 rounded">?eventId=…</code>).
+            Choose an event below, or open this page from Manage Event after selecting an event there.
           </p>
         </div>
         {loadingList ? (

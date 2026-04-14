@@ -7,6 +7,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Music, Mic, Users, MessageCircle, Presentation, Theater, HelpCircle, Mail } from "lucide-react";
 import { DirectoryPageHeader } from "@/components/resource-directory/DirectoryPageHeader";
 import { useToast } from "@/hooks/use-toast";
+import { commentsPlannerCopy } from "@/lib/nudges";
+import { formatDirectoryPrice } from "@/lib/formatDirectoryPrice";
 
 function entertainmentTypeRowKey(type: { id?: unknown; name?: string | null }, index: number): string {
   if (type?.id != null && String(type.id) !== "") return String(type.id);
@@ -14,7 +16,7 @@ function entertainmentTypeRowKey(type: { id?: unknown; name?: string | null }, i
   return `new-${index}-${slug}`;
 }
 
-const EntertainmentDirectory = () => {
+function EntertainmentDirectory() {
   const [entertainmentTypes, setEntertainmentTypes] = useState<any[]>([]);
   const [entertainmentProfiles, setEntertainmentProfiles] = useState<any[]>([]);
   const [selectedEntertainmentTypes, setSelectedEntertainmentTypes] = useState<string[]>([]);
@@ -38,7 +40,7 @@ const EntertainmentDirectory = () => {
           .select('*, entertainment_types(*)');
         if (profilesError) {
           console.error('entertainments:', profilesError);
-          toast({ title: "Entertainment profiles", description: "Could not load profiles — table may need setup in Supabase.", variant: "destructive" });
+          toast({ title: "Entertainment profiles", description: commentsPlannerCopy.toastGeneric, variant: "destructive" });
         }
         setEntertainmentProfiles(profilesData || []);
       } catch (err: any) {
@@ -50,7 +52,7 @@ const EntertainmentDirectory = () => {
     };
 
     fetchData();
-  }, []);
+  }, [toast]);
 
   // Filter profiles based on selected entertainment types and location
   const filteredProfiles = entertainmentProfiles.filter(profile => {
@@ -78,7 +80,7 @@ const EntertainmentDirectory = () => {
       'stage': Theater,
       'production': Theater,
       'other': HelpCircle,
-      'concert' : Music,
+      'concert': Music,
       'band': Music,
       'singer': Mic,
       'choir': Mic
@@ -241,9 +243,11 @@ const EntertainmentDirectory = () => {
                       </div>
                       
                       <div className="space-y-2 text-sm">
-                        {profile.price && (
-                          <p><strong>Price:</strong> ${profile.price}</p>
-                        )}
+                        {profile.price ? (
+                          <p>
+                            <strong>Price:</strong> {formatDirectoryPrice(profile.price) ?? String(profile.price)}
+                          </p>
+                        ) : null}
                         <p><strong>Location:</strong> {[profile.city, profile.state, profile.zip].filter(Boolean).join(', ') || 'Location not specified'}</p>
                       </div>
                       
@@ -267,6 +271,6 @@ const EntertainmentDirectory = () => {
       </Card>
     </div>
   );
-};
+}
 
 export default EntertainmentDirectory;

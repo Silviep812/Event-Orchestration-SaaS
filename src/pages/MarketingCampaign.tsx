@@ -11,6 +11,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { marketingAdminCopy } from "@/lib/nudges";
+
+/*
+ * Missing marketing_* tables: apply migration `20260331130000_marketing_campaign_binder_schema.sql` via Supabase
+ * (SQL Editor or CLI). Not shown in UI copy.
+ */
 
 type Counts = {
   subscribers: number;
@@ -70,11 +76,7 @@ export default function MarketingCampaign() {
       if (convCount.error && missingTable(convCount.error)) issues.push("marketing_conversions");
 
       if (issues.length > 0) {
-        setSchemaWarning(
-          `Some marketing tables are not in the database yet. Run the SQL migration file ` +
-            `20260331130000_marketing_campaign_binder_schema.sql in Supabase (SQL Editor), then reload. ` +
-            `Missing: ${[...new Set(issues)].join(", ")}.`,
-        );
+        setSchemaWarning(marketingAdminCopy.schemaIncomplete);
       }
 
       const rows = deliveries.error ? [] : (deliveries.data ?? []);
@@ -94,11 +96,8 @@ export default function MarketingCampaign() {
         recentRows.error ? [] : ((recentRows.data as typeof recent) ?? []),
       );
     } catch (e: unknown) {
-      setSchemaWarning(
-        e && typeof e === "object" && "message" in e
-          ? String((e as Error).message)
-          : "Failed to load marketing data.",
-      );
+      console.error("MarketingCampaign load:", e);
+      setSchemaWarning(marketingAdminCopy.loadFailed);
       setCounts({
         subscribers: 0,
         campaigns: 0,
@@ -140,10 +139,7 @@ export default function MarketingCampaign() {
           <Megaphone className="h-5 w-5" />
           Marketing campaign dashboard
         </div>
-        <p className="text-muted-foreground">
-          This page is available to <strong className="text-foreground">administrators</strong> only. It shows
-          subscribers, campaigns, and delivery metrics from the Marketing Campaign Binder schema.
-        </p>
+        <p className="text-muted-foreground">{marketingAdminCopy.nonAdminBody}</p>
       </div>
     );
   }
@@ -156,8 +152,7 @@ export default function MarketingCampaign() {
           Marketing campaign dashboard
         </h1>
         <p className="text-muted-foreground mt-1">
-          Campaign Binder metrics: subscribers, active campaigns, sends, open/click rates (when delivery rows
-          exist), and conversions.
+          Subscribers, campaigns, sends, open and click rates, and conversions — when data is available.
         </p>
       </div>
 
@@ -180,7 +175,7 @@ export default function MarketingCampaign() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{counts.subscribers}</div>
-              <p className="text-xs text-muted-foreground">marketing_subscribers</p>
+              <p className="text-xs text-muted-foreground">People who signed up</p>
             </CardContent>
           </Card>
           <Card>
@@ -190,7 +185,7 @@ export default function MarketingCampaign() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{counts.campaigns}</div>
-              <p className="text-xs text-muted-foreground">marketing_campaigns</p>
+              <p className="text-xs text-muted-foreground">Campaigns in your workspace</p>
             </CardContent>
           </Card>
           <Card>
@@ -200,7 +195,7 @@ export default function MarketingCampaign() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{counts.emailsSent}</div>
-              <p className="text-xs text-muted-foreground">marketing_email_deliveries (sent_at set)</p>
+              <p className="text-xs text-muted-foreground">Emails with a logged send time</p>
             </CardContent>
           </Card>
           <Card>
@@ -230,7 +225,7 @@ export default function MarketingCampaign() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{counts.conversions}</div>
-              <p className="text-xs text-muted-foreground">marketing_conversions</p>
+              <p className="text-xs text-muted-foreground">Goals completed or attributed</p>
             </CardContent>
           </Card>
         </div>
@@ -239,11 +234,11 @@ export default function MarketingCampaign() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Recent subscribers</CardTitle>
-          <CardDescription>Latest leads (signup_source helps attribute channel).</CardDescription>
+          <CardDescription>Latest sign-ups — “Source” shows where they came from when available.</CardDescription>
         </CardHeader>
         <CardContent>
           {recent.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No subscribers yet. Use an Edge Function or direct insert to add subscribers.</p>
+            <p className="text-sm text-muted-foreground">{marketingAdminCopy.recentSubscribersEmpty}</p>
           ) : (
             <Table>
               <TableHeader>

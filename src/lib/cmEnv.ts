@@ -1,6 +1,8 @@
 /**
- * CM MVP checklist (docs/assets): Lovable docs use NEXT_PUBLIC_CM_PREFIX — Vite only
- * exposes variables prefixed with VITE_. Set VITE_PUBLIC_CM_PREFIX=cm_ (or VITE_CM_PREFIX).
+ * Change Management data prefix for dev/staging (Vite: VITE_PUBLIC_CM_PREFIX or VITE_CM_PREFIX).
+ * Lovable docs reference NEXT_PUBLIC_CM_PREFIX — map to VITE_ in this app.
+ *
+ * Sidebar no longer shows a technical “data mode” line to planners; use env + logs locally if needed.
  */
 export function getCmPrefix(): string {
   const a = import.meta.env.VITE_PUBLIC_CM_PREFIX;
@@ -8,8 +10,7 @@ export function getCmPrefix(): string {
   return String(a ?? b ?? "").trim();
 }
 
+/** Reserved for future diagnostics; planners should not see CM prefix strings in the UI. */
 export function cmSidebarFooterText(): string | null {
-  const p = getCmPrefix();
-  if (!p) return null;
-  return `Data mode: Change Management (${p})`;
+  return null;
 }

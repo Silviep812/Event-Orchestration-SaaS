@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useCreateEventEntryPath } from "@/hooks/useCreateEventEntryPath";
 import {
   Bell,
   Clock,
@@ -32,15 +33,24 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { format } from "date-fns";
 import TimelineView from "@/components/timeline/TimelineView";
 import { getLifecycleTableBadge, isEventPastBySchedule } from "@/lib/eventStatus";
+import {
+  commentsPlannerCopy,
+  plannerSafeErrorToastDescription,
+  plannerToolsCopy,
+} from "@/lib/nudges";
 import Analytics from "@/components/Analytics";
 import { TaskManager } from "@/components/TaskManager";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+  dedupeSportThemesForPicker,
   isHealthWellnessThemeName,
   isRetreatsThemeName,
+  isSportThemeName,
   loadHealthWellnessEventTypeGroups,
   loadRetreatsEventTypeGroups,
-  type HealthWellnessKey,
+  loadSportingLeafEventTypes,
+  sportThemeRootCategoryDisplayLabel,
+  sportingUiName,
 } from "@/lib/themeEventTypeHierarchy";
 
 interface ManageEventData {
@@ -134,14 +144,6 @@ function coerceTimeForDb(value: string | undefined | null): string | null {
   return s.length > 8 ? s.slice(0, 8) : s;
 }
 
-function supabaseErrorMessage(err: unknown, fallback: string): string {
-  if (err && typeof err === "object" && "message" in err) {
-    const m = (err as { message?: string }).message;
-    if (typeof m === "string" && m.trim()) return m;
-  }
-  return fallback;
-}
-
 const ManageEvent = () => {
   const [events, setEvents] = useState<ManageEventData[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<ManageEventData | null>(null);
@@ -167,9 +169,10 @@ const ManageEvent = () => {
   const [retreatHierarchy, setRetreatHierarchy] = useState<Awaited<
     ReturnType<typeof loadRetreatsEventTypeGroups>
   > | null>(null);
-  const [hwCategoryKey, setHwCategoryKey] = useState<HealthWellnessKey | "">("");
+  const [hwCategoryKey, setHwCategoryKey] = useState<string>("");
   const [retreatBranchLabel, setRetreatBranchLabel] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+  const [sportingLeafTypes, setSportingLeafTypes] = useState<{ id: number; name: string }[]>([]);
   const [showPastEvents, setShowPastEvents] = useState(false);
   /** When true, include archived events in the sidebar list (default: only active events). */
   const [showArchivedEvents, setShowArchivedEvents] = useState(false);
@@ -188,6 +191,7 @@ const ManageEvent = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const createEventPath = useCreateEventEntryPath();
   const [searchParams] = useSearchParams();
   const eventIdFromUrl = searchParams.get("eventId");
 
@@ -196,10 +200,11 @@ const ManageEvent = () => {
     [eventThemes, selectedEvent?.theme_id],
   );
 
-  const themeHierarchyMode = useMemo((): "default" | "hw" | "retreats" => {
+  const themeHierarchyMode = useMemo((): "default" | "hw" | "retreats" | "sporting" => {
     if (!selectedThemeName) return "default";
     if (isHealthWellnessThemeName(selectedThemeName)) return "hw";
     if (isRetreatsThemeName(selectedThemeName)) return "retreats";
+    if (isSportThemeName(selectedThemeName)) return "sporting";
     return "default";
   }, [selectedThemeName]);
 
@@ -320,7 +325,7 @@ const ManageEvent = () => {
       console.error('syncDetailsToResources: Fatal error during sync', error);
       toast({
         title: "Sync Error",
-        description: "Failed to sync location to resources",
+        description: plannerToolsCopy.syncLocationFailed,
         variant: "destructive",
       });
     }
@@ -345,9 +350,6 @@ const ManageEvent = () => {
           const ev = event as ManageEventData;
           if (ev.archived && !showArchivedEvents) return false;
           if (!showPastEvents && isEventPastBySchedule(ev)) return false;
-          const sd = String((ev as { start_date?: string }).start_date ?? "");
-          const ed = String((ev as { end_date?: string }).end_date ?? "");
-          if (sd.startsWith("2025") || ed.startsWith("2025")) return false;
           return true;
         })
         .map((event) => ({
@@ -359,7 +361,7 @@ const ManageEvent = () => {
       console.error('Error fetching events:', error);
       toast({
         title: "Error",
-        description: "Failed to fetch events",
+        description: plannerToolsCopy.eventsLoadFailed,
         variant: "destructive",
       });
     } finally {
@@ -375,7 +377,17 @@ const ManageEvent = () => {
         .order('name');
       
       if (error) throw error;
-      setEventThemes(data || []);
+      const raw = data || [];
+      const keptIds = new Set(
+        dedupeSportThemesForPicker(
+          raw.map((t) => ({ id: t.id, name: t.name ?? "", premium: t.premium })),
+        ).map((t) => t.id),
+      );
+      setEventThemes(
+        raw
+          .filter((t) => keptIds.has(t.id))
+          .map((t) => ({ id: t.id, name: t.name, premium: Boolean(t.premium) })),
+      );
     } catch (error) {
       console.error('Error fetching themes:', error);
     }
@@ -565,6 +577,7 @@ const ManageEvent = () => {
       if (typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent("iep-refetch-tasks"));
       }
+      setResourceRefreshKey((k) => k + 1);
 
       if (isManual) {
         toast({
@@ -618,7 +631,7 @@ const ManageEvent = () => {
       console.error('Error saving event:', error);
       toast({
         title: "Error",
-        description: supabaseErrorMessage(error, "Failed to save event"),
+        description: plannerSafeErrorToastDescription(error, commentsPlannerCopy.toastGeneric),
         variant: "destructive",
       });
     } finally {
@@ -881,7 +894,7 @@ const ManageEvent = () => {
     }
   };
 
-  const handleHwCategorySelect = async (k: HealthWellnessKey) => {
+  const handleHwCategorySelect = async (k: string) => {
     if (!selectedEvent || !hwHierarchy) return;
     const pid = hwHierarchy.parentIds[k];
     setHwCategoryKey(k);
@@ -957,6 +970,7 @@ const ManageEvent = () => {
           status: "not_started",
           category: "Change Management",
           created_by: user.id,
+          archived: false,
         })
         .select("id")
         .single();
@@ -973,6 +987,20 @@ const ManageEvent = () => {
           task_id: taskRow.id,
         });
         if (crErr) console.warn("cm_change_requests:", crErr);
+
+        const { error: actErr } = await supabase.from("cm_activity" as any).insert({
+          event_id: selectedEvent.id,
+          entity_type: "task",
+          entity_id: taskRow.id,
+          action: "created",
+          changed_by: user.id,
+          metadata: {
+            source: "manage_event_new_request",
+            title: newRequest.title.trim(),
+            task_title: `[${newRequest.type.replace(/_/g, " ")}] ${newRequest.title.trim()}`,
+          },
+        });
+        if (actErr) console.warn("cm_activity (new request):", actErr);
       }
 
       await supabase.rpc("notify_coordinators", {
@@ -983,9 +1011,18 @@ const ManageEvent = () => {
         p_entity_id: selectedEvent.id,
       });
 
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("iep-refetch-tasks"));
+      }
+      setResourceRefreshKey((k) => k + 1);
+      if (selectedEvent.id) {
+        void fetchUnifiedChangelog(selectedEvent.id);
+      }
+
       toast({
-        title: "Request Submitted",
-        description: "Posted to Project Management tasks and coordinators notified.",
+        title: "Request submitted",
+        description:
+          "A task was added under Project Management → Tasks (Change Management). Open Tasks or Change Management to review.",
       });
 
       setNewRequestDialog(false);
@@ -999,7 +1036,7 @@ const ManageEvent = () => {
       console.error("Error submitting request:", error);
       toast({
         title: "Error",
-        description: "Failed to submit request",
+        description: plannerSafeErrorToastDescription(error, commentsPlannerCopy.toastGeneric),
         variant: "destructive",
       });
     } finally {
@@ -1079,7 +1116,7 @@ const ManageEvent = () => {
       console.error("Error confirming event:", error);
       toast({
         title: "Error",
-        description: supabaseErrorMessage(error, "Failed to confirm event"),
+        description: plannerSafeErrorToastDescription(error, commentsPlannerCopy.toastGeneric),
         variant: "destructive",
       });
     } finally {
@@ -1144,6 +1181,10 @@ const ManageEvent = () => {
   }, [user]);
 
   useEffect(() => {
+    void loadSportingLeafEventTypes().then(setSportingLeafTypes);
+  }, []);
+
+  useEffect(() => {
     if (!selectedEvent?.theme_id) {
       setEventTypes([]);
       setHwHierarchy(null);
@@ -1169,6 +1210,14 @@ const ManageEvent = () => {
       void loadRetreatsEventTypeGroups().then(setRetreatHierarchy);
       setHwHierarchy(null);
       setHwCategoryKey("");
+      return;
+    }
+    if (isSportThemeName(tname)) {
+      setEventTypes([]);
+      setRetreatHierarchy(null);
+      setHwHierarchy(null);
+      setHwCategoryKey("");
+      setRetreatBranchLabel("");
       return;
     }
     setHwHierarchy(null);
@@ -1240,8 +1289,7 @@ const ManageEvent = () => {
   useEffect(() => {
     if (!selectedEvent?.type_id || !selectedEvent.theme_id) return;
     if (!isHealthWellnessThemeName(selectedThemeName) || !hwHierarchy) return;
-    const keys: HealthWellnessKey[] = ["peaceful", "spiritual", "rejuvenating", "holistic"];
-    for (const k of keys) {
+    for (const k of hwHierarchy.orderedCategoryKeys) {
       const leaf = (hwHierarchy.groups[k] ?? []).find((x) => x.id === selectedEvent.type_id);
       const pid = hwHierarchy.parentIds[k];
       if (leaf && pid) {
@@ -1285,7 +1333,7 @@ const ManageEvent = () => {
             Manage Event
           </h1>
           <p className="text-muted-foreground">
-            Select an event in the list, then use tabs for details, timeline, resources, analytics, and change log. Use{" "}
+            Select an event in the list, then use tabs for details, timeline, change requests, analytics, and change log. Use{" "}
             <span className="font-medium text-foreground">Show past</span> /{" "}
             <span className="font-medium text-foreground">Show archived</span> in the Events card to widen the list.{" "}
             <span className="font-medium text-foreground">New Request</span> needs an active (non-archived) event. Use{" "}
@@ -1295,13 +1343,6 @@ const ManageEvent = () => {
         </div>
         
         <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 sm:justify-end max-w-full min-w-0">
-          <Button 
-            onClick={() => navigate('/dashboard/create-event')}
-            className="bg-gradient-to-r from-primary to-secondary text-primary-foreground hover:opacity-90 shrink-0"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Change Request
-          </Button>
           {selectedEvent?.id && !selectedEvent.archived && (
             <Button
               type="button"
@@ -1460,12 +1501,12 @@ const ManageEvent = () => {
         {/* Events List */}
         <Card className="lg:col-span-1 shadow-elegant border-0 bg-gradient-subtle">
           <CardHeader className="border-b border-border/50">
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <Clock className="h-5 w-5 text-primary" />
-                Events
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between min-w-0">
+              <CardTitle className="flex items-center gap-2 min-w-0 shrink">
+                <Clock className="h-5 w-5 text-primary shrink-0" />
+                <span className="truncate">Events</span>
               </CardTitle>
-              <div className="flex flex-col items-end gap-1 gap-x-2 sm:flex-row sm:items-center">
+              <div className="flex flex-wrap items-center justify-end gap-1 sm:gap-2 shrink-0">
                 <Button
                   type="button"
                   variant="ghost"
@@ -1488,7 +1529,7 @@ const ManageEvent = () => {
             </div>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="max-h-96 overflow-y-auto">
+            <div className="max-h-[calc(100dvh-11rem)] overflow-y-auto">
               {events.length === 0 ? (
                 <div className="p-6 text-center text-sm text-muted-foreground">
                   No events match these filters. Try{" "}
@@ -1502,7 +1543,15 @@ const ManageEvent = () => {
                   >
                     show past and archived
                   </button>
-                  , or create one with <span className="font-medium">Change Request</span> (create event).
+                  , or{" "}
+                  <button
+                    type="button"
+                    className="text-primary underline underline-offset-2 font-medium"
+                    onClick={() => navigate(createEventPath)}
+                  >
+                    create an event
+                  </button>
+                  .
                 </div>
               ) : (
                 events.map((event, index) => {
@@ -1549,26 +1598,26 @@ const ManageEvent = () => {
         <div className="lg:col-span-2 space-y-6">
           {selectedEvent ? (
             <Tabs defaultValue="details" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1">
-                <TabsTrigger value="details" className="flex items-center gap-2">
-                  <Eye className="h-4 w-4" />
+              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1 h-auto p-1 items-stretch">
+                <TabsTrigger value="details" className="flex items-center justify-center gap-1.5 text-xs sm:text-sm py-2 px-1.5 h-auto min-h-[2.75rem] whitespace-normal text-center leading-snug">
+                  <Eye className="h-4 w-4 shrink-0" />
                   Manage Event
                 </TabsTrigger>
-                <TabsTrigger value="timeline" className="flex items-center gap-2">
-                  <CalendarIcon className="h-4 w-4" />
+                <TabsTrigger value="timeline" className="flex items-center justify-center gap-1.5 text-xs sm:text-sm py-2 px-1.5 h-auto min-h-[2.75rem] whitespace-normal text-center leading-snug">
+                  <CalendarIcon className="h-4 w-4 shrink-0" />
                   Event Timeline
                 </TabsTrigger>
-                <TabsTrigger value="change-request" className="flex items-center gap-2">
-                  <ClipboardList className="h-4 w-4" />
+                <TabsTrigger value="change-request" className="flex items-center justify-center gap-1.5 text-xs sm:text-sm py-2 px-1.5 h-auto min-h-[2.75rem] whitespace-normal text-center leading-snug">
+                  <ClipboardList className="h-4 w-4 shrink-0" />
                   Create Change Request
                 </TabsTrigger>
-                <TabsTrigger value="analytics" className="flex items-center gap-2">
-                  <BarChart3 className="h-4 w-4" />
+                <TabsTrigger value="analytics" className="flex items-center justify-center gap-1.5 text-xs sm:text-sm py-2 px-1.5 h-auto min-h-[2.75rem] whitespace-normal text-center leading-snug">
+                  <BarChart3 className="h-4 w-4 shrink-0" />
                   Analytics
                 </TabsTrigger>
-                <TabsTrigger value="changelog" className="flex items-center gap-2">
-                  <History className="h-4 w-4" />
-                  Change Log ({unifiedChangelog.length})
+                <TabsTrigger value="changelog" className="flex items-center justify-center gap-1.5 text-xs sm:text-sm py-2 px-1.5 h-auto min-h-[2.75rem] whitespace-normal text-center leading-snug">
+                  <History className="h-4 w-4 shrink-0" />
+                  <span className="break-words">Change Log ({unifiedChangelog.length})</span>
                 </TabsTrigger>
               </TabsList>
 
@@ -1769,7 +1818,7 @@ const ManageEvent = () => {
                           <SelectContent className="bg-background border-border shadow-lg z-50">
                             {eventThemes.map((theme) => (
                               <SelectItem key={theme.id} value={theme.id.toString()}>
-                                {theme.name}
+                                {sportingUiName(theme.name)}
                                 {theme.premium ? " (Premium)" : ""}
                               </SelectItem>
                             ))}
@@ -1782,17 +1831,17 @@ const ManageEvent = () => {
                           <div>
                             <Label>Category (Health &amp; Wellness)</Label>
                             <Select
-                              value={hwCategoryKey}
-                              onValueChange={(v) => void handleHwCategorySelect(v as HealthWellnessKey)}
+                              value={hwCategoryKey || undefined}
+                              onValueChange={(v) => void handleHwCategorySelect(v)}
                             >
                               <SelectTrigger className="bg-background border-border z-50">
-                                <SelectValue placeholder="Peaceful, Spiritual, Rejuvenating, Holistic" />
+                                <SelectValue placeholder="Select category" />
                               </SelectTrigger>
                               <SelectContent className="bg-background border-border shadow-lg z-50">
-                                {(["peaceful", "spiritual", "rejuvenating", "holistic"] as const).map((k) => {
+                                {hwHierarchy.orderedCategoryKeys.map((k) => {
                                   const pid = hwHierarchy.parentIds[k];
                                   if (!pid) return null;
-                                  const label = k.charAt(0).toUpperCase() + k.slice(1);
+                                  const label = hwHierarchy.keyLabel[k] ?? k;
                                   return (
                                     <SelectItem key={k} value={k}>
                                       {label}
@@ -1868,6 +1917,35 @@ const ManageEvent = () => {
                         </>
                       )}
 
+                      {themeHierarchyMode === "sporting" && (
+                        <div>
+                          <Label htmlFor="eventType-sporting">Event type</Label>
+                          <Select
+                            value={selectedEvent.type_id?.toString() || ""}
+                            onValueChange={(value) => handleFieldChange("type_id", parseInt(value, 10))}
+                            disabled={!selectedEvent.theme_id}
+                          >
+                            <SelectTrigger className="bg-background border-border z-50" id="eventType-sporting">
+                              <SelectValue
+                                placeholder={selectedEvent.theme_id ? "Select event type" : "Select theme first"}
+                              />
+                            </SelectTrigger>
+                            <SelectContent className="bg-background border-border shadow-lg z-50">
+                              {sportingLeafTypes.map((row) => (
+                                <SelectItem key={row.id} value={row.id.toString()}>
+                                  {row.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {selectedEvent.theme_id && sportingLeafTypes.length === 0 ? (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {plannerToolsCopy.sportingTypesUnavailable}
+                            </p>
+                          ) : null}
+                        </div>
+                      )}
+
                       {themeHierarchyMode === "default" && (
                         <>
                           <div>
@@ -1896,7 +1974,7 @@ const ManageEvent = () => {
                                   .filter((t) => !t.parent_id)
                                   .map((cat) => (
                                     <SelectItem key={cat.id} value={cat.id.toString()}>
-                                      {cat.name}
+                                      {sportThemeRootCategoryDisplayLabel(selectedThemeName, cat.name)}
                                     </SelectItem>
                                   ))}
                               </SelectContent>
@@ -2006,8 +2084,7 @@ const ManageEvent = () => {
                       <div className="md:col-span-2 space-y-2 border rounded-md p-3 bg-muted/30">
                         <Label>External vendor (optional)</Label>
                         <p className="text-xs text-muted-foreground">
-                          Procurement vendors from the External Vendors directory (same as Resources → External Vendors), not
-                          equipment rentals. Select one or more.
+                          Procurement vendors from External Vendors in the sidebar (not equipment rentals). Select one or more.
                         </p>
                         <Select
                           value={selectedSupplierCategoryFilter === null ? "__all__" : String(selectedSupplierCategoryFilter)}
@@ -2094,7 +2171,7 @@ const ManageEvent = () => {
                     <CardTitle>Event Timeline &amp; task assignment</CardTitle>
                   </CardHeader>
                   <CardContent className="p-6 space-y-6">
-                    <TimelineView eventId={selectedEvent.id} />
+                    <TimelineView eventId={selectedEvent.id} refreshKey={resourceRefreshKey} />
                     <div className="flex flex-wrap gap-2">
                       <Button type="button" variant="outline" asChild>
                         <Link to={`/dashboard/task-timeline?eventId=${selectedEvent.id}`}>
@@ -2146,7 +2223,7 @@ const ManageEvent = () => {
                 </Card>
               </TabsContent>
 
-              <TabsContent value="analytics">
+              <TabsContent value="analytics" className="space-y-6">
                 <Analytics
                   eventId={selectedEvent.id}
                   showEventScopePicker
@@ -2154,6 +2231,34 @@ const ManageEvent = () => {
                     console.log("User interaction tracked:", interaction);
                   }}
                 />
+                <Card className="shadow-elegant border-0 bg-gradient-subtle">
+                  <CardHeader className="border-b border-border/50">
+                    <CardTitle>Add task assignment</CardTitle>
+                    <p className="text-sm text-muted-foreground font-normal mt-1">
+                      Same task form as Project Management → Tasks. Open here or add tasks from the Timeline tab.
+                    </p>
+                  </CardHeader>
+                  <CardContent className="p-6 space-y-4">
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        onClick={() =>
+                          navigate(
+                            `/dashboard/project-management?eventId=${selectedEvent.id}&openModal=true`,
+                          )
+                        }
+                      >
+                        Open Add Task in Project Management
+                      </Button>
+                      <Button type="button" variant="outline" asChild>
+                        <Link to={`/dashboard/project-management?eventId=${selectedEvent.id}`}>
+                          Project Management
+                        </Link>
+                      </Button>
+                    </div>
+                    <TaskManager eventId={selectedEvent.id} embedInManageEvent />
+                  </CardContent>
+                </Card>
               </TabsContent>
 
               <TabsContent value="changelog">
@@ -2161,11 +2266,10 @@ const ManageEvent = () => {
                   <CardHeader className="border-b border-border/50">
                     <CardTitle>Change History</CardTitle>
                     <p className="text-sm text-muted-foreground font-normal">
-                      Audit trail for this event (saved edits, <span className="font-medium text-foreground">cm_change_logs</span> RPC
-                      entries, and <span className="font-medium text-foreground">cm_activity</span> from the database). Saving here
-                      updates the event row and refreshes tasks in Project Management. Task-level work still appears under{" "}
-                      <span className="font-medium text-foreground">Project Management → Tasks</span>; this log is not a second task
-                      list.
+                      A running record of edits to this event and notable workspace actions. Saving details here updates the
+                      event; task work and approvals stay in{" "}
+                      <span className="font-medium text-foreground">Project Management</span> and{" "}
+                      <span className="font-medium text-foreground">Change Management</span>.
                     </p>
                   </CardHeader>
                   <CardContent className="p-0">
@@ -2181,7 +2285,7 @@ const ManageEvent = () => {
                                 <div className="flex-1">
                                   <div className="flex items-center gap-2 mb-1 flex-wrap">
                                     <Badge variant="secondary" className="text-[10px]">
-                                      RPC log
+                                      Field change
                                     </Badge>
                                     <Badge variant="outline" className="text-xs">
                                       {entry.log.action}
@@ -2225,7 +2329,7 @@ const ManageEvent = () => {
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2 mb-1 flex-wrap">
                                     <Badge variant="secondary" className="text-[10px]">
-                                      CM activity
+                                      Activity
                                     </Badge>
                                     <Badge variant="outline" className="text-xs">
                                       {entry.activity.action}

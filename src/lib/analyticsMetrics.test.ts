@@ -57,6 +57,17 @@ describe("computeAnalyticsKpis", () => {
     expect(k.resourceUtilizationRate).toBe("50.0");
     expect(k.resourceUtilizationDetail).toContain("Active tasks");
   });
+
+  it("counts active tasks as not_started, in_progress, and on_hold", () => {
+    const k = computeAnalyticsKpis([
+      { status: "not_started" },
+      { status: "in_progress" },
+      { status: "on_hold" },
+      { status: "completed" },
+    ]);
+    expect(k.activeTasks).toBe(3);
+    expect(k.totalTasks).toBe(4);
+  });
 });
 
 describe("charts", () => {

@@ -7,6 +7,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { ChefHat, Camera, Utensils, Cake, Truck, Flower, Package, Car, PersonStanding, Mail } from "lucide-react";
 import { DirectoryPageHeader } from "@/components/resource-directory/DirectoryPageHeader";
 import { useToast } from "@/hooks/use-toast";
+import { commentsPlannerCopy } from "@/lib/nudges";
+import { formatDirectoryPrice } from "@/lib/formatDirectoryPrice";
 
 const ServiceVendorDirectory = () => {
   const [vendorTypes, setVendorTypes] = useState<any[]>([]);
@@ -32,7 +34,7 @@ const ServiceVendorDirectory = () => {
           .select('*, vendor_supplier_types(*)');
         if (profilesError) {
           console.error('serv_vendor_suppliers:', profilesError);
-          toast({ title: "Service vendor profiles", description: "Could not load profiles — table may need setup in Supabase.", variant: "destructive" });
+          toast({ title: "Service vendor profiles", description: commentsPlannerCopy.toastGeneric, variant: "destructive" });
         }
         setVendorProfiles(profilesData || []);
       } catch (err: any) {
@@ -250,7 +252,9 @@ const ServiceVendorDirectory = () => {
                       {profile.price && (
                         <div className="space-y-1">
                           <p className="text-sm text-muted-foreground">Starting Cost</p>
-                          <p className="text-lg font-bold text-primary">${profile.price}</p>
+                          <p className="text-lg font-bold text-primary">
+                            {formatDirectoryPrice(profile.price) ?? String(profile.price)}
+                          </p>
                         </div>
                       )}
                       

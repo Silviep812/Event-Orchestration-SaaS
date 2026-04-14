@@ -18,6 +18,7 @@ import ManageEventPage from "./pages/ManageEvent";
 import CreateEvent from "./pages/CreateEvent";
 import Reports from "./pages/Reports";
 import Collaborate from "./pages/Collaborate";
+import Comments from "./pages/Comments";
 import TrackProgress from "./pages/TrackProgress";
 import Notifications from "./pages/Notifications";
 import NotFound from "./pages/NotFound";
@@ -68,7 +69,7 @@ const App = () => (
               <Route path="reports" element={<Reports />} />
               <Route path="marketing-campaign" element={<MarketingCampaign />} />
               <Route path="notification" element={<Notifications />} />
-              <Route path="comments" element={<Navigate to="/dashboard/collaborate" replace />} />
+              <Route path="comments" element={<Comments />} />
               <Route path="bookings" element={<BookingsDirectory />} />
               <Route path="venue" element={<VenueDirectory />} />
               <Route path="hospitality" element={<HospitalityDirectory />} />

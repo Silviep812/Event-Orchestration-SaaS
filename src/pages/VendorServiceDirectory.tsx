@@ -7,6 +7,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Truck, Camera, Lightbulb, Music, Gamepad2, Flower, Home, Table, Mail } from "lucide-react";
 import { DirectoryPageHeader } from "@/components/resource-directory/DirectoryPageHeader";
 import { useToast } from "@/hooks/use-toast";
+import { commentsPlannerCopy } from "@/lib/nudges";
+import { formatDirectoryPrice } from "@/lib/formatDirectoryPrice";
 
 const VendorServiceDirectory = () => {
   const [serviceTypes, setServiceTypes] = useState<any[]>([]);
@@ -35,7 +37,7 @@ const VendorServiceDirectory = () => {
           `);
         if (profilesError) {
           console.error('serv_vendor_suppliers:', profilesError);
-          toast({ title: "Vendor profiles", description: "Could not load profiles — check Supabase tables and RLS.", variant: "destructive" });
+          toast({ title: "Vendor profiles", description: commentsPlannerCopy.toastGeneric, variant: "destructive" });
         }
         setServiceProfiles(profilesData || []);
       } catch (err: any) {
@@ -266,7 +268,9 @@ const VendorServiceDirectory = () => {
                       {profile.price && (
                         <div className="space-y-1">
                           <p className="text-sm text-muted-foreground">Starting Cost</p>
-                          <p className="text-lg font-bold text-primary">${profile.price}</p>
+                          <p className="text-lg font-bold text-primary">
+                            {formatDirectoryPrice(profile.price) ?? String(profile.price)}
+                          </p>
                         </div>
                       )}
                       
