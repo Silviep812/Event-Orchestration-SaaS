@@ -1,24 +1,40 @@
 
 
-## Diagnosis
+## Problem
 
-I reviewed the current state of all files that were previously fixed:
+The `event_themes` table has a `tags` column for the Retreat theme containing `["Wellness", "Mindful", "Rejuvenating", "Holistic"]`. These are displayed as tag chips on the Themes Directory page because the code at `EventThemesDirectory.tsx` line 438 starts with `t.tags` and then merges in the dynamic branch labels. The `loadRetreatsEventTypeGroups` filter works correctly, but the raw DB tags bypass it.
 
-1. **`src/lib/themeEventTypeHierarchy.ts`** — The Retreats exclusion filter (`RETREATS_EXCLUDED_LABELS`, `isExcludedFromRetreats`, and the filter in `loadRetreatsEventTypeGroups`) is correctly in place.
+## Solution
 
-2. **`src/components/TaskManager.tsx`** — All previous type fixes (`as unknown as Task[]`, `as any` on insert/update, `'reason' in gate` narrowing) are present.
+Two changes are needed:
 
-3. **`src/pages/CreateEvent.tsx`** — The `eventThemes` state type uses `premium?: boolean | null` (optional), matching `ThemePickerRow`.
+### 1. Update the database — remove excluded tags from `event_themes`
 
-All the build error fixes from the previous round are still in the code. There are no remaining source-code errors related to the Retreat changes or the earlier type mismatches.
+Run a migration to clear the stale tags from the Retreat theme row:
 
-## Plan
+```sql
+UPDATE event_themes
+SET tags = '{}'
+WHERE name = 'Retreat';
+```
 
-The preview is showing "not built yet" due to a stale build state, not a code error. To force the preview to rebuild:
+This removes "Wellness", "Mindful", "Rejuvenating", "Holistic" from the stored tags. The Retreat theme will now only show dynamically loaded branch labels (Building communities, Hybrid, Motivational Retreat, etc.).
 
-1. **Trigger a rebuild** by making a trivial whitespace-only change (e.g., add/remove a blank line in `src/lib/themeEventTypeHierarchy.ts`) to force Vite to recompile.
-2. **Verify the build succeeds** by running `npm run build`.
-3. **Confirm the Retreats filter works** — the Retreats theme should no longer show "Wellness", "Mindful", "Rejuvenating", or "Holistic" as branches.
+### 2. Add a frontend safety filter in `EventThemesDirectory.tsx`
 
-No actual code logic changes are needed — just a rebuild trigger.
+In the Retreat tag-building block (~line 443), filter out the excluded labels so even if the DB still has stale data, they won't appear:
+
+```typescript
+if (/^retreats?$/i.test(trimmed) || /^retreat\b/i.test(trimmed)) {
+  const keys = Object.keys(retreatBranchTypes);
+  if (keys.length) {
+    tags = [...new Set([...tags, ...keys])];
+  }
+  // Remove H&W labels that don't belong under Retreats
+  const excluded = ["wellness", "mindful", "rejuvenating", "holistic"];
+  tags = tags.filter(t => !excluded.some(ex => t.toLowerCase().includes(ex)));
+}
+```
+
+This ensures both the data layer and UI layer enforce the exclusion.
 
