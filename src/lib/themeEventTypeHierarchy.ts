@@ -247,6 +247,15 @@ export type RetreatsGroupsResult = {
   rootIdByBranch: Record<string, number>;
 };
 
+const RETREATS_EXCLUDED_LABELS = ["wellness", "mindful", "rejuvenating", "holistic"];
+
+function isExcludedFromRetreats(label: string): boolean {
+  const lower = label.trim().toLowerCase();
+  return RETREATS_EXCLUDED_LABELS.some(
+    (ex) => lower === ex || lower.startsWith(ex) || lower.includes(ex)
+  );
+}
+
 export async function loadRetreatsEventTypeGroups(): Promise<RetreatsGroupsResult> {
   const typesByBranch: Record<string, { id: number; name: string }[]> = {};
   const rootIdByBranch: Record<string, number> = {};
@@ -265,7 +274,7 @@ export async function loadRetreatsEventTypeGroups(): Promise<RetreatsGroupsResul
   const roots = rows.filter((r) => r.parent_id == null);
   for (const root of roots) {
     const label = (root.name ?? "").trim();
-    if (!label) continue;
+    if (!label || isExcludedFromRetreats(label)) continue;
     rootIdByBranch[label] = root.id;
     const kids = rows
       .filter((r) => r.parent_id === root.id)
