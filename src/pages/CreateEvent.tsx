@@ -62,7 +62,7 @@ export default function CreateEvent() {
     },
   });
 
-  const [eventThemes, setEventThemes] = useState<{ id: number; name: string; premium: boolean }[]>([]);
+  const [eventThemes, setEventThemes] = useState<{ id: number; name: string; premium?: boolean | null }[]>([]);
   const [eventTypes, setEventTypes] = useState<{ id: number; name: string; theme_id: number; parent_id: number | null }[]>([]);
   const [subEventTypes, setSubEventTypes] = useState<{ id: number; name: string; theme_id: number; parent_id: number | null }[]>([]);
   const [venueProfiles, setVenueProfiles] = useState<
