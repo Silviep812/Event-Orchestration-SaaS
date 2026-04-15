@@ -1,1 +1,0 @@
-UPDATE event_themes SET tags = '{}' WHERE name = 'Retreat';
