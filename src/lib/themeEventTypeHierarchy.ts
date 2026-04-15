@@ -247,6 +247,7 @@ export type RetreatsGroupsResult = {
   rootIdByBranch: Record<string, number>;
 };
 
+/** Labels that belong to Health & Wellness and must not appear under Retreats. */
 const RETREATS_EXCLUDED_LABELS = ["wellness", "mindful", "rejuvenating", "holistic"];
 
 function isExcludedFromRetreats(label: string): boolean {
