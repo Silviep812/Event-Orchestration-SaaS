@@ -445,6 +445,9 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
         if (keys.length) {
           tags = [...new Set([...tags, ...keys])];
         }
+        // Remove Health & Wellness labels that don't belong under Retreats
+        const excludedFromRetreats = ["wellness", "mindful", "rejuvenating", "holistic"];
+        tags = tags.filter(t => !excludedFromRetreats.some(ex => t.toLowerCase().includes(ex)));
       }
       // V4 Sporting: no Sport/Sporting tag chips — types render under the theme title as a plain list.
       if (sportTheme) {
