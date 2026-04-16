@@ -215,7 +215,7 @@ export default function CreateEvent() {
         setThemesLoaded(true);
         return;
       }
-      setEventThemes(dedupeSportThemesForPicker(data || []));
+      setEventThemes(dedupeSportThemesForPicker(data || []) as any);
       setThemesLoaded(true);
     };
     fetchThemes();

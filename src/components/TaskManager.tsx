@@ -528,7 +528,7 @@ export function TaskManager({ eventId, selectedEventFilter, embedInManageEvent }
         })
       );
       
-      setTasks(tasksWithDependenciesAndAssignments);
+      setTasks(tasksWithDependenciesAndAssignments as any);
       
       // Fetch available tasks for dependency selection
       await fetchAvailableTasks();
@@ -753,7 +753,7 @@ export function TaskManager({ eventId, selectedEventFilter, embedInManageEvent }
 
       if (tasksError) throw tasksError;
 
-      return dependentTasks || [];
+      return (dependentTasks || []) as any;
     } catch (error) {
       console.error('Error finding dependent tasks:', error);
       return [];
@@ -965,7 +965,7 @@ export function TaskManager({ eventId, selectedEventFilter, embedInManageEvent }
 
       const { data: createdTask, error } = await supabase
         .from('tasks')
-        .insert(taskData)
+        .insert(taskData as any)
         .select('id')
         .single();
 
@@ -1076,7 +1076,7 @@ export function TaskManager({ eventId, selectedEventFilter, embedInManageEvent }
         if (!gate.ok) {
           toast({
             title: "Collaborator checklist incomplete",
-            description: gate.reason,
+            description: 'reason' in gate ? gate.reason : '',
             variant: "destructive",
           });
           return;
@@ -1085,7 +1085,7 @@ export function TaskManager({ eventId, selectedEventFilter, embedInManageEvent }
       
       const { error } = await supabase
         .from('tasks')
-        .update(toSend)
+        .update(toSend as any)
         .eq('id', taskId);
 
       if (error) throw error;
@@ -1230,7 +1230,7 @@ export function TaskManager({ eventId, selectedEventFilter, embedInManageEvent }
           checklist: checklistUpdate,
         });
         if (!gate.ok) {
-          toast({ title: "Cannot complete task", description: gate.reason, variant: "destructive" });
+          toast({ title: "Cannot complete task", description: 'reason' in gate ? gate.reason : '', variant: "destructive" });
           return;
         }
       }
@@ -1312,7 +1312,7 @@ export function TaskManager({ eventId, selectedEventFilter, embedInManageEvent }
           checklist: checklistUpdate,
         });
         if (!gate.ok) {
-          toast({ title: "Cannot complete task", description: gate.reason, variant: "destructive" });
+          toast({ title: "Cannot complete task", description: 'reason' in gate ? gate.reason : '', variant: "destructive" });
           return;
         }
       }
