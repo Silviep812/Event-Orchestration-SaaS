@@ -7,7 +7,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Shield, Users, UserCheck, Crown, ClipboardList, Eye } from "lucide-react";
 import { PermissionLevel } from "@/lib/permissions";
-import { UnassignedUserCard } from "./UnassignedUserCard";
 import { Button } from "@/components/ui/button";
 
 interface UserRole {
@@ -43,14 +42,16 @@ interface Event {
 export function RoleManager({
   selectedEventFilter = "all",
   showAddTaskShortcut = true,
+  suppressPrimaryHeading = false,
 }: {
   selectedEventFilter?: string;
-  /** When false, hides the PM → Add Task card (e.g. Team tab has its own entry points). */
+  /** When false, hides the PM → Add Task card (e.g. Collaborator tab has its own entry points). */
   showAddTaskShortcut?: boolean;
+  /** When true, omits the top "Role Management" heading (parent page already provides context). */
+  suppressPrimaryHeading?: boolean;
 }) {
   const [userRoles, setUserRoles] = useState<UserRole[]>([]);
   const [users, setUsers] = useState<User[]>([]);
-  const [usersWithoutRoles, setUsersWithoutRoles] = useState<User[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [permissionMappings, setPermissionMappings] = useState<Map<string, PermissionLevel>>(new Map());
@@ -68,9 +69,26 @@ export function RoleManager({
   ];
 
   const permissionLevels = {
-    admin: { label: 'Admin', icon: Crown, color: 'bg-destructive/10 text-destructive', description: 'Full system access including user management' },
-    coordinator: { label: 'Coordinator', icon: ClipboardList, color: 'bg-primary/10 text-primary', description: 'Can manage events and resources' },
-    viewer: { label: 'Viewer', icon: Eye, color: 'bg-muted-foreground/10 text-muted-foreground', description: 'Read-only access to events' }
+    admin: {
+      label: "Admin",
+      icon: Crown,
+      color: "bg-destructive/10 text-destructive",
+      description:
+        "Create, read, update, and delete data and files. Full access including user management.",
+    },
+    coordinator: {
+      label: "Coordinator",
+      icon: ClipboardList,
+      color: "bg-primary/10 text-primary",
+      description:
+        "Create, read, and update data and files. Manage events, tasks, budgets, and approve change requests.",
+    },
+    viewer: {
+      label: "Viewer",
+      icon: Eye,
+      color: "bg-muted-foreground/10 text-muted-foreground",
+      description: "Read-only access to events and files.",
+    },
   };
 
   const roleColors = {
@@ -276,16 +294,7 @@ export function RoleManager({
       });
 
       setUsers(usersWithRoles);
-      
-      // Separate users without roles
-      const unassignedUsers = allUsers.filter((user: any) => 
-        !userRolesData?.find(role => role.user_id === user.id)
-      ).map((user: any) => ({
-        ...user,
-        role: 'Member'
-      }));
-      setUsersWithoutRoles(unassignedUsers);
-      
+
       // Set all role assignments for display (including those not in invited users)
       const roleAssignments = userRolesData?.map((role: any) => ({
         id: role.id, // Use the actual row ID, not user_id
@@ -298,7 +307,6 @@ export function RoleManager({
       
       setUserRoles(roleAssignments);
       console.log('[RoleManager] Users loaded:', allUsers.length, 'Role assignments:', roleAssignments.length);
-      console.log('[RoleManager] Users without roles:', unassignedUsers.length);
       
       // Update timestamp to force Select component re-renders
       setDataTimestamp(Date.now());
@@ -380,9 +388,11 @@ export function RoleManager({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Role Management</h2>
-      </div>
+      {!suppressPrimaryHeading ? (
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold">Role Management</h2>
+        </div>
+      ) : null}
 
       {/* Permission Level Legend */}
       <Card className="bg-muted/50">
@@ -409,16 +419,25 @@ export function RoleManager({
         </CardContent>
       </Card>
 
+      <Card className="border-dashed">
+        <CardHeader>
+          <CardTitle className="text-lg">Guidelines: permission groups</CardTitle>
+        </CardHeader>
+        <CardContent className="text-sm text-muted-foreground space-y-2">
+          <p>
+            Published guidelines describe <strong className="text-foreground">Organizers</strong> (CRU),{" "}
+            <strong className="text-foreground">Administrators</strong> (CRUD), <strong className="text-foreground">Partners</strong>{" "}
+            (CRU), <strong className="text-foreground">Collaborators</strong> (Read and Update), and{" "}
+            <strong className="text-foreground">Viewers</strong> (Read only). This app stores{" "}
+            <strong className="text-foreground">Admin</strong>, <strong className="text-foreground">Coordinator</strong>, and{" "}
+            <strong className="text-foreground">Viewer</strong> on each assignment—use them to implement those access patterns.
+          </p>
+        </CardContent>
+      </Card>
 
       {/* Role Assignments */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold">Current Role Assignments</h3>
-        
-        {userRoles.length === 0 && usersWithoutRoles.length > 0 ? (
-          <Card className="p-6 text-center">
-            <p className="text-muted-foreground">No role assignments yet. Assign roles to users below.</p>
-          </Card>
-        ) : null}
         
         {userRoles.map((userRole) => {
           const user = getUserInfo(userRole.user_id);
@@ -530,54 +549,14 @@ export function RoleManager({
         })}
       </div>
 
-      {/* Users Without Roles Section */}
-      {usersWithoutRoles.length > 0 && (
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Users Without Roles</h3>
-          
-          {usersWithoutRoles.map((user) => (
-            <UnassignedUserCard
-              key={user.id}
-              user={user}
-              roles={roles}
-              events={events}
-              permissionLevels={permissionLevels}
-              permissionMappings={permissionMappings}
-              onAssign={async (userId, role, permissionLevel, eventId) => {
-                // For new assignments, create a new role
-                const { error } = await supabase
-                  .from('user_roles')
-                  .insert({ 
-                    user_id: userId, 
-                    role: role as any,
-                    permission_level: permissionLevel,
-                    event_id: eventId
-                  });
-                
-                if (error) {
-                  toast({
-                    title: "Error assigning role",
-                    description: error.message,
-                    variant: "destructive",
-                  });
-                } else {
-                  toast({
-                    title: "Role assigned",
-                    description: "User role has been assigned successfully.",
-                  });
-                  await fetchUsers();
-                }
-              }}
-            />
-          ))}
-        </div>
-      )}
-
-      {userRoles.length === 0 && usersWithoutRoles.length === 0 && (
+      {userRoles.length === 0 && (
         <div className="text-center py-12">
           <Shield className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-          <h3 className="text-lg font-semibold mb-2">No users found</h3>
-          <p className="text-muted-foreground mb-4">Invite team members to get started.</p>
+          <h3 className="text-lg font-semibold mb-2">No role assignments yet</h3>
+          <p className="text-muted-foreground mb-4 max-w-md mx-auto">
+            When users are invited and granted roles for this workspace, they appear here with permission
+            levels. Coordinators manage assignments per your business guidelines.
+          </p>
         </div>
       )}
 
@@ -588,7 +567,7 @@ export function RoleManager({
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Same form as Project Management &gt; Tasks &gt; Add Task. Select an event in the filter at
+              Same form as Project Management &gt; Task &gt; Add Task. Select an event in the filter at
               the top of this page first.
             </p>
             <Button

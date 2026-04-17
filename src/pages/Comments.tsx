@@ -1,13 +1,16 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo, useLayoutEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -18,6 +21,12 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
 import type { User } from "@supabase/supabase-js";
+import { useEventFilter } from "@/hooks/useEventFilter";
+import {
+  displayNameFromSession,
+  resolveAuthorAvatarUrlForInsert,
+  resolveAuthorDisplayNameForInsert,
+} from "@/lib/discussionAuthor";
 import {
   MessageSquare,
   Send,
@@ -33,18 +42,13 @@ import {
   Image as ImageIcon,
   Loader2,
   X,
+  Megaphone,
+  FolderOpen,
+  ClipboardList,
 } from "lucide-react";
 
 const COMMENT_ATTACHMENTS_BUCKET = "comment-attachments";
 const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
-
-/**
- * Team discussions (DB + storage):
- * If the UI shows “discussions aren’t available,” the backend project needs the migrations under
- * `supabase/migrations` applied (e.g. discussion_comments + attachments bucket). Operators: run
- * `supabase db push` or paste SQL in the Supabase SQL Editor — never expose file paths or CLI
- * details to end users; planner copy lives in `@/lib/nudges` (`commentsPlannerCopy`).
- */
 
 interface Comment {
   id: string;
@@ -53,7 +57,7 @@ interface Comment {
   authorName: string;
   authorAvatar?: string;
   timestamp: string;
-  entityType: "event" | "task" | "general";
+  entityType: "event" | "task" | "general" | "announcement";
   entityId: string;
   entityTitle: string;
   parentId?: string;
@@ -94,52 +98,6 @@ type DiscussionRow = {
   author_display_name?: string | null;
   author_avatar_url?: string | null;
 };
-
-/** Fallback when DB snapshot + public_profiles are missing (other users' private profiles are not readable). */
-function displayNameFromSession(u: User): string {
-  const meta = u.user_metadata as Record<string, unknown> | undefined;
-  const full =
-    typeof meta?.full_name === "string"
-      ? meta.full_name
-      : typeof meta?.name === "string"
-        ? meta.name
-        : "";
-  if (full.trim()) return full.trim();
-  if (u.email) {
-    const local = u.email.split("@")[0];
-    if (local) return local;
-  }
-  return "Member";
-}
-
-async function resolveAuthorDisplayNameForInsert(u: User): Promise<string> {
-  const { data } = await supabase
-    .from("profiles")
-    .select("display_name, username")
-    .eq("user_id", u.id)
-    .maybeSingle();
-  const fromProfile = data?.display_name?.trim() || data?.username?.trim();
-  if (fromProfile) return fromProfile;
-  return displayNameFromSession(u);
-}
-
-/** Snapshot at post time so other users can load the image (they cannot read your private `profiles` row). */
-async function resolveAuthorAvatarUrlForInsert(u: User): Promise<string | null> {
-  const { data: priv } = await supabase
-    .from("profiles")
-    .select("avatar_url")
-    .eq("user_id", u.id)
-    .maybeSingle();
-  const fromPriv = priv?.avatar_url?.trim();
-  if (fromPriv) return fromPriv;
-  const { data: pub } = await supabase
-    .from("public_profiles")
-    .select("avatar_url")
-    .eq("user_id", u.id)
-    .maybeSingle();
-  const fromPub = pub?.avatar_url?.trim();
-  return fromPub || null;
-}
 
 function labelForCommentAuthor(
   row: DiscussionRow,
@@ -305,9 +263,18 @@ function buildCommentTree(
   return roots.map(rowToComment);
 }
 
+type HubTab = "workspace" | "discussions" | "announcements" | "tasks" | "files";
+
+function normalizedHub(v: string | null): HubTab {
+  if (v === "discussions" || v === "announcements" || v === "tasks" || v === "files") return v;
+  return "workspace";
+}
+
 export default function Comments() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { events, eventsLoading } = useEventFilter();
 
   const [comments, setComments] = useState<Comment[]>([]);
   const [filteredComments, setFilteredComments] = useState<Comment[]>([]);
@@ -328,13 +295,41 @@ export default function Comments() {
     { user_id: string; display_name: string | null; avatar_url: string | null }[]
   >([]);
   const [discussionSchemaMissing, setDiscussionSchemaMissing] = useState(false);
+  const [hubTab, setHubTab] = useState<HubTab>(() =>
+    typeof globalThis !== "undefined" && "location" in globalThis
+      ? normalizedHub(new URLSearchParams((globalThis as Window).location.search).get("hub"))
+      : "workspace",
+  );
+  const [hubEventId, setHubEventId] = useState("");
+  const [hubTaskId, setHubTaskId] = useState("");
+  const [flatDiscussionRows, setFlatDiscussionRows] = useState<DiscussionRow[]>([]);
+  const [eventTasks, setEventTasks] = useState<{ id: string; title: string }[]>([]);
+  const [announcementTitle, setAnnouncementTitle] = useState("");
+  const [announcementBody, setAnnouncementBody] = useState("");
+  const [eventThreadBody, setEventThreadBody] = useState("");
+  const [taskThreadBody, setTaskThreadBody] = useState("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
 
+  const bumpHubUrl = useCallback(
+    (tab: HubTab, eventId: string, taskId: string) => {
+      const next = new URLSearchParams(searchParams);
+      if (tab === "workspace") next.delete("hub");
+      else next.set("hub", tab);
+      if (eventId) next.set("eventId", eventId);
+      else next.delete("eventId");
+      if (tab === "tasks" && taskId) next.set("taskId", taskId);
+      else next.delete("taskId");
+      setSearchParams(next, { replace: true });
+    },
+    [searchParams, setSearchParams],
+  );
+
   const loadComments = useCallback(async () => {
     if (!user) {
       setComments([]);
+      setFlatDiscussionRows([]);
       setCommentsLoading(false);
       return;
     }
@@ -384,6 +379,7 @@ export default function Comments() {
       await mergeOwnProfileIntoMap(user.id, profileMap);
 
       setDiscussionSchemaMissing(false);
+      setFlatDiscussionRows(list);
       setComments(buildCommentTree(list, profileMap, likeCounts, likedByMe, user));
     } catch (e) {
       console.error(e);
@@ -397,6 +393,7 @@ export default function Comments() {
         });
       }
       setComments([]);
+      setFlatDiscussionRows([]);
     } finally {
       setCommentsLoading(false);
     }
@@ -431,19 +428,97 @@ export default function Comments() {
     });
   }, [mentionProfiles, mentionQuery, user?.id]);
 
+  useLayoutEffect(() => {
+    if (typeof window === "undefined") return;
+    const sp = new URLSearchParams(window.location.search);
+    const eid = sp.get("eventId") ?? "";
+    const tid = sp.get("taskId") ?? "";
+    if (eid) setHubEventId(eid);
+    if (tid) setHubTaskId(tid);
+  }, []);
+
   useEffect(() => {
-    let filtered = comments;
+    if (!hubEventId) {
+      setEventTasks([]);
+      return;
+    }
+    void supabase
+      .from("tasks")
+      .select("id, title")
+      .eq("event_id", hubEventId)
+      .order("title", { ascending: true })
+      .then(({ data, error }) => {
+        if (!error && data) setEventTasks(data as { id: string; title: string }[]);
+        else setEventTasks([]);
+      });
+  }, [hubEventId]);
 
-    if (selectedFilter !== "all") {
-      filtered = filtered.filter((c) => c.entityType === selectedFilter);
+  const eventTaskIdSet = useMemo(() => new Set(eventTasks.map((t) => t.id)), [eventTasks]);
+
+  const scopedFileRows = useMemo(() => {
+    if (!hubEventId) return [];
+    return flatDiscussionRows.flatMap((row) => {
+      const atts = parseAttachments(row.attachments);
+      if (!atts.length) return [];
+      const inScope =
+        (row.entity_type === "event" && row.entity_id === hubEventId) ||
+        (row.entity_type === "announcement" && row.entity_id === hubEventId) ||
+        (row.entity_type === "task" && eventTaskIdSet.has(row.entity_id));
+      if (!inScope) return [];
+      return atts.map((attachment) => ({
+        attachment,
+        contextTitle: row.entity_title,
+        at: row.created_at,
+        commentId: row.id,
+      }));
+    });
+  }, [flatDiscussionRows, hubEventId, eventTaskIdSet]);
+
+  useEffect(() => {
+    const applySearch = (list: Comment[]) => {
+      if (!searchQuery.trim()) return list;
+      return list.filter((c) => commentOrDescendantMatches(c, searchQuery));
+    };
+
+    if (hubTab === "files") {
+      setFilteredComments([]);
+      return;
     }
 
-    if (searchQuery) {
-      filtered = filtered.filter((c) => commentOrDescendantMatches(c, searchQuery));
+    if (hubTab === "workspace") {
+      let filtered = comments;
+      if (selectedFilter !== "all") {
+        filtered = filtered.filter((c) => c.entityType === selectedFilter);
+      }
+      setFilteredComments(applySearch(filtered));
+      return;
     }
 
-    setFilteredComments(filtered);
-  }, [comments, selectedFilter, searchQuery]);
+    if (!hubEventId) {
+      setFilteredComments([]);
+      return;
+    }
+
+    if (hubTab === "discussions") {
+      setFilteredComments(applySearch(comments.filter((c) => c.entityType === "event" && c.entityId === hubEventId)));
+      return;
+    }
+    if (hubTab === "announcements") {
+      setFilteredComments(
+        applySearch(comments.filter((c) => c.entityType === "announcement" && c.entityId === hubEventId)),
+      );
+      return;
+    }
+    if (hubTab === "tasks") {
+      if (!hubTaskId) {
+        setFilteredComments([]);
+        return;
+      }
+      setFilteredComments(applySearch(comments.filter((c) => c.entityType === "task" && c.entityId === hubTaskId)));
+      return;
+    }
+    setFilteredComments([]);
+  }, [comments, hubTab, hubEventId, hubTaskId, searchQuery, selectedFilter]);
 
   const uploadAttachments = async (): Promise<Attachment[]> => {
     if (!user || pendingFiles.length === 0) return [];
@@ -528,6 +603,186 @@ export default function Comments() {
     } finally {
       setPosting(false);
     }
+  };
+
+  const handlePostEventDiscussion = async () => {
+    if (!user) {
+      toast({
+        title: "Sign in to continue",
+        description: "Sign in to post to this event thread.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!hubEventId) {
+      toast({ title: "Pick an event", description: "Select an event to start a threaded discussion.", variant: "destructive" });
+      return;
+    }
+    const text = eventThreadBody.trim() || (pendingFiles.length > 0 ? "(Attached file)" : "");
+    if (!text.trim() && pendingFiles.length === 0) return;
+
+    setPosting(true);
+    try {
+      const attachments = await uploadAttachments();
+      const uniqueMentions = [...new Set(mentionedUserIds)];
+      const authorLabel = await resolveAuthorDisplayNameForInsert(user);
+      const authorAvatarUrl = await resolveAuthorAvatarUrlForInsert(user);
+      const ev = events.find((e) => e.id === hubEventId);
+      const { error } = await supabase.from("discussion_comments").insert({
+        user_id: user.id,
+        author_display_name: authorLabel,
+        author_avatar_url: authorAvatarUrl,
+        content: eventThreadBody.trim() || text,
+        entity_type: "event",
+        entity_id: hubEventId,
+        entity_title: (ev?.title ?? "Event").slice(0, 200),
+        attachments: (attachments.length ? attachments : []) as unknown as Json,
+        mentions: uniqueMentions.length ? uniqueMentions : [],
+      });
+      if (error) throw error;
+      setEventThreadBody("");
+      setPendingFiles([]);
+      setMentionedUserIds([]);
+      await loadComments();
+      toast({ title: "Posted", description: "Your message was added to this event’s discussion." });
+    } catch (e) {
+      console.error(e);
+      if (isCommentsDiscussionInfraMissing(e)) setDiscussionSchemaMissing(true);
+      toast({
+        title: "Couldn’t post",
+        description: plannerCommentsToastDescription(e, "save"),
+        variant: "destructive",
+      });
+    } finally {
+      setPosting(false);
+    }
+  };
+
+  const handlePostAnnouncement = async () => {
+    if (!user) {
+      toast({
+        title: "Sign in to continue",
+        description: "Sign in to post an announcement.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!hubEventId) {
+      toast({ title: "Pick an event", description: "Select an event for the announcement board.", variant: "destructive" });
+      return;
+    }
+    const title = announcementTitle.trim() || "Team update";
+    const body = announcementBody.trim() || (pendingFiles.length > 0 ? "(Attached file)" : "");
+    if (!body.trim() && pendingFiles.length === 0) return;
+
+    setPosting(true);
+    try {
+      const attachments = await uploadAttachments();
+      const authorLabel = await resolveAuthorDisplayNameForInsert(user);
+      const authorAvatarUrl = await resolveAuthorAvatarUrlForInsert(user);
+      const { error } = await supabase.from("discussion_comments").insert({
+        user_id: user.id,
+        author_display_name: authorLabel,
+        author_avatar_url: authorAvatarUrl,
+        content: announcementBody.trim() || body,
+        entity_type: "announcement",
+        entity_id: hubEventId,
+        entity_title: title.slice(0, 200),
+        attachments: (attachments.length ? attachments : []) as unknown as Json,
+        mentions: [],
+      });
+      if (error) throw error;
+      setAnnouncementTitle("");
+      setAnnouncementBody("");
+      setPendingFiles([]);
+      await loadComments();
+      toast({ title: "Posted", description: "Announcement is visible to everyone on this event board." });
+    } catch (e) {
+      console.error(e);
+      if (isCommentsDiscussionInfraMissing(e)) setDiscussionSchemaMissing(true);
+      toast({
+        title: "Couldn’t post announcement",
+        description: plannerCommentsToastDescription(e, "save"),
+        variant: "destructive",
+      });
+    } finally {
+      setPosting(false);
+    }
+  };
+
+  const handlePostTaskThread = async () => {
+    if (!user) {
+      toast({
+        title: "Sign in to continue",
+        description: "Sign in to comment on this task.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!hubEventId || !hubTaskId) {
+      toast({
+        title: "Pick event and task",
+        description: "Select an event and a task to add task-level feedback.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const text = taskThreadBody.trim() || (pendingFiles.length > 0 ? "(Attached file)" : "");
+    if (!text.trim() && pendingFiles.length === 0) return;
+
+    setPosting(true);
+    try {
+      const attachments = await uploadAttachments();
+      const uniqueMentions = [...new Set(mentionedUserIds)];
+      const authorLabel = await resolveAuthorDisplayNameForInsert(user);
+      const authorAvatarUrl = await resolveAuthorAvatarUrlForInsert(user);
+      const task = eventTasks.find((t) => t.id === hubTaskId);
+      const { error } = await supabase.from("discussion_comments").insert({
+        user_id: user.id,
+        author_display_name: authorLabel,
+        author_avatar_url: authorAvatarUrl,
+        content: taskThreadBody.trim() || text,
+        entity_type: "task",
+        entity_id: hubTaskId,
+        entity_title: (task?.title ?? "Task").slice(0, 200),
+        attachments: (attachments.length ? attachments : []) as unknown as Json,
+        mentions: uniqueMentions.length ? uniqueMentions : [],
+      });
+      if (error) throw error;
+      setTaskThreadBody("");
+      setPendingFiles([]);
+      setMentionedUserIds([]);
+      await loadComments();
+      toast({ title: "Posted", description: "Your comment was linked to this task." });
+    } catch (e) {
+      console.error(e);
+      if (isCommentsDiscussionInfraMissing(e)) setDiscussionSchemaMissing(true);
+      toast({
+        title: "Couldn’t post",
+        description: plannerCommentsToastDescription(e, "save"),
+        variant: "destructive",
+      });
+    } finally {
+      setPosting(false);
+    }
+  };
+
+  const onHubTabChange = (v: string) => {
+    const tab = normalizedHub(v);
+    setHubTab(tab);
+    bumpHubUrl(tab, hubEventId, hubTaskId);
+  };
+
+  const onHubEventChange = (value: string) => {
+    const nextEvent = value === "__pick__" ? "" : value;
+    setHubEventId(nextEvent);
+    bumpHubUrl(hubTab, nextEvent, hubTaskId);
+  };
+
+  const onHubTaskChange = (value: string) => {
+    const nextTask = value === "__pick_task__" ? "" : value;
+    setHubTaskId(nextTask);
+    bumpHubUrl(hubTab, hubEventId, nextTask);
   };
 
   const handleReply = async (parentId: string) => {
@@ -734,6 +989,12 @@ export default function Comments() {
                 <Badge variant="outline" className="text-xs max-w-[12rem] truncate">
                   {comment.entityTitle}
                 </Badge>
+                {comment.entityType === "announcement" ? (
+                  <Badge variant="secondary" className="text-xs shrink-0 gap-1">
+                    <Megaphone className="h-3 w-3" />
+                    Announcement
+                  </Badge>
+                ) : null}
                 {comment.isEdited && (
                   <Badge variant="secondary" className="text-xs">
                     Edited
@@ -871,9 +1132,12 @@ export default function Comments() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-            Comments & Discussions
+            Team Communication Hub
           </h1>
-          <p className="text-muted-foreground">Collaborate and discuss your event planning activities</p>
+          <p className="text-muted-foreground max-w-3xl">
+            Threaded discussions by event, task-level feedback, file attachments on posts, and an announcement board
+            for critical updates — all in one place.
+          </p>
         </div>
       </div>
 
@@ -898,159 +1162,443 @@ export default function Comments() {
         </Card>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MessageSquare className="w-5 h-5" />
-            Start a Discussion
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <input
-            ref={fileInputRef}
-            type="file"
-            className="hidden"
-            multiple
-            onChange={onPickFiles}
-            accept="image/*,.pdf,.doc,.docx,.txt,.csv"
-          />
-          <Textarea
-            ref={composerRef}
-            placeholder="Share your thoughts, ask questions, or provide updates..."
-            value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            className="min-h-24"
-            disabled={!user || posting || discussionSchemaMissing}
-          />
+      <Tabs value={hubTab} onValueChange={onHubTabChange} className="space-y-4">
+        <input
+          ref={fileInputRef}
+          type="file"
+          className="hidden"
+          multiple
+          onChange={onPickFiles}
+          accept="image/*,.pdf,.doc,.docx,.txt,.csv"
+        />
+        <TabsList className="grid h-auto w-full grid-cols-2 gap-1 p-1 sm:grid-cols-3 lg:grid-cols-5">
+          <TabsTrigger value="workspace" className="gap-1 text-xs sm:text-sm">
+            <MessageSquare className="h-4 w-4 shrink-0" />
+            Workspace
+          </TabsTrigger>
+          <TabsTrigger value="discussions" className="gap-1 text-xs sm:text-sm">
+            <MessageSquare className="h-4 w-4 shrink-0" />
+            Event threads
+          </TabsTrigger>
+          <TabsTrigger value="announcements" className="gap-1 text-xs sm:text-sm">
+            <Megaphone className="h-4 w-4 shrink-0" />
+            Announcements
+          </TabsTrigger>
+          <TabsTrigger value="tasks" className="gap-1 text-xs sm:text-sm">
+            <ClipboardList className="h-4 w-4 shrink-0" />
+            Task feedback
+          </TabsTrigger>
+          <TabsTrigger value="files" className="gap-1 text-xs sm:text-sm">
+            <FolderOpen className="h-4 w-4 shrink-0" />
+            Shared files
+          </TabsTrigger>
+        </TabsList>
 
-          {pendingFiles.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {pendingFiles.map((pf) => (
-                <Badge key={pf.id} variant="secondary" className="gap-1 pl-2 pr-1 py-1 font-normal">
-                  <Paperclip className="w-3 h-3" />
-                  <span className="max-w-[12rem] truncate">{pf.file.name}</span>
-                  <span className="text-xs opacity-80">({formatFileSize(pf.file.size)})</span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-5 w-5 shrink-0"
-                    onClick={() => setPendingFiles((prev) => prev.filter((x) => x.id !== pf.id))}
-                    aria-label="Remove attachment"
-                  >
-                    <X className="w-3 h-3" />
-                  </Button>
-                </Badge>
-              ))}
-            </div>
-          )}
-
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-2 flex-wrap">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={!user || posting || discussionSchemaMissing}
-                onClick={() => fileInputRef.current?.click()}
+        {hubTab !== "workspace" ? (
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end rounded-lg border bg-muted/20 p-4">
+            <div className="space-y-2 min-w-[12rem] max-w-md flex-1">
+              <Label htmlFor="hub-event-scope">Event</Label>
+              <Select
+                value={hubEventId || "__pick__"}
+                onValueChange={onHubEventChange}
+                disabled={eventsLoading}
               >
-                <Paperclip className="w-4 h-4 mr-1" />
-                Attach File
-              </Button>
-              <Popover open={mentionOpen} onOpenChange={setMentionOpen}>
-                <PopoverTrigger asChild>
+                <SelectTrigger id="hub-event-scope">
+                  <SelectValue placeholder={eventsLoading ? "Loading…" : "Choose an event"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__pick__">Choose an event…</SelectItem>
+                  {events.map((e) => (
+                    <SelectItem key={e.id} value={e.id}>
+                      {e.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {hubTab === "tasks" ? (
+              <div className="space-y-2 min-w-[12rem] max-w-md flex-1">
+                <Label htmlFor="hub-task-scope">Task</Label>
+                <Select value={hubTaskId || "__pick_task__"} onValueChange={onHubTaskChange} disabled={!hubEventId}>
+                  <SelectTrigger id="hub-task-scope">
+                    <SelectValue placeholder="Choose a task" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__pick_task__">Choose a task…</SelectItem>
+                    {eventTasks.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>
+                        {t.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
+        {hubTab !== "files" && pendingFiles.length > 0 ? (
+          <div className="flex flex-wrap gap-2 rounded-md border border-dashed p-3 bg-background/80">
+            <span className="text-xs text-muted-foreground w-full">Staged attachments (apply to your next post)</span>
+            {pendingFiles.map((pf) => (
+              <Badge key={pf.id} variant="secondary" className="gap-1 pl-2 pr-1 py-1 font-normal">
+                <Paperclip className="w-3 h-3" />
+                <span className="max-w-[12rem] truncate">{pf.file.name}</span>
+                <span className="text-xs opacity-80">({formatFileSize(pf.file.size)})</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-5 w-5 shrink-0"
+                  onClick={() => setPendingFiles((prev) => prev.filter((x) => x.id !== pf.id))}
+                  aria-label="Remove attachment"
+                >
+                  <X className="w-3 h-3" />
+                </Button>
+              </Badge>
+            ))}
+          </div>
+        ) : null}
+
+        <TabsContent value="workspace" className="mt-0 space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MessageSquare className="w-5 h-5" />
+                Workspace discussion
+              </CardTitle>
+              <CardDescription>Cross-event general threads, mentions, and attachments.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Textarea
+                ref={composerRef}
+                placeholder="Share your thoughts, ask questions, or provide updates..."
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                className="min-h-24"
+                disabled={!user || posting || discussionSchemaMissing}
+              />
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2 flex-wrap">
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
                     disabled={!user || posting || discussionSchemaMissing}
+                    onClick={() => fileInputRef.current?.click()}
                   >
-                    <AtSign className="w-4 h-4 mr-1" />
-                    Mention
+                    <Paperclip className="w-4 h-4 mr-1" />
+                    Attach File
                   </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-80 p-2" align="start">
-                  <p className="text-xs text-muted-foreground mb-2">{commentsPlannerCopy.mentionHelper}</p>
-                  <Input
-                    placeholder={commentsPlannerCopy.mentionSearchLabel}
-                    value={mentionQuery}
-                    onChange={(e) => setMentionQuery(e.target.value)}
-                    className="h-8 mb-2"
+                  <Popover open={mentionOpen} onOpenChange={setMentionOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={!user || posting || discussionSchemaMissing}
+                      >
+                        <AtSign className="w-4 h-4 mr-1" />
+                        Mention
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80 p-2" align="start">
+                      <p className="text-xs text-muted-foreground mb-2">{commentsPlannerCopy.mentionHelper}</p>
+                      <Input
+                        placeholder={commentsPlannerCopy.mentionSearchLabel}
+                        value={mentionQuery}
+                        onChange={(e) => setMentionQuery(e.target.value)}
+                        className="h-8 mb-2"
+                      />
+                      <div className="max-h-52 overflow-y-auto space-y-0.5">
+                        {mentionChoices.length === 0 ? (
+                          <p className="text-xs text-muted-foreground py-2">No people match your search.</p>
+                        ) : (
+                          mentionChoices.map((p) => (
+                            <button
+                              key={p.user_id}
+                              type="button"
+                              className="w-full text-left px-2 py-1.5 rounded-sm text-sm hover:bg-muted flex items-center gap-2"
+                              onClick={() => insertMention(p.display_name || p.user_id.slice(0, 8), p.user_id)}
+                            >
+                              <Avatar className="w-6 h-6">
+                                <AvatarImage src={p.avatar_url ?? undefined} />
+                                <AvatarFallback className="text-[10px]">
+                                  {(p.display_name || "?")
+                                    .split(" ")
+                                    .map((n) => n[0])
+                                    .join("")
+                                    .slice(0, 2)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="truncate">{p.display_name || p.user_id}</span>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <Button
+                  type="button"
+                  onClick={handlePostComment}
+                  disabled={
+                    !user ||
+                    posting ||
+                    discussionSchemaMissing ||
+                    (!newComment.trim() && pendingFiles.length === 0)
+                  }
+                >
+                  {posting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
+                  Post
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="discussions" className="mt-0 space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Threaded event discussion</CardTitle>
+              <CardDescription>Posts and replies are stored on this event. Pick an event above, then write below.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {!hubEventId ? (
+                <p className="text-sm text-muted-foreground">Select an event to view and post to its discussion thread.</p>
+              ) : (
+                <>
+                  <Textarea
+                    placeholder="Start or continue the conversation for this event…"
+                    value={eventThreadBody}
+                    onChange={(e) => setEventThreadBody(e.target.value)}
+                    className="min-h-24"
+                    disabled={!user || posting || discussionSchemaMissing}
                   />
-                  <div className="max-h-52 overflow-y-auto space-y-0.5">
-                    {mentionChoices.length === 0 ? (
-                      <p className="text-xs text-muted-foreground py-2">No people match your search.</p>
-                    ) : (
-                      mentionChoices.map((p) => (
-                        <button
-                          key={p.user_id}
-                          type="button"
-                          className="w-full text-left px-2 py-1.5 rounded-sm text-sm hover:bg-muted flex items-center gap-2"
-                          onClick={() => insertMention(p.display_name || p.user_id.slice(0, 8), p.user_id)}
-                        >
-                          <Avatar className="w-6 h-6">
-                            <AvatarImage src={p.avatar_url ?? undefined} />
-                            <AvatarFallback className="text-[10px]">
-                              {(p.display_name || "?")
-                                .split(" ")
-                                .map((n) => n[0])
-                                .join("")
-                                .slice(0, 2)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="truncate">{p.display_name || p.user_id}</span>
-                        </button>
-                      ))
-                    )}
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={!user || posting || discussionSchemaMissing}
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <Paperclip className="w-4 h-4 mr-1" />
+                      Attach File
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={handlePostEventDiscussion}
+                      disabled={
+                        !user ||
+                        posting ||
+                        discussionSchemaMissing ||
+                        (!eventThreadBody.trim() && pendingFiles.length === 0)
+                      }
+                    >
+                      {posting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
+                      Post to event
+                    </Button>
                   </div>
-                </PopoverContent>
-              </Popover>
-            </div>
-            <Button
-              type="button"
-              onClick={handlePostComment}
-              disabled={
-                !user ||
-                posting ||
-                discussionSchemaMissing ||
-                (!newComment.trim() && pendingFiles.length === 0)
-              }
-            >
-              {posting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
-              Post Comment
-            </Button>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="announcements" className="mt-0 space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Megaphone className="w-5 h-5" />
+                Announcement board
+              </CardTitle>
+              <CardDescription>High-visibility updates for everyone working on the selected event.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {!hubEventId ? (
+                <p className="text-sm text-muted-foreground">Select an event to post and read announcements.</p>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="announcement-headline">Headline</Label>
+                    <Input
+                      id="announcement-headline"
+                      placeholder="e.g. Load-in gate change — read today"
+                      value={announcementTitle}
+                      onChange={(e) => setAnnouncementTitle(e.target.value)}
+                      maxLength={200}
+                      disabled={!user || posting || discussionSchemaMissing}
+                    />
+                  </div>
+                  <Textarea
+                    placeholder="Critical details for the whole team…"
+                    value={announcementBody}
+                    onChange={(e) => setAnnouncementBody(e.target.value)}
+                    className="min-h-24"
+                    disabled={!user || posting || discussionSchemaMissing}
+                  />
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={!user || posting || discussionSchemaMissing}
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <Paperclip className="w-4 h-4 mr-1" />
+                      Attach File
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={handlePostAnnouncement}
+                      disabled={
+                        !user ||
+                        posting ||
+                        discussionSchemaMissing ||
+                        (!announcementBody.trim() && pendingFiles.length === 0)
+                      }
+                    >
+                      {posting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
+                      Post announcement
+                    </Button>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="tasks" className="mt-0 space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Task-level comments</CardTitle>
+              <CardDescription>Feedback stays tied to a specific task (also available from Project Management).</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {!hubEventId || !hubTaskId ? (
+                <p className="text-sm text-muted-foreground">Select an event and a task to view and post comments.</p>
+              ) : (
+                <>
+                  <Textarea
+                    placeholder="Add feedback for this task…"
+                    value={taskThreadBody}
+                    onChange={(e) => setTaskThreadBody(e.target.value)}
+                    className="min-h-24"
+                    disabled={!user || posting || discussionSchemaMissing}
+                  />
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={!user || posting || discussionSchemaMissing}
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <Paperclip className="w-4 h-4 mr-1" />
+                      Attach File
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={handlePostTaskThread}
+                      disabled={
+                        !user ||
+                        posting ||
+                        discussionSchemaMissing ||
+                        (!taskThreadBody.trim() && pendingFiles.length === 0)
+                      }
+                    >
+                      {posting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
+                      Post to task
+                    </Button>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="files" className="mt-0 space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FolderOpen className="w-5 h-5" />
+                Files shared on this event
+              </CardTitle>
+              <CardDescription>
+                Documents and images attached to event threads, announcements, or tasks for the selected event.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {!hubEventId ? (
+                <p className="text-sm text-muted-foreground">Select an event to list uploads from its communications.</p>
+              ) : scopedFileRows.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No files attached yet for this event.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {scopedFileRows.map(({ attachment, contextTitle, at, commentId }) => (
+                    <li key={`${commentId}-${attachment.id}`}>
+                      <a
+                        href={attachment.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 rounded-md border p-3 text-sm hover:bg-muted/50"
+                      >
+                        {attachment.type === "image" ? (
+                          <ImageIcon className="h-4 w-4 text-blue-500 shrink-0" />
+                        ) : (
+                          <FileText className="h-4 w-4 text-green-500 shrink-0" />
+                        )}
+                        <span className="flex-1 min-w-0 truncate font-medium">{attachment.name}</span>
+                        <span className="text-xs text-muted-foreground shrink-0">{attachment.size}</span>
+                      </a>
+                      <p className="text-xs text-muted-foreground mt-1 pl-1">
+                        From “{contextTitle}” · {new Date(at).toLocaleString()}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {hubTab !== "files" ? (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 flex-wrap">
+          <div className="flex items-center gap-2 min-w-0 flex-1 max-w-md">
+            <Search className="w-4 h-4 text-muted-foreground shrink-0" />
+            <Input
+              placeholder="Search comments..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full min-w-0"
+            />
           </div>
-        </CardContent>
-      </Card>
 
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 flex-wrap">
-        <div className="flex items-center gap-2 min-w-0 flex-1 max-w-md">
-          <Search className="w-4 h-4 text-muted-foreground shrink-0" />
-          <Input
-            placeholder="Search comments..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full min-w-0"
-          />
+          {hubTab === "workspace" ? (
+            <Select value={selectedFilter} onValueChange={setSelectedFilter}>
+              <SelectTrigger className="w-full sm:w-48">
+                <SelectValue placeholder="Filter by type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Comments</SelectItem>
+                <SelectItem value="event">Event Comments</SelectItem>
+                <SelectItem value="task">Task Comments</SelectItem>
+                <SelectItem value="announcement">Announcements</SelectItem>
+                <SelectItem value="general">General Discussion</SelectItem>
+              </SelectContent>
+            </Select>
+          ) : null}
+
+          <Badge variant="outline">
+            {filteredComments.length} {hubTab === "announcements" ? "announcements" : "threads"}
+          </Badge>
         </div>
-
-        <Select value={selectedFilter} onValueChange={setSelectedFilter}>
-          <SelectTrigger className="w-full sm:w-48">
-            <SelectValue placeholder="Filter by type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Comments</SelectItem>
-            <SelectItem value="event">Event Comments</SelectItem>
-            <SelectItem value="task">Task Comments</SelectItem>
-            <SelectItem value="general">General Discussion</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <Badge variant="outline">{filteredComments.length} comments</Badge>
-      </div>
+      ) : null}
 
       <div className="space-y-4">
-        {commentsLoading ? (
+        {hubTab === "files" ? null : commentsLoading ? (
           <Card>
             <CardContent className="flex items-center justify-center gap-2 py-12 text-muted-foreground">
               <Loader2 className="w-6 h-6 animate-spin" />
@@ -1061,11 +1609,15 @@ export default function Comments() {
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">
               <MessageSquare className="w-12 h-12 text-muted-foreground mb-4" />
-              <h3 className="font-semibold mb-2">No comments found</h3>
-              <p className="text-muted-foreground text-center">
-                {searchQuery || selectedFilter !== "all"
-                  ? "No comments match your current search or filter."
-                  : "Be the first to start a discussion!"}
+              <h3 className="font-semibold mb-2">Nothing here yet</h3>
+              <p className="text-muted-foreground text-center max-w-md">
+                {hubTab !== "workspace" && !hubEventId
+                  ? "Choose an event above to load this tab."
+                  : hubTab === "tasks" && !hubTaskId
+                    ? "Pick a task to see its comment thread."
+                    : searchQuery || (hubTab === "workspace" && selectedFilter !== "all")
+                      ? "No threads match your search or filter."
+                      : "Start the conversation using the composer above."}
               </p>
             </CardContent>
           </Card>

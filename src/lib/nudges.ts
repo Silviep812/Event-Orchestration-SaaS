@@ -1,54 +1,3 @@
-import type { Database } from "@/integrations/supabase/types";
-
-type EventRow = Database["public"]["Tables"]["events"]["Row"];
-
-export type Nudge = { id: string; message: string; variant?: "default" | "destructive" };
-
-// Planner-facing hints only; implementation notes belong in comments, not in UI copy.
-export function computeEventNudges(event: EventRow | null): Nudge[] {
-  if (!event) return [];
-  const out: Nudge[] = [];
-  if (!event.venue?.trim()) {
-    out.push({
-      id: "venue",
-      message: "Add a venue so your timeline can stay organized.",
-    });
-  }
-  if (event.status !== "confirmed") {
-    const raw = event.start_date || event.end_date;
-    const start = raw ? new Date(String(raw).split("T")[0] + "T12:00:00") : null;
-    if (start && !Number.isNaN(start.getTime())) {
-      const days = Math.ceil((start.getTime() - Date.now()) / 86400000);
-      if (days <= 2 && days >= 0) {
-        out.push({
-          id: "confirm",
-          message: "Your event is soon — review and confirm your summary.",
-        });
-      }
-    }
-  }
-  return out;
-}
-
-// ─── Comments page: planner copy + safe toast text (ops/setup details: Comments.tsx block comment) ───
-
-export const commentsPlannerCopy = {
-  schemaMissingTitle: "Team discussions aren’t available yet",
-  schemaMissingBody:
-    "We’re still connecting this area for your workspace. Try again in a few minutes. If it keeps happening, contact support or your workspace owner.",
-  retryButton: "Try again",
-  toastLoadFailed: "We couldn’t load discussions. Please try again.",
-  toastSaveWhileInfra: "Discussions aren’t fully set up yet. Try again in a little while.",
-  toastPostFailed: "We couldn’t post your comment. Please try again.",
-  toastReplyFailed: "We couldn’t post your reply. Please try again.",
-  toastLikeFailed: "We couldn’t update that. Please try again.",
-  toastEditFailed: "We couldn’t save your edit. Please try again.",
-  toastDeleteFailed: "We couldn’t remove that comment. Please try again.",
-  toastGeneric: "Something went wrong. Please try again.",
-  mentionSearchLabel: "Search by name",
-  mentionHelper: "Choose someone to mention. They’ll see it in the discussion.",
-} as const;
-
 function stringFromUnknownError(e: unknown): string {
   if (e instanceof Error) return e.message;
   if (typeof e === "object" && e !== null && "message" in e) {
@@ -62,7 +11,7 @@ function stringFromUnknownError(e: unknown): string {
   return String(e);
 }
 
-/** True when the discussions feature isn’t deployed on the linked backend (dev/ops concern, not planner-facing detail). */
+/** Detects backend errors where discussions storage is not available yet. */
 export function isCommentsDiscussionInfraMissing(e: unknown): boolean {
   const s = stringFromUnknownError(e).toLowerCase();
   return (
@@ -71,7 +20,24 @@ export function isCommentsDiscussionInfraMissing(e: unknown): boolean {
   );
 }
 
-/** Short, planner-safe toast description (hides PostgREST / table names). */
+export const commentsPlannerCopy = {
+  schemaMissingTitle: "Team discussions aren’t available yet",
+  schemaMissingBody:
+    "We’re still connecting this area. Try again in a few minutes. If it keeps happening, contact support.",
+  retryButton: "Try again",
+  toastLoadFailed: "We couldn’t load discussions. Please try again.",
+  toastSaveWhileInfra: "Discussions aren’t fully set up yet. Try again in a little while.",
+  toastPostFailed: "We couldn’t post your comment. Please try again.",
+  toastReplyFailed: "We couldn’t post your reply. Please try again.",
+  toastLikeFailed: "We couldn’t update that. Please try again.",
+  toastEditFailed: "We couldn’t save your edit. Please try again.",
+  toastDeleteFailed: "We couldn’t remove that comment. Please try again.",
+  toastGeneric: "Something went wrong. Please try again.",
+  mentionSearchLabel: "Search by name",
+  mentionHelper: "Choose someone to mention. They’ll see it in the discussion.",
+} as const;
+
+/** Returns a short message for discussion errors; avoids exposing raw system errors when appropriate. */
 export function plannerCommentsToastDescription(
   e: unknown,
   context: "load" | "save" = "load",
@@ -88,8 +54,8 @@ export function plannerCommentsToastDescription(
 }
 
 /**
- * Generic toast text for loads/saves (Create Event, Manage Event, calendar, analytics, etc.).
- * Suppresses Postgres / PostgREST / RLS noise; keeps short plain messages when safe.
+ * Generic toast text for loads/saves. Uses the fallback when the error looks like a system
+ * configuration or permission issue rather than a simple validation message.
  */
 export function plannerSafeErrorToastDescription(
   e: unknown,
@@ -108,8 +74,6 @@ export function plannerSafeErrorToastDescription(
   return s;
 }
 
-// ─── Workflow & directories: planner-facing helper text (schema/table names: component file comments) ───
-
 export const workflowPlannerCopy = {
   serviceSelectorAlertTitle: "Equipment & service partners",
   serviceSelectorAlertBody:
@@ -117,37 +81,33 @@ export const workflowPlannerCopy = {
   supplierSelectorHelper:
     "Choose vendors for supplies and procurement. Equipment and rentals from the previous step are separate — you don’t repeat them here.",
   eventThemeEmptyCategory:
-    "No event types appear here yet. Try Browse Event Themes, or check back later once your catalog is updated.",
+    "No event types appear here yet. Try Browse Event Themes, or check back later for more options.",
   eventThemeEmptyRetreatTypes:
     "No retreat types are listed yet. Check back later, or explore other themes while your options are expanded.",
   eventThemeEmptyRetreatBranches:
     "No retreat categories are listed yet. Check back later, or pick another theme to continue planning.",
   transportationSetupTitle: "Transportation list isn’t available yet",
   transportationSetupBody:
-    "We’re still connecting this directory for your workspace. Try again in a few minutes. If it keeps happening, contact support or your workspace owner.",
+    "We’re still connecting this directory. Try again in a few minutes. If it keeps happening, contact support.",
   transportationNoTypesTitle: "No transportation options loaded",
   transportationNoTypesBody:
-    "Nothing to show yet. Try refreshing the page. If this stays empty, contact support or your workspace owner.",
-  /** Planner-facing only; ops: transport migrations / dedicated tables when profiles exist but types missing. */
+    "Nothing to show yet. Try refreshing the page. If this stays empty, contact support.",
   transportationProfilesPendingBody:
-    "No transportation profiles are available yet. Try again in a few minutes. If this continues, contact support or your workspace owner.",
+    "No transportation profiles are available yet. Try again in a few minutes. If this continues, contact support.",
   transportationProfilesLoadFailed:
     "We couldn’t load transportation profiles. Please try again.",
   skipExternalVendorsConfirm:
     "Continue without selecting external vendors? You can add them later from External Vendors in the sidebar, or from your event details.",
 } as const;
 
-/** Admin marketing dashboard — avoid raw table names in UI; migration names: MarketingCampaign.tsx file comment. */
 export const marketingAdminCopy = {
   schemaIncomplete:
-    "Marketing metrics aren’t fully connected yet. Finish workspace setup, then refresh this page, or contact support.",
+    "Marketing metrics aren’t available yet. Refresh this page in a moment, or contact support if this continues.",
   loadFailed: "We couldn’t load marketing data. Please try again.",
   nonAdminBody:
-    "This page is for workspace administrators. Subscriber and campaign totals appear here once marketing is enabled for your workspace.",
+    "This page is for administrators. Subscriber and campaign totals appear here when marketing is enabled for your organization.",
   recentSubscribersEmpty: "No subscribers yet. When people sign up through your forms or imports, they’ll appear here.",
 } as const;
-
-// ─── Create Event, Manage Event, Calendar, Analytics, Change Management, Workflow (toast + helper blurbs) ───
 
 export const plannerToolsCopy = {
   analyticsLoadFailed: "We couldn’t load analytics. Please try again.",
@@ -161,33 +121,24 @@ export const plannerToolsCopy = {
   trackProgressLoadFailed: "We couldn’t load task progress. Please try again.",
   reportsChangeActivityFailed: "We couldn’t load change activity. Please try again.",
   reportsEventPlanFailed: "We couldn’t load your event plan summary. Please try again.",
-  /** Tasks tab: need a scoped event */
   taskSelectEventHint:
     "Choose an event with the filter at the top of Project Management, or open Tasks from Manage Event for a specific event.",
-  /** ResourceManager: unmapped categories — dev maps in resourceCategoryDirectory.ts (file comment only). */
   resourceCategoriesDirectoryGap:
     "Some resource categories don’t open a directory yet. Pick another category, or contact support if one you need is missing.",
-  /** Create Event / Manage Event — Sporting theme when leaf types are empty (seed data lives in DB migrations; not shown in UI). */
   sportingTypesUnavailable:
-    "Sporting event types aren’t listed for your workspace yet. Try again later, choose another theme, or contact support.",
-  /** Workflow theme picker — Health & Wellness drill-down empty. */
+    "Sporting event types aren’t listed here yet. Try again later, choose another theme, or contact support.",
   workflowHwTypesEmpty:
     "No event types were found for this category. Go back and pick another category, or open Browse Event Themes from the sidebar.",
-  /** Workflow — Retreat branch has no child types. */
   workflowRetreatTypesEmpty:
     "No event types were found under this category yet. Go back and try another branch, or open Browse Event Themes.",
-  /** Workflow — Retreat theme has no top-level branches. */
   workflowRetreatBranchesEmpty:
     "No retreat categories are available yet. Pick another theme to continue, or try Browse Event Themes.",
-  /** Workflow — no themes returned from the server. */
   workflowThemesUnavailable:
     "No event themes are available right now. Refresh the page or try again later.",
   workflowThemesEmptyHint:
     "Once themes are available, you can pick one here to get started.",
-  /** Browse Event Themes — tag popover with no rows for that category. */
   themeBrowseCategoryTypesEmpty:
     "No types are listed for this category yet. Try another category or check back later.",
-  /** Browse Event Themes — Sporting row waiting on type list. */
   sportingTypesBrowsePending:
-    "Sporting event types will show here when they’re available for your workspace.",
+    "Sporting event types will show here when they’re available.",
 } as const;

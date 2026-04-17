@@ -27,6 +27,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { useMemo } from "react";
 import { useCreateEventEntryPath } from "@/hooks/useCreateEventEntryPath";
+import { useOwnsActiveEvents } from "@/hooks/useOwnsActiveEvents";
 import { CREATE_EVENT_PATH_NEW_PLANNER } from "@/lib/createEventEntryPath";
 import { cmSidebarFooterText } from "@/lib/cmEnv";
 import {
@@ -112,8 +113,8 @@ const menuGroups = [
         hoverColor: "hover:bg-green-50"
       },
       {
-        title: "Change Management",
-        url: "/dashboard/project-management?tab=change-management",
+        title: "Change Request",
+        url: "/dashboard/project-management?tab=collaborator",
         icon: FileText,
         color: "text-green-600",
         hoverColor: "hover:bg-green-50",
@@ -142,7 +143,7 @@ const menuGroups = [
     ]
   },
   {
-    title: "Reports",
+    title: "Analytics & Reports",
     color: "text-teal-600",
     bgColor: "bg-teal-50",
     items: [
@@ -150,6 +151,14 @@ const menuGroups = [
         title: "Event Plan Report",
         url: "/dashboard/reports?tab=event-plan",
         icon: FileText,
+        color: "text-teal-600",
+        hoverColor: "hover:bg-teal-50",
+        ownerOnly: true,
+      },
+      {
+        title: "Insights",
+        url: "/dashboard/reports?tab=insights",
+        icon: BarChart3,
         color: "text-teal-600",
         hoverColor: "hover:bg-teal-50"
       },
@@ -259,7 +268,7 @@ const menuGroups = [
         hoverColor: "hover:bg-pink-50"
       },
       {
-        title: "Comments",
+        title: "Communication Hub",
         url: "/dashboard/comments",
         icon: MessageSquare,
         color: "text-pink-600",
@@ -280,6 +289,7 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const { userRoles } = useAuth();
   const createEventUrl = useCreateEventEntryPath();
+  const ownsActiveEvents = useOwnsActiveEvents();
   const isAdmin = userRoles.includes("admin");
   const location = useLocation();
   const currentPath = location.pathname;
@@ -290,18 +300,35 @@ export function AppSidebar() {
     () =>
       menuGroups.map((g) => ({
         ...g,
-        items: g.items.map((item) =>
-          item.title === "Create event" ? { ...item, url: createEventUrl } : item,
-        ),
+        items: g.items
+          .filter((item) => {
+            if ("ownerOnly" in item && (item as { ownerOnly?: boolean }).ownerOnly && !ownsActiveEvents) {
+              return false;
+            }
+            // First-time users: "Create event" already opens Themes — hide duplicate Resources → Themes.
+            if (item.title === "Themes" && createEventUrl === CREATE_EVENT_PATH_NEW_PLANNER) {
+              return false;
+            }
+            return true;
+          })
+          .map((item) => {
+            if (item.title !== "Create event") return item;
+            const isNewPlannerEntry = createEventUrl === CREATE_EVENT_PATH_NEW_PLANNER;
+            return {
+              ...item,
+              url: createEventUrl,
+              title: isNewPlannerEntry ? "Browse event themes" : "Create event",
+              isCreateEventEntry: true as const,
+            };
+          }),
       })),
-    [createEventUrl],
+    [createEventUrl, ownsActiveEvents],
   );
 
   /**
    * Active state: pathname must match. Query rules:
    * - Reports: tab must match (event-plan treats missing tab as overview).
-   * - Project Management: link without `tab` = Tasks/Budget (not Team / Change Management tab).
-   *   `tab=collaborator` and `tab=change-management` each match only their own link.
+   * - Project Management: link without `tab` = Task/Budget (not Collaborator). `tab=collaborator` matches Collaborator workspace.
    */
   const pathIsActive = (url: string) => {
     const [path, query] = url.split("?");
@@ -316,7 +343,7 @@ export function AppSidebar() {
         const want = new URLSearchParams(query);
         return tabHave === want.get("tab");
       }
-      return tabHave !== "collaborator" && tabHave !== "change-management";
+      return tabHave !== "collaborator";
     }
 
     if (path === "/dashboard/collaborate") {
@@ -375,17 +402,24 @@ export function AppSidebar() {
                 {group.items
                   .filter((item) => !(item as { adminOnly?: boolean }).adminOnly || isAdmin)
                   .map((item) => {
-                  const active =
-                    item.title === "Create event" && createEventUrl === CREATE_EVENT_PATH_NEW_PLANNER
+                  const active = (item as { isCreateEventEntry?: boolean }).isCreateEventEntry
+                    ? createEventUrl === CREATE_EVENT_PATH_NEW_PLANNER
                       ? currentPath === "/dashboard/themes" ||
                         currentPath.startsWith("/dashboard/create-event")
-                      : pathIsActive(item.url);
+                      : pathIsActive(item.url)
+                    : pathIsActive(item.url);
+                  const createEntry = (item as { isCreateEventEntry?: boolean }).isCreateEventEntry;
+                  const navTitle =
+                    createEntry && createEventUrl === CREATE_EVENT_PATH_NEW_PLANNER
+                      ? "Pick a theme first, then continue to Create event."
+                      : undefined;
                   return (
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton asChild isActive={active}>
                         <NavLink
                           to={item.url}
                           end
+                          title={navTitle}
                           className={() => getNavClass(item, active)}
                         >
                           <item.icon

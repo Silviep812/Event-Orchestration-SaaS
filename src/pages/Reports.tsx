@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Card,
@@ -66,6 +66,14 @@ import { useSearchParams, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { getLifecycleTableBadge } from "@/lib/eventStatus";
 import { plannerSafeErrorToastDescription, plannerToolsCopy } from "@/lib/nudges";
+import { downloadCsv, downloadAnalyticsReportsPdf } from "@/lib/reportsExport";
+import { ReportsInsightsTab } from "@/components/reports/ReportsInsightsTab";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 /*
  * Change log data: prefers view activity_feed, falls back to cm_activity. Not shown in UI.
@@ -97,11 +105,24 @@ interface EventPlanRow {
   end_date: string | null;
   status: string | null;
   venue: string | null;
+  location: string | null;
+  /** Primary label for multi-location reporting (location or venue). */
+  locationLabel: string;
   budget: number | null;
+  /** Sum of budget_items.actual_cost (non-archived) for this event. */
+  budgetActualSpend: number | null;
+  /** Planned budget minus recorded actual spend when both exist. */
+  budgetVariance: number | null;
   expected_attendees: number | null;
   themeName: string;
+  /** Completed tasks (status = completed). */
   tasksDone: number;
+  /** All tasks including cancelled. */
   tasksTotal: number;
+  /** Tasks excluding cancelled (denominator for completion rate). */
+  tasksActive: number;
+  /** 0–100; null when there are no active tasks. */
+  taskCompletionRate: number | null;
   updated_at: string | null;
 }
 
@@ -119,6 +140,14 @@ const Reports = () => {
   const [vendorCategoryRows, setVendorCategoryRows] = useState<number | null>(null);
   const [eventPlanRows, setEventPlanRows] = useState<EventPlanRow[]>([]);
   const [eventPlanLoading, setEventPlanLoading] = useState(false);
+  const [canAccessEventPlan, setCanAccessEventPlan] = useState(false);
+  /** After true, `canAccessEventPlan` reflects the owner check (avoids redirecting owners off ?tab=event-plan before fetch completes). */
+  const [eventPlanOwnerReady, setEventPlanOwnerReady] = useState(false);
+  const [vendorSelectionRows, setVendorSelectionRows] = useState<
+    { selection_type: string; selection_count: number }[]
+  >([]);
+  const [vendorSpendByVendor, setVendorSpendByVendor] = useState<{ vendor: string; actual: number }[]>([]);
+  const [pdfExporting, setPdfExporting] = useState(false);
   const { toast } = useToast();
 
   const tabFromUrl = searchParams.get("tab");
@@ -127,6 +156,7 @@ const Reports = () => {
     if (p === "analytics") return "analytics";
     if (p === "detailed") return "detailed";
     if (p === "trends") return "trends";
+    if (p === "insights") return "insights";
     return "overview";
   };
   const panelToUrl = (panel: string): string => {
@@ -171,58 +201,28 @@ const Reports = () => {
   useEffect(() => {
     if (!user?.id) {
       setEventPlanRows([]);
+      setCanAccessEventPlan(false);
+      setEventPlanOwnerReady(true);
       return;
     }
     let cancelled = false;
+    setEventPlanOwnerReady(false);
     (async () => {
       setEventPlanLoading(true);
       try {
         const { data: ownedEvs, error: evErr } = await supabase
           .from("events")
-          .select("id, title, start_date, end_date, status, venue, budget, expected_attendees, theme_id, updated_at, archived")
+          .select(
+            "id, title, start_date, end_date, status, venue, location, budget, expected_attendees, theme_id, updated_at, archived",
+          )
           .eq("user_id", user.id)
           .eq("archived", false)
           .order("start_date", { ascending: true });
         if (evErr) throw evErr;
 
-        const { data: memberRows, error: memErr } = await supabase
-          .from("cm_event_members")
-          .select("event_id")
-          .eq("user_id", user.id);
-        if (memErr) console.warn("cm_event_members:", memErr);
-
         const owned = ownedEvs || [];
-        const ownedIds = new Set(owned.map((e) => e.id).filter(Boolean) as string[]);
-        const memberExtraIds = [
-          ...new Set(
-            (memberRows || [])
-              .map((r) => r.event_id)
-              .filter((id): id is string => typeof id === "string" && !!id && !ownedIds.has(id)),
-          ),
-        ];
-
-        let memberEvents: typeof owned = [];
-        if (memberExtraIds.length > 0) {
-          const { data: memEvs, error: memEvErr } = await supabase
-            .from("events")
-            .select("id, title, start_date, end_date, status, venue, budget, expected_attendees, theme_id, updated_at, archived")
-            .in("id", memberExtraIds)
-            .eq("archived", false);
-          if (memEvErr) {
-            console.warn("events (team member):", memEvErr);
-          } else {
-            memberEvents = memEvs || [];
-          }
-        }
-
-        const mergedById = new Map<string, (typeof owned)[number]>();
-        for (const e of owned) {
-          if (e?.id) mergedById.set(e.id, e);
-        }
-        for (const e of memberEvents) {
-          if (e?.id && !mergedById.has(e.id)) mergedById.set(e.id, e);
-        }
-        const list = [...mergedById.values()].sort((a, b) => {
+        if (!cancelled) setCanAccessEventPlan(owned.length > 0);
+        const list = [...owned].sort((a, b) => {
           const ad = a.start_date || "";
           const bd = b.start_date || "";
           return ad.localeCompare(bd);
@@ -234,27 +234,104 @@ const Reports = () => {
           themeMap = Object.fromEntries((th || []).map((t) => [t.id, t.name || ""]));
         }
         const eventIds = list.map((e) => e.id);
-        let taskByEvent: Record<string, { total: number; done: number }> = {};
+        let taskByEvent: Record<string, { total: number; completed: number; cancelled: number }> = {};
         if (eventIds.length > 0) {
           const { data: tasks } = await supabase
             .from("tasks")
             .select("event_id, status")
             .in("event_id", eventIds);
           for (const id of eventIds) {
-            taskByEvent[id] = { total: 0, done: 0 };
+            taskByEvent[id] = { total: 0, completed: 0, cancelled: 0 };
           }
           for (const t of tasks || []) {
             const eid = t.event_id as string;
             if (!eid || !taskByEvent[eid]) continue;
             taskByEvent[eid].total += 1;
-            if (t.status === "completed" || t.status === "cancelled") {
-              taskByEvent[eid].done += 1;
-            }
+            if (t.status === "completed") taskByEvent[eid].completed += 1;
+            if (t.status === "cancelled") taskByEvent[eid].cancelled += 1;
           }
         }
+
+        const spendByEvent: Record<string, number> = {};
+        if (eventIds.length > 0) {
+          const { data: biRows, error: biErr } = await supabase
+            .from("budget_items")
+            .select("event_id, actual_cost, archived")
+            .in("event_id", eventIds);
+          if (biErr) console.warn("budget_items (reports):", biErr);
+          for (const row of biRows || []) {
+            if (row.archived) continue;
+            const eid = row.event_id as string;
+            const act = Number(row.actual_cost) || 0;
+            spendByEvent[eid] = (spendByEvent[eid] || 0) + act;
+          }
+        }
+
+        const vendorSpendMap = new Map<string, number>();
+        if (eventIds.length > 0) {
+          const { data: biV, error: biVErr } = await supabase
+            .from("budget_items")
+            .select("vendor_name, actual_cost, archived")
+            .in("event_id", eventIds);
+          if (biVErr) console.warn("budget_items vendors:", biVErr);
+          for (const row of biV || []) {
+            if (row.archived) continue;
+            const name = (row.vendor_name || "").trim();
+            if (!name) continue;
+            const act = Number(row.actual_cost) || 0;
+            if (!act) continue;
+            vendorSpendMap.set(name, (vendorSpendMap.get(name) || 0) + act);
+          }
+          const vendorSpendArr = [...vendorSpendMap.entries()]
+            .map(([vendor, actual]) => ({ vendor, actual }))
+            .sort((a, b) => b.actual - a.actual)
+            .slice(0, 12);
+          if (!cancelled) setVendorSpendByVendor(vendorSpendArr);
+        }
+
+        if (eventIds.length > 0) {
+          const { data: vcc, error: vccErr } = await supabase
+            .from("vendor_category_counts")
+            .select("selection_type, selection_count")
+            .in("event_id", eventIds);
+          if (vccErr) {
+            console.warn("vendor_category_counts:", vccErr);
+            if (!cancelled) setVendorSelectionRows([]);
+          } else {
+            const agg = new Map<string, number>();
+            for (const r of vcc || []) {
+              const k = (r.selection_type as string) || "unknown";
+              const n = Number(r.selection_count) || 0;
+              agg.set(k, (agg.get(k) || 0) + n);
+            }
+            if (!cancelled) {
+              setVendorSelectionRows(
+                [...agg.entries()].map(([selection_type, selection_count]) => ({ selection_type, selection_count })),
+              );
+            }
+          }
+        } else if (!cancelled) {
+          setVendorSelectionRows([]);
+          setVendorSpendByVendor([]);
+        }
+
+        const locationLabel = (venue: string | null, location: string | null) => {
+          const loc = (location || "").trim();
+          const ven = (venue || "").trim();
+          if (loc) return loc;
+          if (ven) return ven;
+          return "Unknown";
+        };
+
         const rows: EventPlanRow[] = list.map((e) => {
           const tid = e.theme_id ?? undefined;
-          const tstat = e.id ? taskByEvent[e.id] : { total: 0, done: 0 };
+          const tstat = e.id ? taskByEvent[e.id] : { total: 0, completed: 0, cancelled: 0 };
+          const active = tstat.total - tstat.cancelled;
+          const rate = active > 0 ? (tstat.completed / active) * 100 : null;
+          const actualSpend = e.id ? spendByEvent[e.id] ?? null : null;
+          const plan = e.budget != null ? Number(e.budget) : null;
+          const variance = plan != null && actualSpend != null ? plan - actualSpend : null;
+          const loc = locationLabel(e.venue, e.location);
           return {
             id: e.id,
             title: e.title,
@@ -262,11 +339,17 @@ const Reports = () => {
             end_date: e.end_date,
             status: e.status,
             venue: e.venue,
+            location: e.location ?? null,
+            locationLabel: loc,
             budget: e.budget,
+            budgetActualSpend: actualSpend,
+            budgetVariance: variance,
             expected_attendees: e.expected_attendees,
             themeName: tid != null ? themeMap[tid] || "—" : "—",
-            tasksDone: tstat.done,
+            tasksDone: tstat.completed,
             tasksTotal: tstat.total,
+            tasksActive: active,
+            taskCompletionRate: rate,
             updated_at: e.updated_at,
           };
         });
@@ -274,6 +357,7 @@ const Reports = () => {
       } catch (e: unknown) {
         console.error(e);
         if (!cancelled) {
+          setCanAccessEventPlan(false);
           setEventPlanRows([]);
           toast({
             title: "Error",
@@ -282,13 +366,23 @@ const Reports = () => {
           });
         }
       } finally {
-        if (!cancelled) setEventPlanLoading(false);
+        if (!cancelled) {
+          setEventPlanLoading(false);
+          setEventPlanOwnerReady(true);
+        }
       }
     })();
     return () => {
       cancelled = true;
     };
   }, [user?.id]);
+
+  useEffect(() => {
+    if (!eventPlanOwnerReady) return;
+    if (!canAccessEventPlan && activeTab === "overview") {
+      onReportTabChange("insights");
+    }
+  }, [activeTab, canAccessEventPlan, eventPlanOwnerReady]);
 
   const [userDisplayNames, setUserDisplayNames] = useState<Record<string, string>>({});
   useEffect(() => {
@@ -435,32 +529,215 @@ const Reports = () => {
     });
   };
 
-  const exportReport = () => {
-    const csvContent = [
-      ['Date', 'Entity Type', 'Action', 'Event ID', 'Entity ID', 'Metadata', 'User ID'],
-      ...changeLogs.map(log => [
-        format(new Date(log.created_at), 'yyyy-MM-dd HH:mm:ss'),
+  const locationPerformanceMemo = useMemo(() => {
+    const m = new Map<string, { events: number; sumRate: number; nRate: number }>();
+    for (const r of eventPlanRows) {
+      const L = r.locationLabel;
+      const cur = m.get(L) || { events: 0, sumRate: 0, nRate: 0 };
+      cur.events += 1;
+      if (r.taskCompletionRate != null) {
+        cur.sumRate += r.taskCompletionRate;
+        cur.nRate += 1;
+      }
+      m.set(L, cur);
+    }
+    return [...m.entries()]
+      .map(([location, v]) => ({
+        location,
+        events: v.events,
+        avgCompletion: v.nRate ? v.sumRate / v.nRate : null,
+      }))
+      .sort((a, b) => b.events - a.events);
+  }, [eventPlanRows]);
+
+  const insightsProps = useMemo(() => {
+    const budgetVsActual = eventPlanRows.map((r) => ({
+      name: r.title,
+      budget: Number(r.budget) || 0,
+      actual: Number(r.budgetActualSpend) || 0,
+    }));
+    const taskCompletionRates = eventPlanRows
+      .filter((r) => r.tasksActive > 0 && r.taskCompletionRate != null)
+      .map((r) => ({ name: r.title, rate: r.taskCompletionRate! }));
+    const vendorSelectionsByCategory = vendorSelectionRows.map((r) => ({
+      name: r.selection_type,
+      selections: r.selection_count,
+    }));
+    return {
+      budgetVsActual,
+      taskCompletionRates,
+      vendorSelectionsByCategory,
+      vendorSpendTop: vendorSpendByVendor,
+      locationPerformance: locationPerformanceMemo,
+      changeFrequency: reportData?.changesByDate || [],
+    };
+  }, [eventPlanRows, vendorSelectionRows, vendorSpendByVendor, locationPerformanceMemo, reportData]);
+
+  const exportChangeLogsCsv = () => {
+    downloadCsv(`activity-feed-${format(new Date(), "yyyy-MM-dd")}.csv`, [
+      ["Date", "Entity Type", "Action", "Event ID", "Entity ID", "Metadata", "User ID"],
+      ...changeLogs.map((log) => [
+        format(new Date(log.created_at), "yyyy-MM-dd HH:mm:ss"),
         log.entity_type,
         log.action,
-        log.event_id || '',
-        log.entity_id || '',
-        log.metadata ? JSON.stringify(log.metadata) : '',
-        log.changed_by || '',
-      ])
-    ].map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `change-management-report-${format(new Date(), 'yyyy-MM-dd')}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-
+        log.event_id || "",
+        log.entity_id || "",
+        log.metadata ? JSON.stringify(log.metadata) : "",
+        log.changed_by || "",
+      ]),
+    ]);
     toast({
-      title: "Success",
-      description: "Report exported successfully",
+      title: "Exported",
+      description: "Activity feed CSV downloaded (same rows as the filters above; activity_feed / cm_activity).",
     });
+  };
+
+  const exportUnifiedAuditEventsCsv = async () => {
+    try {
+      let query = supabase
+        .from("unified_audit_events")
+        .select("id, created_at, event_id, entity_type, entity_id, action, changed_by, metadata")
+        .order("created_at", { ascending: false })
+        .limit(10000);
+      if (dateRange?.from) {
+        query = query.gte("created_at", dateRange.from.toISOString());
+      }
+      if (dateRange?.to) {
+        query = query.lte("created_at", dateRange.to.toISOString());
+      }
+      if (entityTypeFilter !== "all") {
+        query = query.eq("entity_type", entityTypeFilter);
+      }
+      if (actionFilter !== "all") {
+        query = query.eq("action", actionFilter);
+      }
+      const { data, error } = await query;
+      if (error) throw error;
+      const rows = data || [];
+      downloadCsv(`unified-audit-events-${format(new Date(), "yyyy-MM-dd")}.csv`, [
+        ["Date", "Entity Type", "Action", "Event ID", "Entity ID", "Metadata", "User ID"],
+        ...rows.map((log) => [
+          log.created_at ? format(new Date(log.created_at), "yyyy-MM-dd HH:mm:ss") : "",
+          log.entity_type ?? "",
+          log.action ?? "",
+          log.event_id || "",
+          log.entity_id || "",
+          log.metadata ? JSON.stringify(log.metadata) : "",
+          log.changed_by || "",
+        ]),
+      ]);
+      toast({
+        title: "Exported",
+        description: "Unified audit view CSV downloaded (unified_audit_events; same column layout as activity export).",
+      });
+    } catch (e: unknown) {
+      console.error(e);
+      toast({
+        title: "Export failed",
+        description: plannerSafeErrorToastDescription(e, plannerToolsCopy.reportsChangeActivityFailed),
+        variant: "destructive",
+      });
+    }
+  };
+
+  const exportEventPlanCsv = () => {
+    downloadCsv(`event-plan-${format(new Date(), "yyyy-MM-dd")}.csv`, [
+      [
+        "Event",
+        "Primary location",
+        "Start date",
+        "Theme",
+        "Budget (plan)",
+        "Actual spend",
+        "Variance",
+        "Tasks completed",
+        "Tasks active",
+        "Completion %",
+      ],
+      ...eventPlanRows.map((r) => [
+        r.title,
+        r.locationLabel,
+        r.start_date || "",
+        r.themeName,
+        r.budget ?? "",
+        r.budgetActualSpend ?? "",
+        r.budgetVariance ?? "",
+        r.tasksDone,
+        r.tasksActive,
+        r.taskCompletionRate != null ? `${r.taskCompletionRate.toFixed(1)}%` : "",
+      ]),
+    ]);
+    toast({ title: "Exported", description: "Event plan CSV downloaded." });
+  };
+
+  const exportAnalyticsSummaryCsv = () => {
+    const date = format(new Date(), "yyyy-MM-dd");
+    const timeline = reportData?.changesByDate || [];
+    const topEnt = reportData?.topModifiedEntities || [];
+    downloadCsv(`analytics-summary-${date}.csv`, [
+      ["Section", "Key", "Value"],
+      ...timeline.map((r) => ["Change frequency (by day)", r.date, r.changes]),
+      ...topEnt.map((r) => ["Top modified entities", r.entity, r.changes]),
+    ]);
+    toast({ title: "Exported", description: "Analytics summary CSV downloaded." });
+  };
+
+  const exportFullPdfPack = async () => {
+    setPdfExporting(true);
+    try {
+      const slug = format(new Date(), "yyyy-MM-dd-HHmm");
+      const fmtMoney = (n: number | null | undefined) =>
+        n == null || Number.isNaN(Number(n)) ? "—" : `$${Number(n).toLocaleString()}`;
+      const fmtVar = (n: number | null | undefined) =>
+        n == null || Number.isNaN(Number(n)) ? "—" : `$${Number(n).toLocaleString()}`;
+      await downloadAnalyticsReportsPdf({
+        title: "Analytics & Reports",
+        generatedAtLabel: format(new Date(), "PPpp"),
+        fileSlug: slug,
+        eventPlan: eventPlanRows.map((r) => ({
+          title: r.title,
+          locationLabel: r.locationLabel,
+          budgetPlan: fmtMoney(r.budget),
+          budgetActual: fmtMoney(r.budgetActualSpend),
+          variance: fmtVar(r.budgetVariance),
+          taskCompletion:
+            r.taskCompletionRate != null ? `${r.taskCompletionRate.toFixed(1)}%` : "—",
+        })),
+        budgetVsActual: eventPlanRows.map((r) => ({
+          name: r.title,
+          budget: Number(r.budget) || 0,
+          actual: Number(r.budgetActualSpend) || 0,
+        })),
+        taskCompletion: eventPlanRows
+          .filter((r) => r.tasksActive > 0 && r.taskCompletionRate != null)
+          .map((r) => ({ name: r.title, pct: r.taskCompletionRate! })),
+        changeTimeline: reportData?.changesByDate || [],
+        topEntities: reportData?.topModifiedEntities || [],
+        vendorCategories: vendorSelectionRows.map((r) => ({
+          category: r.selection_type,
+          selections: String(r.selection_count),
+        })),
+        vendorSpend: vendorSpendByVendor.map((r) => ({
+          vendor: r.vendor,
+          spend: fmtMoney(r.actual),
+        })),
+        locations: locationPerformanceMemo.map((r) => ({
+          location: r.location,
+          events: String(r.events),
+          avgCompletion: r.avgCompletion != null ? `${r.avgCompletion.toFixed(1)}%` : "—",
+        })),
+      });
+      toast({ title: "PDF ready", description: "Full analytics pack downloaded." });
+    } catch (e) {
+      console.error(e);
+      toast({
+        title: "PDF export failed",
+        description: plannerSafeErrorToastDescription(e, plannerToolsCopy.reportsChangeActivityFailed),
+        variant: "destructive",
+      });
+    } finally {
+      setPdfExporting(false);
+    }
   };
 
   const getActionBadgeVariant = (action: string) => {
@@ -478,17 +755,42 @@ const Reports = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Reports</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Analytics &amp; Reports</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Event plan snapshot and change-request activity — details are in each tab below.
+            Event plan, budgets, vendor and location performance, change analytics, and exports.
           </p>
         </div>
-        <Button onClick={exportReport} className="flex items-center gap-2">
-          <Download className="h-4 w-4" />
-          Export Report
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="default" className="flex items-center gap-2 shrink-0" disabled={pdfExporting}>
+              <Download className="h-4 w-4" />
+              {pdfExporting ? "Building PDF…" : "Export"}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            {canAccessEventPlan ? (
+              <DropdownMenuItem onClick={exportEventPlanCsv}>CSV — Event plan</DropdownMenuItem>
+            ) : null}
+            <DropdownMenuItem onClick={exportChangeLogsCsv}>CSV — Activity feed (filtered)</DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                void exportUnifiedAuditEventsCsv();
+              }}
+            >
+              CSV — Unified audit (unified_audit_events view)
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={exportAnalyticsSummaryCsv}>CSV — Analytics summary</DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                void exportFullPdfPack();
+              }}
+            >
+              PDF — Full pack
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {activeTab !== "overview" && (
@@ -589,7 +891,8 @@ const Reports = () => {
 
       <Tabs value={activeTab} onValueChange={onReportTabChange} className="space-y-4">
         <TabsList className="flex flex-wrap h-auto gap-1">
-          <TabsTrigger value="overview">Event Plan Report</TabsTrigger>
+          {canAccessEventPlan ? <TabsTrigger value="overview">Event Plan Report</TabsTrigger> : null}
+          <TabsTrigger value="insights">Insights</TabsTrigger>
           <TabsTrigger value="change-requests">Change Request Report</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
           <TabsTrigger value="detailed">Detailed Logs</TabsTrigger>
@@ -602,7 +905,12 @@ const Reports = () => {
               <CardTitle>Event Plan Report</CardTitle>
             </CardHeader>
             <CardContent>
-              {eventPlanLoading ? (
+              {!canAccessEventPlan && eventPlanOwnerReady ? (
+                <p className="text-sm text-muted-foreground py-8 text-center max-w-md mx-auto">
+                  The Event Plan Report is available only when you own at least one active (non-archived) event.
+                  Create an event or ask your coordinator to share the right reports with you.
+                </p>
+              ) : eventPlanLoading ? (
                 <p className="text-sm text-muted-foreground py-8 text-center">Loading event plans…</p>
               ) : eventPlanRows.length === 0 ? (
                 <p className="text-sm text-muted-foreground py-8 text-center">
@@ -618,9 +926,13 @@ const Reports = () => {
                         <TableHead>Dates</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Venue</TableHead>
-                        <TableHead className="text-right">Budget</TableHead>
+                        <TableHead>Primary location</TableHead>
+                        <TableHead className="text-right">Budget (plan)</TableHead>
+                        <TableHead className="text-right">Actual spend</TableHead>
+                        <TableHead className="text-right">Variance</TableHead>
                         <TableHead className="text-right">Attendees</TableHead>
-                        <TableHead>Tasks (done / total)</TableHead>
+                        <TableHead>Tasks (completed / active)</TableHead>
+                        <TableHead className="text-right">Completion</TableHead>
                         <TableHead>Updated</TableHead>
                         <TableHead className="text-right">Manage event</TableHead>
                         <TableHead className="text-right">Create change request</TableHead>
@@ -650,16 +962,30 @@ const Reports = () => {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-sm max-w-[10rem] truncate">{row.venue || "—"}</TableCell>
+                          <TableCell className="text-sm max-w-[10rem] truncate">{row.locationLabel}</TableCell>
                           <TableCell className="text-right tabular-nums">
                             {row.budget != null ? `$${Number(row.budget).toLocaleString()}` : "—"}
+                          </TableCell>
+                          <TableCell className="text-right tabular-nums">
+                            {row.budgetActualSpend != null
+                              ? `$${Number(row.budgetActualSpend).toLocaleString()}`
+                              : "—"}
+                          </TableCell>
+                          <TableCell className="text-right tabular-nums">
+                            {row.budgetVariance != null
+                              ? `$${Number(row.budgetVariance).toLocaleString()}`
+                              : "—"}
                           </TableCell>
                           <TableCell className="text-right tabular-nums">
                             {row.expected_attendees != null ? row.expected_attendees : "—"}
                           </TableCell>
                           <TableCell className="text-sm tabular-nums">
-                            {row.tasksTotal === 0
+                            {row.tasksActive === 0
                               ? "—"
-                              : `${row.tasksDone} / ${row.tasksTotal}`}
+                              : `${row.tasksDone} / ${row.tasksActive}`}
+                          </TableCell>
+                          <TableCell className="text-right text-sm tabular-nums">
+                            {row.taskCompletionRate != null ? `${row.taskCompletionRate.toFixed(1)}%` : "—"}
                           </TableCell>
                           <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                             {row.updated_at
@@ -674,7 +1000,7 @@ const Reports = () => {
                           <TableCell className="text-right">
                             <Button variant="link" className="h-auto p-0" asChild>
                               <Link
-                                to={`/dashboard/project-management?eventId=${encodeURIComponent(row.id)}&tab=change-management`}
+                                to={`/dashboard/project-management?eventId=${encodeURIComponent(row.id)}&tab=collaborator`}
                               >
                                 Open
                               </Link>
@@ -689,6 +1015,17 @@ const Reports = () => {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="insights" className="space-y-4">
+          <ReportsInsightsTab
+            budgetVsActual={insightsProps.budgetVsActual}
+            taskCompletionRates={insightsProps.taskCompletionRates}
+            vendorSelectionsByCategory={insightsProps.vendorSelectionsByCategory}
+            vendorSpendTop={insightsProps.vendorSpendTop}
+            locationPerformance={insightsProps.locationPerformance}
+            changeFrequency={insightsProps.changeFrequency}
+          />
         </TabsContent>
 
         <TabsContent value="change-requests" className="space-y-4">

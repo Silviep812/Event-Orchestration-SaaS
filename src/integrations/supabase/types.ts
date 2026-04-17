@@ -554,6 +554,7 @@ export type Database = {
           requested_by: string | null
           resolved_at: string | null
           resolved_by: string | null
+          rollout_timing: string
           status: string | null
           task_id: string | null
         }
@@ -569,6 +570,7 @@ export type Database = {
           requested_by?: string | null
           resolved_at?: string | null
           resolved_by?: string | null
+          rollout_timing?: string
           status?: string | null
           task_id?: string | null
         }
@@ -584,6 +586,7 @@ export type Database = {
           requested_by?: string | null
           resolved_at?: string | null
           resolved_by?: string | null
+          rollout_timing?: string
           status?: string | null
           task_id?: string | null
         }
@@ -2439,6 +2442,7 @@ export type Database = {
       }
       marketing_conversions: {
         Row: {
+          auth_user_id: string | null
           conversion_date: string
           conversion_type: string | null
           created_at: string
@@ -2447,6 +2451,7 @@ export type Database = {
           value: number | null
         }
         Insert: {
+          auth_user_id?: string | null
           conversion_date?: string
           conversion_type?: string | null
           created_at?: string
@@ -2455,6 +2460,7 @@ export type Database = {
           value?: number | null
         }
         Update: {
+          auth_user_id?: string | null
           conversion_date?: string
           conversion_type?: string | null
           created_at?: string

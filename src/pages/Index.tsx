@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Calendar, Users, BarChart3, Bell, FolderOpen } from "lucide-react";
 import { Link } from "react-router-dom";
 import { MarketingTopBar } from "@/components/MarketingTopBar";
+import { MarketingWaitlistForm } from "@/components/marketing/MarketingWaitlistForm";
 import { IEP_LOGO_HERO } from "@/lib/brandAssets";
 
 const scrollToId = (id: string) => {
@@ -118,14 +119,14 @@ const Index = () => {
         <div className="max-w-3xl mx-auto text-center space-y-4">
           <h2 className="text-2xl sm:text-3xl font-bold text-balance">Simple pricing — tailored to how you work</h2>
           <p className="text-muted-foreground text-sm sm:text-base leading-relaxed text-pretty">
-            For clarity: pricing varies depending on the user. Examples:{" "}
-            <span className="font-medium text-foreground">Trial</span> — free.{" "}
-            <span className="font-medium text-foreground">Subscriber</span> — monthly / annual: $97.00 / $1,000.00.{" "}
-            <span className="font-medium text-foreground">One-time</span> use — $249.00 (theme: Celebration; user type: Host or
-            Event Planner; attendees: 100 or less; due date: before 08/31/2026).{" "}
-            <span className="font-medium text-foreground">Special promotion</span> — $59.00 App Kick Off intro until cancelled.
-            When the trial period expires, we retain your user ID and related account information and may archive it for later
-            promotional use.
+            Pricing is personalized: it can depend on your planner profile, event scope (for example theme, role, attendee
+            count, or timeline), and current offers. Typical shapes include a{" "}
+            <span className="font-medium text-foreground">free trial</span>,{" "}
+            <span className="font-medium text-foreground">subscription</span> (monthly or annual),{" "}
+            <span className="font-medium text-foreground">one-time</span> packages for defined event sizes, and{" "}
+            <span className="font-medium text-foreground">limited-time promotions</span>. Exact amounts are confirmed at signup
+            or checkout and may change. After a trial ends, we may retain your account identifier and related details and archive
+            them for operational, compliance, and promotional purposes as described in our terms and privacy policy.
           </p>
           <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => scrollToId("features")}>
             Explore features
@@ -176,6 +177,29 @@ const Index = () => {
               </Card>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section
+        id="waitlist"
+        className="px-4 sm:px-6 lg:px-8 py-12 sm:py-16 border-y border-amber-100/60 bg-white/55 dark:bg-muted/25 backdrop-blur-sm"
+      >
+        <div className="max-w-xl mx-auto">
+          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-2 text-balance">Get launch updates</h2>
+          <p className="text-center text-muted-foreground text-sm sm:text-base mb-6 text-pretty">
+            Join the campaign list for IEP — product news, early access, and event planning tips. Prefer to start
+            immediately?{" "}
+            <Link to="/auth" className="text-primary font-medium underline-offset-4 hover:underline">
+              Start your free trial
+            </Link>
+            .
+          </p>
+          <MarketingWaitlistForm signupSource="landing_home" />
+          <p className="text-center text-xs text-muted-foreground mt-6">
+            <Link to="/marketing-creatives" className="underline-offset-4 hover:underline">
+              View social ad previews (team)
+            </Link>
+          </p>
         </div>
       </section>
 

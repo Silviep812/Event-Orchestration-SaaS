@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.create-bulk-users]
 verify_jwt = false
+
+[functions.marketing-dispatch-campaign]
+verify_jwt = false

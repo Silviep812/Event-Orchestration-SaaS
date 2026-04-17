@@ -18,6 +18,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { resourceCategoriesMissingDirectory } from "@/lib/resourceCategoryDirectory";
 import { plannerToolsCopy } from "@/lib/nudges";
+import { recalculateProjectTimelineForEvent } from "@/lib/projectTimelineRecalc";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
@@ -155,7 +156,6 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
       setCategories(cats);
       const unmapped = resourceCategoriesMissingDirectory(cats);
       if (unmapped.length > 0) {
-        // Dev/ops: extend `src/lib/resourceCategoryDirectory.ts` when adding new `resource_categories.name` values.
         console.warn("[ResourceManager] Resource categories without directory mapping:", unmapped);
         toast({
           title: "Resource directories",
@@ -312,10 +312,10 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
       const newResources = arrayMove(resources, oldIndex, newIndex);
       setResources(newResources);
       
-      // Simulate resource reallocation
       toast({
-        title: "Resource Reassigned",
-        description: "Resource allocation updated and downstream processes recalculated",
+        title: "Display order updated",
+        description:
+          "Drag-and-drop only changes the on-screen list order. Use assign actions to persist allocation changes.",
       });
     }
 
@@ -369,6 +369,9 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
         title: "Resource Assigned",
         description: "Resource allocation updated successfully",
       });
+      if (eventId) {
+        await recalculateProjectTimelineForEvent(eventId);
+      }
     } catch (error) {
       console.error('Error assigning resource:', error);
       toast({
@@ -406,6 +409,10 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
         title: "Location Synced",
         description: `Updated ${data?.length || 0} resource(s) to ${eventLocation}`,
       });
+
+      if (eventId) {
+        await recalculateProjectTimelineForEvent(eventId);
+      }
 
       // Refresh the data
       fetchData();
@@ -447,6 +454,10 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
         title: "Resource Added",
         description: "The resource has been added successfully",
       });
+
+      if (eventId) {
+        await recalculateProjectTimelineForEvent(eventId);
+      }
 
       setIsAddDialogOpen(false);
       setNewResource({
@@ -495,6 +506,9 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
         .eq('id', editResource.id);
       if (error) throw error;
       toast({ title: 'Resource Updated', description: 'Resource info updated successfully.' });
+      if (eventId) {
+        await recalculateProjectTimelineForEvent(eventId);
+      }
       setIsEditDialogOpen(false);
       setEditResource(null);
       // Refresh resources

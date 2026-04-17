@@ -1,3 +1,7 @@
+/**
+ * Runtime permission levels on `user_roles.permission_level`: `admin`, `coordinator`, `viewer`.
+ * Role Management maps roles to these levels in the product UI.
+ */
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';

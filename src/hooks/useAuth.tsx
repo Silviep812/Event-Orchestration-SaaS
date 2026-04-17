@@ -1,6 +1,7 @@
 import { useState, useEffect, createContext, useContext } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { User, Session } from '@supabase/supabase-js';
+import { User, Session } from "@supabase/supabase-js";
+import { AUTH_EMAIL_OAUTH_CALLBACK_PATH } from '@/lib/createEventEntryPath';
 
 export type SignUpProfileFields = {
   user_category?: string;
@@ -13,7 +14,11 @@ interface AuthContextType {
   loading: boolean;
   userRoles: string[];
   signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string, profile?: SignUpProfileFields) => Promise<{ error: any }>;
+  signUp: (
+    email: string,
+    password: string,
+    profile?: SignUpProfileFields,
+  ) => Promise<{ error: any; user: User | null }>;
   signOut: () => Promise<{ error: any }>;
   resetPassword: (email: string) => Promise<{ error: any }>;
   signInWithMagicLink: (email: string) => Promise<{ error: any }>;
@@ -103,9 +108,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signUp = async (email: string, password: string, profile?: SignUpProfileFields) => {
-    const redirectUrl = `${window.location.origin}/dashboard`;
+    const redirectUrl = `${window.location.origin}${AUTH_EMAIL_OAUTH_CALLBACK_PATH}`;
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -116,7 +121,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         },
       },
     });
-    return { error };
+    return { error, user: data.user ?? null };
   };
 
   const signOut = async () => {
@@ -134,8 +139,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signInWithMagicLink = async (email: string) => {
-    const redirectUrl = `${window.location.origin}/dashboard`;
-    
+    const redirectUrl = `${window.location.origin}${AUTH_EMAIL_OAUTH_CALLBACK_PATH}`;
+
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
@@ -146,7 +151,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signInWithOAuth = async (provider: "google" | "linkedin_oidc") => {
-    const redirectUrl = `${window.location.origin}/dashboard`;
+    const redirectUrl = `${window.location.origin}${AUTH_EMAIL_OAUTH_CALLBACK_PATH}`;
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: { redirectTo: redirectUrl },

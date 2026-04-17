@@ -22,6 +22,7 @@ import {
   loadRetreatsEventTypeGroups,
   loadSportingLeafEventTypes,
   sportThemeRootCategoryDisplayLabel,
+  sportingTypeUiLabel,
   sportingUiName,
 } from "@/lib/themeEventTypeHierarchy";
 import {
@@ -1007,7 +1008,7 @@ export default function CreateEvent() {
                         <SelectContent>
                           {sportingLeafTypes.map((row) => (
                             <SelectItem key={row.id} value={String(row.id)}>
-                              {row.name}
+                              {sportingTypeUiLabel(row.name) || row.name}
                             </SelectItem>
                           ))}
                         </SelectContent>

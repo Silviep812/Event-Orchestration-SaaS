@@ -9,9 +9,9 @@ import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, R
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import Analytics from "@/components/Analytics";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { trialBannerText } from "@/lib/trialLimits";
-import { computeEventNudges, plannerToolsCopy } from "@/lib/nudges";
+import { plannerToolsCopy } from "@/lib/nudges";
 import { cn } from "@/lib/utils";
 import { getDashboardRecentEventStatusBadge } from "@/lib/eventStatus";
 import { useCreateEventEntryPath } from "@/hooks/useCreateEventEntryPath";
@@ -27,7 +27,6 @@ const DashboardHome = () => {
     recentEvents: []
   });
   const [loading, setLoading] = useState(true);
-  const [nudgeMessages, setNudgeMessages] = useState<{ id: string; message: string }[]>([]);
   const [activities, setActivities] = useState<Array<{
     id: string;
     description: string;
@@ -56,16 +55,6 @@ const DashboardHome = () => {
           .order('created_at', { ascending: false })
           .limit(10);
         if (eventsError) throw eventsError;
-
-        const nextEvent = (events || []).filter((e) => !e.archived).sort(
-          (a, b) =>
-            new Date(a.start_date || 0).getTime() - new Date(b.start_date || 0).getTime(),
-        )[0];
-        if (nextEvent) {
-          setNudgeMessages(computeEventNudges(nextEvent as Parameters<typeof computeEventNudges>[0]));
-        } else {
-          setNudgeMessages([]);
-        }
 
         // Fetch tasks data for current user only
         const { data: tasks, error: tasksError } = await supabase
@@ -303,16 +292,6 @@ const DashboardHome = () => {
         <Alert>
           <AlertDescription>{trialMsg}</AlertDescription>
         </Alert>
-      ) : null}
-      {nudgeMessages.length > 0 ? (
-        <div className="space-y-2">
-          {nudgeMessages.map((n) => (
-            <Alert key={n.id}>
-              <AlertTitle>Suggestion</AlertTitle>
-              <AlertDescription>{n.message}</AlertDescription>
-            </Alert>
-          ))}
-        </div>
       ) : null}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>

@@ -44,6 +44,17 @@ export function TeamMemberCard({ member, onClick }: TeamMemberCardProps) {
         <div className="space-y-2">
           <Badge variant="secondary">{member.role.replace('_', ' ')}</Badge>
           <div className="flex items-center gap-2 text-sm">
+            <span className="text-muted-foreground">Availability:</span>
+            <Badge variant={(member.availability ?? "assigned") === "assigned" ? "default" : "outline"}>
+              {member.availability ?? "assigned"}
+            </Badge>
+          </div>
+          {member.collaboratorTypes && member.collaboratorTypes.length > 0 ? (
+            <p className="text-xs text-muted-foreground">
+              Collaborator type: {member.collaboratorTypes.join(", ")}
+            </p>
+          ) : null}
+          <div className="flex items-center gap-2 text-sm">
             <div className={`w-2 h-2 rounded-full ${getStatusColor(member.status)}`} />
             <span className="capitalize">{member.status}</span>
           </div>

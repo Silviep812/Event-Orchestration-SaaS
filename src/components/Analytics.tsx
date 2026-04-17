@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -97,12 +98,15 @@ export default function Analytics({
   >(null);
   const { toast } = useToast();
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const queryEventId = searchParams.get("eventId");
 
   useEffect(() => {
-    if (eventId) {
-      setSelectedEventId(eventId);
+    const resolved = eventId || (queryEventId ? queryEventId : undefined);
+    if (resolved) {
+      setSelectedEventId(resolved);
     }
-  }, [eventId]);
+  }, [eventId, queryEventId]);
 
   useEffect(() => {
     supabase.from("event_themes").select("id, name").order("name").then(({ data }) => {

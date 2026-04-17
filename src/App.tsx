@@ -34,6 +34,7 @@ import Profile from "./pages/Profile";
 import TaskTimeline from "./pages/TaskTimeline";
 import ResourceMap from "./pages/ResourceMap";
 import MarketingCampaign from "./pages/MarketingCampaign";
+import MarketingCreatives from "./pages/MarketingCreatives";
 
 const App = () => (
   <AuthProvider>
@@ -45,15 +46,16 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/contact" element={<Navigate to="/" replace />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/marketing-creatives" element={<MarketingCreatives />} />
             <Route path="/dashboard" element={<Dashboard />}>
               <Route index element={<DashboardHome />} />
               <Route path="workflow-dashboard" element={<WorkflowDashboard />} />
               <Route path="themes" element={<ThemesDirectory />} />
               <Route path="project-management" element={<ProjectManagement />} />
-              {/* Short URL → PM Change Management tab (change requests list + link to Manage Event log) */}
+              {/* Short URL → PM Collaborator workspace (change requests live under Role → Task → Change requests) */}
               <Route
                 path="change-management"
-                element={<Navigate to="/dashboard/project-management?tab=change-management" replace />}
+                element={<Navigate to="/dashboard/project-management?tab=collaborator" replace />}
               />
               <Route path="planning-assets" element={<PlanningAssets />} />
               <Route path="planning-assets/:templateId" element={<EditTemplate />} />

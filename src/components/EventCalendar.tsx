@@ -4,14 +4,26 @@ import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CalendarIcon, Plus, Clock, MapPin, Users } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { CalendarIcon, Plus, Clock, MapPin, Users, Video } from "lucide-react";
 import { format, isSameDay, parseISO } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { getLifecycleTableBadge } from "@/lib/eventStatus";
 import { useCreateEventEntryPath } from "@/hooks/useCreateEventEntryPath";
-import { plannerToolsCopy } from "@/lib/nudges";
+import { commentsPlannerCopy, plannerSafeErrorToastDescription, plannerToolsCopy } from "@/lib/nudges";
+import { deriveCalendarEntryKind, stripCalendarKindPrefix } from "@/lib/calendarEntryKind";
 
 interface Event {
   id: string;
@@ -36,6 +48,13 @@ const EventCalendar = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
+  const [meetingOpen, setMeetingOpen] = useState(false);
+  const [meetingTitle, setMeetingTitle] = useState("");
+  const [meetingTime, setMeetingTime] = useState("09:00");
+  const [meetingVenue, setMeetingVenue] = useState("");
+  const [meetingNotes, setMeetingNotes] = useState("");
+  const [meetingAttendees, setMeetingAttendees] = useState("2");
+  const [savingMeeting, setSavingMeeting] = useState(false);
 
   // Fetch user's events from the database
   const fetchUserEvents = async () => {
@@ -45,14 +64,16 @@ const EventCalendar = () => {
       setLoading(true);
       const { data, error } = await supabase
         .from('events')
-        .select('*')
+        .select(
+          "id, title, start_date, end_date, archived, start_time, venue, expected_attendees, description, status, theme_id, type_id, event_types ( name )",
+        )
         .eq('user_id', user.id)
         .order('start_date', { ascending: true });
 
       if (error) throw error;
 
       // Transform database events to component format
-      const transformedEvents: Event[] = data?.map((event) => {
+      const transformedEvents: Event[] = (data || []).map((event: any) => {
         const start = event.start_date
           ? parseISO(String(event.start_date).split("T")[0])
           : new Date();
@@ -65,12 +86,16 @@ const EventCalendar = () => {
           archived: !!event.archived,
           start_time: event.start_time ? event.start_time.slice(0, 5) : "",
           location: event.venue || "TBD",
-          type: getEventTypeFromDatabase("general"),
+          type: deriveCalendarEntryKind({
+            title: event.title,
+            status: event.status,
+            event_types: event.event_types,
+          }),
           attendees: event.expected_attendees || 0,
           description: event.description || "",
           status: event.status ?? null,
         };
-      }) || [];
+      });
 
       setEvents(transformedEvents);
     } catch (error) {
@@ -85,18 +110,66 @@ const EventCalendar = () => {
     }
   };
 
-  // Helper function to map database event types to component types
-  const getEventTypeFromDatabase = (dbType: string): "meeting" | "event" | "deadline" | "other" => {
-    const typeMap: Record<string, "meeting" | "event" | "deadline" | "other"> = {
-      'meeting': 'meeting',
-      'conference': 'event',
-      'workshop': 'event',
-      'deadline': 'deadline',
-      'celebration': 'event',
-      'corporate': 'event',
-      'social': 'event'
-    };
-    return typeMap[dbType?.toLowerCase()] || 'event';
+  const saveMeetingToCalendar = async () => {
+    if (!user) return;
+    if (!selectedDate) {
+      toast({ title: "Pick a date", description: "Select a day on the calendar first.", variant: "destructive" });
+      return;
+    }
+    setSavingMeeting(true);
+    try {
+      const { data: last, error: lastErr } = await supabase
+        .from("events")
+        .select("theme_id, type_id")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (lastErr) throw lastErr;
+      if (!last?.theme_id || !last?.type_id) {
+        toast({
+          title: "Create an event first",
+          description: "We use your most recent event’s theme and category as defaults for quick meetings.",
+        });
+        navigate(createEventPath);
+        setMeetingOpen(false);
+        return;
+      }
+      const dateStr = format(selectedDate, "yyyy-MM-dd");
+      const titleBase = meetingTitle.trim() || "Planning meeting";
+      const attendeesNum = Math.max(1, parseInt(String(meetingAttendees).trim(), 10) || 2);
+      const { error: insErr } = await supabase.from("events").insert({
+        user_id: user.id,
+        title: `[Meeting] ${titleBase}`,
+        theme_id: last.theme_id,
+        type_id: last.type_id,
+        venue: meetingVenue.trim() || "TBD",
+        location: meetingVenue.trim() || null,
+        start_date: dateStr,
+        end_date: dateStr,
+        start_time: meetingTime ? `${meetingTime}:00` : "09:00:00",
+        budget: 0,
+        expected_attendees: attendeesNum,
+        description: meetingNotes.trim() || "Scheduled from Calendar.",
+        venue_booking_completed: false,
+      });
+      if (insErr) throw insErr;
+      toast({ title: "Meeting scheduled", description: "It appears on your calendar and in Manage Event." });
+      setMeetingOpen(false);
+      setMeetingTitle("");
+      setMeetingNotes("");
+      setMeetingVenue("");
+      setMeetingAttendees("2");
+      await fetchUserEvents();
+    } catch (e) {
+      toast({
+        title: "Could not schedule meeting",
+        description: plannerSafeErrorToastDescription(e, commentsPlannerCopy.toastGeneric),
+        variant: "destructive",
+      });
+    } finally {
+      setSavingMeeting(false);
+    }
   };
 
   useEffect(() => {
@@ -145,10 +218,16 @@ const EventCalendar = () => {
           <h2 className="text-2xl font-bold">Event Calendar</h2>
           <p className="text-muted-foreground">Manage and track your events and important dates</p>
         </div>
-        <Button onClick={() => navigate(createEventPath)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Event
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="outline" onClick={() => setMeetingOpen(true)}>
+            <Video className="h-4 w-4 mr-2" />
+            Schedule meeting
+          </Button>
+          <Button type="button" onClick={() => navigate(createEventPath)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Event
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -206,7 +285,7 @@ const EventCalendar = () => {
                     return (
                     <div key={event.id} className="border rounded-lg p-3 space-y-2">
                       <div className="flex items-center justify-between">
-                        <h4 className="font-semibold text-sm">{event.title}</h4>
+                        <h4 className="font-semibold text-sm">{stripCalendarKindPrefix(event.title)}</h4>
                       </div>
                       <div className="space-y-1 text-xs text-muted-foreground">
                         <div className="flex items-center gap-1">
@@ -242,14 +321,14 @@ const EventCalendar = () => {
                 <div className="text-center py-6 text-muted-foreground">
                   <CalendarIcon className="h-8 w-8 mx-auto mb-2 opacity-50" />
                   <p className="text-sm">No events scheduled for this date</p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="mt-2"
-                    onClick={() => navigate(createEventPath)}
-                  >
-                    Add Event
-                  </Button>
+                  <div className="mt-2 flex flex-wrap justify-center gap-2">
+                    <Button variant="outline" size="sm" type="button" onClick={() => setMeetingOpen(true)}>
+                      Schedule meeting
+                    </Button>
+                    <Button variant="outline" size="sm" type="button" onClick={() => navigate(createEventPath)}>
+                      Add Event
+                    </Button>
+                  </div>
                 </div>
               )}
             </CardContent>
@@ -265,7 +344,7 @@ const EventCalendar = () => {
                 {upcomingEvents.slice(0, 3).map((event) => (
                   <div key={event.id} className="flex items-center justify-between p-2 border rounded">
                     <div>
-                      <p className="font-medium text-sm">{event.title}</p>
+                      <p className="font-medium text-sm">{stripCalendarKindPrefix(event.title)}</p>
                       <p className="text-xs text-muted-foreground">
                         {event.date && format(event.date, "MMM dd")}
                         {event.start_time ? ' at ' + event.start_time : ''}
@@ -278,6 +357,76 @@ const EventCalendar = () => {
           </Card>
         </div>
       </div>
+
+      <Dialog open={meetingOpen} onOpenChange={setMeetingOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Schedule a meeting</DialogTitle>
+            <DialogDescription>
+              Creates a calendar entry for {selectedDate ? format(selectedDate, "MMM d, yyyy") : "the selected day"}.
+              Theme and category default to your most recent event so you can book working sessions quickly.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-1">
+            <div className="space-y-2">
+              <Label htmlFor="meet-title">Title</Label>
+              <Input
+                id="meet-title"
+                value={meetingTitle}
+                onChange={(e) => setMeetingTitle(e.target.value)}
+                placeholder="e.g. Site walkthrough"
+                maxLength={200}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="meet-time">Start time</Label>
+              <Input
+                id="meet-time"
+                type="time"
+                value={meetingTime}
+                onChange={(e) => setMeetingTime(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="meet-venue">Venue / room</Label>
+              <Input
+                id="meet-venue"
+                value={meetingVenue}
+                onChange={(e) => setMeetingVenue(e.target.value)}
+                placeholder="Optional"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="meet-att">Expected attendees</Label>
+              <Input
+                id="meet-att"
+                type="number"
+                min={1}
+                value={meetingAttendees}
+                onChange={(e) => setMeetingAttendees(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="meet-notes">Notes (optional)</Label>
+              <Textarea
+                id="meet-notes"
+                value={meetingNotes}
+                onChange={(e) => setMeetingNotes(e.target.value)}
+                rows={3}
+                placeholder="Dial-in, agenda, parking…"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="secondary" onClick={() => setMeetingOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="button" onClick={() => void saveMeetingToCalendar()} disabled={savingMeeting}>
+              {savingMeeting ? "Saving…" : "Save meeting"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

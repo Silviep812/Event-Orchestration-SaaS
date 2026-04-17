@@ -21,6 +21,7 @@ import {
   loadEventTypesByParentTag,
   loadSportingLeafEventTypes,
   SPORTING_THEME_V4_DESCRIPTION,
+  sportingTypeUiLabel,
   sportingUiName,
 } from "@/lib/themeEventTypeHierarchy";
 import { plannerToolsCopy } from "@/lib/nudges";
@@ -62,7 +63,7 @@ interface ThemeDetails {
   sportInlineTypes?: { id: number; name: string }[];
 }
 
-/** Coerce DB / PostgREST values that may not be strict booleans */
+/** Coerce API values that may not be strict booleans */
 function normalizePremium(value: unknown): boolean {
   if (value === true || value === 1) return true;
   if (value === false || value === 0 || value == null) return false;
@@ -453,7 +454,14 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
 
       const displayName = sportingUiName(t.name);
       const sportInlineTypes =
-        sportTheme && sportLeafTypes.length > 0 ? sportLeafTypes : undefined;
+        sportTheme && sportLeafTypes.length > 0
+          ? sportLeafTypes.map((row) => ({ ...row, name: sportingTypeUiLabel(row.name) || row.name }))
+          : undefined;
+
+      const dynamicTags = Object.keys(dynamicHierarchyByThemeId[t.id] ?? {});
+      if (/reunion|special event/i.test(lower) && dynamicTags.length > 0) {
+        tags = [...new Set([...tags, ...dynamicTags])];
+      }
 
       return {
         ...t,
@@ -464,7 +472,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
         sportInlineTypes,
       };
     });
-  }, [themes, retreatBranchTypes, browseHwHierarchy, sportLeafTypes]);
+  }, [themes, retreatBranchTypes, browseHwHierarchy, sportLeafTypes, dynamicHierarchyByThemeId]);
 
   const filteredAndSortedThemes = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
@@ -598,26 +606,38 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
     );
   };
 
-  /** V4 Sporting: theme row → visible type list (no nested “Sporting” tag dropdown). */
+  /** Sporting: same interaction pattern as other themes (badge + popover type list), not a standalone Select. */
   const renderSportingInlineTypes = (theme: ThemeDetails) => {
     const types = theme.sportInlineTypes;
     if (types?.length) {
+      const selectedId = selectedSubTypeIds[theme.id];
+      const picked = selectedId != null ? types.find((item) => item.id === selectedId) : undefined;
+      const badgeLabel = picked?.name ?? "Choose event type";
       return (
-        <div className="rounded-md border border-border bg-muted/20 p-3 space-y-2">
-          <p className="text-xs font-semibold text-foreground">Choose event type</p>
-          <ul className="space-y-1" role="list">
-            {types.map((item) => {
-              const picked = selectedSubTypes[theme.id] === item.name;
-              return (
-                <li key={item.id}>
+        <div className="flex flex-wrap gap-1">
+          <Popover>
+            <PopoverTrigger asChild>
+              <button type="button" className="inline-flex items-center gap-1">
+                <Badge
+                  variant="outline"
+                  className="text-xs cursor-pointer hover:bg-primary/10 transition-colors inline-flex items-center gap-1"
+                >
+                  {badgeLabel}
+                  <ChevronDown className="h-4 w-4 text-foreground ml-1 flex-shrink-0" />
+                </Badge>
+              </button>
+            </PopoverTrigger>
+            <PopoverContent
+              className="w-56 p-2 bg-popover border shadow-lg max-h-96 overflow-y-auto"
+              style={{ zIndex: 9999 }}
+              sideOffset={5}
+            >
+              <div className="space-y-1">
+                {types.map((item) => (
                   <button
+                    key={item.id}
                     type="button"
-                    className={[
-                      "w-full rounded-md border px-3 py-2 text-left text-sm transition-colors",
-                      picked
-                        ? "border-primary bg-primary/10"
-                        : "border-border hover:bg-accent hover:text-accent-foreground",
-                    ].join(" ")}
+                    className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
                     onClick={() => {
                       setSelectedSubTypes((prev) => ({ ...prev, [theme.id]: item.name }));
                       setSelectedSubTypeIds((prev) => ({ ...prev, [theme.id]: item.id }));
@@ -626,10 +646,10 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
                   >
                     {item.name}
                   </button>
-                </li>
-              );
-            })}
-          </ul>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
       );
     }
@@ -669,7 +689,6 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
                     <h3 className="text-lg font-semibold flex items-center gap-2">
                       {theme.name}
                       {isRecommended && <Badge variant="secondary" className="text-xs">Recommended</Badge>}
-                      {themeIsPremium(theme) && <Badge variant="outline" className="text-xs">Premium</Badge>}
                     </h3>
                     <p className="text-sm text-muted-foreground">{theme.description}</p>
                   </div>
@@ -728,7 +747,6 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
               <div className="flex items-center gap-2 flex-wrap">
                 <CardTitle className="text-lg leading-none">{theme.name}</CardTitle>
                 {isRecommended && <Badge variant="secondary" className="text-xs h-5 flex items-center">Recommended</Badge>}
-                {themeIsPremium(theme) && <Badge variant="outline" className="text-xs h-5 flex items-center">Premium</Badge>}
               </div>
               <CardDescription className="text-sm">{theme.description}</CardDescription>
             </div>

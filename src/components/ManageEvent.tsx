@@ -28,6 +28,7 @@ import {
   ClipboardList,
   Lock,
   Loader2,
+  ChevronUp,
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { format } from "date-fns";
@@ -40,6 +41,7 @@ import {
 } from "@/lib/nudges";
 import Analytics from "@/components/Analytics";
 import { TaskManager } from "@/components/TaskManager";
+import { EventChangeRequestsList } from "@/components/change-management/EventChangeRequestsList";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   dedupeSportThemesForPicker,
@@ -52,6 +54,9 @@ import {
   sportThemeRootCategoryDisplayLabel,
   sportingUiName,
 } from "@/lib/themeEventTypeHierarchy";
+import type { RolloutTiming } from "@/lib/changeRequestRollout";
+import { ROLLOUT_TIMING_LABELS, taskPriorityFromRollout } from "@/lib/changeRequestRollout";
+import { notifyStakeholdersUrgentChangeRequest } from "@/lib/urgentChangeRequestNotifications";
 
 interface ManageEventData {
   id?: string;
@@ -128,7 +133,7 @@ type UnifiedChangelogEntry =
 interface NewRequest {
   title: string;
   description: string;
-  priority: 'low' | 'medium' | 'high' | 'urgent';
+  rolloutTiming: RolloutTiming;
   type: 'change_request' | 'new_requirement' | 'issue';
 }
 
@@ -157,7 +162,7 @@ const ManageEvent = () => {
   const [newRequest, setNewRequest] = useState<NewRequest>({
     title: '',
     description: '',
-    priority: 'medium',
+    rolloutTiming: 'optional',
     type: 'change_request'
   });
   const [eventThemes, setEventThemes] = useState<EventTheme[]>([]);
@@ -211,9 +216,12 @@ const ManageEvent = () => {
   // Auto-save debounce
   const [saveTimeout, setSaveTimeout] = useState<NodeJS.Timeout | null>(null);
   const [budgetInput, setBudgetInput] = useState<string>('');
+  const [showBackToTop, setShowBackToTop] = useState(false);
 
   // Resource sync trigger
   const [resourceRefreshKey, setResourceRefreshKey] = useState(0);
+  /** Bumps `EventChangeRequestsList` after collaborator / Manage Event submissions. */
+  const [changeRequestRefreshKey, setChangeRequestRefreshKey] = useState(0);
 
   // Sync details to resources
   const syncDetailsToResources = async (eventData: ManageEventData) => {
@@ -617,6 +625,7 @@ const ManageEvent = () => {
             requested_by: user.id,
             description: `Event update (${changeEntries.length} field(s))`,
             status: "approved",
+            rollout_timing: "optional",
             field_changed: changeEntries.map(([f]) => f).join(", "),
             old_value: first?.[1]?.oldValue?.toString() ?? null,
             new_value: first?.[1]?.newValue?.toString() ?? null,
@@ -960,13 +969,19 @@ const ManageEvent = () => {
     }
     setSubmittingNewRequest(true);
     try {
+      const taskPriority = taskPriorityFromRollout(newRequest.rolloutTiming);
+      const coordTitle =
+        newRequest.rolloutTiming === "urgent"
+          ? `URGENT — New ${newRequest.type.replace("_", " ")}: ${newRequest.title.trim()}`
+          : `New ${newRequest.type.replace("_", " ")}: ${newRequest.title.trim()}`;
+
       const { data: taskRow, error: taskErr } = await supabase
         .from("tasks")
         .insert({
           title: `[${newRequest.type.replace(/_/g, " ")}] ${newRequest.title.trim()}`,
           description: newRequest.description.trim(),
           event_id: selectedEvent.id,
-          priority: newRequest.priority,
+          priority: taskPriority,
           status: "not_started",
           category: "Change Management",
           created_by: user.id,
@@ -981,7 +996,8 @@ const ManageEvent = () => {
           event_id: selectedEvent.id,
           description: newRequest.description.trim(),
           field_changed: "manage_event_new_request",
-          priority_tag: newRequest.priority,
+          priority_tag: taskPriority,
+          rollout_timing: newRequest.rolloutTiming,
           requested_by: user.id,
           status: "open",
           task_id: taskRow.id,
@@ -1004,17 +1020,31 @@ const ManageEvent = () => {
       }
 
       await supabase.rpc("notify_coordinators", {
-        p_title: `New ${newRequest.type.replace("_", " ")}: ${newRequest.title.trim()}`,
+        p_title: coordTitle,
         p_message: newRequest.description.trim(),
         p_type: "new_request",
         p_entity_type: "event",
         p_entity_id: selectedEvent.id,
       });
 
+      if (newRequest.rolloutTiming === "urgent" && user.id) {
+        try {
+          await notifyStakeholdersUrgentChangeRequest({
+            eventId: selectedEvent.id,
+            senderId: user.id,
+            requestTitle: newRequest.title.trim(),
+            requestDescription: newRequest.description.trim(),
+          });
+        } catch (e) {
+          console.warn("notifyStakeholdersUrgentChangeRequest:", e);
+        }
+      }
+
       if (typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent("iep-refetch-tasks"));
       }
       setResourceRefreshKey((k) => k + 1);
+      setChangeRequestRefreshKey((k) => k + 1);
       if (selectedEvent.id) {
         void fetchUnifiedChangelog(selectedEvent.id);
       }
@@ -1022,14 +1052,14 @@ const ManageEvent = () => {
       toast({
         title: "Request submitted",
         description:
-          "A task was added under Project Management → Tasks (Change Management). Open Tasks or Change Management to review.",
+          "A task and change request were added. Review them on this tab below, in Project Management → Task, or under Change Management.",
       });
 
       setNewRequestDialog(false);
       setNewRequest({
         title: "",
         description: "",
-        priority: "medium",
+        rolloutTiming: "optional",
         type: "change_request",
       });
     } catch (error) {
@@ -1263,6 +1293,39 @@ const ManageEvent = () => {
     }
   }, [selectedEvent?.id]);
 
+  /** After an approved CM change updates the event in another surface, refetch this event into state. */
+  useEffect(() => {
+    const id = selectedEvent?.id;
+    if (!id) return;
+    const onCascade = (ev: Event) => {
+      const detail = (ev as CustomEvent<{ eventId?: string }>).detail;
+      if (detail?.eventId !== id) return;
+      void (async () => {
+        const { data, error } = await supabase.from("events").select("*").eq("id", id).maybeSingle();
+        if (error || !data) return;
+        const row = data as ManageEventData;
+        const normalized: ManageEventData = {
+          ...row,
+          theme_id: row.theme_id ? Number(row.theme_id) : undefined,
+        };
+        setSelectedEvent(normalized);
+        setEvents((prev) => prev.map((e) => (e.id === id ? normalized : e)));
+        setResourceRefreshKey((k) => k + 1);
+      })();
+    };
+    window.addEventListener("iep-event-updated", onCascade);
+    return () => window.removeEventListener("iep-event-updated", onCascade);
+  }, [selectedEvent?.id]);
+
+  useEffect(() => {
+    const onScroll = () => {
+      setShowBackToTop(window.scrollY > 420);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   // Sync budget input with selectedEvent.budget
   useEffect(() => {
     if (selectedEvent && selectedEvent.budget !== undefined && selectedEvent.budget !== null) {
@@ -1326,6 +1389,7 @@ const ManageEvent = () => {
   }
 
   return (
+    <>
     <div className="container mx-auto p-4 lg:p-6 space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
@@ -1442,23 +1506,27 @@ const ManageEvent = () => {
                 </div>
                 
                 <div>
-                  <Label htmlFor="request-priority">Priority</Label>
+                  <Label htmlFor="request-rollout">Rollout timing</Label>
                   <Select
-                    value={newRequest.priority}
-                    onValueChange={(value: NewRequest['priority']) => 
-                      setNewRequest(prev => ({ ...prev, priority: value }))
+                    value={newRequest.rolloutTiming}
+                    onValueChange={(value: RolloutTiming) =>
+                      setNewRequest((prev) => ({ ...prev, rolloutTiming: value }))
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="request-rollout">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="low">Low</SelectItem>
-                      <SelectItem value="medium">Medium</SelectItem>
-                      <SelectItem value="high">High</SelectItem>
-                      <SelectItem value="urgent">Urgent</SelectItem>
+                      {(Object.keys(ROLLOUT_TIMING_LABELS) as RolloutTiming[]).map((k) => (
+                        <SelectItem key={k} value={k}>
+                          {ROLLOUT_TIMING_LABELS[k]}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Urgent sends in-app notifications to stakeholders for this event.
+                  </p>
                 </div>
                 
                 <div>
@@ -1598,28 +1666,30 @@ const ManageEvent = () => {
         <div className="lg:col-span-2 space-y-6">
           {selectedEvent ? (
             <Tabs defaultValue="details" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1 h-auto p-1 items-stretch">
-                <TabsTrigger value="details" className="flex items-center justify-center gap-1.5 text-xs sm:text-sm py-2 px-1.5 h-auto min-h-[2.75rem] whitespace-normal text-center leading-snug">
+              <div className="overflow-x-auto pb-1">
+                <TabsList className="grid grid-cols-5 min-w-[56rem] w-full h-auto p-1 gap-1 items-stretch">
+                <TabsTrigger value="details" className="min-w-0 flex items-center justify-center gap-1.5 text-xs sm:text-sm py-2 px-2 h-10 whitespace-nowrap text-center">
                   <Eye className="h-4 w-4 shrink-0" />
-                  Manage Event
+                  <span>Manage Event</span>
                 </TabsTrigger>
-                <TabsTrigger value="timeline" className="flex items-center justify-center gap-1.5 text-xs sm:text-sm py-2 px-1.5 h-auto min-h-[2.75rem] whitespace-normal text-center leading-snug">
+                <TabsTrigger value="timeline" className="min-w-0 flex items-center justify-center gap-1.5 text-xs sm:text-sm py-2 px-2 h-10 whitespace-nowrap text-center">
                   <CalendarIcon className="h-4 w-4 shrink-0" />
-                  Event Timeline
+                  <span>Event Timeline</span>
                 </TabsTrigger>
-                <TabsTrigger value="change-request" className="flex items-center justify-center gap-1.5 text-xs sm:text-sm py-2 px-1.5 h-auto min-h-[2.75rem] whitespace-normal text-center leading-snug">
+                <TabsTrigger value="change-request" className="min-w-0 flex items-center justify-center gap-1.5 text-xs sm:text-sm py-2 px-2 h-10 whitespace-nowrap text-center">
                   <ClipboardList className="h-4 w-4 shrink-0" />
-                  Create Change Request
+                  <span>Change requests</span>
                 </TabsTrigger>
-                <TabsTrigger value="analytics" className="flex items-center justify-center gap-1.5 text-xs sm:text-sm py-2 px-1.5 h-auto min-h-[2.75rem] whitespace-normal text-center leading-snug">
+                <TabsTrigger value="analytics" className="min-w-0 flex items-center justify-center gap-1.5 text-xs sm:text-sm py-2 px-2 h-10 whitespace-nowrap text-center">
                   <BarChart3 className="h-4 w-4 shrink-0" />
-                  Analytics
+                  <span>Analytics</span>
                 </TabsTrigger>
-                <TabsTrigger value="changelog" className="flex items-center justify-center gap-1.5 text-xs sm:text-sm py-2 px-1.5 h-auto min-h-[2.75rem] whitespace-normal text-center leading-snug">
+                <TabsTrigger value="changelog" className="min-w-0 flex items-center justify-center gap-1.5 text-xs sm:text-sm py-2 px-2 h-10 whitespace-nowrap text-center">
                   <History className="h-4 w-4 shrink-0" />
-                  <span className="break-words">Change Log ({unifiedChangelog.length})</span>
+                  <span>Change Log ({unifiedChangelog.length})</span>
                 </TabsTrigger>
               </TabsList>
+              </div>
 
               <TabsContent value="details">
                 <Card className="shadow-elegant border-0 bg-gradient-subtle">
@@ -2197,12 +2267,13 @@ const ManageEvent = () => {
                 </Card>
               </TabsContent>
 
-              <TabsContent value="change-request">
+              <TabsContent value="change-request" className="space-y-6">
                 <Card className="shadow-elegant border-0 bg-gradient-subtle">
                   <CardHeader className="border-b border-border/50">
                     <CardTitle>Create change request</CardTitle>
                     <p className="text-sm text-muted-foreground font-normal mt-1">
-                      Submissions create a task in Project Management → Tasks (same queue as Task Management). Coordinators are notified.
+                      Submissions create a task and an open change request for this event (same queue as Project
+                      Management → Task and → Change Management). Coordinators are notified.
                     </p>
                   </CardHeader>
                   <CardContent className="p-6 space-y-4">
@@ -2212,13 +2283,28 @@ const ManageEvent = () => {
                         Open change request form
                       </Button>
                       <Button type="button" variant="outline" asChild>
-                        <Link
-                          to={`/dashboard/project-management?eventId=${selectedEvent.id}`}
-                        >
+                        <Link to={`/dashboard/project-management?eventId=${selectedEvent.id}`}>
                           Open Project Management
                         </Link>
                       </Button>
                     </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="shadow-elegant border-0 bg-gradient-subtle">
+                  <CardHeader className="border-b border-border/50">
+                    <CardTitle>Review &amp; approve change requests</CardTitle>
+                    <p className="text-sm text-muted-foreground font-normal mt-1">
+                      Open requests from collaborators or from this page. Approve applies supported field updates to
+                      the linked task or event; reject closes the request.
+                    </p>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    <EventChangeRequestsList
+                      eventId={selectedEvent.id}
+                      refreshToken={changeRequestRefreshKey}
+                      compact
+                    />
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -2235,7 +2321,7 @@ const ManageEvent = () => {
                   <CardHeader className="border-b border-border/50">
                     <CardTitle>Add task assignment</CardTitle>
                     <p className="text-sm text-muted-foreground font-normal mt-1">
-                      Same task form as Project Management → Tasks. Open here or add tasks from the Timeline tab.
+                      Same task form as Project Management → Task. Open here or add tasks from the Timeline tab.
                     </p>
                   </CardHeader>
                   <CardContent className="p-6 space-y-4">
@@ -2267,9 +2353,9 @@ const ManageEvent = () => {
                     <CardTitle>Change History</CardTitle>
                     <p className="text-sm text-muted-foreground font-normal">
                       A running record of edits to this event and notable workspace actions. Saving details here updates the
-                      event; task work and approvals stay in{" "}
-                      <span className="font-medium text-foreground">Project Management</span> and{" "}
-                      <span className="font-medium text-foreground">Change Management</span>.
+                      event; task work and change approvals stay in{" "}
+                      <span className="font-medium text-foreground">Project Management</span> (Task / Change Management
+                      tabs) and on this page under <span className="font-medium text-foreground">Change requests</span>.
                     </p>
                   </CardHeader>
                   <CardContent className="p-0">
@@ -2385,6 +2471,19 @@ const ManageEvent = () => {
         </div>
       </div>
     </div>
+    {showBackToTop ? (
+      <Button
+        type="button"
+        size="icon"
+        className="fixed bottom-6 right-6 z-50 shadow-lg"
+        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        aria-label="Back to top"
+        title="Back to top"
+      >
+        <ChevronUp className="h-5 w-5" />
+      </Button>
+    ) : null}
+    </>
   );
 };
 

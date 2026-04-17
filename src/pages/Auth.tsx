@@ -8,8 +8,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { getAuthErrorDescription } from '@/lib/authErrors';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { MarketingTopBar } from '@/components/MarketingTopBar';
+import { supabase } from '@/integrations/supabase/client';
+import { getPostSignInDashboardPath } from '@/lib/createEventEntryPath';
+import { PRICING_TIERS_SUMMARY } from "@/lib/pricingSummaryCopy";
+import { recordMarketingTrialConversion } from "@/lib/recordMarketingTrialConversion";
 
 export default function Auth() {
   const [email, setEmail] = useState('');
@@ -29,9 +33,16 @@ export default function Auth() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (user) {
-      navigate('/dashboard');
-    }
+    if (!user) return;
+    let cancelled = false;
+    void (async () => {
+      const path = await getPostSignInDashboardPath(supabase);
+      if (cancelled) return;
+      navigate(path, { replace: true });
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [user, navigate]);
 
   const handleSignIn = async (e: React.FormEvent) => {
@@ -51,7 +62,6 @@ export default function Auth() {
         title: "Welcome back!",
         description: "You have been signed in successfully.",
       });
-      navigate('/dashboard');
     }
     
     setLoading(false);
@@ -61,11 +71,11 @@ export default function Auth() {
     e.preventDefault();
     setLoading(true);
     
-    const { error } = await signUp(email, password, {
+    const { error, user: newUser } = await signUp(email, password, {
       user_category: userCategory,
       user_type: userType,
     });
-    
+
     if (error) {
       toast({
         variant: "destructive",
@@ -73,6 +83,9 @@ export default function Auth() {
         description: getAuthErrorDescription(error),
       });
     } else {
+      if (newUser?.id) {
+        void recordMarketingTrialConversion(supabase, newUser.id);
+      }
       toast({
         title: "Check your email",
         description: "We've sent you a confirmation link to complete your registration.",
@@ -141,6 +154,20 @@ export default function Auth() {
     }
   };
 
+  if (user) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <MarketingTopBar page="auth" />
+        <div className="flex-1 flex flex-col items-center justify-center gap-3 bg-muted/30 p-6 text-center">
+          <Loader2 className="h-9 w-9 animate-spin text-muted-foreground" aria-hidden />
+          <p className="text-sm text-muted-foreground max-w-sm">
+            Taking you to the right place in your workspace…
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <MarketingTopBar page="auth" />
@@ -149,8 +176,9 @@ export default function Auth() {
         <Card>
           <CardHeader className="text-center">
             <CardTitle className="text-2xl">Welcome to IEP</CardTitle>
-            <CardDescription>
-              Sign in to your account or create a new one to get started
+            <CardDescription className="space-y-2">
+              <span className="block">Sign in to your account or create a new one to get started.</span>
+              <span className="block text-xs leading-snug text-muted-foreground">{PRICING_TIERS_SUMMARY}</span>
             </CardDescription>
           </CardHeader>
           <CardContent>

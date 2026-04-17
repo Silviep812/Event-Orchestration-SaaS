@@ -21,12 +21,6 @@ import { normalizeExternalUrl, openReservationUrl } from "@/lib/openExternalOrMa
 import { commentsPlannerCopy, workflowPlannerCopy } from "@/lib/nudges";
 import { formatDirectoryPrice } from "@/lib/formatDirectoryPrice";
 
-/*
- * If transportations / transportation_types are missing from the API, operators apply migrations
- * (e.g. 20260329190000_create_transportations_if_missing.sql, 20260413120000_seed_transportation_types_by_name.sql)
- * via Supabase SQL Editor or `supabase db push` — not shown in the UI.
- */
-
 function isMissingTableOrSchemaCacheError(message: string): boolean {
   const m = message.toLowerCase();
   return (

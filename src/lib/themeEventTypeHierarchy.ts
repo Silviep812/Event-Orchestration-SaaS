@@ -1,7 +1,6 @@
 /**
- * Health & Wellness and Retreats hierarchies load from `event_types` for the resolved `event_themes` row.
- * Reference data is seeded in Supabase migrations (search migrations for "Health & Wellness", "Peaceful", "Retreats").
- * If Browse / Create Event show empty type lists, apply pending migrations and ensure `theme_id` on `event_types` matches `event_themes.id`.
+ * Health & Wellness, Retreats, Meetup, Reunion, Special Event, and Sporting helpers load from `event_types`
+ * for the matching `event_themes` row.
  */
 import { supabase } from "@/integrations/supabase/client";
 
@@ -370,4 +369,16 @@ export async function loadSportingLeafEventTypes(): Promise<{ id: number; name: 
     seen.add(r.id);
     return true;
   });
+}
+
+/** Remove level qualifiers so Sporting type labels match other theme sizing/style. */
+export function sportingTypeUiLabel(name: string | null | undefined): string {
+  const raw = String(name ?? "").trim();
+  if (!raw) return "";
+  return raw
+    .replace(/\s*[-–]\s*(?:hs|high school|college|pro|professional)(?:\s*,\s*(?:hs|high school|college|pro|professional))*/gi, "")
+    .replace(/\((?:hs|high school|college|pro|professional)[^)]*\)/gi, "")
+    .replace(/\b(?:hs|high school|college|pro|professional)\b/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
 }

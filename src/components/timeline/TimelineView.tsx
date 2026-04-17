@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { format, addDays, isAfter, isBefore, isWithinInterval, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 import { computeEventLifecycle } from "@/lib/eventStatus";
+import { getMissingIepPrerequisites, shouldSkipIepPrerequisiteGuard } from "@/lib/taskBusinessRules";
 import { 
   CalendarIcon, 
   Clock, 
@@ -37,6 +38,10 @@ interface Task {
   dependencies?: string[];
   event_id?: string;
   due_date?: string;
+  category?: string | null;
+  checklist?: unknown;
+  assigned_coordinator_name?: string | null;
+  archived?: boolean;
 }
 
 interface TimelineViewProps {
@@ -395,6 +400,49 @@ const TimelineView = ({ eventId, refreshKey = 0 }: TimelineViewProps) => {
 
   const updateTask = async (taskId: string, updates: Partial<Task>) => {
     try {
+      const originalTask = tasks.find((t) => t.id === taskId);
+      const assignmentTouched = Object.prototype.hasOwnProperty.call(updates, "assigned_to");
+      const skipIep =
+        shouldSkipIepPrerequisiteGuard(updates as Record<string, unknown>) && !assignmentTouched;
+      if (originalTask && !skipIep) {
+        const effCategory =
+          updates.category !== undefined ? updates.category : originalTask.category;
+        const effChecklist =
+          updates.checklist !== undefined ? updates.checklist : originalTask.checklist;
+        const missing = getMissingIepPrerequisites(effCategory, effChecklist);
+        if (missing.length > 0) {
+          toast({
+            title: "Prerequisites incomplete",
+            description:
+              "Confirm all prerequisite items for this assignment type before saving timeline changes. Open the task in Project Management to check every prerequisite box.",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+
+      if (
+        assignmentTouched &&
+        updates.assigned_to &&
+        originalTask?.event_id
+      ) {
+        const { data: userClash } = await supabase
+          .from("tasks")
+          .select("id, title")
+          .eq("event_id", originalTask.event_id)
+          .eq("assigned_to", updates.assigned_to)
+          .neq("id", taskId)
+          .limit(1);
+        if (userClash && userClash.length > 0) {
+          toast({
+            title: "Assignee already has a task",
+            description: `Another task is already assigned to this user: "${userClash[0].title}".`,
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+
       // Update in Supabase first
       const { error } = await supabase
         .from('tasks')

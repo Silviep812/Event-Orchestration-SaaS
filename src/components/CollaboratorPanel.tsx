@@ -27,19 +27,23 @@ import {
   storageKeyForCollaboratorChecklists,
 } from "@/lib/collaboratorChecklists";
 import { Bell, Plus } from "lucide-react";
+import { Link as RouterLink } from "react-router-dom";
 import {
   commentsPlannerCopy,
   plannerSafeErrorToastDescription,
   plannerToolsCopy,
 } from "@/lib/nudges";
+import type { RolloutTiming } from "@/lib/changeRequestRollout";
+import { ROLLOUT_TIMING_LABELS, taskPriorityFromRollout } from "@/lib/changeRequestRollout";
+import { notifyStakeholdersUrgentChangeRequest } from "@/lib/urgentChangeRequestNotifications";
 
 type RequestType = "change_request" | "new_requirement" | "issue";
 
 interface CollaboratorPanelProps {
   selectedEventFilter: string;
-  /** After a change request is posted, parent can switch to Tasks tab */
+  /** After a change request is posted, parent can switch to the Task tab */
   onChangeRequestPosted?: () => void;
-  /** Switch PM to the Tasks tab (parent-controlled tabs) */
+  /** Switch PM to the Task tab (parent-controlled tabs) */
   onGoToTasksTab?: () => void;
 }
 
@@ -56,7 +60,7 @@ export function CollaboratorPanel({
   const [form, setForm] = useState({
     title: "",
     description: "",
-    priority: "medium" as "low" | "medium" | "high" | "urgent",
+    rolloutTiming: "optional" as RolloutTiming,
     type: "change_request" as RequestType,
   });
 
@@ -146,6 +150,11 @@ export function CollaboratorPanel({
     try {
       const typeLabel = form.type.replace(/_/g, " ");
       const taskTitle = `[${typeLabel}] ${form.title.trim()}`;
+      const taskPriority = taskPriorityFromRollout(form.rolloutTiming);
+      const coordTitle =
+        form.rolloutTiming === "urgent"
+          ? `URGENT — New ${typeLabel}: ${form.title.trim()}`
+          : `New ${typeLabel}: ${form.title.trim()}`;
 
       const { data: taskRow, error: taskErr } = await supabase
         .from("tasks")
@@ -153,7 +162,7 @@ export function CollaboratorPanel({
           title: taskTitle,
           description: form.description.trim(),
           event_id: eventId,
-          priority: form.priority,
+          priority: taskPriority,
           status: "not_started",
           category: "Change Management",
           created_by: user.id,
@@ -169,7 +178,8 @@ export function CollaboratorPanel({
           event_id: eventId,
           description: form.description.trim(),
           field_changed: "pm_collaborator_request",
-          priority_tag: form.priority,
+          priority_tag: taskPriority,
+          rollout_timing: form.rolloutTiming,
           requested_by: user.id,
           status: "open",
           task_id: taskId,
@@ -178,23 +188,38 @@ export function CollaboratorPanel({
       }
 
       await supabase.rpc("notify_coordinators", {
-        p_title: `New ${typeLabel}: ${form.title.trim()}`,
+        p_title: coordTitle,
         p_message: form.description.trim(),
         p_type: "new_request",
         p_entity_type: "event",
         p_entity_id: eventId,
       });
 
+      let sentDetail = "Coordinators have been notified.";
+      if (form.rolloutTiming === "urgent") {
+        try {
+          const n = await notifyStakeholdersUrgentChangeRequest({
+            eventId,
+            senderId: user.id,
+            requestTitle: form.title.trim(),
+            requestDescription: form.description.trim(),
+          });
+          if (n > 0) sentDetail += ` ${n} stakeholder(s) also received an in-app urgent alert.`;
+        } catch (e) {
+          console.warn("notifyStakeholdersUrgentChangeRequest:", e);
+        }
+      }
+
       toast({
         title: "Request sent",
-        description: "Coordinators have been notified.",
+        description: sentDetail,
       });
 
       setDialogOpen(false);
       setForm({
         title: "",
         description: "",
-        priority: "medium",
+        rolloutTiming: "optional",
         type: "change_request",
       });
       onChangeRequestPosted?.();
@@ -212,114 +237,28 @@ export function CollaboratorPanel({
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <CardTitle>Create change request</CardTitle>
-            <CardDescription>
-              Sends your request to coordinators. They review it with the rest of the event tasks.
-            </CardDescription>
-          </div>
-          <Button
-            type="button"
-            onClick={() => setDialogOpen(true)}
-            disabled={!eventId}
-            className="shrink-0"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Create change request
-          </Button>
+      <Card className="border-dashed">
+        <CardHeader>
+          <CardTitle className="text-base">Communication</CardTitle>
+          <CardDescription>
+            Use the sidebar Communication Hub for threaded discussion. Coordinators see the same event scope
+            there.
+          </CardDescription>
         </CardHeader>
-        {!eventId && (
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Choose an event at the top of the page to use change requests and checklists.
-            </p>
-          </CardContent>
-        )}
+        <CardContent className="flex flex-wrap gap-2">
+          <Button type="button" variant="secondary" size="sm" asChild>
+            <RouterLink to="/dashboard/comments">Open Communication Hub</RouterLink>
+          </Button>
+        </CardContent>
       </Card>
-
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="w-full max-w-md mx-auto">
-          <DialogHeader>
-            <DialogTitle>Create change request</DialogTitle>
-            <DialogDescription>
-              Coordinators get a notification and can open your request from the Tasks section.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="cr-title">Title</Label>
-              <Input
-                id="cr-title"
-                value={form.title}
-                onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                placeholder="Brief summary"
-              />
-            </div>
-            <div>
-              <Label>Type</Label>
-              <Select
-                value={form.type}
-                onValueChange={(v: RequestType) => setForm((f) => ({ ...f, type: v }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="change_request">Change Request</SelectItem>
-                  <SelectItem value="new_requirement">New Requirement</SelectItem>
-                  <SelectItem value="issue">Issue</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Priority</Label>
-              <Select
-                value={form.priority}
-                onValueChange={(v: "low" | "medium" | "high" | "urgent") =>
-                  setForm((f) => ({ ...f, priority: v }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="low">Low</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
-                  <SelectItem value="urgent">Urgent</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="cr-desc">Description</Label>
-              <Textarea
-                id="cr-desc"
-                value={form.description}
-                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                rows={4}
-                placeholder="What should change, and why?"
-              />
-            </div>
-            <Button
-              className="w-full"
-              disabled={submitting || !form.title.trim() || !form.description.trim()}
-              onClick={() => void submitChangeRequest()}
-            >
-              <Bell className="h-4 w-4 mr-2" />
-              {submitting ? "Submitting…" : "Submit & notify"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       <Card>
         <CardHeader>
-          <CardTitle>Team checklists</CardTitle>
+          <CardTitle>Task assignment collaborator checklists</CardTitle>
           <CardDescription>
-            Check off items as you go. Progress is saved on this device for this event only (
-            {completedCount}/{totalItems} done).
+            General readiness items for collaborators (saved on this device for this event:{" "}
+            {completedCount}/{totalItems} done). Per-task checklists tied to assignment type appear on each
+            task in Task Management and in the Task assignment section above.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -385,6 +324,111 @@ export function CollaboratorPanel({
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <CardTitle>Create change request</CardTitle>
+            <CardDescription>
+              Creates a coordinator task and change-management record. Coordinators review it in Task
+              Management and Manage Event alongside other work.
+            </CardDescription>
+          </div>
+          <Button
+            type="button"
+            onClick={() => setDialogOpen(true)}
+            disabled={!eventId}
+            className="shrink-0"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Create change request
+          </Button>
+        </CardHeader>
+        {!eventId && (
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Choose an event at the top of the page to use change requests and checklists.
+            </p>
+          </CardContent>
+        )}
+      </Card>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="w-full max-w-md mx-auto">
+          <DialogHeader>
+            <DialogTitle>Create change request</DialogTitle>
+            <DialogDescription>
+              Coordinators get a notification and can open your request from the Task tab.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="cr-title">Title</Label>
+              <Input
+                id="cr-title"
+                value={form.title}
+                onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                placeholder="Brief summary"
+              />
+            </div>
+            <div>
+              <Label>Type</Label>
+              <Select
+                value={form.type}
+                onValueChange={(v: RequestType) => setForm((f) => ({ ...f, type: v }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="change_request">Change Request</SelectItem>
+                  <SelectItem value="new_requirement">New Requirement</SelectItem>
+                  <SelectItem value="issue">Issue</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Rollout timing</Label>
+              <Select
+                value={form.rolloutTiming}
+                onValueChange={(v: RolloutTiming) => setForm((f) => ({ ...f, rolloutTiming: v }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(ROLLOUT_TIMING_LABELS) as RolloutTiming[]).map((k) => (
+                    <SelectItem key={k} value={k}>
+                      {ROLLOUT_TIMING_LABELS[k]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                Urgent timing also sends in-app alerts to people following this event.
+              </p>
+            </div>
+            <div>
+              <Label htmlFor="cr-desc">Description</Label>
+              <Textarea
+                id="cr-desc"
+                value={form.description}
+                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                rows={4}
+                placeholder="What should change, and why?"
+              />
+            </div>
+            <Button
+              className="w-full"
+              disabled={submitting || !form.title.trim() || !form.description.trim()}
+              onClick={() => void submitChangeRequest()}
+            >
+              <Bell className="h-4 w-4 mr-2" />
+              {submitting ? "Submitting…" : "Submit & notify"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {onGoToTasksTab && (
         <p className="text-sm text-muted-foreground flex flex-wrap items-center gap-2">
           <Button
@@ -393,7 +437,7 @@ export function CollaboratorPanel({
             className="h-auto p-0 text-primary"
             onClick={onGoToTasksTab}
           >
-            Open Tasks
+            Open Task tab
           </Button>
           <span>to review or assign work.</span>
         </p>

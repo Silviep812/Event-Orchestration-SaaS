@@ -1,6 +1,7 @@
 /**
- * Collaborator checklist templates (per assignment category).
- * Items are stored on `tasks.checklist.collaborator_checklist` as { [itemId]: boolean }.
+ * Collaborator checklist templates keyed by assignment category.
+ *
+ * Item ids are stable (`prefix-s{n}-i{m}`) so persisted `tasks.checklist.collaborator_checklist` survives copy edits.
  */
 
 export type CollaboratorSection = { title: string; items: { id: string; label: string }[] };
@@ -131,7 +132,7 @@ export const COLLABORATOR_TEMPLATES: Record<string, CollaboratorTemplate> = {
     sections: [
       sec("service_vendor", 0, "Pre-Engagement", [
         "Confirm scope of services",
-        "Review setup, equipment, and service needs",
+        "Review technical requirements",
         "Validate compatibility with venue",
         "Confirm staffing and equipment needs",
       ]),
@@ -223,7 +224,7 @@ export const COLLABORATOR_TEMPLATES: Record<string, CollaboratorTemplate> = {
         "Confirm entertainment type and format (band, DJ, speaker, performer, MC)",
         "Validate availability for event date and time window",
         "Confirm performance duration and set structure",
-        "Review staging, space, and production needs",
+        "Review technical, staging, and space requirements",
         "Confirm audience interaction or content constraints",
       ]),
       sec("entertainment", 1, "Contract & Compliance", [
@@ -240,7 +241,7 @@ export const COLLABORATOR_TEMPLATES: Record<string, CollaboratorTemplate> = {
       ]),
       sec("entertainment", 3, "Event-Day Execution", [
         "Confirm talent arrival and check-in",
-        "Complete soundcheck and rehearsal",
+        "Complete soundcheck / technical rehearsal",
         "Execute performance as scheduled",
         "Resolve on-site issues or timing adjustments",
       ]),
@@ -320,7 +321,7 @@ export const COLLABORATOR_TEMPLATES: Record<string, CollaboratorTemplate> = {
   external_vendor: {
     id: "external_vendor",
     title: "External Vendor Checklist",
-    role: "Third-party providers not covered by core service categories (e.g. photographers, florists, signage, merch)",
+    role: "Third-party providers not covered by core service categories (e.g. photographers, florists, signage, merch, specialty services)",
     sections: [
       sec("external_vendor", 0, "Engagement", [
         "Define scope of work and deliverables",

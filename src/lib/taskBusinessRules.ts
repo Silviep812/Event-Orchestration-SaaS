@@ -1,9 +1,11 @@
 /**
- * Business guidelines: task assignment types and task-dependency prerequisite gates per category.
+ * Task assignment categories and prerequisite gates for task dependencies.
  *
- * Prerequisite strings should match your published guidelines (order matters for successful events).
- * Enforced in Task Manager before save (`checklist.iep_prerequisites`), separate from change requests.
- * Collaborator checklists live in `collaboratorChecklists.ts` and Task Manager (`tasks.checklist`).
+ * Category `value` strings map to `tasks.category` (CSV of assignment types). Prerequisite labels match
+ * the dependency menu options; order is preserved. They are stored on tasks as
+ * `checklist.iep_prerequisites` (separate from change requests).
+ *
+ * Collaborator checklist templates live in `collaboratorChecklists.ts` and `tasks.checklist`.
  */
 
 export const TASK_ASSIGNMENT_CATEGORIES = [
@@ -34,7 +36,7 @@ export const DEPENDENCY_OPTIONS_BY_CATEGORY: Record<string, readonly string[]> =
   Hospitality: ["Amenities confirmed", "Final agenda approved"],
   /** Rent Service Vendor — tables, chairs, rental equipment */
   "Vendor Service Rental/Buy": ["Budget approval", "Rental availability"],
-  /** Service Vendor — security, cleaning, volunteers, tech (guidelines §9 vs rental) */
+  /** Service Vendor — §7 (security, volunteers, etc.); §9 has no dedicated row — operational gates */
   "Service Vendor": ["Budget approval", "Scope of services confirmed", "Venue compatibility confirmed"],
   /** External Vendor (Procurement) */
   Suppliers: ["Procurement approved", "Availability confirmed", "Contract signed"],
@@ -64,4 +66,42 @@ export function getDependencyOptionsForCategories(categoryCsv: string | null | u
     if (opts) opts.forEach((o) => set.add(o));
   }
   return Array.from(set);
+}
+
+/**
+ * Labels from §9 gates that are not recorded on `checklist.iep_prerequisites` (stored checked items only).
+ */
+export function getMissingIepPrerequisites(
+  category: string | null | undefined,
+  checklist: unknown,
+): string[] {
+  const required = getDependencyOptionsForCategories(category);
+  if (required.length === 0) return [];
+  const raw =
+    checklist &&
+    typeof checklist === "object" &&
+    !Array.isArray(checklist) &&
+    Array.isArray((checklist as Record<string, unknown>).iep_prerequisites)
+      ? ((checklist as Record<string, unknown>).iep_prerequisites as unknown[])
+      : [];
+  const confirmed = new Set(
+    raw
+      .filter((x): x is string => typeof x === "string")
+      .map((s) => s.trim())
+      .filter(Boolean),
+  );
+  return required.filter((label) => !confirmed.has(label));
+}
+
+/**
+ * Updates that only adjust due dates, archive flags, or manual coordinator names are allowed without
+ * re-checking IEP prerequisites (engine / housekeeping paths).
+ */
+export function shouldSkipIepPrerequisiteGuard(updates: Record<string, unknown>): boolean {
+  const keys = Object.keys(updates).filter((k) => updates[k] !== undefined);
+  if (keys.length === 0) return true;
+  if (keys.length === 1 && keys[0] === "due_date") return true;
+  if (keys.length === 1 && keys[0] === "archived") return true;
+  if (keys.length === 1 && keys[0] === "assigned_coordinator_name") return true;
+  return false;
 }

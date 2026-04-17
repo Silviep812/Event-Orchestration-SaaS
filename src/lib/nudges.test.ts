@@ -7,7 +7,7 @@ import {
 } from "./nudges";
 
 describe("plannerCommentsToastDescription", () => {
-  it("hides infra jargon for missing discussions table", () => {
+  it("returns friendly copy when the discussions table is unavailable", () => {
     const err = {
       message:
         "Could not find the table 'public.discussion_comments' in the schema cache — Perhaps you meant …",
@@ -30,7 +30,7 @@ describe("plannerCommentsToastDescription", () => {
 });
 
 describe("plannerSafeErrorToastDescription", () => {
-  it("hides Postgres-style errors", () => {
+  it("uses fallback for database-style errors", () => {
     expect(
       plannerSafeErrorToastDescription(
         { message: 'null value in column "foo" violates not-null constraint' },
