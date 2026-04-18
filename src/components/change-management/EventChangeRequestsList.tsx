@@ -31,6 +31,9 @@ type ChangeRequestRow = {
   event_id: string | null;
   new_value: string | null;
   old_value: string | null;
+  requested_by: string | null;
+  resolved_by: string | null;
+  resolved_at: string | null;
 };
 
 function rolloutTimingVariant(
@@ -60,6 +63,31 @@ function statusVariant(
   return "outline";
 }
 
+/** Open/pending first; among those, urgent rollout then newest. */
+function sortChangeRequestsForCoordinatorQueue(rows: ChangeRequestRow[]): ChangeRequestRow[] {
+  const actionable = (s: string | null) => {
+    const v = (s || "").toLowerCase();
+    return v === "open" || v === "pending";
+  };
+  const rolloutRank = (t: string | null | undefined) => {
+    const v = (t || "").toLowerCase();
+    if (v === "urgent") return 0;
+    if (v === "optional") return 1;
+    if (v === "deferred") return 2;
+    return 3;
+  };
+  return [...rows].sort((a, b) => {
+    const aa = actionable(a.status) ? 0 : 1;
+    const bb = actionable(b.status) ? 0 : 1;
+    if (aa !== bb) return aa - bb;
+    if (aa === 0) {
+      const ru = rolloutRank(a.rollout_timing) - rolloutRank(b.rollout_timing);
+      if (ru !== 0) return ru;
+    }
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  });
+}
+
 export type EventChangeRequestsListProps = {
   eventId: string;
   /** Increment from parent to force reload (e.g. after Refresh or new submission). */
@@ -80,6 +108,7 @@ export function EventChangeRequestsList({ eventId, refreshToken = 0, compact }: 
   const [loading, setLoading] = useState(false);
   const [actingId, setActingId] = useState<string | null>(null);
   const [taskTitles, setTaskTitles] = useState<Record<string, string>>({});
+  const [userDisplayNames, setUserDisplayNames] = useState<Record<string, string>>({});
   const [interpretCtx, setInterpretCtx] = useState<EventContextForInterpretation>({
     eventTitle: null,
     eventDate: null,
@@ -91,6 +120,7 @@ export function EventChangeRequestsList({ eventId, refreshToken = 0, compact }: 
     if (!eventId) {
       setRows([]);
       setTaskTitles({});
+      setUserDisplayNames({});
       return;
     }
     setLoading(true);
@@ -122,11 +152,11 @@ export function EventChangeRequestsList({ eventId, refreshToken = 0, compact }: 
       const { data, error } = await supabase
         .from("cm_change_requests")
         .select(
-          "id, created_at, description, field_changed, status, priority_tag, rollout_timing, task_id, event_id, new_value, old_value",
+          "id, created_at, description, field_changed, status, priority_tag, rollout_timing, task_id, event_id, new_value, old_value, requested_by, resolved_by, resolved_at",
         )
         .eq("event_id", eventId)
         .order("created_at", { ascending: false })
-        .limit(50);
+        .limit(100);
 
       if (error) {
         console.warn("cm_change_requests:", error);
@@ -137,6 +167,7 @@ export function EventChangeRequestsList({ eventId, refreshToken = 0, compact }: 
         });
         setRows([]);
         setTaskTitles({});
+        setUserDisplayNames({});
       } else {
         const rowsData = (data ?? []) as ChangeRequestRow[];
         const taskIds = [...new Set(rowsData.map((r) => r.task_id).filter(Boolean))] as string[];
@@ -148,8 +179,25 @@ export function EventChangeRequestsList({ eventId, refreshToken = 0, compact }: 
             titles[t.id] = t.title;
           });
         }
+        const profileUserIds = [
+          ...new Set(
+            rowsData.flatMap((r) => [r.requested_by, r.resolved_by].filter(Boolean) as string[]),
+          ),
+        ];
+        const names: Record<string, string> = {};
+        if (profileUserIds.length) {
+          const { data: rp, error: rpErr } = await supabase
+            .from("public_profiles")
+            .select("user_id, display_name")
+            .in("user_id", profileUserIds);
+          if (rpErr) console.warn("public_profiles (CM users):", rpErr);
+          (rp || []).forEach((p: { user_id: string; display_name: string | null }) => {
+            names[p.user_id] = p.display_name?.trim() || "Member";
+          });
+        }
         setTaskTitles(titles);
-        setRows(rowsData);
+        setUserDisplayNames(names);
+        setRows(sortChangeRequestsForCoordinatorQueue(rowsData));
       }
     } finally {
       setLoading(false);
@@ -176,9 +224,10 @@ export function EventChangeRequestsList({ eventId, refreshToken = 0, compact }: 
           compact ? "py-4 px-3" : "py-6"
         }`}
       >
-        No open queue items here yet. Collaborators submit from{" "}
-        <span className="font-medium text-foreground">Project Management → Collaborator</span>; owners may create
-        requests from this page or the <span className="font-medium text-foreground">Task</span> tab.
+        No change requests for this event yet. Collaborators can submit from{" "}
+        <span className="font-medium text-foreground">Project Management → Collaborator</span>. Event owners can add
+        one from <span className="font-medium text-foreground">Manage Event</span> (Change Management on that event) or
+        from <span className="font-medium text-foreground">Project Management → Task</span> where your role allows it.
       </p>
     );
   }
@@ -216,6 +265,32 @@ export function EventChangeRequestsList({ eventId, refreshToken = 0, compact }: 
                 {format(new Date(r.created_at), "MMM d, yyyy · h:mm a")}
               </span>
             </div>
+            {r.requested_by ? (
+              <p className="text-xs text-muted-foreground">
+                Submitted by{" "}
+                <span className="text-foreground font-medium">
+                  {userDisplayNames[r.requested_by]?.trim() || "Member"}
+                </span>
+              </p>
+            ) : null}
+            {r.resolved_at || r.resolved_by ? (
+              <p className="text-xs text-muted-foreground">
+                {r.resolved_at ? (
+                  <>Resolved {format(new Date(r.resolved_at), "MMM d, yyyy · h:mm a")}</>
+                ) : (
+                  <>Resolved</>
+                )}
+                {r.resolved_by ? (
+                  <>
+                    {" "}
+                    by{" "}
+                    <span className="text-foreground font-medium">
+                      {userDisplayNames[r.resolved_by]?.trim() || "Member"}
+                    </span>
+                  </>
+                ) : null}
+              </p>
+            ) : null}
             {r.description ? (
               <p className="text-foreground break-words">{r.description}</p>
             ) : (
@@ -234,36 +309,36 @@ export function EventChangeRequestsList({ eventId, refreshToken = 0, compact }: 
                 event: interpretCtx,
               });
               return (
-                <div className="rounded-md bg-muted/40 border px-2 py-2 text-xs space-y-1">
+                <div className="rounded-md bg-muted/40 border px-2 py-2 text-xs space-y-2 min-w-0">
                   <div className="font-medium text-foreground">Request interpretation</div>
-                  <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1">
-                    <div>
-                      <dt className="text-muted-foreground">Event</dt>
-                      <dd className="text-foreground">{interp.eventTitle || "—"}</dd>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3 min-w-0">
+                    <div className="min-w-0 space-y-0.5">
+                      <div className="text-muted-foreground">Event</div>
+                      <div className="text-foreground break-words">{interp.eventTitle || "—"}</div>
                     </div>
-                    <div>
-                      <dt className="text-muted-foreground">Event date</dt>
-                      <dd className="text-foreground">{interp.eventDate || "—"}</dd>
+                    <div className="min-w-0 space-y-0.5">
+                      <div className="text-muted-foreground">Event date</div>
+                      <div className="text-foreground break-words">{interp.eventDate || "—"}</div>
                     </div>
-                    <div>
-                      <dt className="text-muted-foreground">Change type</dt>
-                      <dd className="text-foreground">{interp.changeType || "—"}</dd>
+                    <div className="min-w-0 space-y-0.5">
+                      <div className="text-muted-foreground">Change type</div>
+                      <div className="text-foreground break-words">{interp.changeType || "—"}</div>
                     </div>
-                    <div>
-                      <dt className="text-muted-foreground">Theme</dt>
-                      <dd className="text-foreground">{interp.themeName || "—"}</dd>
+                    <div className="min-w-0 space-y-0.5">
+                      <div className="text-muted-foreground">Theme</div>
+                      <div className="text-foreground break-words">{interp.themeName || "—"}</div>
                     </div>
-                    <div className="sm:col-span-2">
-                      <dt className="text-muted-foreground">Category</dt>
-                      <dd className="text-foreground">{interp.categoryName || "—"}</dd>
+                    <div className="sm:col-span-2 min-w-0 space-y-0.5">
+                      <div className="text-muted-foreground">Category</div>
+                      <div className="text-foreground break-words">{interp.categoryName || "—"}</div>
                     </div>
                     {interp.subject ? (
-                      <div className="sm:col-span-2">
-                        <dt className="text-muted-foreground">Subject</dt>
-                        <dd className="text-foreground">{interp.subject}</dd>
+                      <div className="sm:col-span-2 min-w-0 space-y-0.5">
+                        <div className="text-muted-foreground">Subject</div>
+                        <div className="text-foreground break-words">{interp.subject}</div>
                       </div>
                     ) : null}
-                  </dl>
+                  </div>
                 </div>
               );
             })()}
@@ -272,9 +347,9 @@ export function EventChangeRequestsList({ eventId, refreshToken = 0, compact }: 
                 <span>Linked to a task in Task Management.</span>
                 <Button variant="link" className="h-auto p-0 text-xs" asChild>
                   <Link
-                    to={`/dashboard/project-management?eventId=${encodeURIComponent(eventId)}&tab=tasks`}
+                    to={`/dashboard/project-management?eventId=${encodeURIComponent(eventId)}&tab=tasks&taskId=${encodeURIComponent(r.task_id)}`}
                   >
-                    Open Task tab
+                    Open this task
                   </Link>
                 </Button>
               </p>
@@ -323,7 +398,15 @@ export function EventChangeRequestsList({ eventId, refreshToken = 0, compact }: 
                           resolved_by: user?.id ?? null,
                         })
                         .eq("id", r.id);
-                      if (error) throw error;
+                      if (error) {
+                        const details = plannerSafeErrorToastDescription(error, commentsPlannerCopy.toastGeneric);
+                        toast({
+                          title: "Could not mark request approved",
+                          description: `${details} If the event or task already changed, the update may have been applied—refresh this list to confirm the request status.`,
+                        });
+                        void load();
+                        return;
+                      }
                       const desc =
                         applied.appliedTo === "task"
                           ? "Task fields were updated where supported."
@@ -331,10 +414,15 @@ export function EventChangeRequestsList({ eventId, refreshToken = 0, compact }: 
                             ? "Event details were updated where supported."
                             : "Request approved. Unsupported fields are not auto-applied.";
                       toast({ title: "Approved", description: desc });
+                      window.dispatchEvent(
+                        new CustomEvent("iep-change-requests-updated", {
+                          detail: { eventId: r.event_id ?? eventId },
+                        }),
+                      );
                       void load();
                     } catch (e) {
                       toast({
-                        title: "Error",
+                        title: "Approve failed",
                         description: plannerSafeErrorToastDescription(e, commentsPlannerCopy.toastGeneric),
                         variant: "destructive",
                       });
@@ -363,12 +451,25 @@ export function EventChangeRequestsList({ eventId, refreshToken = 0, compact }: 
                           resolved_by: user?.id ?? null,
                         })
                         .eq("id", r.id);
-                      if (error) throw error;
+                      if (error) {
+                        toast({
+                          title: "Could not reject change request",
+                          description: plannerSafeErrorToastDescription(error, commentsPlannerCopy.toastGeneric),
+                          variant: "destructive",
+                        });
+                        void load();
+                        return;
+                      }
                       toast({ title: "Rejected", description: "Change request was rejected." });
+                      window.dispatchEvent(
+                        new CustomEvent("iep-change-requests-updated", {
+                          detail: { eventId: r.event_id ?? eventId },
+                        }),
+                      );
                       void load();
                     } catch (e) {
                       toast({
-                        title: "Error",
+                        title: "Reject failed",
                         description: plannerSafeErrorToastDescription(e, commentsPlannerCopy.toastGeneric),
                         variant: "destructive",
                       });

@@ -50,9 +50,12 @@ import {
   isSportThemeName,
   loadHealthWellnessEventTypeGroups,
   loadRetreatsEventTypeGroups,
-  loadSportingLeafEventTypes,
+  loadSportingDirectoryCategoryTypes,
   sportThemeRootCategoryDisplayLabel,
+  sportingSelectionTrailLabel,
+  sportingTypeUiLabel,
   sportingUiName,
+  type SportingCategoryGroup,
 } from "@/lib/themeEventTypeHierarchy";
 import type { RolloutTiming } from "@/lib/changeRequestRollout";
 import { ROLLOUT_TIMING_LABELS, taskPriorityFromRollout } from "@/lib/changeRequestRollout";
@@ -177,7 +180,11 @@ const ManageEvent = () => {
   const [hwCategoryKey, setHwCategoryKey] = useState<string>("");
   const [retreatBranchLabel, setRetreatBranchLabel] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
-  const [sportingLeafTypes, setSportingLeafTypes] = useState<{ id: number; name: string }[]>([]);
+  const [sportingDirectory, setSportingDirectory] = useState<Record<
+    string,
+    SportingCategoryGroup
+  > | null>(null);
+  const [sportingCategoryKey, setSportingCategoryKey] = useState("");
   const [showPastEvents, setShowPastEvents] = useState(false);
   /** When true, include archived events in the sidebar list (default: only active events). */
   const [showArchivedEvents, setShowArchivedEvents] = useState(false);
@@ -212,6 +219,19 @@ const ManageEvent = () => {
     if (isSportThemeName(selectedThemeName)) return "sporting";
     return "default";
   }, [selectedThemeName]);
+
+  const sportingSelectionTrail = useMemo(() => {
+    if (!sportingDirectory || !selectedEvent?.type_id) return null;
+    const tid = selectedEvent.type_id;
+    for (const key of Object.keys(sportingDirectory)) {
+      const leaf = (sportingDirectory[key]?.types ?? []).find((t) => t.id === tid);
+      if (leaf) {
+        const leafLabel = sportingTypeUiLabel(leaf.name) || leaf.name;
+        return sportingSelectionTrailLabel(key, leafLabel);
+      }
+    }
+    return null;
+  }, [sportingDirectory, selectedEvent?.type_id]);
 
   // Auto-save debounce
   const [saveTimeout, setSaveTimeout] = useState<NodeJS.Timeout | null>(null);
@@ -630,7 +650,13 @@ const ManageEvent = () => {
             old_value: first?.[1]?.oldValue?.toString() ?? null,
             new_value: first?.[1]?.newValue?.toString() ?? null,
           });
-          if (crErr) console.warn("cm_change_requests insert:", crErr);
+          if (crErr) {
+            console.warn("cm_change_requests insert:", crErr);
+            toast({
+              title: "Saved, but change request log failed",
+              description: plannerSafeErrorToastDescription(crErr, commentsPlannerCopy.toastGeneric),
+            });
+          }
         }
 
         setPendingChanges({});
@@ -822,6 +848,7 @@ const ManageEvent = () => {
     setSelectedCategoryId(null);
     setHwCategoryKey("");
     setRetreatBranchLabel("");
+    setSportingCategoryKey("");
 
     if (selectedEvent.id) {
       if (autoSave) {
@@ -919,6 +946,22 @@ const ManageEvent = () => {
     await clearEventTypeId(`Field "type_id" cleared (retreat branch change)`);
   };
 
+  const handleSportingLeafSelect = async (key: string, leafId: number) => {
+    if (!selectedEvent || !sportingDirectory) return;
+    const grp = sportingDirectory[key];
+    setSportingCategoryKey(key);
+    setSelectedCategoryId(grp?.categoryId ?? null);
+    await handleFieldChange("type_id", leafId);
+  };
+
+  const handleSportingCategorySelect = async (key: string) => {
+    if (!selectedEvent || !sportingDirectory) return;
+    const grp = sportingDirectory[key];
+    setSportingCategoryKey(key);
+    setSelectedCategoryId(grp?.categoryId ?? null);
+    await clearEventTypeId(`Field "type_id" cleared (Sporting category change)`);
+  };
+
   /** Restore event + its tasks to active (not archived). SOW: `events.archived` column; restore is product complement to archive. */
   const restoreArchivedEvent = async () => {
     if (!selectedEvent?.id || !selectedEvent.archived) return;
@@ -990,34 +1033,38 @@ const ManageEvent = () => {
         .select("id")
         .single();
       if (taskErr) throw taskErr;
-
-      if (taskRow?.id) {
-        const { error: crErr } = await supabase.from("cm_change_requests").insert({
-          event_id: selectedEvent.id,
-          description: newRequest.description.trim(),
-          field_changed: "manage_event_new_request",
-          priority_tag: taskPriority,
-          rollout_timing: newRequest.rolloutTiming,
-          requested_by: user.id,
-          status: "open",
-          task_id: taskRow.id,
-        });
-        if (crErr) console.warn("cm_change_requests:", crErr);
-
-        const { error: actErr } = await supabase.from("cm_activity" as any).insert({
-          event_id: selectedEvent.id,
-          entity_type: "task",
-          entity_id: taskRow.id,
-          action: "created",
-          changed_by: user.id,
-          metadata: {
-            source: "manage_event_new_request",
-            title: newRequest.title.trim(),
-            task_title: `[${newRequest.type.replace(/_/g, " ")}] ${newRequest.title.trim()}`,
-          },
-        });
-        if (actErr) console.warn("cm_activity (new request):", actErr);
+      if (!taskRow?.id) {
+        throw new Error("Task was not created; cannot attach a change request.");
       }
+
+      const { error: crErr } = await supabase.from("cm_change_requests").insert({
+        event_id: selectedEvent.id,
+        description: newRequest.description.trim(),
+        field_changed: "manage_event_new_request",
+        priority_tag: taskPriority,
+        rollout_timing: newRequest.rolloutTiming,
+        requested_by: user.id,
+        status: "open",
+        task_id: taskRow.id,
+      });
+      if (crErr) {
+        await supabase.from("tasks").delete().eq("id", taskRow.id);
+        throw crErr;
+      }
+
+      const { error: actErr } = await supabase.from("cm_activity" as any).insert({
+        event_id: selectedEvent.id,
+        entity_type: "task",
+        entity_id: taskRow.id,
+        action: "created",
+        changed_by: user.id,
+        metadata: {
+          source: "manage_event_new_request",
+          title: newRequest.title.trim(),
+          task_title: `[${newRequest.type.replace(/_/g, " ")}] ${newRequest.title.trim()}`,
+        },
+      });
+      if (actErr) console.warn("cm_activity (new request):", actErr);
 
       await supabase.rpc("notify_coordinators", {
         p_title: coordTitle,
@@ -1211,16 +1258,14 @@ const ManageEvent = () => {
   }, [user]);
 
   useEffect(() => {
-    void loadSportingLeafEventTypes().then(setSportingLeafTypes);
-  }, []);
-
-  useEffect(() => {
     if (!selectedEvent?.theme_id) {
       setEventTypes([]);
       setHwHierarchy(null);
       setRetreatHierarchy(null);
+      setSportingDirectory(null);
       setHwCategoryKey("");
       setRetreatBranchLabel("");
+      setSportingCategoryKey("");
       return;
     }
     if (eventThemes.length === 0) return;
@@ -1232,14 +1277,18 @@ const ManageEvent = () => {
       setEventTypes([]);
       void loadHealthWellnessEventTypeGroups().then(setHwHierarchy);
       setRetreatHierarchy(null);
+      setSportingDirectory(null);
       setRetreatBranchLabel("");
+      setSportingCategoryKey("");
       return;
     }
     if (isRetreatsThemeName(tname)) {
       setEventTypes([]);
       void loadRetreatsEventTypeGroups().then(setRetreatHierarchy);
       setHwHierarchy(null);
+      setSportingDirectory(null);
       setHwCategoryKey("");
+      setSportingCategoryKey("");
       return;
     }
     if (isSportThemeName(tname)) {
@@ -1248,14 +1297,28 @@ const ManageEvent = () => {
       setHwHierarchy(null);
       setHwCategoryKey("");
       setRetreatBranchLabel("");
+      setSportingCategoryKey("");
+      void loadSportingDirectoryCategoryTypes(tid)
+        .then(setSportingDirectory)
+        .catch((e) => {
+          console.error("loadSportingDirectoryCategoryTypes:", e);
+          setSportingDirectory({});
+          toast({
+            title: "Could not load Sporting categories",
+            description: plannerSafeErrorToastDescription(e, commentsPlannerCopy.toastGeneric),
+            variant: "destructive",
+          });
+        });
       return;
     }
     setHwHierarchy(null);
     setRetreatHierarchy(null);
+    setSportingDirectory(null);
     setHwCategoryKey("");
     setRetreatBranchLabel("");
+    setSportingCategoryKey("");
     void fetchEventTypes(tid);
-  }, [selectedEvent?.theme_id, eventThemes]);
+  }, [selectedEvent?.theme_id, eventThemes, toast]);
 
   useEffect(() => {
     if (user) fetchEvents();
@@ -1291,6 +1354,19 @@ const ManageEvent = () => {
     if (selectedEvent?.id) {
       void fetchUnifiedChangelog(selectedEvent.id);
     }
+  }, [selectedEvent?.id]);
+
+  useEffect(() => {
+    const id = selectedEvent?.id;
+    if (!id) return;
+    const onCmUpdated = (ev: Event) => {
+      const detail = (ev as CustomEvent<{ eventId?: string }>).detail;
+      if (detail?.eventId !== id) return;
+      void fetchUnifiedChangelog(id);
+      setChangeRequestRefreshKey((k) => k + 1);
+    };
+    window.addEventListener("iep-change-requests-updated", onCmUpdated);
+    return () => window.removeEventListener("iep-change-requests-updated", onCmUpdated);
   }, [selectedEvent?.id]);
 
   /** After an approved CM change updates the event in another surface, refetch this event into state. */
@@ -1379,6 +1455,22 @@ const ManageEvent = () => {
       }
     }
   }, [selectedEvent?.type_id, selectedEvent?.theme_id, retreatHierarchy, selectedThemeName]);
+
+  // Sporting: infer directory category + leaf from saved type_id
+  useEffect(() => {
+    if (!selectedEvent?.type_id || !selectedEvent.theme_id) return;
+    if (!isSportThemeName(selectedThemeName) || !sportingDirectory) return;
+    for (const key of Object.keys(sportingDirectory)) {
+      const grp = sportingDirectory[key];
+      if (!grp) continue;
+      const leaf = (grp.types ?? []).find((x) => x.id === selectedEvent.type_id);
+      if (leaf) {
+        setSportingCategoryKey(key);
+        setSelectedCategoryId(grp.categoryId);
+        return;
+      }
+    }
+  }, [selectedEvent?.type_id, selectedEvent?.theme_id, sportingDirectory, selectedThemeName]);
 
   if (loading) {
     return (
@@ -1666,27 +1758,42 @@ const ManageEvent = () => {
         <div className="lg:col-span-2 space-y-6">
           {selectedEvent ? (
             <Tabs defaultValue="details" className="space-y-4">
-              <div className="overflow-x-auto pb-1">
-                <TabsList className="grid grid-cols-5 min-w-[56rem] w-full h-auto p-1 gap-1 items-stretch">
-                <TabsTrigger value="details" className="min-w-0 flex items-center justify-center gap-1.5 text-xs sm:text-sm py-2 px-2 h-10 whitespace-nowrap text-center">
+              <div className="overflow-x-auto pb-1 -mx-1 px-1">
+                <TabsList className="grid w-full min-w-0 sm:min-w-[56rem] grid-cols-5 h-auto p-1 gap-1 items-stretch">
+                <TabsTrigger
+                  value="details"
+                  className="min-w-0 flex flex-col sm:flex-row items-center justify-center gap-1 text-xs sm:text-sm py-2 px-1.5 sm:px-2 h-auto min-h-10 text-center leading-tight whitespace-normal break-words"
+                >
                   <Eye className="h-4 w-4 shrink-0" />
-                  <span>Manage Event</span>
+                  <span className="max-w-[9rem] sm:max-w-none">Manage Event</span>
                 </TabsTrigger>
-                <TabsTrigger value="timeline" className="min-w-0 flex items-center justify-center gap-1.5 text-xs sm:text-sm py-2 px-2 h-10 whitespace-nowrap text-center">
+                <TabsTrigger
+                  value="timeline"
+                  className="min-w-0 flex flex-col sm:flex-row items-center justify-center gap-1 text-xs sm:text-sm py-2 px-1.5 sm:px-2 h-auto min-h-10 text-center leading-tight whitespace-normal break-words"
+                >
                   <CalendarIcon className="h-4 w-4 shrink-0" />
-                  <span>Event Timeline</span>
+                  <span className="max-w-[9rem] sm:max-w-none">Event Timeline</span>
                 </TabsTrigger>
-                <TabsTrigger value="change-request" className="min-w-0 flex items-center justify-center gap-1.5 text-xs sm:text-sm py-2 px-2 h-10 whitespace-nowrap text-center">
+                <TabsTrigger
+                  value="change-request"
+                  className="min-w-0 flex flex-col sm:flex-row items-center justify-center gap-1 text-xs sm:text-sm py-2 px-1.5 sm:px-2 h-auto min-h-10 text-center leading-tight whitespace-normal break-words"
+                >
                   <ClipboardList className="h-4 w-4 shrink-0" />
-                  <span>Change requests</span>
+                  <span className="max-w-[9rem] sm:max-w-none">Change requests</span>
                 </TabsTrigger>
-                <TabsTrigger value="analytics" className="min-w-0 flex items-center justify-center gap-1.5 text-xs sm:text-sm py-2 px-2 h-10 whitespace-nowrap text-center">
+                <TabsTrigger
+                  value="analytics"
+                  className="min-w-0 flex flex-col sm:flex-row items-center justify-center gap-1 text-xs sm:text-sm py-2 px-1.5 sm:px-2 h-auto min-h-10 text-center leading-tight whitespace-normal break-words"
+                >
                   <BarChart3 className="h-4 w-4 shrink-0" />
-                  <span>Analytics</span>
+                  <span className="max-w-[9rem] sm:max-w-none">Analytics</span>
                 </TabsTrigger>
-                <TabsTrigger value="changelog" className="min-w-0 flex items-center justify-center gap-1.5 text-xs sm:text-sm py-2 px-2 h-10 whitespace-nowrap text-center">
+                <TabsTrigger
+                  value="changelog"
+                  className="min-w-0 flex flex-col sm:flex-row items-center justify-center gap-1 text-xs sm:text-sm py-2 px-1.5 sm:px-2 h-auto min-h-10 text-center leading-tight whitespace-normal break-words"
+                >
                   <History className="h-4 w-4 shrink-0" />
-                  <span>Change Log ({unifiedChangelog.length})</span>
+                  <span className="max-w-[9rem] sm:max-w-none">Change Log ({unifiedChangelog.length})</span>
                 </TabsTrigger>
               </TabsList>
               </div>
@@ -1773,24 +1880,25 @@ const ManageEvent = () => {
                   </CardHeader>
                   
                   <CardContent className="space-y-6 p-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-6 [&>div]:min-w-0">
+                      <div className="space-y-1.5">
                         <Label htmlFor="title">Event Title</Label>
                         <Input
                           id="title"
+                          className="w-full min-w-0"
                           value={selectedEvent.title || ''}
                           onChange={(e) => handleFieldChange('title', e.target.value)}
                           placeholder="Enter event title"
                         />
                       </div>
                       
-                      <div>
+                      <div className="space-y-1.5">
                         <Label htmlFor="status">Event Status</Label>
                         <Select
                           value={selectedEvent.status || ''}
                           onValueChange={(value) => handleFieldChange('status', value)}
                         >
-                          <SelectTrigger>
+                          <SelectTrigger className="w-full min-w-0">
                             <SelectValue placeholder="Select status" />
                           </SelectTrigger>
                           <SelectContent>
@@ -1803,10 +1911,11 @@ const ManageEvent = () => {
                         </Select>
                       </div>
                       
-                      <div>
+                      <div className="space-y-1.5">
                         <Label htmlFor="start-date">Start Date</Label>
                         <Input
                           id="start-date"
+                          className="w-full min-w-0"
                           type="date"
                           value={selectedEvent.start_date || ''}
                           onChange={(e) => handleFieldChange('start_date', e.target.value)}
@@ -1814,10 +1923,11 @@ const ManageEvent = () => {
                         />
                       </div>
                       
-                      <div>
+                      <div className="space-y-1.5">
                         <Label htmlFor="end-date">End Date</Label>
                         <Input
                           id="end-date"
+                          className="w-full min-w-0"
                           type="date"
                           value={selectedEvent.end_date || ''}
                           onChange={(e) => handleFieldChange('end_date', e.target.value)}
@@ -1825,10 +1935,11 @@ const ManageEvent = () => {
                         />
                       </div>
                       
-                      <div>
+                      <div className="space-y-1.5">
                         <Label htmlFor="start-time">Start Time</Label>
                         <Input
                           id="start-time"
+                          className="w-full min-w-0"
                           type="time"
                           value={selectedEvent.start_time ? selectedEvent.start_time.slice(0, 5) : ''}
                           onChange={(e) => handleFieldChange('start_time', e.target.value)}
@@ -1836,10 +1947,11 @@ const ManageEvent = () => {
                         />
                       </div>
                       
-                      <div>
+                      <div className="space-y-1.5">
                         <Label htmlFor="end-time">End Time</Label>
                         <Input
                           id="end-time"
+                          className="w-full min-w-0"
                           type="time"
                           value={selectedEvent.end_time ? selectedEvent.end_time.slice(0, 5) : ''}
                           onChange={(e) => handleFieldChange('end_time', e.target.value)}
@@ -1876,13 +1988,13 @@ const ManageEvent = () => {
                         </div>
                       </div>
 
-                      <div>
+                      <div className="space-y-1.5">
                         <Label htmlFor="theme">Event theme</Label>
                         <Select
                           value={selectedEvent.theme_id?.toString() || ""}
                           onValueChange={(value) => void handleThemeSelect(parseInt(value, 10))}
                         >
-                          <SelectTrigger className="bg-background border-border z-50">
+                          <SelectTrigger className="w-full min-w-0 bg-background border-border z-50">
                             <SelectValue placeholder="Choose theme for this event" />
                           </SelectTrigger>
                           <SelectContent className="bg-background border-border shadow-lg z-50">
@@ -1898,13 +2010,13 @@ const ManageEvent = () => {
 
                       {themeHierarchyMode === "hw" && hwHierarchy && (
                         <>
-                          <div>
+                          <div className="space-y-1.5">
                             <Label>Category (Health &amp; Wellness)</Label>
                             <Select
                               value={hwCategoryKey || undefined}
                               onValueChange={(v) => void handleHwCategorySelect(v)}
                             >
-                              <SelectTrigger className="bg-background border-border z-50">
+                              <SelectTrigger className="w-full min-w-0 bg-background border-border z-50">
                                 <SelectValue placeholder="Select category" />
                               </SelectTrigger>
                               <SelectContent className="bg-background border-border shadow-lg z-50">
@@ -1922,13 +2034,16 @@ const ManageEvent = () => {
                             </Select>
                           </div>
                           {hwCategoryKey ? (
-                            <div>
+                            <div className="space-y-1.5">
                               <Label htmlFor="eventType-hw">Event type</Label>
                               <Select
                                 value={selectedEvent.type_id?.toString() || ""}
                                 onValueChange={(value) => handleFieldChange("type_id", parseInt(value, 10))}
                               >
-                                <SelectTrigger className="bg-background border-border z-50" id="eventType-hw">
+                                <SelectTrigger
+                                  className="w-full min-w-0 bg-background border-border z-50"
+                                  id="eventType-hw"
+                                >
                                   <SelectValue placeholder="Select specific event type" />
                                 </SelectTrigger>
                                 <SelectContent className="bg-background border-border shadow-lg z-50">
@@ -1946,13 +2061,13 @@ const ManageEvent = () => {
 
                       {themeHierarchyMode === "retreats" && retreatHierarchy && (
                         <>
-                          <div>
+                          <div className="space-y-1.5">
                             <Label>Retreat branch</Label>
                             <Select
                               value={retreatBranchLabel}
                               onValueChange={(b) => void handleRetreatBranchSelect(b)}
                             >
-                              <SelectTrigger className="bg-background border-border z-50">
+                              <SelectTrigger className="w-full min-w-0 bg-background border-border z-50">
                                 <SelectValue placeholder="Select branch" />
                               </SelectTrigger>
                               <SelectContent className="bg-background border-border shadow-lg z-50">
@@ -1965,13 +2080,16 @@ const ManageEvent = () => {
                             </Select>
                           </div>
                           {retreatBranchLabel ? (
-                            <div>
+                            <div className="space-y-1.5">
                               <Label htmlFor="eventType-retreat">Event type</Label>
                               <Select
                                 value={selectedEvent.type_id?.toString() || ""}
                                 onValueChange={(value) => handleFieldChange("type_id", parseInt(value, 10))}
                               >
-                                <SelectTrigger className="bg-background border-border z-50" id="eventType-retreat">
+                                <SelectTrigger
+                                  className="w-full min-w-0 bg-background border-border z-50"
+                                  id="eventType-retreat"
+                                >
                                   <SelectValue placeholder="Select specific event type" />
                                 </SelectTrigger>
                                 <SelectContent className="bg-background border-border shadow-lg z-50">
@@ -1988,37 +2106,71 @@ const ManageEvent = () => {
                       )}
 
                       {themeHierarchyMode === "sporting" && (
-                        <div>
-                          <Label htmlFor="eventType-sporting">Event type</Label>
-                          <Select
-                            value={selectedEvent.type_id?.toString() || ""}
-                            onValueChange={(value) => handleFieldChange("type_id", parseInt(value, 10))}
-                            disabled={!selectedEvent.theme_id}
-                          >
-                            <SelectTrigger className="bg-background border-border z-50" id="eventType-sporting">
-                              <SelectValue
-                                placeholder={selectedEvent.theme_id ? "Select event type" : "Select theme first"}
-                              />
-                            </SelectTrigger>
-                            <SelectContent className="bg-background border-border shadow-lg z-50">
-                              {sportingLeafTypes.map((row) => (
-                                <SelectItem key={row.id} value={row.id.toString()}>
-                                  {row.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          {selectedEvent.theme_id && sportingLeafTypes.length === 0 ? (
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {plannerToolsCopy.sportingTypesUnavailable}
-                            </p>
-                          ) : null}
-                        </div>
+                        <>
+                          {sportingDirectory == null ? (
+                            <p className="text-sm text-muted-foreground">Loading event categories…</p>
+                          ) : (
+                            <>
+                              <div className="space-y-1.5">
+                                <Label>Event category (Sporting)</Label>
+                                <Select
+                                  value={sportingCategoryKey || undefined}
+                                  onValueChange={(key) => void handleSportingCategorySelect(key)}
+                                  disabled={!selectedEvent.theme_id}
+                                >
+                                  <SelectTrigger className="w-full min-w-0 bg-background border-border z-50">
+                                    <SelectValue placeholder="Select sporting category" />
+                                  </SelectTrigger>
+                                  <SelectContent className="bg-background border-border shadow-lg z-50">
+                                    {Object.keys(sportingDirectory)
+                                      .sort((a, b) => a.localeCompare(b))
+                                      .map((key) => (
+                                        <SelectItem key={key} value={key}>
+                                          {sportingTypeUiLabel(key) || key}
+                                        </SelectItem>
+                                      ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              {sportingCategoryKey ? (
+                                <div className="space-y-1.5">
+                                  <Label htmlFor="eventType-sporting">Event type</Label>
+                                  <Select
+                                    id="eventType-sporting"
+                                    value={selectedEvent.type_id?.toString() || ""}
+                                    onValueChange={(value) =>
+                                      void handleSportingLeafSelect(sportingCategoryKey, parseInt(value, 10))
+                                    }
+                                  >
+                                    <SelectTrigger className="w-full min-w-0 bg-background border-border z-50">
+                                      <SelectValue placeholder="Select event type" />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-background border-border shadow-lg z-50">
+                                      {(sportingDirectory[sportingCategoryKey]?.types ?? []).map((row) => (
+                                        <SelectItem key={row.id} value={row.id.toString()}>
+                                          {sportingTypeUiLabel(row.name) || row.name}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              ) : null}
+                              {sportingSelectionTrail ? (
+                                <p className="text-sm text-foreground mt-1">{sportingSelectionTrail}</p>
+                              ) : null}
+                              {selectedEvent.theme_id && Object.keys(sportingDirectory).length === 0 ? (
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {plannerToolsCopy.sportingTypesUnavailable}
+                                </p>
+                              ) : null}
+                            </>
+                          )}
+                        </>
                       )}
 
                       {themeHierarchyMode === "default" && (
                         <>
-                          <div>
+                          <div className="space-y-1.5">
                             <Label htmlFor="eventCategory">Event Category</Label>
                             <Select
                               value={selectedCategoryId?.toString() || ""}
@@ -2032,7 +2184,10 @@ const ManageEvent = () => {
                               }}
                               disabled={!selectedEvent.theme_id}
                             >
-                              <SelectTrigger className="bg-background border-border z-50" id="eventCategory">
+                              <SelectTrigger
+                                className="w-full min-w-0 bg-background border-border z-50"
+                                id="eventCategory"
+                              >
                                 <SelectValue
                                   placeholder={
                                     selectedEvent.theme_id ? "Select event category" : "Select theme first"
@@ -2051,14 +2206,17 @@ const ManageEvent = () => {
                             </Select>
                           </div>
 
-                          <div>
+                          <div className="space-y-1.5">
                             <Label htmlFor="eventType">Event Type</Label>
                             <Select
                               value={selectedEvent.type_id?.toString() || ""}
                               onValueChange={(value) => handleFieldChange("type_id", parseInt(value, 10))}
                               disabled={!selectedCategoryId}
                             >
-                              <SelectTrigger className="bg-background border-border z-50" id="eventType">
+                              <SelectTrigger
+                                className="w-full min-w-0 bg-background border-border z-50"
+                                id="eventType"
+                              >
                                 <SelectValue
                                   placeholder={
                                     selectedCategoryId ? "Select event type" : "Select category first"
@@ -2090,27 +2248,29 @@ const ManageEvent = () => {
                         </>
                       )}
 
-                      <div>
+                      <div className="space-y-1.5">
                         <Label htmlFor="venue">Venue</Label>
                         <Input
                           id="venue"
+                          className="w-full min-w-0"
                           value={selectedEvent.venue || ''}
                           onChange={(e) => handleFieldChange('venue', e.target.value)}
                           placeholder="Enter venue name"
                         />
                       </div>
                       
-                      <div>
+                      <div className="space-y-1.5">
                         <Label htmlFor="location">Location</Label>
                         <Input
                           id="location"
+                          className="w-full min-w-0"
                           value={selectedEvent.location || ''}
                           onChange={(e) => handleFieldChange('location', e.target.value)}
                           placeholder="Enter event location"
                         />
                       </div>
 
-                      <div className="md:col-span-2 space-y-2 border rounded-md p-3 bg-muted/30">
+                      <div className="md:col-span-2 space-y-2 border rounded-md p-3 bg-muted/30 min-w-0">
                         <Label>Entertainment profiles (optional)</Label>
                         <p className="text-xs text-muted-foreground">Select one or more. Filter by type to narrow the list.</p>
                         <Select
@@ -2119,7 +2279,7 @@ const ManageEvent = () => {
                             setSelectedEntTypeFilter(v === "__all__" ? null : Number(v))
                           }
                         >
-                          <SelectTrigger>
+                          <SelectTrigger className="w-full min-w-0">
                             <SelectValue placeholder="All entertainment types" />
                           </SelectTrigger>
                           <SelectContent>
@@ -2138,20 +2298,21 @@ const ManageEvent = () => {
                                 selectedEntTypeFilter == null || o.ent_type_id === selectedEntTypeFilter
                             )
                             .map((o) => (
-                              <label key={o.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                              <label key={o.id} className="flex items-start gap-2 text-sm cursor-pointer min-w-0">
                                 <Checkbox
+                                  className="mt-0.5 shrink-0"
                                   checked={selectedEntIds.includes(o.id)}
                                   onCheckedChange={(c) =>
                                     toggleEntertainmentId(o.id, c === true)
                                   }
                                 />
-                                <span>{o.business_name}</span>
+                                <span className="min-w-0 break-words">{o.business_name}</span>
                               </label>
                             ))}
                         </div>
                       </div>
 
-                      <div className="md:col-span-2 space-y-2 border rounded-md p-3 bg-muted/30">
+                      <div className="md:col-span-2 space-y-2 border rounded-md p-3 bg-muted/30 min-w-0">
                         <Label>External vendor (optional)</Label>
                         <p className="text-xs text-muted-foreground">
                           Procurement vendors from External Vendors in the sidebar (not equipment rentals). Select one or more.
@@ -2162,7 +2323,7 @@ const ManageEvent = () => {
                             setSelectedSupplierCategoryFilter(v === "__all__" ? null : Number(v))
                           }
                         >
-                          <SelectTrigger>
+                          <SelectTrigger className="w-full min-w-0">
                             <SelectValue placeholder="All categories" />
                           </SelectTrigger>
                           <SelectContent>
@@ -2182,23 +2343,25 @@ const ManageEvent = () => {
                                 o.category_id === selectedSupplierCategoryFilter
                             )
                             .map((o) => (
-                              <label key={o.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                              <label key={o.id} className="flex items-start gap-2 text-sm cursor-pointer min-w-0">
                                 <Checkbox
+                                  className="mt-0.5 shrink-0"
                                   checked={selectedSvcIds.includes(o.id)}
                                   onCheckedChange={(c) =>
                                     toggleServiceVendorId(o.id, c === true)
                                   }
                                 />
-                                <span>{o.business_name}</span>
+                                <span className="min-w-0 break-words">{o.business_name}</span>
                               </label>
                             ))}
                         </div>
                       </div>
                       
-                      <div>
+                      <div className="space-y-1.5">
                         <Label htmlFor="budget">Budget</Label>
                         <Input
                           id="budget"
+                          className="w-full min-w-0"
                           type="number"
                           value={budgetInput}
                           onChange={(e) => setBudgetInput(e.target.value)}
@@ -2220,10 +2383,11 @@ const ManageEvent = () => {
                         />
                       </div>
                       
-                      <div className="md:col-span-2">
+                      <div className="md:col-span-2 space-y-1.5 min-w-0">
                         <Label htmlFor="description">Description</Label>
                         <Textarea
                           id="description"
+                          className="w-full min-w-0"
                           value={selectedEvent.description || ''}
                           onChange={(e) => handleFieldChange('description', e.target.value)}
                           placeholder="Enter event description"
@@ -2368,7 +2532,7 @@ const ManageEvent = () => {
                               className="p-4 border-b border-border/30"
                             >
                               <div className="flex items-start justify-between gap-4">
-                                <div className="flex-1">
+                                <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2 mb-1 flex-wrap">
                                     <Badge variant="secondary" className="text-[10px]">
                                       Field change
@@ -2383,7 +2547,7 @@ const ManageEvent = () => {
                                     )}
                                   </div>
                                   {entry.log.change_description && (
-                                    <p className="text-sm text-foreground mb-2">
+                                    <p className="text-sm text-foreground mb-2 break-words min-w-0">
                                       {entry.log.change_description}
                                     </p>
                                   )}

@@ -14,7 +14,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { GripVertical, MessageSquare } from "lucide-react";
+import { GripVertical, MessageSquare, Package } from "lucide-react";
 import { format } from "date-fns";
 
 export type KanbanTaskStatus = "not_started" | "in_progress" | "completed" | "on_hold" | "cancelled";
@@ -28,6 +28,8 @@ export interface KanbanTask {
   assigned_coordinator_name?: string | null;
   assigned_user_name?: string | null;
   category?: string;
+  /** From `tasks.resource_assignments` — count of linked event resources */
+  linked_resource_count?: number;
 }
 
 const COLUMN_IDS = {
@@ -145,6 +147,12 @@ function KanbanDraggableCard({
               {categoryLabel ? (
                 <Badge variant="secondary" className="max-w-full truncate text-[10px] font-normal">
                   {categoryLabel}
+                </Badge>
+              ) : null}
+              {(task.linked_resource_count ?? 0) > 0 ? (
+                <Badge variant="outline" className="text-[10px] font-normal gap-0.5 px-1.5">
+                  <Package className="h-3 w-3" aria-hidden />
+                  {task.linked_resource_count}
                 </Badge>
               ) : null}
             </div>

@@ -26,6 +26,7 @@ import {
   MessageSquare,
   LayoutGrid,
   Columns3,
+  Package,
 } from "lucide-react";
 import { format } from "date-fns";
 import { createTaskSchema } from "@/lib/validation/taskValidation";
@@ -38,7 +39,8 @@ import {
 import {
   canMarkTaskCompleted,
   getAllItemIdsForTemplate,
-  getCollaboratorTemplateForCategory,
+  getCollaboratorTemplatesForCategories,
+  parseAssignmentCategoryCsv,
 } from "@/lib/collaboratorChecklists";
 import { CollaboratorChecklistSection } from "@/components/tasks/CollaboratorChecklistSection";
 import { COUNTDOWN_TASK_TEMPLATES, dueDateIsoDaysBeforeEvent } from "@/lib/countdownTaskTemplates";
@@ -50,6 +52,10 @@ import type { FollowUpIssueItem } from "@/lib/followUpIssues";
 import { mergeFollowUpIssuesIntoChecklist, parseFollowUpIssuesFromChecklist } from "@/lib/followUpIssues";
 import { TaskDiscussionSheet } from "@/components/communications/TaskDiscussionSheet";
 import { TaskKanbanBoard, type KanbanTask } from "@/components/tasks/TaskKanbanBoard";
+import {
+  buildTaskResourceAssignmentsPayload,
+  parseTaskResourceAssignments,
+} from "@/lib/taskResourceAssignments";
 
 interface Task {
   id: string;
@@ -81,6 +87,8 @@ interface Task {
   category?: string; // Task category by role type (Bookings, Venue, etc.)
   /** Stored prerequisite labels confirmed for this assignment (`iep_prerequisites`). */
   checklist?: Record<string, unknown> | null;
+  /** Event resources linked to this task (`{ links: [{ resource_id, name? }] }`). */
+  resource_assignments?: Record<string, unknown> | null;
 }
 
 interface AvailableTask {
@@ -90,6 +98,7 @@ interface AvailableTask {
   assigned_user_id?: string;
   assigned_user_name?: string;
   category?: string;
+  event_id?: string | null;
 }
 
 interface User {
@@ -105,6 +114,11 @@ interface TaskManagerProps {
   embedInManageEvent?: boolean;
   /** When true, omits the main "Task Management" (or embed) title block; use inside PM Collaborators where the tab is the heading. */
   suppressPrimaryHeading?: boolean;
+  /**
+   * When true, `?taskId=` on the current route opens the edit dialog for that task after the list loads, then removes
+   * the param. Use only on the primary PM Task tab instance — a second TaskManager is mounted on Collaborator.
+   */
+  openTaskFromSearchParams?: boolean;
 }
 
 const statusColors = {
@@ -138,18 +152,22 @@ const statusIcons = {
   cancelled: AlertCircle
 };
 
-/** Radix Select forbids SelectItem value=""; use this for "General / unset" instead. */
-const TASK_CATEGORY_NONE = "__none__";
-
-function toggleCategoryCsv(csv: string, value: string, checked: boolean): string {
-  const set = new Set(csv.split(",").map((s) => s.trim()).filter(Boolean));
-  if (checked) set.add(value);
-  else set.delete(value);
-  return Array.from(set).join(",");
+function hasAtLeastOneCategory(csv: string | undefined): boolean {
+  const parts = parseAssignmentCategoryCsv(csv);
+  if (parts.length === 0) return false;
+  return parts.some((p) => TASK_ASSIGNMENT_CATEGORIES.some((c) => c.value === p));
 }
 
-function hasAtLeastOneCategory(csv: string | undefined): boolean {
-  return Boolean(csv?.split(",").map((s) => s.trim()).filter(Boolean).length);
+/** Preserve unknown CSV tokens (e.g. legacy types) while reordering known assignment types. */
+function buildCategoryCsvFromKnownSelection(
+  selectedKnown: Set<string>,
+  preservedCsv: string | undefined,
+): string {
+  const unknown = parseAssignmentCategoryCsv(preservedCsv).filter(
+    (p) => !TASK_ASSIGNMENT_CATEGORIES.some((c) => c.value === p),
+  );
+  const ordered = TASK_ASSIGNMENT_CATEGORIES.map((c) => c.value).filter((v) => selectedKnown.has(v));
+  return [...unknown, ...ordered].filter(Boolean).join(",");
 }
 
 /** When the user leaves the title blank, derive a readable default from selected assignment types. */
@@ -225,6 +243,7 @@ export function TaskManager({
   selectedEventFilter,
   embedInManageEvent,
   suppressPrimaryHeading = false,
+  openTaskFromSearchParams = false,
 }: TaskManagerProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -281,6 +300,13 @@ export function TaskManager({
   const [editCollaboratorChecklist, setEditCollaboratorChecklist] = useState<Record<string, boolean>>({});
   const [editFollowUps, setEditFollowUps] = useState<FollowUpIssueItem[]>([]);
   const [showFollowUpsOnly, setShowFollowUpsOnly] = useState(false);
+  /** Event resources + selection for “Assign resources to task” in edit dialog */
+  const [eventResourcesForEdit, setEventResourcesForEdit] = useState<Array<{ id: string; name: string }>>([]);
+  const [eventResourcesLoading, setEventResourcesLoading] = useState(false);
+  const [editResourceLinkIds, setEditResourceLinkIds] = useState<string[]>([]);
+  const [createEventResources, setCreateEventResources] = useState<Array<{ id: string; name: string }>>([]);
+  const [createEventResourcesLoading, setCreateEventResourcesLoading] = useState(false);
+  const [createResourceLinkIds, setCreateResourceLinkIds] = useState<string[]>([]);
   /** Collaborator checklist on Add task (saved with new task) */
   const [createCollaboratorChecklist, setCreateCollaboratorChecklist] = useState<Record<string, boolean>>({});
   const [dependencySearchTerm, setDependencySearchTerm] = useState<string>("");
@@ -348,18 +374,20 @@ export function TaskManager({
   }, [newTask.taskCategory]);
 
   useEffect(() => {
-    const tmpl = newTask.taskCategory?.trim()
-      ? getCollaboratorTemplateForCategory(newTask.taskCategory)
-      : null;
-    if (!tmpl) {
+    const templates = getCollaboratorTemplatesForCategories(newTask.taskCategory);
+    if (templates.length === 0) {
       setCreateCollaboratorChecklist({});
       return;
     }
-    const next: Record<string, boolean> = {};
-    for (const id of getAllItemIdsForTemplate(tmpl)) {
-      next[id] = false;
-    }
-    setCreateCollaboratorChecklist(next);
+    setCreateCollaboratorChecklist((prev) => {
+      const next: Record<string, boolean> = {};
+      for (const tmpl of templates) {
+        for (const id of getAllItemIdsForTemplate(tmpl)) {
+          next[id] = prev[id] === true;
+        }
+      }
+      return next;
+    });
   }, [newTask.taskCategory]);
 
   const isCreateTaskFormValid = useMemo(() => {
@@ -380,6 +408,25 @@ export function TaskManager({
     resolvedCreateTitle,
     iepCreateOptions,
     iepPrerequisitesConfirmed,
+  ]);
+
+  /** Task-to-task dependencies are scoped to the same event (ordering within one plan). */
+  const dependencyPool = useMemo(() => {
+    const anchorEvent =
+      selectedTask?.event_id ??
+      (taskForDependencies ? tasks.find((t) => t.id === taskForDependencies.id)?.event_id : null) ??
+      null;
+    if (anchorEvent && selectedEventFilter === "all" && !eventId) {
+      return availableTasks.filter((t) => t.event_id === anchorEvent);
+    }
+    return availableTasks;
+  }, [
+    availableTasks,
+    selectedTask?.event_id,
+    taskForDependencies?.id,
+    tasks,
+    selectedEventFilter,
+    eventId,
   ]);
 
   const visibleTasks = useMemo(() => {
@@ -414,6 +461,64 @@ export function TaskManager({
     // Only id + dialog: checklist/category objects change identity often and can cause effect churn.
   }, [isEditDialogOpen, selectedTask?.id]);
 
+  useEffect(() => {
+    if (!isEditDialogOpen || !selectedTask?.event_id) {
+      setEventResourcesForEdit([]);
+      setEditResourceLinkIds([]);
+      return;
+    }
+    const raw = (selectedTask as { resource_assignments?: unknown }).resource_assignments;
+    setEditResourceLinkIds(parseTaskResourceAssignments(raw).map((l) => l.resource_id));
+    setEventResourcesLoading(true);
+    void supabase
+      .from("resources")
+      .select("id, name")
+      .eq("event_id", selectedTask.event_id)
+      .order("name")
+      .then(({ data, error }) => {
+        if (error) {
+          console.warn("TaskManager: resources for event", error.message);
+          setEventResourcesForEdit([]);
+        } else {
+          setEventResourcesForEdit(
+            (data || []).map((r) => ({ id: r.id, name: (r.name as string)?.trim() || "Resource" })),
+          );
+        }
+        setEventResourcesLoading(false);
+      });
+  }, [isEditDialogOpen, selectedTask?.id, selectedTask?.event_id]);
+
+  const createFormEventId = eventId || newTask.selected_event_id || null;
+
+  useEffect(() => {
+    if (!isCreateDialogOpen || !createFormEventId) {
+      setCreateEventResources([]);
+      setCreateResourceLinkIds([]);
+      return;
+    }
+    setCreateEventResourcesLoading(true);
+    void supabase
+      .from("resources")
+      .select("id, name")
+      .eq("event_id", createFormEventId)
+      .order("name")
+      .then(({ data, error }) => {
+        if (error) {
+          console.warn("TaskManager: resources for create form", error.message);
+          setCreateEventResources([]);
+        } else {
+          setCreateEventResources(
+            (data || []).map((r) => ({ id: r.id, name: (r.name as string)?.trim() || "Resource" })),
+          );
+        }
+        setCreateEventResourcesLoading(false);
+      });
+  }, [isCreateDialogOpen, createFormEventId]);
+
+  useEffect(() => {
+    setCreateResourceLinkIds([]);
+  }, [newTask.selected_event_id, eventId]);
+
   // Open create-task dialog immediately when routed here with ?openModal=true (do not wait for
   // fetchTasks or strip the URL until close — avoids Strict Mode / async races where no modal appears).
   useLayoutEffect(() => {
@@ -426,6 +531,36 @@ export function TaskManager({
       setNewTask((prev) => ({ ...prev, selected_event_id: targetEventId }));
     }
   }, [searchParams, eventId]);
+
+  useEffect(() => {
+    if (!openTaskFromSearchParams) return;
+    if (loading) return;
+    const tid = searchParams.get("taskId")?.trim();
+    if (!tid) return;
+    const task = tasks.find((t) => t.id === tid);
+    if (!task) {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.delete("taskId");
+          return next;
+        },
+        { replace: true },
+      );
+      return;
+    }
+    setSelectedTask(task);
+    setSelectedDependencies(task.dependencies || []);
+    setIsEditDialogOpen(true);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete("taskId");
+        return next;
+      },
+      { replace: true },
+    );
+  }, [openTaskFromSearchParams, loading, tasks, searchParams, setSearchParams]);
 
   useEffect(() => {
     const onRefetchTasks = () => {
@@ -602,15 +737,20 @@ export function TaskManager({
 
   const fetchAvailableTasks = async () => {
     try {
-      // Fetch all tasks for dependency selection, not filtered by event
-      // This allows users to create dependencies across different events
-      const { data, error } = await supabase
-        .from('tasks')
-        .select('id, title, status, category, assigned_to, assigned_to_display_name')
-        .eq('archived', false);
-      
+      let query = supabase
+        .from("tasks")
+        .select("id, title, status, category, assigned_to, assigned_to_display_name, event_id")
+        .eq("archived", false);
+
+      if (eventId) {
+        query = query.eq("event_id", eventId);
+      } else if (selectedEventFilter && selectedEventFilter !== "all") {
+        query = query.eq("event_id", selectedEventFilter);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
-      
+
       const tasksWithAssignments = await Promise.all(
         (data || []).map(async (task) => {
           let assigned_user_name: string | undefined = task.assigned_to_display_name || undefined;
@@ -618,9 +758,9 @@ export function TaskManager({
 
           if (assigned_user_id && !assigned_user_name) {
             const { data: profileData } = await supabase
-              .from('user_profiles_teammate_view')
-              .select('display_name')
-              .eq('user_id', assigned_user_id)
+              .from("user_profiles_teammate_view")
+              .select("display_name")
+              .eq("user_id", assigned_user_id)
               .single();
             assigned_user_name = profileData?.display_name || undefined;
           }
@@ -631,11 +771,12 @@ export function TaskManager({
             status: task.status,
             assigned_user_id,
             assigned_user_name,
-            category: task.category
+            category: task.category,
+            event_id: task.event_id ?? null,
           };
-        })
+        }),
       );
-      
+
       setAvailableTasks(tasksWithAssignments);
     } catch (error) {
       console.error('Error fetching available tasks:', error);
@@ -989,11 +1130,13 @@ export function TaskManager({
         if (iepKeys.length > 0) {
           o.iep_prerequisites = iepKeys.filter((k) => iepPrerequisitesConfirmed[k]);
         }
-        const tmpl = categoryValue ? getCollaboratorTemplateForCategory(categoryValue) : null;
-        if (tmpl) {
+        const templates = categoryValue ? getCollaboratorTemplatesForCategories(categoryValue) : [];
+        if (templates.length > 0) {
           const merged: Record<string, boolean> = {};
-          for (const id of getAllItemIdsForTemplate(tmpl)) {
-            merged[id] = createCollaboratorChecklist[id] ?? false;
+          for (const tmpl of templates) {
+            for (const id of getAllItemIdsForTemplate(tmpl)) {
+              merged[id] = createCollaboratorChecklist[id] ?? false;
+            }
           }
           o.collaborator_checklist = merged;
         }
@@ -1005,6 +1148,12 @@ export function TaskManager({
         : null;
       const titleToSave =
         newTask.title.trim() || computeDefaultTaskTitleFromCategories(newTask.taskCategory);
+      const createResourcePayload = buildTaskResourceAssignmentsPayload(
+        createResourceLinkIds.map((id) => ({
+          resource_id: id,
+          name: createEventResources.find((r) => r.id === id)?.name,
+        })),
+      );
       const taskData = {
         title: titleToSave,
         description: newTask.description?.trim() || null,
@@ -1020,6 +1169,7 @@ export function TaskManager({
         assigned_to: newTask.assigned_user_id || null,
         assigned_coordinator_name: manualName || null,
         assigned_to_display_name: (pickedUser?.user_name ?? manualName) || null,
+        resource_assignments: createResourcePayload as Record<string, unknown> | null,
       };
 
       const { data: createdTask, error } = await supabase
@@ -1055,8 +1205,9 @@ export function TaskManager({
       setShowDependencyDialog(true);
       
       toast({
-        title: "Saved",
-        description: "Task ordering",
+        title: "Task created",
+        description:
+          "Prerequisites for this assignment type are saved. Use the next dialog to link task-to-task dependencies (order of work) for this event.",
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to create task. Please try again.";
@@ -1377,6 +1528,12 @@ export function TaskManager({
         }
       }
       // Update the main task first
+      const resourceLinks = editResourceLinkIds.map((id) => ({
+        resource_id: id,
+        name: eventResourcesForEdit.find((r) => r.id === id)?.name,
+      }));
+      const resource_assignments = buildTaskResourceAssignmentsPayload(resourceLinks);
+
       const mainOk = await updateTask(taskToUpdate.id, {
         title: taskToUpdate.title,
         description: taskToUpdate.description,
@@ -1393,6 +1550,7 @@ export function TaskManager({
         assigned_entertainment_role: trimOrNull(taskToUpdate.assigned_entertainment_role ?? undefined),
         assigned_transportation_role: trimOrNull(taskToUpdate.assigned_transportation_role ?? undefined),
         assigned_external_vendor_role: trimOrNull(taskToUpdate.assigned_external_vendor_role ?? undefined),
+        resource_assignments: resource_assignments as Task["resource_assignments"],
       });
       if (!mainOk) return;
 
@@ -1460,6 +1618,12 @@ export function TaskManager({
           return;
         }
       }
+      const resourceLinks = editResourceLinkIds.map((id) => ({
+        resource_id: id,
+        name: eventResourcesForEdit.find((r) => r.id === id)?.name,
+      }));
+      const resource_assignments = buildTaskResourceAssignmentsPayload(resourceLinks);
+
       const saved = await updateTask(taskToUpdate.id, {
         title: taskToUpdate.title,
         description: taskToUpdate.description,
@@ -1476,6 +1640,7 @@ export function TaskManager({
         assigned_entertainment_role: trimOrNull(taskToUpdate.assigned_entertainment_role ?? undefined),
         assigned_transportation_role: trimOrNull(taskToUpdate.assigned_transportation_role ?? undefined),
         assigned_external_vendor_role: trimOrNull(taskToUpdate.assigned_external_vendor_role ?? undefined),
+        resource_assignments: resource_assignments as Task["resource_assignments"],
       });
       if (!saved) return;
 
@@ -1727,6 +1892,7 @@ export function TaskManager({
             // Only clear validation errors and search term when closing
             setDependencySearchTerm("");
             setValidationErrors({});
+            setCreateResourceLinkIds([]);
             setSearchParams(
               (prev) => {
                 const next = new URLSearchParams(prev);
@@ -1872,6 +2038,47 @@ export function TaskManager({
                   </div>
                 </div>
 
+                <div className="space-y-2 rounded-md border bg-muted/30 p-3">
+                  <Label className="flex items-center gap-2">
+                    <Package className="h-4 w-4" aria-hidden />
+                    Linked resources (optional)
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Saved on the new task. Choose an event above if you do not see resources.
+                  </p>
+                  {!createFormEventId ? (
+                    <p className="text-sm text-muted-foreground">Select an event to load resources.</p>
+                  ) : createEventResourcesLoading ? (
+                    <p className="text-sm text-muted-foreground">Loading resources…</p>
+                  ) : createEventResources.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No resources for this event yet.</p>
+                  ) : (
+                    <div className="max-h-36 space-y-2 overflow-y-auto rounded border bg-background p-2">
+                      {createEventResources.map((r) => {
+                        const checked = createResourceLinkIds.includes(r.id);
+                        return (
+                          <label
+                            key={r.id}
+                            className="flex cursor-pointer items-start gap-2 rounded p-1.5 hover:bg-accent/40"
+                          >
+                            <Checkbox
+                              checked={checked}
+                              onCheckedChange={(v) => {
+                                const on = v === true;
+                                setCreateResourceLinkIds((prev) =>
+                                  on ? [...new Set([...prev, r.id])] : prev.filter((id) => id !== r.id),
+                                );
+                              }}
+                              className="mt-0.5"
+                            />
+                            <span className="text-sm leading-snug">{r.name}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="space-y-2">
                     <Label htmlFor="start_date">Start date</Label>
@@ -1922,42 +2129,36 @@ export function TaskManager({
                 <div>
                   <h3 className="text-sm font-semibold text-foreground">Assignment type &amp; requirements</h3>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Select all types that apply. Confirm prerequisites and use the collaborator checklist here only —
-                    not repeated in Task details.
+                    Select one or more assignment types (Business Guidelines). Prerequisites merge for all selected
+                    types. Confirm prerequisites here only — not repeated in Task details.
                   </p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label id="assignment-category">Assignment types *</Label>
-                  <div className="grid grid-cols-1 gap-2 max-h-52 overflow-y-auto rounded-md border bg-background p-3 sm:grid-cols-2">
+                  <Label>Assignment type(s) *</Label>
+                  <div className="max-h-52 overflow-y-auto space-y-2 rounded-md border bg-background p-2">
                     {TASK_ASSIGNMENT_CATEGORIES.map((c) => {
-                      const selected = new Set(
-                        newTask.taskCategory.split(",").map((s) => s.trim()).filter(Boolean)
-                      );
-                      const checked = selected.has(c.value);
+                      const selected = parseAssignmentCategoryCsv(newTask.taskCategory).includes(c.value);
                       return (
-                        <div key={c.value} className="flex items-start gap-2">
+                        <label
+                          key={c.value}
+                          className="flex cursor-pointer items-start gap-2 rounded p-1.5 hover:bg-accent/40"
+                        >
                           <Checkbox
-                            id={`assign-cat-${c.value}`}
-                            checked={checked}
-                            onCheckedChange={(v) =>
+                            checked={selected}
+                            onCheckedChange={(checked) => {
+                              const cur = new Set(parseAssignmentCategoryCsv(newTask.taskCategory));
+                              if (checked === true) cur.add(c.value);
+                              else cur.delete(c.value);
                               setNewTask({
                                 ...newTask,
-                                taskCategory: toggleCategoryCsv(
-                                  newTask.taskCategory,
-                                  c.value,
-                                  v === true
-                                ),
-                              })
-                            }
+                                taskCategory: buildCategoryCsvFromKnownSelection(cur, newTask.taskCategory),
+                              });
+                            }}
+                            className="mt-0.5"
                           />
-                          <label
-                            htmlFor={`assign-cat-${c.value}`}
-                            className="text-sm leading-snug cursor-pointer"
-                          >
-                            {c.label}
-                          </label>
-                        </div>
+                          <span className="text-sm leading-snug">{c.label}</span>
+                        </label>
                       );
                     })}
                   </div>
@@ -1988,30 +2189,17 @@ export function TaskManager({
                   </div>
                 ) : null}
 
-                {(() => {
-                  const tmpl = newTask.taskCategory?.trim()
-                    ? getCollaboratorTemplateForCategory(newTask.taskCategory)
-                    : null;
-                  const multi =
-                    newTask.taskCategory.split(",").map((s) => s.trim()).filter(Boolean).length > 1;
-                  return tmpl ? (
-                    <div className="space-y-2">
-                      {multi ? (
-                        <p className="text-xs text-muted-foreground">
-                          Multiple assignment types selected — the collaborator checklist uses the template for the{" "}
-                          <strong>first</strong> type in your selection (one primary checklist per assignment).
-                        </p>
-                      ) : null}
-                      <CollaboratorChecklistSection
-                        template={tmpl}
-                        taskStatus="not_started"
-                        forceEditable
-                        state={createCollaboratorChecklist}
-                        onChange={setCreateCollaboratorChecklist}
-                      />
-                    </div>
-                  ) : null;
-                })()}
+                {getCollaboratorTemplatesForCategories(newTask.taskCategory).map((tmpl) => (
+                  <div key={tmpl.id} className="space-y-2">
+                    <CollaboratorChecklistSection
+                      template={tmpl}
+                      taskStatus="not_started"
+                      forceEditable
+                      state={createCollaboratorChecklist}
+                      onChange={setCreateCollaboratorChecklist}
+                    />
+                  </div>
+                ))}
               </div>
             </div>
             
@@ -2100,6 +2288,9 @@ export function TaskManager({
             const StatusIcon = statusIcons[task.status];
             const openFollowUps = parseFollowUpIssuesFromChecklist(task.checklist).filter(
               (i) => i.text.trim() && !i.done,
+            ).length;
+            const linkedResourceCount = parseTaskResourceAssignments(
+              (task as { resource_assignments?: unknown }).resource_assignments,
             ).length;
             return (
               <Card
@@ -2343,6 +2534,14 @@ export function TaskManager({
                       <span>{task.dependencies.length} dep{task.dependencies.length > 1 ? 's' : ''}</span>
                     </div>
                   )}
+                  {linkedResourceCount > 0 ? (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Package className="h-3 w-3" />
+                      <span>
+                        {linkedResourceCount} res.
+                      </span>
+                    </div>
+                  ) : null}
                 </CardContent>
               </Card>
             );
@@ -2350,7 +2549,19 @@ export function TaskManager({
         </div>
           ) : (
           <TaskKanbanBoard
-            tasks={visibleTasks as KanbanTask[]}
+            tasks={visibleTasks.map((t) => ({
+              id: t.id,
+              title: t.title,
+              status: t.status,
+              priority: t.priority,
+              due_date: t.due_date,
+              assigned_coordinator_name: t.assigned_coordinator_name,
+              assigned_user_name: t.assigned_user_name,
+              category: t.category,
+              linked_resource_count: parseTaskResourceAssignments(
+                (t as { resource_assignments?: unknown }).resource_assignments,
+              ).length,
+            }))}
             onMoveTask={(taskId, status) => {
               void updateTask(taskId, { status });
             }}
@@ -2462,36 +2673,33 @@ export function TaskManager({
               </div>
 
               <div className="space-y-2">
-                <Label id="edit-assignment-category">Assignment types</Label>
+                <Label>Assignment type(s)</Label>
                 <p className="text-xs text-muted-foreground">
-                  Select all types that apply (same as Add task). Prerequisites from each selected type are combined.
+                  Select one or more types; prerequisites combine for all selected. Legacy types outside this list are
+                  kept when you toggle known types.
                 </p>
-                <div className="grid grid-cols-1 gap-2 max-h-52 overflow-y-auto rounded-md border bg-background p-3 sm:grid-cols-2">
+                <div className="max-h-52 overflow-y-auto space-y-2 rounded-md border bg-background p-2">
                   {TASK_ASSIGNMENT_CATEGORIES.map((c) => {
-                    const selected = new Set(
-                      (selectedTask.category ?? "")
-                        .split(",")
-                        .map((s) => s.trim())
-                        .filter(Boolean),
-                    );
-                    const checked = selected.has(c.value);
+                    const selected = parseAssignmentCategoryCsv(selectedTask.category).includes(c.value);
                     return (
-                      <div key={c.value} className="flex items-start gap-2">
+                      <label
+                        key={c.value}
+                        className="flex cursor-pointer items-start gap-2 rounded p-1.5 hover:bg-accent/40"
+                      >
                         <Checkbox
-                          id={`edit-assign-cat-${c.value}`}
-                          checked={checked}
-                          onCheckedChange={(v) => {
-                            const nextCsv = toggleCategoryCsv(
-                              selectedTask.category ?? "",
-                              c.value,
-                              v === true,
-                            );
-                            const cat = nextCsv.trim() ? nextCsv : undefined;
+                          checked={selected}
+                          onCheckedChange={(checked) => {
+                            const cur = new Set(parseAssignmentCategoryCsv(selectedTask.category));
+                            if (checked === true) cur.add(c.value);
+                            else cur.delete(c.value);
+                            const nextCsv = buildCategoryCsvFromKnownSelection(cur, selectedTask.category);
                             setSelectedTask({
                               ...selectedTask,
-                              category: cat,
+                              category: nextCsv || undefined,
                             });
-                            const opts = cat?.trim() ? getDependencyOptionsForCategories(cat) : [];
+                            const opts = nextCsv.trim()
+                              ? getDependencyOptionsForCategories(nextCsv)
+                              : [];
                             setEditIepConfirmed((prev) => {
                               const next: Record<string, boolean> = {};
                               opts.forEach((label) => {
@@ -2499,15 +2707,20 @@ export function TaskManager({
                               });
                               return next;
                             });
+                            setEditCollaboratorChecklist((prev) => {
+                              const next = { ...prev };
+                              for (const tmpl of getCollaboratorTemplatesForCategories(nextCsv)) {
+                                for (const id of getAllItemIdsForTemplate(tmpl)) {
+                                  if (next[id] === undefined) next[id] = false;
+                                }
+                              }
+                              return next;
+                            });
                           }}
+                          className="mt-0.5"
                         />
-                        <label
-                          htmlFor={`edit-assign-cat-${c.value}`}
-                          className="text-sm leading-snug cursor-pointer"
-                        >
-                          {c.label}
-                        </label>
-                      </div>
+                        <span className="text-sm leading-snug">{c.label}</span>
+                      </label>
                     );
                   })}
                 </div>
@@ -2558,6 +2771,51 @@ export function TaskManager({
                     })
                   }
                 />
+              </div>
+
+              <div className="space-y-2 rounded-md border bg-muted/30 p-3">
+                <Label className="flex items-center gap-2">
+                  <Package className="h-4 w-4" aria-hidden />
+                  Linked resources
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Choose inventory rows for this event that this task depends on. Saves with{" "}
+                  <span className="font-medium">Save changes</span> below.
+                </p>
+                {!selectedTask.event_id ? (
+                  <p className="text-sm text-muted-foreground">This task has no event — link resources after assigning an event.</p>
+                ) : eventResourcesLoading ? (
+                  <p className="text-sm text-muted-foreground">Loading resources…</p>
+                ) : eventResourcesForEdit.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No resources for this event yet. Add them under{" "}
+                    <span className="font-medium">Project Management → Resources</span> or Resource Manager.
+                  </p>
+                ) : (
+                  <div className="max-h-40 space-y-2 overflow-y-auto rounded border bg-background p-2">
+                    {eventResourcesForEdit.map((r) => {
+                      const checked = editResourceLinkIds.includes(r.id);
+                      return (
+                        <label
+                          key={r.id}
+                          className="flex cursor-pointer items-start gap-2 rounded p-1.5 hover:bg-accent/40"
+                        >
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={(v) => {
+                              const on = v === true;
+                              setEditResourceLinkIds((prev) =>
+                                on ? [...new Set([...prev, r.id])] : prev.filter((id) => id !== r.id),
+                              );
+                            }}
+                            className="mt-0.5"
+                          />
+                          <span className="text-sm leading-snug">{r.name}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -2664,15 +2922,18 @@ export function TaskManager({
                 ) : null}
               </div>
 
-              {availableTasks.filter((task) => task.id !== selectedTask.id).length > 0 ? (
+              {dependencyPool.filter((task) => task.id !== selectedTask.id).length > 0 ? (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label>Depends on</Label>
                     <span className="text-xs text-muted-foreground">
                       {selectedDependencies.length} of{" "}
-                      {availableTasks.filter((t) => t.id !== selectedTask.id).length} selected
+                      {dependencyPool.filter((t) => t.id !== selectedTask.id).length} selected
                     </span>
                   </div>
+                  <p className="text-xs text-muted-foreground">
+                    Only tasks in the same event are listed so sequencing follows your event plan.
+                  </p>
                   <Input
                     placeholder="Search…"
                     value={dependencySearchTerm}
@@ -2686,7 +2947,7 @@ export function TaskManager({
                       size="sm"
                       onClick={() => {
                         const q = dependencySearchTerm.toLowerCase();
-                        const filteredTasks = availableTasks.filter((task) => {
+                        const filteredTasks = dependencyPool.filter((task) => {
                           if (task.id === selectedTask.id) return false;
                           if (!q) return true;
                           return (
@@ -2708,7 +2969,7 @@ export function TaskManager({
                     </Button>
                   </div>
                   <div className="max-h-48 overflow-y-auto space-y-2 border rounded-md p-2">
-                    {availableTasks
+                    {dependencyPool
                       .filter((task) => {
                         if (task.id === selectedTask.id) return false;
                         const q = dependencySearchTerm.toLowerCase();
@@ -2755,7 +3016,7 @@ export function TaskManager({
                           </label>
                         </div>
                       ))}
-                    {availableTasks.filter((task) => {
+                    {dependencyPool.filter((task) => {
                       if (task.id === selectedTask.id) return false;
                       const q = dependencySearchTerm.toLowerCase();
                       if (!q) return true;
@@ -2767,7 +3028,7 @@ export function TaskManager({
                           .split(",")
                           .some((p) => p.trim().includes(q))
                       );
-                    }                    ).length === 0 ? (
+                    }).length === 0 ? (
                       <p className="text-sm text-muted-foreground text-center py-4">No tasks found</p>
                     ) : null}
                   </div>
@@ -2787,18 +3048,21 @@ export function TaskManager({
                 </p>
               </div>
               {(() => {
-                const colTmpl = getCollaboratorTemplateForCategory(selectedTask.category);
-                return colTmpl ? (
-                  <CollaboratorChecklistSection
-                    template={colTmpl}
-                    taskStatus={selectedTask.status}
-                    state={editCollaboratorChecklist}
-                    onChange={setEditCollaboratorChecklist}
-                  />
+                const editTemplates = getCollaboratorTemplatesForCategories(selectedTask.category);
+                return editTemplates.length > 0 ? (
+                  editTemplates.map((tmpl) => (
+                    <div key={tmpl.id} className="space-y-2">
+                      <CollaboratorChecklistSection
+                        template={tmpl}
+                        taskStatus={selectedTask.status}
+                        state={editCollaboratorChecklist}
+                        onChange={setEditCollaboratorChecklist}
+                      />
+                    </div>
+                  ))
                 ) : (
                   <p className="text-sm text-muted-foreground">
-                    Pick at least one assignment type to load the auto checklist template (multi-type: template follows
-                    the first type in your selection).
+                    Pick at least one assignment type above to load the collaborator checklist templates.
                   </p>
                 );
               })()}
@@ -2892,22 +3156,26 @@ export function TaskManager({
           </DialogHeader>
           
           <div className="space-y-4">
-            {availableTasks.filter(task => task.id !== taskForDependencies?.id).length > 0 ? (
+            {dependencyPool.filter((task) => task.id !== taskForDependencies?.id).length > 0 ? (
               <>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label>Depends on</Label>
                     <span className="text-xs text-muted-foreground">
-                      {selectedDependencies.length} of {availableTasks.filter(t => t.id !== taskForDependencies?.id).length} selected
+                      {selectedDependencies.length} of{" "}
+                      {dependencyPool.filter((t) => t.id !== taskForDependencies?.id).length} selected
                     </span>
                   </div>
-                  
+                  <p className="text-xs text-muted-foreground">
+                    Only tasks in the same event are listed so sequencing follows your event plan.
+                  </p>
+
                   <Input
                     placeholder="Search…"
                     value={dependencySearchTerm}
                     onChange={(e) => setDependencySearchTerm(e.target.value)}
                   />
-                  
+
                   <div className="flex gap-2">
                     <Button
                       type="button"
@@ -2915,7 +3183,7 @@ export function TaskManager({
                       size="sm"
                       onClick={() => {
                         const q = dependencySearchTerm.toLowerCase();
-                        const filteredTasks = availableTasks.filter((task) => {
+                        const filteredTasks = dependencyPool.filter((task) => {
                           if (task.id === taskForDependencies?.id) return false;
                           if (!q) return true;
                           return (
@@ -2927,7 +3195,7 @@ export function TaskManager({
                               .some((p) => p.trim().includes(q))
                           );
                         });
-                        setSelectedDependencies(filteredTasks.map(t => t.id));
+                        setSelectedDependencies(filteredTasks.map((t) => t.id));
                       }}
                     >
                       Select All
@@ -2944,7 +3212,7 @@ export function TaskManager({
                 </div>
 
                 <div className="max-h-96 overflow-y-auto space-y-2 border rounded-md p-3">
-                  {availableTasks
+                  {dependencyPool
                     .filter((task) => {
                       if (task.id === taskForDependencies?.id) return false;
                       const q = dependencySearchTerm.toLowerCase();
@@ -2995,7 +3263,7 @@ export function TaskManager({
                     ))}
                   {(() => {
                     const q = dependencySearchTerm.toLowerCase();
-                    const filteredTasks = availableTasks.filter((task) => {
+                    const filteredTasks = dependencyPool.filter((task) => {
                       if (task.id === taskForDependencies?.id) return false;
                       if (!q) return true;
                       return (

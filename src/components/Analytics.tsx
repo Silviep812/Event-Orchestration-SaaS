@@ -167,9 +167,9 @@ export default function Analytics({
   };
 
   // Fetch analytics data from database
-  const fetchAnalyticsData = async () => {
+  const fetchAnalyticsData = async (opts?: { silent?: boolean }) => {
     try {
-      setLoading(true);
+      if (!opts?.silent) setLoading(true);
       const fromIso = filters.dateRange.from.toISOString();
       const toIso = filters.dateRange.to.toISOString();
 
@@ -371,7 +371,13 @@ export default function Analytics({
   };
 
   useEffect(() => {
-    fetchAnalyticsData();
+    void fetchAnalyticsData();
+    // Lovable-style “metrics refresh periodically”: soft-refresh computed metrics while this page is open.
+    const intervalMs = 5 * 60 * 1000;
+    const id = window.setInterval(() => {
+      void fetchAnalyticsData({ silent: true });
+    }, intervalMs);
+    return () => window.clearInterval(id);
   }, [filters, eventId, selectedEventId, showEventScopePicker, user?.id]);
 
   const handleFilterChange = (filterType: keyof AnalyticsFilters, value: any) => {

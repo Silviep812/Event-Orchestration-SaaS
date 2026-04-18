@@ -93,7 +93,6 @@ export default function Collaborate() {
   const [userTeam, setUserTeam] = useState<{ id: string; name: string } | null>(null);
   const [userTeams, setUserTeams] = useState<{ id: string; name: string; members: TeamMember[]; isAdmin: boolean }[]>([]);
   const [eventParticipants, setEventParticipants] = useState<{ email: string; name: string }[]>([]);
-  const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [activeTeamId, setActiveTeamId] = useState<string | null>(null);
   const [isCreatingTeam, setIsCreatingTeam] = useState(false);
@@ -1081,32 +1080,12 @@ export default function Collaborate() {
                         </div>
                       )}
                       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 py-4">
-                        {team.members.map(member => (
-                          <div key={member.id} className="relative">
-                            <div 
-                              className={`transition-all ${selectedMembers.includes(member.id) ? 'ring-2 ring-primary' : ''}`}
-                            >
-                              <TeamMemberCard
-                                member={member}
-                                onClick={handleMemberClick}
-                              />
-                            </div>
-                            <div className="absolute top-2 right-2">
-                              <input
-                                type="checkbox"
-                                checked={selectedMembers.includes(member.id)}
-                                onChange={(e) => {
-                                  if (e.target.checked) {
-                                    setSelectedMembers([...selectedMembers, member.id]);
-                                  } else {
-                                    setSelectedMembers(selectedMembers.filter(id => id !== member.id));
-                                  }
-                                }}
-                                className="w-5 h-5 rounded cursor-pointer"
-                                onClick={(e) => e.stopPropagation()}
-                              />
-                            </div>
-                          </div>
+                        {team.members.map((member) => (
+                          <TeamMemberCard
+                            key={member.id}
+                            member={member}
+                            onClick={handleMemberClick}
+                          />
                         ))}
                       </div>
                     </>
@@ -1116,24 +1095,25 @@ export default function Collaborate() {
             </div>
           )}
 
-          {teamMembers.length === 0 && (userTeams.length === 0 || userTeam) ? (
-            <NoTeamMembersCard
-              userTeam={userTeam}
-              userTeams={userTeams}
-              onCreateTeam={() => setIsCreateTeamDialogOpen(true)}
-              onInviteMember={() => openInviteDialog()}
-            />
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {teamMembers.map((member) => (
-                <TeamMemberCard
-                  key={member.id}
-                  member={member}
-                  onClick={handleMemberClick}
-                />
-              ))}
-            </div>
-          )}
+          {userTeams.length === 0 &&
+            (teamMembers.length === 0 ? (
+              <NoTeamMembersCard
+                userTeam={userTeam}
+                userTeams={userTeams}
+                onCreateTeam={() => setIsCreateTeamDialogOpen(true)}
+                onInviteMember={() => openInviteDialog()}
+              />
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {teamMembers.map((member) => (
+                  <TeamMemberCard
+                    key={member.id}
+                    member={member}
+                    onClick={handleMemberClick}
+                  />
+                ))}
+              </div>
+            ))}
         </TabsContent>
 
         <TabsContent value="activity" className="space-y-4">

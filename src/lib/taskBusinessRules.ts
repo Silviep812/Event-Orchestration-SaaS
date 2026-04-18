@@ -36,7 +36,7 @@ export const DEPENDENCY_OPTIONS_BY_CATEGORY: Record<string, readonly string[]> =
   Hospitality: ["Amenities confirmed", "Final agenda approved"],
   /** Rent Service Vendor — tables, chairs, rental equipment */
   "Vendor Service Rental/Buy": ["Budget approval", "Rental availability"],
-  /** Service Vendor — §7 (security, volunteers, etc.); §9 has no dedicated row — operational gates */
+  /** Service Vendor — security, volunteers, tech, etc. (operational gates). */
   "Service Vendor": ["Budget approval", "Scope of services confirmed", "Venue compatibility confirmed"],
   /** External Vendor (Procurement) */
   Suppliers: ["Procurement approved", "Availability confirmed", "Contract signed"],
@@ -69,7 +69,7 @@ export function getDependencyOptionsForCategories(categoryCsv: string | null | u
 }
 
 /**
- * Labels from §9 gates that are not recorded on `checklist.iep_prerequisites` (stored checked items only).
+ * Labels from IEP gates that are not recorded on `checklist.iep_prerequisites` (stored checked items only).
  */
 export function getMissingIepPrerequisites(
   category: string | null | undefined,

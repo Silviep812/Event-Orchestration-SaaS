@@ -641,6 +641,23 @@ const Reports = () => {
   };
 
   const exportEventPlanCsv = () => {
+    if (!canAccessEventPlan || !eventPlanOwnerReady) {
+      toast({
+        title: "Not available",
+        description:
+          "The Event Plan export is only for event owners with at least one active (non-archived) event.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (eventPlanRows.length === 0) {
+      toast({
+        title: "Nothing to export",
+        description: "Create an active event first, then export your event plan.",
+        variant: "destructive",
+      });
+      return;
+    }
     downloadCsv(`event-plan-${format(new Date(), "yyyy-MM-dd")}.csv`, [
       [
         "Event",
@@ -690,11 +707,12 @@ const Reports = () => {
         n == null || Number.isNaN(Number(n)) ? "—" : `$${Number(n).toLocaleString()}`;
       const fmtVar = (n: number | null | undefined) =>
         n == null || Number.isNaN(Number(n)) ? "—" : `$${Number(n).toLocaleString()}`;
+      const planRows = canAccessEventPlan ? eventPlanRows : [];
       await downloadAnalyticsReportsPdf({
         title: "Analytics & Reports",
         generatedAtLabel: format(new Date(), "PPpp"),
         fileSlug: slug,
-        eventPlan: eventPlanRows.map((r) => ({
+        eventPlan: planRows.map((r) => ({
           title: r.title,
           locationLabel: r.locationLabel,
           budgetPlan: fmtMoney(r.budget),
@@ -703,12 +721,12 @@ const Reports = () => {
           taskCompletion:
             r.taskCompletionRate != null ? `${r.taskCompletionRate.toFixed(1)}%` : "—",
         })),
-        budgetVsActual: eventPlanRows.map((r) => ({
+        budgetVsActual: planRows.map((r) => ({
           name: r.title,
           budget: Number(r.budget) || 0,
           actual: Number(r.budgetActualSpend) || 0,
         })),
-        taskCompletion: eventPlanRows
+        taskCompletion: planRows
           .filter((r) => r.tasksActive > 0 && r.taskCompletionRate != null)
           .map((r) => ({ name: r.title, pct: r.taskCompletionRate! })),
         changeTimeline: reportData?.changesByDate || [],
@@ -891,7 +909,20 @@ const Reports = () => {
 
       <Tabs value={activeTab} onValueChange={onReportTabChange} className="space-y-4">
         <TabsList className="flex flex-wrap h-auto gap-1">
-          {canAccessEventPlan ? <TabsTrigger value="overview">Event Plan Report</TabsTrigger> : null}
+          <TabsTrigger
+            value="overview"
+            disabled={eventPlanOwnerReady && !canAccessEventPlan}
+            title={
+              eventPlanOwnerReady && !canAccessEventPlan
+                ? "Owner only: you need at least one active (non-archived) event you own."
+                : undefined
+            }
+            className={
+              eventPlanOwnerReady && !canAccessEventPlan ? "opacity-60 cursor-not-allowed" : undefined
+            }
+          >
+            Event Plan Report
+          </TabsTrigger>
           <TabsTrigger value="insights">Insights</TabsTrigger>
           <TabsTrigger value="change-requests">Change Request Report</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
@@ -917,7 +948,8 @@ const Reports = () => {
                   No active events yet. Create an event to see your plan here.
                 </p>
               ) : (
-                <ScrollArea className="h-[min(70vh,560px)] rounded-md border">
+                <ScrollArea className="h-[min(70vh,560px)] w-full rounded-md border">
+                  <div className="min-w-[1040px]">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -1011,6 +1043,7 @@ const Reports = () => {
                       })}
                     </TableBody>
                   </Table>
+                  </div>
                 </ScrollArea>
               )}
             </CardContent>

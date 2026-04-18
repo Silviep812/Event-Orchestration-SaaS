@@ -85,7 +85,7 @@ export type ChangeRequestApplyRow = {
  * When a change request records a field change, applying approval updates the **task** (if task-linked)
  * or the **event** (whitelisted columns). Only whitelisted columns are written for safety.
  *
- * On success, runs §8-style cascades (resource sync, project timeline RPC, task dependency dates) via
+ * On success, runs cascades (resource sync, project timeline RPC, task dependency dates) via
  * `cascadeApprovedChangeRequest.ts`.
  */
 export async function applyChangeRequestToEvent(

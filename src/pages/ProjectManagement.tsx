@@ -134,7 +134,7 @@ export default function ProjectManagement() {
         </TabsList>
 
         <TabsContent value="tasks" className="space-y-4">
-          <TaskManager selectedEventFilter={selectedEventFilter} />
+          <TaskManager selectedEventFilter={selectedEventFilter} openTaskFromSearchParams={activeTab === "tasks"} />
         </TabsContent>
 
         <TabsContent value="budget" className="space-y-4">
@@ -160,8 +160,9 @@ export default function ProjectManagement() {
           <div className="space-y-4 border-t pt-6">
             <h3 className="text-lg font-semibold">Task assignment</h3>
             <p className="text-sm text-muted-foreground">
-              Same list and forms as the <strong className="text-foreground">Task</strong> tab: assignment types,
-              dependencies, assignee name, and per-type collaborator checklists.
+            Same list and forms as the <strong className="text-foreground">Task</strong> tab: one assignment type per
+            task, IEP prerequisite gates, task-to-task dependencies, assignee name, and the matching collaborator
+            checklist.
             </p>
             <TaskManager selectedEventFilter={selectedEventFilter} suppressPrimaryHeading />
           </div>

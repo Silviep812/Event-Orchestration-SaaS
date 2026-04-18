@@ -35,6 +35,8 @@ import TaskTimeline from "./pages/TaskTimeline";
 import ResourceMap from "./pages/ResourceMap";
 import MarketingCampaign from "./pages/MarketingCampaign";
 import MarketingCreatives from "./pages/MarketingCreatives";
+import Onboarding from "./pages/Onboarding";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 
 const App = () => (
   <AuthProvider>
@@ -46,6 +48,14 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/contact" element={<Navigate to="/" replace />} />
             <Route path="/auth" element={<Auth />} />
+            <Route
+              path="/onboarding"
+              element={
+                <ProtectedRoute>
+                  <Onboarding />
+                </ProtectedRoute>
+              }
+            />
             <Route path="/marketing-creatives" element={<MarketingCreatives />} />
             <Route path="/dashboard" element={<Dashboard />}>
               <Route index element={<DashboardHome />} />

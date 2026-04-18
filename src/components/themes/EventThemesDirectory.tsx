@@ -3,7 +3,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Popover,
   PopoverContent,
@@ -19,7 +18,8 @@ import {
   loadHealthWellnessEventTypeGroups,
   loadRetreatsEventTypeGroups,
   loadEventTypesByParentTag,
-  loadSportingLeafEventTypes,
+  loadSportingDirectoryCategoryTypes,
+  type SportingCategoryGroup,
   SPORTING_THEME_V4_DESCRIPTION,
   sportingTypeUiLabel,
   sportingUiName,
@@ -34,7 +34,6 @@ import {
   Coffee, 
   Network,
   Search,
-  Star,
   Palette,
   CheckCircle2,
   Grid3X3,
@@ -57,10 +56,7 @@ interface ThemeDetails {
   icon: any;
   color: string;
   bgColor: string;
-  usageCount: number;
   premium: boolean;
-  /** V4 Sporting: show event types as a list under the theme (not a "Sporting" tag popover). */
-  sportInlineTypes?: { id: number; name: string }[];
 }
 
 /** Coerce API values that may not be strict booleans */
@@ -198,10 +194,16 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
   const [browseHwHierarchy, setBrowseHwHierarchy] = useState<Awaited<
     ReturnType<typeof loadHealthWellnessEventTypeGroups>
   > | null>(null);
-  const [sportLeafTypes, setSportLeafTypes] = useState<{ id: number; name: string }[]>([]);
   const [dynamicHierarchyByThemeId, setDynamicHierarchyByThemeId] = useState<
-    Record<number, Record<string, { id: number; name: string }[]>>
+    Record<number, Record<string, { id: number; name: string }[] | SportingCategoryGroup>>
   >({});
+
+  const dynEntryTypes = (
+    entry: { id: number; name: string }[] | SportingCategoryGroup | undefined,
+  ): { id: number; name: string }[] => {
+    if (!entry) return [];
+    return Array.isArray(entry) ? entry : entry.types;
+  };
 
   useEffect(() => {
     if (selectedTheme == null) {
@@ -253,7 +255,6 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
               icon: getThemeIcon(theme.name),
               color: styles.color,
               bgColor: styles.bgColor,
-              usageCount: Math.floor(Math.random() * 2000) + 100,
               premium: normalizePremium(theme.premium),
             };
           });
@@ -339,8 +340,6 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
       setMeetupInclusiveEventTypes(meetupInclusiveData);
       setBrowseHwHierarchy(hwGroups);
       setRetreatBranchTypes(retreatGroups.typesByBranch);
-
-      setSportLeafTypes(await loadSportingLeafEventTypes());
     };
 
     fetchEventTypes();
@@ -355,6 +354,13 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
         const n = t.name.toLowerCase();
         if (/reunion|special event/i.test(n)) {
           next[t.id] = await loadEventTypesByParentTag(t.id);
+        } else if (isSportThemeName(t.name)) {
+          try {
+            next[t.id] = await loadSportingDirectoryCategoryTypes(t.id);
+          } catch (e) {
+            console.warn("loadSportingDirectoryCategoryTypes (browse):", t.id, e);
+            next[t.id] = {};
+          }
         }
       }
       if (!cancelled) setDynamicHierarchyByThemeId(next);
@@ -447,19 +453,18 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
           tags = [...new Set([...tags, ...keys])];
         }
       }
-      // V4 Sporting: no Sport/Sporting tag chips — types render under the theme title as a plain list.
+      // Sporting: same category → type chip pattern as other themes (data from `dynamicHierarchyByThemeId`).
       if (sportTheme) {
         tags = filterSportishTags(tags);
       }
 
       const displayName = sportingUiName(t.name);
-      const sportInlineTypes =
-        sportTheme && sportLeafTypes.length > 0
-          ? sportLeafTypes.map((row) => ({ ...row, name: sportingTypeUiLabel(row.name) || row.name }))
-          : undefined;
 
       const dynamicTags = Object.keys(dynamicHierarchyByThemeId[t.id] ?? {});
       if (/reunion|special event/i.test(lower) && dynamicTags.length > 0) {
+        tags = [...new Set([...tags, ...dynamicTags])];
+      }
+      if (sportTheme && dynamicTags.length > 0) {
         tags = [...new Set([...tags, ...dynamicTags])];
       }
 
@@ -469,41 +474,31 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
         description,
         tags,
         icon: getThemeIcon(displayName),
-        sportInlineTypes,
       };
     });
-  }, [themes, retreatBranchTypes, browseHwHierarchy, sportLeafTypes, dynamicHierarchyByThemeId]);
+  }, [themes, retreatBranchTypes, browseHwHierarchy, dynamicHierarchyByThemeId]);
 
   const filteredAndSortedThemes = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
     const filtered = displayThemes.filter((theme) => {
+      const dyn = dynamicHierarchyByThemeId[theme.id];
+      const matchesDynTypes =
+        !!dyn &&
+        Object.values(dyn).some((entry) =>
+          dynEntryTypes(entry).some((item) => String(item.name).toLowerCase().includes(q)),
+        );
       const matchesSearch =
         !q ||
         theme.name.toLowerCase().includes(q) ||
         theme.description.toLowerCase().includes(q) ||
         theme.category.toLowerCase().includes(q) ||
         (theme.tags ?? []).some((tag) => tag.toLowerCase().includes(q)) ||
-        (theme.sportInlineTypes ?? []).some((item) => item.name.toLowerCase().includes(q));
+        (theme.tags ?? []).some((tag) => sportingTypeUiLabel(tag).toLowerCase().includes(q)) ||
+        matchesDynTypes;
       return matchesSearch;
     });
     return filtered.sort((a, b) => a.name.localeCompare(b.name));
-  }, [displayThemes, searchTerm]);
-
-  const recommendedThemes = useMemo(() => {
-    // Recommended themes: Celebration, Festival, Marketplace (also filtered by search above)
-    const recommendedNames = ['Celebration', 'Festival', 'Marketplace'];
-    return filteredAndSortedThemes.filter(theme =>
-      recommendedNames.some(name => theme.name.toLowerCase() === name.toLowerCase())
-    );
-  }, [filteredAndSortedThemes]);
-
-  const allThemes = useMemo(() => {
-    // Show all non-recommended themes in All Themes section
-    const recommendedNames = ['Celebration', 'Festival', 'Marketplace'];
-    return filteredAndSortedThemes.filter(theme => 
-      !recommendedNames.some(name => theme.name.toLowerCase() === name.toLowerCase())
-    );
-  }, [filteredAndSortedThemes]);
+  }, [displayThemes, searchTerm, dynamicHierarchyByThemeId]);
 
   // Helper function to render dropdown for specific tags
   const renderTagDropdown = (theme: ThemeDetails, tag: string, index: number) => {
@@ -543,16 +538,18 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
     }
 
     const dyn = dynamicHierarchyByThemeId[theme.id];
-    if (!config && dyn && (dyn[tag] ?? []).length > 0) {
-      config = { types: dyn[tag] ?? [], themeName: theme.name, tagName: tag };
+    const dynTypes = dyn ? dynEntryTypes(dyn[tag]) : [];
+    if (!config && dynTypes.length > 0) {
+      config = { types: dynTypes, themeName: theme.name, tagName: tag };
     }
-
-    // Sporting: types are only in `renderSportingInlineTypes` (V4). Never use a "Sporting" tag popover.
 
     if (!config) {
       const configKey = `${theme.name}-${tag}`;
       config = dropdownConfig[configKey];
     }
+
+    const tagBadgeLabel =
+      isSportThemeName(theme.name) ? sportingTypeUiLabel(tag) || tag : tag;
 
     if (config) {
       return (
@@ -563,7 +560,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
                 variant="outline" 
                 className="text-xs cursor-pointer hover:bg-primary/10 transition-colors inline-flex items-center gap-1"
               >
-                {tag}
+                {tagBadgeLabel}
                 <ChevronDown className="h-4 w-4 text-foreground ml-1 flex-shrink-0" />
               </Badge>
             </button>
@@ -585,7 +582,9 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
                       onSelectTheme(theme.id, theme.name, item.name, item.id);
                     }}
                   >
-                    {item.name}
+                    {isSportThemeName(theme.name)
+                      ? sportingTypeUiLabel(item.name) || item.name
+                      : item.name}
                   </button>
                 ))
               ) : (
@@ -601,73 +600,12 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
 
     return (
       <Badge key={index} variant="outline" className="text-xs">
-        {tag}
+        {tagBadgeLabel}
       </Badge>
     );
   };
 
-  /** Sporting: same interaction pattern as other themes (badge + popover type list), not a standalone Select. */
-  const renderSportingInlineTypes = (theme: ThemeDetails) => {
-    const types = theme.sportInlineTypes;
-    if (types?.length) {
-      const selectedId = selectedSubTypeIds[theme.id];
-      const picked = selectedId != null ? types.find((item) => item.id === selectedId) : undefined;
-      const badgeLabel = picked?.name ?? "Choose event type";
-      return (
-        <div className="flex flex-wrap gap-1">
-          <Popover>
-            <PopoverTrigger asChild>
-              <button type="button" className="inline-flex items-center gap-1">
-                <Badge
-                  variant="outline"
-                  className="text-xs cursor-pointer hover:bg-primary/10 transition-colors inline-flex items-center gap-1"
-                >
-                  {badgeLabel}
-                  <ChevronDown className="h-4 w-4 text-foreground ml-1 flex-shrink-0" />
-                </Badge>
-              </button>
-            </PopoverTrigger>
-            <PopoverContent
-              className="w-56 p-2 bg-popover border shadow-lg max-h-96 overflow-y-auto"
-              style={{ zIndex: 9999 }}
-              sideOffset={5}
-            >
-              <div className="space-y-1">
-                {types.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
-                    onClick={() => {
-                      setSelectedSubTypes((prev) => ({ ...prev, [theme.id]: item.name }));
-                      setSelectedSubTypeIds((prev) => ({ ...prev, [theme.id]: item.id }));
-                      onSelectTheme(theme.id, theme.name, item.name, item.id);
-                    }}
-                  >
-                    {item.name}
-                  </button>
-                ))}
-              </div>
-            </PopoverContent>
-          </Popover>
-        </div>
-      );
-    }
-    if (isSportThemeName(theme.name)) {
-      return (
-        <p className="text-xs text-muted-foreground">{plannerToolsCopy.sportingTypesBrowsePending}</p>
-      );
-    }
-    return null;
-  };
-
-  const ThemeCard = ({
-    theme,
-    isRecommended = false,
-  }: {
-    theme: ThemeDetails;
-    isRecommended?: boolean;
-  }) => {
+  const ThemeCard = ({ theme }: { theme: ThemeDetails }) => {
     const IconComponent = theme.icon;
     const isSelected = selectedTheme === theme.id;
     const currentSubType = selectedSubTypes[theme.id];
@@ -688,7 +626,6 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
                   <div>
                     <h3 className="text-lg font-semibold flex items-center gap-2">
                       {theme.name}
-                      {isRecommended && <Badge variant="secondary" className="text-xs">Recommended</Badge>}
                     </h3>
                     <p className="text-sm text-muted-foreground">{theme.description}</p>
                   </div>
@@ -724,7 +661,6 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
                     ) : null}
                   </div>
                 </div>
-                {renderSportingInlineTypes(theme)}
               </div>
             </div>
           </CardContent>
@@ -746,7 +682,6 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
             <div className="space-y-2 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <CardTitle className="text-lg leading-none">{theme.name}</CardTitle>
-                {isRecommended && <Badge variant="secondary" className="text-xs h-5 flex items-center">Recommended</Badge>}
               </div>
               <CardDescription className="text-sm">{theme.description}</CardDescription>
             </div>
@@ -757,7 +692,6 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
           <div className="flex flex-wrap gap-1">
             {theme.tags.map((tag, index) => renderTagDropdown(theme, tag, index))}
           </div>
-          {renderSportingInlineTypes(theme)}
           <div className="space-y-2">
             <Button
               type="button"
@@ -839,25 +773,11 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
         </CardContent>
       </Card>
 
-      {recommendedThemes.length > 0 && (
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Star className="h-5 w-5 text-yellow-500" />
-            <h2 className="text-2xl font-bold">Recommended for You</h2>
-          </div>
-          <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" : "space-y-4"}>
-            {recommendedThemes.map((theme) => (
-              <ThemeCard key={theme.id} theme={theme} isRecommended={true} />
-            ))}
-          </div>
-        </div>
-      )}
-
       <div className="space-y-4">
-        <h2 className="text-2xl font-bold">All Themes</h2>
-        {allThemes.length > 0 ? (
+        <h2 className="text-2xl font-bold">Themes</h2>
+        {filteredAndSortedThemes.length > 0 ? (
           <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" : "space-y-4"}>
-            {allThemes.map((theme) => (
+            {filteredAndSortedThemes.map((theme) => (
               <ThemeCard key={theme.id} theme={theme} />
             ))}
           </div>

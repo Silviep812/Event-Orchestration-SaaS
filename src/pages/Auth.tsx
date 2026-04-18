@@ -11,7 +11,7 @@ import { getAuthErrorDescription } from '@/lib/authErrors';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { MarketingTopBar } from '@/components/MarketingTopBar';
 import { supabase } from '@/integrations/supabase/client';
-import { getPostSignInDashboardPath } from '@/lib/createEventEntryPath';
+import { getPostSignInNavigationPath } from '@/lib/profileOnboardingGate';
 import { PRICING_TIERS_SUMMARY } from "@/lib/pricingSummaryCopy";
 import { recordMarketingTrialConversion } from "@/lib/recordMarketingTrialConversion";
 
@@ -36,7 +36,7 @@ export default function Auth() {
     if (!user) return;
     let cancelled = false;
     void (async () => {
-      const path = await getPostSignInDashboardPath(supabase);
+      const path = await getPostSignInNavigationPath(supabase);
       if (cancelled) return;
       navigate(path, { replace: true });
     })();

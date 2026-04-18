@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Users, BarChart3, Plus, Settings, Palette, CheckSquare, TrendingUp, Activity, Target, Clock, Eye } from "lucide-react";
+import { Calendar, Users, BarChart3, Plus, Settings, Palette, CheckSquare, Activity, Eye } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -23,7 +23,6 @@ const DashboardHome = () => {
     totalEvents: 0,
     taskCompletionRate: 0,
     resourceUtilization: 0,
-    leadConversion: 0,
     recentEvents: []
   });
   const [loading, setLoading] = useState(true);
@@ -95,7 +94,6 @@ const DashboardHome = () => {
           totalEvents,
           taskCompletionRate,
           resourceUtilization,
-          leadConversion: 13, // Placeholder
           recentEvents: events?.slice(0, 3) || []
         });
       } catch (error) {
@@ -206,6 +204,10 @@ const DashboardHome = () => {
               };
               description = `${log.entity_type} ${log.field_name.replace('_', ' ')} changed from "${formatDate(log.old_value)}" to "${formatDate(log.new_value)}"`;
             
+            } else if (log.field_name === "resource_assignments") {
+              description = "Task linked resources updated";
+            } else if (log.field_name === "title" || log.field_name === "status") {
+              description = `${log.entity_type} ${String(log.field_name).replace("_", " ")} updated`;
             } else if (log.entity_type === 'workflow') {
               description = `${log.entity_type} ${log.field_name.replace('_', ' ')} changed`;
             } else if (log.field_name && log.old_value && log.new_value) {
@@ -261,25 +263,22 @@ const DashboardHome = () => {
     {
       title: "Total Events",
       value: loading ? "..." : analytics.totalEvents.toString(),
-      description: "Active events this month",
+      description: "Events you own (up to 10 loaded for this snapshot)",
       icon: Calendar,
-      trend: "+12%",
       color: "primary"
     },
     {
       title: "Task Completion",
       value: loading ? "..." : `${analytics.taskCompletionRate}%`,
-      description: "Average completion rate",
+      description: "Your tasks marked completed ÷ all tasks you created",
       icon: CheckSquare,
-      trend: "+8%",
       color: "secondary"
     },
     {
       title: "Resource Efficiency",
       value: loading ? "..." : `${analytics.resourceUtilization}%`,
-      description: "Resource utilization rate",
+      description: "Allocated ÷ capacity across resources on your events",
       icon: Activity,
-      trend: "+5%",
       color: "accent"
     },
   ];
@@ -342,15 +341,9 @@ const DashboardHome = () => {
               </CardHeader>
               <CardContent className="relative">
                 <div className="text-2xl font-bold">{stat.value}</div>
-                <div className="flex items-center space-x-2">
-                  <div className="flex items-center text-xs text-green-600">
-                    <TrendingUp className="h-3 w-3 mr-1" />
-                    {stat.trend}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {stat.description}
-                  </p>
-                </div>
+                <p className="text-xs text-muted-foreground pt-1 leading-snug">
+                  {stat.description}
+                </p>
               </CardContent>
             </Card>
           );

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { DatePickerWithRange } from "@/components/ui/date-picker";
 import { Calendar, MapPin, Users, DollarSign, ArrowLeft } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -20,7 +21,8 @@ import {
   isSportThemeName,
   loadHealthWellnessEventTypeGroups,
   loadRetreatsEventTypeGroups,
-  loadSportingLeafEventTypes,
+  loadSportingDirectoryCategoryTypes,
+  type SportingCategoryGroup,
   sportThemeRootCategoryDisplayLabel,
   sportingTypeUiLabel,
   sportingUiName,
@@ -50,7 +52,17 @@ export default function CreateEvent() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   
-  const { register, handleSubmit, formState: { errors }, reset, control, watch, setValue, setFocus } = useForm<EventFormData>({
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset,
+    control,
+    watch,
+    setValue,
+    setFocus,
+    clearErrors,
+  } = useForm<EventFormData>({
     defaultValues: {
       title: "",
       description: "",
@@ -109,7 +121,12 @@ export default function CreateEvent() {
   > | null>(null);
   const [hwCategoryKey, setHwCategoryKey] = useState<string>("");
   const [retreatBranchLabel, setRetreatBranchLabel] = useState("");
-  const [sportingLeafTypes, setSportingLeafTypes] = useState<{ id: number; name: string }[]>([]);
+  const [sportingDirectory, setSportingDirectory] = useState<Record<
+    string,
+    SportingCategoryGroup
+  > | null>(null);
+  /** DB category row name under Sporting root (matches `sportingDirectory` keys). */
+  const [sportingCategoryKey, setSportingCategoryKey] = useState("");
 
   const watchedTitle = watch("title");
   const watchedTheme = watch("theme_id");
@@ -142,7 +159,8 @@ export default function CreateEvent() {
       return Boolean(rid && watchedSubType);
     }
     if (themeHierarchyMode === "sporting") {
-      return Boolean(watchedSubType?.trim());
+      const grp = sportingCategoryKey ? sportingDirectory?.[sportingCategoryKey] : undefined;
+      return Boolean(sportingCategoryKey && grp && watchedSubType?.trim());
     }
     if (subEventTypes.length > 0) return Boolean(watchedSubType);
     return Boolean(watchedType);
@@ -152,6 +170,8 @@ export default function CreateEvent() {
     hwHierarchy,
     retreatBranchLabel,
     retreatHierarchy,
+    sportingCategoryKey,
+    sportingDirectory,
     watchedSubType,
     watchedType,
     subEventTypes.length,
@@ -198,10 +218,6 @@ export default function CreateEvent() {
   ]);
 
   const wizardLabels = ["Basics", "Venue & directories", "Budget & extras", "Ready"];
-
-  useEffect(() => {
-    void loadSportingLeafEventTypes().then(setSportingLeafTypes);
-  }, []);
 
   useEffect(() => {
     const fetchThemes = async () => {
@@ -313,22 +329,28 @@ export default function CreateEvent() {
     if (!selectedThemeId) {
       setHwHierarchy(null);
       setRetreatHierarchy(null);
+      setSportingDirectory(null);
       setHwCategoryKey("");
       setRetreatBranchLabel("");
+      setSportingCategoryKey("");
       return;
     }
     const name = eventThemes.find((t) => t.id === selectedThemeId)?.name ?? "";
     if (isHealthWellnessThemeName(name)) {
       loadHealthWellnessEventTypeGroups().then(setHwHierarchy);
       setRetreatHierarchy(null);
+      setSportingDirectory(null);
       setRetreatBranchLabel("");
+      setSportingCategoryKey("");
       setHwCategoryKey("");
       setValue("type", "");
       setValue("subType", "");
     } else if (isRetreatsThemeName(name)) {
       loadRetreatsEventTypeGroups().then(setRetreatHierarchy);
       setHwHierarchy(null);
+      setSportingDirectory(null);
       setHwCategoryKey("");
+      setSportingCategoryKey("");
       setRetreatBranchLabel("");
       setValue("type", "");
       setValue("subType", "");
@@ -337,15 +359,29 @@ export default function CreateEvent() {
       setRetreatHierarchy(null);
       setHwCategoryKey("");
       setRetreatBranchLabel("");
+      setSportingCategoryKey("");
       setValue("type", "");
       setValue("subType", "");
+      void loadSportingDirectoryCategoryTypes(selectedThemeId)
+        .then(setSportingDirectory)
+        .catch((e) => {
+          console.error("loadSportingDirectoryCategoryTypes:", e);
+          setSportingDirectory({});
+          toast({
+            title: "Could not load Sporting categories",
+            description: plannerSafeErrorToastDescription(e, commentsPlannerCopy.toastGeneric),
+            variant: "destructive",
+          });
+        });
     } else {
       setHwHierarchy(null);
       setRetreatHierarchy(null);
+      setSportingDirectory(null);
       setHwCategoryKey("");
       setRetreatBranchLabel("");
+      setSportingCategoryKey("");
     }
-  }, [selectedThemeId, eventThemes, setValue]);
+  }, [selectedThemeId, eventThemes, setValue, toast]);
 
   // Pre-fill from ?subTypeId= (stable) or ?subType= name (browse themes).
   useEffect(() => {
@@ -389,7 +425,24 @@ export default function CreateEvent() {
           }
         }
       }
-      if (!isHealthWellnessThemeName(tname) && !isRetreatsThemeName(tname) && leaf.parent_id) {
+      if (isSportThemeName(tname) && sportingDirectory) {
+        for (const key of Object.keys(sportingDirectory)) {
+          const grp = sportingDirectory[key];
+          if (!grp) continue;
+          if (grp.types.some((r) => r.id === leaf.id)) {
+            setSportingCategoryKey(key);
+            setValue("type", String(grp.categoryId), { shouldValidate: true });
+            setValue("subType", String(leaf.id), { shouldValidate: true });
+            return;
+          }
+        }
+      }
+      if (
+        !isHealthWellnessThemeName(tname) &&
+        !isRetreatsThemeName(tname) &&
+        !isSportThemeName(tname) &&
+        leaf.parent_id
+      ) {
         const { data: siblings } = await supabase
           .from("event_types")
           .select("id, name, theme_id, parent_id")
@@ -404,7 +457,15 @@ export default function CreateEvent() {
     return () => {
       cancelled = true;
     };
-  }, [searchParams, selectedThemeId, eventThemes, hwHierarchy, retreatHierarchy, setValue]);
+  }, [
+    searchParams,
+    selectedThemeId,
+    eventThemes,
+    hwHierarchy,
+    retreatHierarchy,
+    sportingDirectory,
+    setValue,
+  ]);
 
   useEffect(() => {
     if (searchParams.get("subTypeId")) return;
@@ -436,7 +497,28 @@ export default function CreateEvent() {
         }
       }
     }
-  }, [searchParams, selectedThemeId, eventThemes, hwHierarchy, retreatHierarchy, setValue]);
+    if (isSportThemeName(tname) && sportingDirectory) {
+      for (const key of Object.keys(sportingDirectory)) {
+        const grp = sportingDirectory[key];
+        if (!grp) continue;
+        const leaf = (grp.types ?? []).find((x) => x.name === subName);
+        if (leaf) {
+          setSportingCategoryKey(key);
+          setValue("type", String(grp.categoryId));
+          setValue("subType", String(leaf.id));
+          return;
+        }
+      }
+    }
+  }, [
+    searchParams,
+    selectedThemeId,
+    eventThemes,
+    hwHierarchy,
+    retreatHierarchy,
+    sportingDirectory,
+    setValue,
+  ]);
 
   useEffect(() => {
     const fetchEventTypes = async () => {
@@ -884,7 +966,8 @@ export default function CreateEvent() {
                       value={hwCategoryKey || undefined}
                       onValueChange={(k) => {
                         setHwCategoryKey(k);
-                        setValue("subType", "");
+                        setValue("subType", "", { shouldValidate: false });
+                        clearErrors("subType");
                         const pid = hwHierarchy.parentIds[k];
                         if (pid) setValue("type", String(pid));
                       }}
@@ -914,7 +997,17 @@ export default function CreateEvent() {
                         control={control}
                         rules={{ required: "Event type is required" }}
                         render={({ field }) => (
-                          <Select value={field.value} onValueChange={field.onChange}>
+                          <Select
+                            value={
+                              field.value != null && String(field.value).trim() !== ""
+                                ? String(field.value)
+                                : undefined
+                            }
+                            onValueChange={(id) => {
+                              field.onChange(id);
+                              clearErrors("subType");
+                            }}
+                          >
                             <SelectTrigger id="subType-hw">
                               <SelectValue placeholder="Select specific event type" />
                             </SelectTrigger>
@@ -941,7 +1034,8 @@ export default function CreateEvent() {
                       value={retreatBranchLabel}
                       onValueChange={(b) => {
                         setRetreatBranchLabel(b);
-                        setValue("subType", "");
+                        setValue("subType", "", { shouldValidate: false });
+                        clearErrors("subType");
                         const rid = retreatHierarchy.rootIdByBranch[b];
                         if (rid) setValue("type", String(rid));
                       }}
@@ -966,7 +1060,17 @@ export default function CreateEvent() {
                         control={control}
                         rules={{ required: "Event type is required" }}
                         render={({ field }) => (
-                          <Select value={field.value} onValueChange={field.onChange}>
+                          <Select
+                            value={
+                              field.value != null && String(field.value).trim() !== ""
+                                ? String(field.value)
+                                : undefined
+                            }
+                            onValueChange={(id) => {
+                              field.onChange(id);
+                              clearErrors("subType");
+                            }}
+                          >
                             <SelectTrigger id="subType-retreat">
                               <SelectValue placeholder="Select specific event type" />
                             </SelectTrigger>
@@ -986,42 +1090,90 @@ export default function CreateEvent() {
               )}
 
               {themeHierarchyMode === "sporting" && (
-                <div>
-                  <Label htmlFor="subType-sporting">Event type *</Label>
-                  <Controller
-                    name="subType"
-                    control={control}
-                    rules={{ required: "Event type is required" }}
-                    render={({ field }) => (
-                      <Select
-                        value={field.value}
-                        onValueChange={field.onChange}
-                        disabled={!selectedThemeId}
-                      >
-                        <SelectTrigger id="subType-sporting">
-                          <SelectValue
-                            placeholder={
-                              selectedThemeId ? "Select event type" : "Select theme first"
+                <>
+                  {sportingDirectory == null ? (
+                    <p className="text-sm text-muted-foreground">Loading event categories…</p>
+                  ) : (
+                    <>
+                      <div>
+                        <Label>Event category (Sporting) *</Label>
+                        <Select
+                          value={sportingCategoryKey || undefined}
+                          onValueChange={(key) => {
+                            setSportingCategoryKey(key);
+                            // Do not validate empty subType here — Radix Select would show a false
+                            // "Event type is required" until the user picks the type row.
+                            setValue("subType", "", { shouldValidate: false });
+                            clearErrors("subType");
+                            const grp = sportingDirectory[key];
+                            if (grp?.categoryId != null) {
+                              setValue("type", String(grp.categoryId), { shouldValidate: true });
                             }
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select sporting category" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Object.keys(sportingDirectory)
+                              .sort((a, b) => a.localeCompare(b))
+                              .map((key) => (
+                                <SelectItem key={key} value={key}>
+                                  {sportingTypeUiLabel(key) || key}
+                                </SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {sportingCategoryKey ? (
+                        <div>
+                          <Label htmlFor="subType-sporting">Event type *</Label>
+                          <Controller
+                            name="subType"
+                            control={control}
+                            rules={{ required: "Event type is required" }}
+                            render={({ field }) => (
+                              <Select
+                                value={
+                                  field.value != null && String(field.value).trim() !== ""
+                                    ? String(field.value)
+                                    : undefined
+                                }
+                                onValueChange={(id) => {
+                                  field.onChange(id);
+                                  clearErrors("subType");
+                                  const grp = sportingDirectory[sportingCategoryKey];
+                                  if (grp?.categoryId != null) {
+                                    setValue("type", String(grp.categoryId), { shouldValidate: true });
+                                  }
+                                }}
+                              >
+                                <SelectTrigger id="subType-sporting">
+                                  <SelectValue placeholder="Select event type" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {(sportingDirectory[sportingCategoryKey]?.types ?? []).map((row) => (
+                                    <SelectItem key={row.id} value={String(row.id)}>
+                                      {sportingTypeUiLabel(row.name) || row.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            )}
                           />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {sportingLeafTypes.map((row) => (
-                            <SelectItem key={row.id} value={String(row.id)}>
-                              {sportingTypeUiLabel(row.name) || row.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                  />
-                  {errors.subType && (
-                    <p className="text-sm text-destructive mt-1">{errors.subType.message}</p>
+                          {errors.subType && (
+                            <p className="text-sm text-destructive mt-1">{errors.subType.message}</p>
+                          )}
+                        </div>
+                      ) : null}
+                      {selectedThemeId && Object.keys(sportingDirectory).length === 0 ? (
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {plannerToolsCopy.sportingTypesUnavailable}
+                        </p>
+                      ) : null}
+                    </>
                   )}
-                  {selectedThemeId && sportingLeafTypes.length === 0 ? (
-                    <p className="text-sm text-muted-foreground mt-1">{plannerToolsCopy.sportingTypesUnavailable}</p>
-                  ) : null}
-                </div>
+                </>
               )}
 
               {themeHierarchyMode === "default" && (

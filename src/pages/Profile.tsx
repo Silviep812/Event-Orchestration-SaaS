@@ -11,6 +11,7 @@ import { useNavigate } from "react-router-dom";
 import { AvatarWithBrandFallback } from "@/components/AvatarWithBrandFallback";
 import { Upload } from "lucide-react";
 import { getAuthErrorDescription } from "@/lib/authErrors";
+import { defaultProfileFromAuthUser } from "@/lib/defaultProfileFromAuthUser";
 
 const Profile = () => {
   const { user, resetPassword, loading } = useAuth();
@@ -103,13 +104,13 @@ const Profile = () => {
     if (!user?.id) return;
 
     try {
-      console.log("Creating profile for user:", user.id);
+      const { username, display_name } = defaultProfileFromAuthUser(user);
       const { data, error } = await supabase
         .from('profiles')
         .insert({
           user_id: user.id,
-          username: "idaeventpartners.com",
-          display_name: "IDA Event Partners"
+          username,
+          display_name,
         })
         .select()
         .single();
@@ -124,11 +125,9 @@ const Profile = () => {
         return;
       }
 
-      console.log("Profile created successfully:", data);
-      // Set the profile state immediately
       setProfile({
-        username: "idaeventpartners.com",
-        display_name: "IDA Event Partners",
+        username: data?.username ?? username,
+        display_name: data?.display_name ?? display_name,
         bio: "",
         avatar_url: "",
         subscription_level: "",

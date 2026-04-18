@@ -173,18 +173,23 @@ export function CollaboratorPanel({
       if (taskErr) throw taskErr;
 
       const taskId = taskRow?.id;
-      if (taskId) {
-        const { error: crErr } = await supabase.from("cm_change_requests").insert({
-          event_id: eventId,
-          description: form.description.trim(),
-          field_changed: "pm_collaborator_request",
-          priority_tag: taskPriority,
-          rollout_timing: form.rolloutTiming,
-          requested_by: user.id,
-          status: "open",
-          task_id: taskId,
-        });
-        if (crErr) console.warn("cm_change_requests:", crErr);
+      if (!taskId) {
+        throw new Error("Task was not created; cannot attach a change request.");
+      }
+
+      const { error: crErr } = await supabase.from("cm_change_requests").insert({
+        event_id: eventId,
+        description: form.description.trim(),
+        field_changed: "pm_collaborator_request",
+        priority_tag: taskPriority,
+        rollout_timing: form.rolloutTiming,
+        requested_by: user.id,
+        status: "open",
+        task_id: taskId,
+      });
+      if (crErr) {
+        await supabase.from("tasks").delete().eq("id", taskId);
+        throw crErr;
       }
 
       await supabase.rpc("notify_coordinators", {

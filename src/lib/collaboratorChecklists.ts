@@ -348,12 +348,38 @@ export const COLLABORATOR_TEMPLATES: Record<string, CollaboratorTemplate> = {
   },
 };
 
+/** Ordered assignment type values from `tasks.category` CSV (trimmed, non-empty). */
+export function parseAssignmentCategoryCsv(categoryCsv: string | null | undefined): string[] {
+  return (categoryCsv ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+/**
+ * All collaborator templates for the given assignment CSV (deduped by template id, order preserved).
+ * Unknown category tokens (e.g. legacy `Countdown`) are skipped.
+ */
+export function getCollaboratorTemplatesForCategories(
+  categoryCsv: string | null | undefined,
+): CollaboratorTemplate[] {
+  const parts = parseAssignmentCategoryCsv(categoryCsv);
+  const seen = new Set<string>();
+  const out: CollaboratorTemplate[] = [];
+  for (const p of parts) {
+    const key = CATEGORY_TO_COLLABORATOR_TEMPLATE[p];
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    const t = COLLABORATOR_TEMPLATES[key];
+    if (t) out.push(t);
+  }
+  return out;
+}
+
+/** First matching template only (legacy single-type callers). */
 export function getCollaboratorTemplateForCategory(categoryCsv: string | null | undefined): CollaboratorTemplate | null {
-  const first = categoryCsv?.split(",")[0]?.trim();
-  if (!first) return null;
-  const key = CATEGORY_TO_COLLABORATOR_TEMPLATE[first];
-  if (!key) return null;
-  return COLLABORATOR_TEMPLATES[key] ?? null;
+  const list = getCollaboratorTemplatesForCategories(categoryCsv);
+  return list[0] ?? null;
 }
 
 export function getAllItemIdsForTemplate(template: CollaboratorTemplate): string[] {
@@ -380,15 +406,18 @@ export function canMarkTaskCompleted(args: {
 }): { ok: true } | { ok: false; reason: string } {
   const cl = args.checklist;
   if (!cl?.collaborator_required) return { ok: true };
-  const template = getCollaboratorTemplateForCategory(args.category ?? null);
-  if (!template) return { ok: true };
+  const templates = getCollaboratorTemplatesForCategories(args.category ?? null);
+  if (templates.length === 0) return { ok: true };
   const done = (cl.collaborator_checklist as Record<string, boolean>) || {};
-  if (isCollaboratorChecklistComplete(template, done)) return { ok: true };
-  return {
-    ok: false,
-    reason:
-      "Complete all collaborator checklist items for this assignment category before marking the task completed.",
-  };
+  for (const template of templates) {
+    if (!isCollaboratorChecklistComplete(template, done)) {
+      return {
+        ok: false,
+        reason: `Complete all checklist items for “${template.title}” (and other selected assignment types) before marking this task completed.`,
+      };
+    }
+  }
+  return { ok: true };
 }
 
 /** Ordered list for Team / Collaborate accordion (localStorage keys use `cl.id::item.id`). */

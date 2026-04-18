@@ -273,6 +273,7 @@ export default function Notifications() {
     }
 
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
+    window.dispatchEvent(new Event("notificationsMarkedRead"));
     toast({
       title: "Notification marked as read",
       description: "The notification has been marked as read.",
@@ -297,6 +298,7 @@ export default function Notifications() {
     }
 
     setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    window.dispatchEvent(new Event("notificationsMarkedRead"));
     toast({
       title: "All notifications marked as read",
       description: "Your inbox is up to date.",
@@ -316,6 +318,7 @@ export default function Notifications() {
     }
 
     setNotifications((prev) => prev.filter((n) => n.id !== id));
+    window.dispatchEvent(new Event("notificationsMarkedRead"));
     toast({
       title: "Notification deleted",
       description: "The notification has been removed.",

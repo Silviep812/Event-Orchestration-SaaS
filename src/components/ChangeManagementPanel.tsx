@@ -32,6 +32,17 @@ export function ChangeManagementPanel({ selectedEventFilter }: ChangeManagementP
   const eventId = selectedEventFilter !== "all" ? selectedEventFilter : null;
 
   useEffect(() => {
+    if (!eventId) return;
+    const onCmUpdated = (ev: Event) => {
+      const detail = (ev as CustomEvent<{ eventId?: string }>).detail;
+      if (detail?.eventId !== eventId) return;
+      setListRefresh((r) => r + 1);
+    };
+    window.addEventListener("iep-change-requests-updated", onCmUpdated);
+    return () => window.removeEventListener("iep-change-requests-updated", onCmUpdated);
+  }, [eventId]);
+
+  useEffect(() => {
     if (!eventId) {
       setUrgentOpenCount(0);
       return;

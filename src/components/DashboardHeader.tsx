@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { AvatarWithBrandFallback } from "@/components/AvatarWithBrandFallback";
 import { IEP_LOGO_COLORED } from "@/lib/brandAssets";
 import { 
@@ -10,7 +11,7 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { Home, LogOut, Settings, User, Bell, Calendar } from "lucide-react";
+import { LogOut, User, Bell, Calendar } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -22,6 +23,7 @@ export function DashboardHeader() {
   const navigate = useNavigate();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [userProfile, setUserProfile] = useState<{ avatar_url?: string; display_name?: string } | null>(null);
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentDate(new Date()), 1000);
@@ -52,6 +54,55 @@ export function DashboardHeader() {
     window.addEventListener('profileUpdated', handleProfileUpdate);
     return () => {
       window.removeEventListener('profileUpdated', handleProfileUpdate);
+    };
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!user?.id) {
+      setUnreadNotificationCount(0);
+      return;
+    }
+
+    const refreshUnread = async () => {
+      const { count, error } = await supabase
+        .from("notifications")
+        .select("*", { count: "exact", head: true })
+        .eq("recipient_id", user.id)
+        .eq("is_read", false);
+
+      if (error) {
+        console.warn("DashboardHeader: unread notification count", error.message);
+        return;
+      }
+      setUnreadNotificationCount(count ?? 0);
+    };
+
+    void refreshUnread();
+
+    const channel = supabase
+      .channel(`dashboard-header-notifications-${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "notifications",
+          filter: `recipient_id=eq.${user.id}`,
+        },
+        () => {
+          void refreshUnread();
+        }
+      )
+      .subscribe();
+
+    const onMarkedRead = () => {
+      void refreshUnread();
+    };
+    window.addEventListener("notificationsMarkedRead", onMarkedRead);
+
+    return () => {
+      window.removeEventListener("notificationsMarkedRead", onMarkedRead);
+      void supabase.removeChannel(channel);
     };
   }, [user?.id]);
 
@@ -127,12 +178,28 @@ export function DashboardHeader() {
           <div className="text-muted-foreground">Welcome back!</div>
         </div>
         
-        {/* Notifications */}
-        {/* <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-4 w-4" />
-          <span className="absolute -top-1 -right-1 h-2 w-2 bg-destructive rounded-full"></span>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="relative shrink-0"
+          aria-label={
+            unreadNotificationCount > 0
+              ? `Notifications, ${unreadNotificationCount} unread`
+              : "Notifications"
+          }
+          onClick={() => navigate("/dashboard/notification")}
+        >
+          <Bell className="h-5 w-5" />
+          {unreadNotificationCount > 0 ? (
+            <Badge
+              variant="destructive"
+              className="absolute -right-1 -top-1 h-5 min-w-5 px-1 text-[10px] leading-none flex items-center justify-center rounded-full p-0"
+            >
+              {unreadNotificationCount > 99 ? "99+" : unreadNotificationCount}
+            </Badge>
+          ) : null}
         </Button>
-         */}
+
         {/* User dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

@@ -3,6 +3,7 @@
  * for the matching `event_themes` row.
  */
 import { supabase } from "@/integrations/supabase/client";
+import { sportingSelectionTrailLabel, sportingTypeUiLabel } from "@/lib/sportingTypeUiLabel";
 
 export type EventTypeRowLite = { id: number; name: string | null; parent_id: number | null };
 
@@ -344,6 +345,33 @@ export async function loadEventTypesByParentTag(themeId: number): Promise<Record
   const parents = rows.filter((r) => r.parent_id == null);
   const out: Record<string, { id: number; name: string }[]> = {};
 
+  // One theme root with category rows, each category having leaf types (Sporting-style tree).
+  // Legacy path below would treat only the root as a tag and attach mid-level rows as "types",
+  // which breaks browse / Create Event category → type for Reunion & Special Event.
+  if (parents.length === 1) {
+    const root = parents[0];
+    const categories = rows
+      .filter((r) => r.parent_id === root.id)
+      .sort((a, b) => (a.name ?? "").localeCompare(b.name ?? ""));
+    if (categories.length > 0) {
+      const hierarchical: Record<string, { id: number; name: string }[]> = {};
+      let anyLeaves = false;
+      for (const cat of categories) {
+        const tag = (cat.name ?? "").trim();
+        if (!tag) continue;
+        const leaves = rows
+          .filter((r) => r.parent_id === cat.id)
+          .sort((a, b) => (a.name ?? "").localeCompare(b.name ?? ""))
+          .map((k) => ({ id: k.id, name: k.name ?? "" }));
+        if (leaves.length > 0) {
+          hierarchical[tag] = leaves;
+          anyLeaves = true;
+        }
+      }
+      if (anyLeaves) return hierarchical;
+    }
+  }
+
   for (const p of parents) {
     const tag = (p.name ?? "").trim();
     if (!tag) continue;
@@ -352,6 +380,75 @@ export async function loadEventTypesByParentTag(themeId: number): Promise<Record
       .sort((a, b) => (a.name ?? "").localeCompare(b.name ?? ""))
       .map((k) => ({ id: k.id, name: k.name ?? "" }));
     out[tag] = kids.length > 0 ? kids : [{ id: p.id, name: tag }];
+  }
+  return out;
+}
+
+/** One Sporting directory row (e.g. Football games) and its selectable types. */
+export type SportingCategoryGroup = {
+  /** `event_types.id` of the category parent row (form `type` / Manage Event category). */
+  categoryId: number;
+  types: { id: number; name: string }[];
+};
+
+/**
+ * Sporting browse: one menu per directory category under the theme root (e.g. "Event formats"),
+ * same interaction pattern as Reunion/Special Event (category → types).
+ *
+ * **Source of truth:** `public.event_types` for `theme_id` — root row → category rows (`parent_id`
+ * = root) → type rows (`parent_id` = category). Nothing is hard-coded except picking the root
+ * (`Event formats` preferred, else the root with the most children).
+ *
+ * Keys are **exact** `event_types.name` values for the category row (lookup in UI); use
+ * `sportingTypeUiLabel` when rendering the badge label.
+ *
+ * @throws If Supabase returns an error (callers should catch and show UI).
+ */
+export async function loadSportingDirectoryCategoryTypes(
+  themeId: number,
+): Promise<Record<string, SportingCategoryGroup>> {
+  const { data: allTypes, error } = await supabase
+    .from("event_types")
+    .select("id, name, parent_id")
+    .eq("theme_id", themeId);
+
+  if (error) {
+    console.warn("loadSportingDirectoryCategoryTypes:", themeId, error.message);
+    throw error;
+  }
+
+  const rows = (allTypes ?? []) as EventTypeRowLite[];
+  const roots = rows.filter((r) => r.parent_id == null);
+  if (roots.length === 0) return {};
+
+  const root =
+    roots.find((r) => /event formats/i.test(String(r.name ?? "").trim())) ??
+    roots.reduce((best, r) => {
+      const n = rows.filter((x) => x.parent_id === r.id).length;
+      const bn = rows.filter((x) => x.parent_id === best.id).length;
+      return n > bn ? r : best;
+    });
+
+  const categories = rows
+    .filter((r) => r.parent_id === root.id)
+    .sort((a, b) => (a.name ?? "").localeCompare(b.name ?? ""));
+  const out: Record<string, SportingCategoryGroup> = {};
+
+  for (const c of categories) {
+    const key = (c.name ?? "").trim();
+    if (!key) continue;
+    const kids = rows
+      .filter((r) => r.parent_id === c.id)
+      .sort((a, b) => (a.name ?? "").localeCompare(b.name ?? ""))
+      .map((k) => ({
+        id: k.id,
+        name: sportingTypeUiLabel(k.name ?? "") || (k.name ?? ""),
+      }));
+    out[key] = {
+      categoryId: c.id,
+      types:
+        kids.length > 0 ? kids : [{ id: c.id, name: sportingTypeUiLabel(key) || key }],
+    };
   }
   return out;
 }
@@ -371,14 +468,4 @@ export async function loadSportingLeafEventTypes(): Promise<{ id: number; name: 
   });
 }
 
-/** Remove level qualifiers so Sporting type labels match other theme sizing/style. */
-export function sportingTypeUiLabel(name: string | null | undefined): string {
-  const raw = String(name ?? "").trim();
-  if (!raw) return "";
-  return raw
-    .replace(/\s*[-–]\s*(?:hs|high school|college|pro|professional)(?:\s*,\s*(?:hs|high school|college|pro|professional))*/gi, "")
-    .replace(/\((?:hs|high school|college|pro|professional)[^)]*\)/gi, "")
-    .replace(/\b(?:hs|high school|college|pro|professional)\b/gi, "")
-    .replace(/\s{2,}/g, " ")
-    .trim();
-}
+export { sportingSelectionTrailLabel, sportingTypeUiLabel };
