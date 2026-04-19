@@ -334,6 +334,27 @@ export function sportThemeRootCategoryDisplayLabel(
   return raw;
 }
 
+const REUNION_EXCLUDED_CATEGORIES = ["family", "school"];
+
+function isExcludedFromReunion(label: string): boolean {
+  const l = label.trim().toLowerCase();
+  return REUNION_EXCLUDED_CATEGORIES.some(
+    (ex) => l === ex || l.startsWith(ex) || l.includes(ex)
+  );
+}
+
+/** Reunion-specific loader that hides "Family" and "School" categories. */
+export async function loadReunionEventTypesByParentTag(
+  themeId: number
+): Promise<Record<string, { id: number; name: string }[]>> {
+  const map = await loadEventTypesByParentTag(themeId);
+  const filtered: Record<string, { id: number; name: string }[]> = {};
+  for (const [tag, types] of Object.entries(map)) {
+    if (!isExcludedFromReunion(tag)) filtered[tag] = types;
+  }
+  return filtered;
+}
+
 /** Load parent → children map for themes that use directory → category → type (e.g. Reunion, Special Event). */
 export async function loadEventTypesByParentTag(themeId: number): Promise<Record<string, { id: number; name: string }[]>> {
   const { data: allTypes } = await supabase

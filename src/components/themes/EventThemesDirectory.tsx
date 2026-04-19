@@ -18,6 +18,7 @@ import {
   loadHealthWellnessEventTypeGroups,
   loadRetreatsEventTypeGroups,
   loadEventTypesByParentTag,
+  loadReunionEventTypesByParentTag,
   loadSportingDirectoryCategoryTypes,
   type SportingCategoryGroup,
   SPORTING_THEME_V4_DESCRIPTION,
@@ -352,7 +353,9 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
       const next: Record<number, Record<string, { id: number; name: string }[]>> = {};
       for (const t of themes) {
         const n = t.name.toLowerCase();
-        if (/reunion|special event/i.test(n)) {
+        if (/reunion/i.test(n)) {
+          next[t.id] = await loadReunionEventTypesByParentTag(t.id);
+        } else if (/special event/i.test(n)) {
           next[t.id] = await loadEventTypesByParentTag(t.id);
         } else if (isSportThemeName(t.name)) {
           try {
