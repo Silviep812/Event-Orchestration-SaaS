@@ -18,6 +18,7 @@ import {
   loadHealthWellnessEventTypeGroups,
   loadRetreatsEventTypeGroups,
   loadEventTypesByParentTag,
+  loadReunionEventTypesByParentTag,
   loadSportingDirectoryCategoryTypes,
   type SportingCategoryGroup,
   SPORTING_THEME_V4_DESCRIPTION,
