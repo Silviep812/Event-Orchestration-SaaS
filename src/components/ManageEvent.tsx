@@ -2136,7 +2136,6 @@ const ManageEvent = () => {
                                 <div className="space-y-1.5">
                                   <Label htmlFor="eventType-sporting">Event type</Label>
                                   <Select
-                                    id="eventType-sporting"
                                     value={selectedEvent.type_id?.toString() || ""}
                                     onValueChange={(value) =>
                                       void handleSportingLeafSelect(sportingCategoryKey, parseInt(value, 10))

@@ -57,7 +57,7 @@ async function assertApprovedTaskApplyAllowed(
       checklist: row.checklist as Record<string, unknown> | null,
     });
     if (!gate.ok) {
-      return { ok: false, message: gate.reason };
+      return { ok: false, message: 'reason' in gate ? gate.reason : '' };
     }
   }
 
@@ -132,7 +132,7 @@ export async function applyChangeRequestToEvent(
 
     const applyGate = await assertApprovedTaskApplyAllowed(tid, field, value);
     if (!applyGate.ok) {
-      return { ok: false, message: applyGate.message };
+      return { ok: false, message: 'message' in applyGate ? applyGate.message : '' };
     }
 
     const { error } = await supabase

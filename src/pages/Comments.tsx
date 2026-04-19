@@ -297,7 +297,7 @@ export default function Comments() {
   const [discussionSchemaMissing, setDiscussionSchemaMissing] = useState(false);
   const [hubTab, setHubTab] = useState<HubTab>(() =>
     typeof globalThis !== "undefined" && "location" in globalThis
-      ? normalizedHub(new URLSearchParams((globalThis as Window).location.search).get("hub"))
+      ? normalizedHub(new URLSearchParams((globalThis as unknown as Window).location.search).get("hub"))
       : "workspace",
   );
   const [hubEventId, setHubEventId] = useState("");
