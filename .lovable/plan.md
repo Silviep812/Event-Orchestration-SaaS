@@ -1,23 +1,56 @@
 
 
-## Problem
+## Plan: Hide "Family" and "School" categories from Reunion theme
 
-The Retreats theme in the sidebar is displaying event types that belong to Health & Wellness:
-- "Wellness"
-- "Mindful" 
-- "Rejuvenating"
-- "Holistic"
+### Where the categories come from
+`EventThemesDirectory.tsx` (line ~355) calls `loadEventTypesByParentTag(themeId)` for Reunion and Special Event. The returned `Record<categoryName, types[]>` is stored in `dynamicHierarchyByThemeId` and then turned into `dynamicTags` (line ~463) shown under the theme card and used for the Create Event flow.
 
-These should only appear under the Health & Wellness theme, not under Retreats.
+So "Family" and "School" are top-level keys in that record for the Reunion theme.
 
-## Solution
+### Fix (single file, mirrors the Retreats exclusion pattern already in the codebase)
 
-Add a filter in `src/lib/themeEventTypeHierarchy.ts` within the `loadRetreatsEventTypeGroups()` function to exclude these Health & Wellness labels when loading Retreats event types.
+**File: `src/lib/themeEventTypeHierarchy.ts`**
 
-**Changes needed:**
-1. Define excluded labels: `["wellness", "mindful", "rejuvenating", "holistic"]`
-2. Add `isExcludedFromRetreats()` helper to catch exact matches and variations (e.g., "Mindfulness", "Rejuvenation", "Holistic Principles")
-3. Skip any matching labels when processing Retreats branches
+1. Add a constant + helper near the existing Retreats exclusion block:
+   ```ts
+   const REUNION_EXCLUDED_CATEGORIES = ["family", "school"];
+   function isExcludedFromReunion(label: string): boolean {
+     const l = label.trim().toLowerCase();
+     return REUNION_EXCLUDED_CATEGORIES.some(
+       (ex) => l === ex || l.startsWith(ex) || l.includes(ex)
+     );
+   }
+   ```
 
-This ensures the Retreats theme only shows its proper sub-types (Skill Building, Development, Community, Support, Hybrid).
+2. Add a thin wrapper exported alongside `loadEventTypesByParentTag`:
+   ```ts
+   export async function loadReunionEventTypesByParentTag(themeId: number) {
+     const map = await loadEventTypesByParentTag(themeId);
+     const filtered: typeof map = {};
+     for (const [tag, types] of Object.entries(map)) {
+       if (!isExcludedFromReunion(tag)) filtered[tag] = types;
+     }
+     return filtered;
+   }
+   ```
+
+**File: `src/components/themes/EventThemesDirectory.tsx`**
+
+- Import `loadReunionEventTypesByParentTag`.
+- In the loop (~line 355), branch on theme name:
+  ```ts
+  if (/reunion/i.test(n)) {
+    next[t.id] = await loadReunionEventTypesByParentTag(t.id);
+  } else if (/special event/i.test(n)) {
+    next[t.id] = await loadEventTypesByParentTag(t.id);
+  }
+  ```
+
+### Why this approach
+- Surgical: only Reunion is filtered. Special Event keeps "Family"/"School" if present.
+- Mirrors the existing Retreats exclusion pattern (consistent with codebase conventions).
+- No database changes — categories remain in `event_types` for other consumers.
+
+### Out of scope
+The unrelated build errors listed in `<build-errors>` (TaskManager, Collaborate, Comments, edge functions, etc.) are pre-existing and not introduced by this change. They can be addressed separately.
 
