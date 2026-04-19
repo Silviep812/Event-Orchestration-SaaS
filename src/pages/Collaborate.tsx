@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Users, UserPlus, Clock, AlertCircle, FileIcon, Upload } from "lucide-react";
+import { Users, UserPlus, Clock, AlertCircle, FileIcon, Upload, CheckCircle, MessageSquare } from "lucide-react";
 import { TeamMemberCard } from "@/components/TeamMemberCard";
 import { NoTeamMembersCard } from "@/components/NoTeamMembersCard";
 

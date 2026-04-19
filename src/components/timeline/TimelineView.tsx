@@ -446,7 +446,7 @@ const TimelineView = ({ eventId, refreshKey = 0 }: TimelineViewProps) => {
       // Update in Supabase first
       const { error } = await supabase
         .from('tasks')
-        .update(updates)
+        .update(updates as any)
         .eq('id', taskId);
 
       if (error) throw error;

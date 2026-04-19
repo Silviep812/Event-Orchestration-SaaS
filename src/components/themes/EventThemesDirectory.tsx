@@ -350,7 +350,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
     if (themes.length === 0) return;
     let cancelled = false;
     void (async () => {
-      const next: Record<number, Record<string, { id: number; name: string }[]>> = {};
+      const next: Record<number, Record<string, any>> = {};
       for (const t of themes) {
         const n = t.name.toLowerCase();
         if (/reunion/i.test(n)) {
