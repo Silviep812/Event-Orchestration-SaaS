@@ -252,6 +252,13 @@ const menuGroups = [
         icon: MapPin,
         color: "text-orange-600",
         hoverColor: "hover:bg-orange-50"
+      },
+      {
+        title: "Supplier",
+        url: "/dashboard/supplier",
+        icon: Package,
+        color: "text-orange-600",
+        hoverColor: "hover:bg-orange-50"
       }
     ]
   },
