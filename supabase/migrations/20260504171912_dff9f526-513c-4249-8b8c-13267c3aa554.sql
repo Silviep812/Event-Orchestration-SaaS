@@ -54,7 +54,6 @@ USING (
   bucket_id = 'comment-attachments'
   AND (
     (auth.uid())::text = (storage.foldername(name))[1]
-    OR public.has_role(auth.uid(), 'admin'::app_role)
-    OR public.has_role(auth.uid(), 'event_manager'::app_role)
+    OR public.has_min_permission_level(auth.uid(), 'coordinator'::public.permission_level)
   )
 );

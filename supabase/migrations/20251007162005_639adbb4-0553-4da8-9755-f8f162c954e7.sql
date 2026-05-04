@@ -3,7 +3,7 @@ ALTER TABLE tasks
 ADD COLUMN category TEXT;
 
 -- Add index for better search performance on category field
-CREATE INDEX idx_tasks_category ON tasks(category);
+CREATE INDEX IF NOT EXISTS idx_tasks_category ON tasks(category);
 
 -- Add comment for documentation
 COMMENT ON COLUMN tasks.category IS 'Task category based on collaborator type (e.g., Bookings, Venue, Hospitality, Suppliers, Services)';

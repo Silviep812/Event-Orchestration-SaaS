@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS public.collaborator_configurations (
 ALTER TABLE public.collaborator_configurations ENABLE ROW LEVEL SECURITY;
 
 -- Policy: Users can view collaborator configs for their own teams
+DROP POLICY IF EXISTS "Users can view their team's collaborator configs" ON public.collaborator_configurations;
 CREATE POLICY "Users can view their team's collaborator configs"
 ON public.collaborator_configurations
 FOR SELECT
@@ -26,6 +27,7 @@ USING (
 );
 
 -- Policy: Team admins can create collaborator configs
+DROP POLICY IF EXISTS "Team admins can create collaborator configs" ON public.collaborator_configurations;
 CREATE POLICY "Team admins can create collaborator configs"
 ON public.collaborator_configurations
 FOR INSERT
@@ -39,6 +41,7 @@ WITH CHECK (
 );
 
 -- Policy: Team admins can update collaborator configs
+DROP POLICY IF EXISTS "Team admins can update collaborator configs" ON public.collaborator_configurations;
 CREATE POLICY "Team admins can update collaborator configs"
 ON public.collaborator_configurations
 FOR UPDATE
@@ -52,6 +55,7 @@ USING (
 );
 
 -- Policy: Team admins can delete collaborator configs
+DROP POLICY IF EXISTS "Team admins can delete collaborator configs" ON public.collaborator_configurations;
 CREATE POLICY "Team admins can delete collaborator configs"
 ON public.collaborator_configurations
 FOR DELETE
@@ -65,6 +69,7 @@ USING (
 );
 
 -- Add updated_at trigger
+DROP TRIGGER IF EXISTS update_collaborator_configurations_updated_at ON public.collaborator_configurations;
 CREATE TRIGGER update_collaborator_configurations_updated_at
   BEFORE UPDATE ON public.collaborator_configurations
   FOR EACH ROW

@@ -1,15 +1,25 @@
 -- Secure RLS for public."User Profile" with owner-based access and legacy transition
+-- Idempotent: user_id / FK / policies may already exist (remote parity).
 
 -- 1) Ensure RLS enabled
 ALTER TABLE public."User Profile" ENABLE ROW LEVEL SECURITY;
 
 -- 2) Add user_id column and FK to auth.users (nullable initially for backfill)
 ALTER TABLE public."User Profile"
-  ADD COLUMN user_id uuid;
+  ADD COLUMN IF NOT EXISTS user_id uuid;
 
-ALTER TABLE public."User Profile"
-  ADD CONSTRAINT user_profile_user_id_fk
-  FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'user_profile_user_id_fk'
+      AND conrelid = 'public."User Profile"'::regclass
+  ) THEN
+    ALTER TABLE public."User Profile"
+      ADD CONSTRAINT user_profile_user_id_fk
+      FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+  END IF;
+END $$;
 
 -- 3) Index for performance
 CREATE INDEX IF NOT EXISTS idx_user_profile_user_id ON public."User Profile" (user_id);
@@ -37,21 +47,13 @@ BEFORE INSERT ON public."User Profile"
 FOR EACH ROW EXECUTE FUNCTION public.set_user_profile_user_id();
 
 -- 5) RLS Policies
--- Clean slate (in case any exist unexpectedly)
-DO $$
-BEGIN
-  -- Drop existing policies if present
-  PERFORM 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'User Profile';
-  IF FOUND THEN
-    EXECUTE 'DROP POLICY IF EXISTS "Users can view their own user profile" ON public."User Profile"';
-    EXECUTE 'DROP POLICY IF EXISTS "Users can create their own user profile" ON public."User Profile"';
-    EXECUTE 'DROP POLICY IF EXISTS "Users can update their own user profile" ON public."User Profile"';
-    EXECUTE 'DROP POLICY IF EXISTS "Users can delete their own user profile" ON public."User Profile"';
-    EXECUTE 'DROP POLICY IF EXISTS "Users can claim legacy user profile" ON public."User Profile"';
-    EXECUTE 'DROP POLICY IF EXISTS "Admins can view all user profiles" ON public."User Profile"';
-    EXECUTE 'DROP POLICY IF EXISTS "Admins can manage user profiles" ON public."User Profile"';
-  END IF;
-END$$;
+DROP POLICY IF EXISTS "Users can view their own user profile" ON public."User Profile";
+DROP POLICY IF EXISTS "Users can create their own user profile" ON public."User Profile";
+DROP POLICY IF EXISTS "Users can update their own user profile" ON public."User Profile";
+DROP POLICY IF EXISTS "Users can claim legacy user profile" ON public."User Profile";
+DROP POLICY IF EXISTS "Users can delete their own user profile" ON public."User Profile";
+DROP POLICY IF EXISTS "Admins can view all user profiles" ON public."User Profile";
+DROP POLICY IF EXISTS "Admins can manage user profiles" ON public."User Profile";
 
 -- Owner-based access
 CREATE POLICY "Users can view their own user profile"

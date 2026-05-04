@@ -35,7 +35,13 @@ WHERE cost IS NULL AND venue_type_id = '8'; -- Local Parks
 
 UPDATE venues 
 SET cost = 4500 
-WHERE cost IS NULL AND venue_type_id = '9'; -- Hospitality Location
+WHERE cost IS NULL
+  AND venue_type_id = (
+    SELECT COALESCE(
+      (SELECT id FROM public.venue_types WHERE name = 'Hospitality Location' ORDER BY id LIMIT 1),
+      (SELECT id FROM public.venue_types WHERE name = 'Other' ORDER BY id LIMIT 1)
+    )
+  );
 
 UPDATE venues 
 SET cost = 2500 

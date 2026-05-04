@@ -1,22 +1,25 @@
 -- Add policies for role assignment functionality
--- Allow coordinators and admins to insert new roles
+-- Use public.policy_has_min_permission_level (see 20251007151216) to avoid overload ambiguity
+-- once has_min_permission_level gains a default third argument in 20251008012430.
+
+DROP POLICY IF EXISTS "coordinators_can_insert_roles" ON public.user_roles;
 CREATE POLICY "coordinators_can_insert_roles"
 ON public.user_roles
 FOR INSERT
 TO authenticated
-WITH CHECK (has_min_permission_level(auth.uid(), 'coordinator'::permission_level));
+WITH CHECK (public.policy_has_min_permission_level(auth.uid(), 'coordinator'::public.permission_level));
 
--- Allow coordinators and admins to update existing roles
+DROP POLICY IF EXISTS "coordinators_can_update_roles" ON public.user_roles;
 CREATE POLICY "coordinators_can_update_roles"
 ON public.user_roles
 FOR UPDATE
 TO authenticated
-USING (has_min_permission_level(auth.uid(), 'coordinator'::permission_level))
-WITH CHECK (has_min_permission_level(auth.uid(), 'coordinator'::permission_level));
+USING (public.policy_has_min_permission_level(auth.uid(), 'coordinator'::public.permission_level))
+WITH CHECK (public.policy_has_min_permission_level(auth.uid(), 'coordinator'::public.permission_level));
 
--- Allow coordinators and admins to delete roles
+DROP POLICY IF EXISTS "coordinators_can_delete_roles" ON public.user_roles;
 CREATE POLICY "coordinators_can_delete_roles"
 ON public.user_roles
 FOR DELETE
 TO authenticated
-USING (has_min_permission_level(auth.uid(), 'coordinator'::permission_level));
+USING (public.policy_has_min_permission_level(auth.uid(), 'coordinator'::public.permission_level));

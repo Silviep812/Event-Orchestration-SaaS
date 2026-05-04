@@ -1,2 +1,2 @@
 -- Add tags column to event_themes table
-ALTER TABLE event_themes ADD COLUMN tags TEXT[];
+ALTER TABLE public.event_themes ADD COLUMN IF NOT EXISTS tags TEXT[];

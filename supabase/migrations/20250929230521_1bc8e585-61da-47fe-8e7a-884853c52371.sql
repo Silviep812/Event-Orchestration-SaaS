@@ -1,5 +1,5 @@
 -- Create template_tasks table
-CREATE TABLE public.template_tasks (
+CREATE TABLE IF NOT EXISTS public.template_tasks (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   template_id UUID NOT NULL REFERENCES public.templates(id) ON DELETE CASCADE,
   user_id UUID NOT NULL,
@@ -13,28 +13,33 @@ CREATE TABLE public.template_tasks (
 ALTER TABLE public.template_tasks ENABLE ROW LEVEL SECURITY;
 
 -- Create policies for user access
-CREATE POLICY "Users can view their own template tasks" 
-ON public.template_tasks 
-FOR SELECT 
+DROP POLICY IF EXISTS "Users can view their own template tasks" ON public.template_tasks;
+CREATE POLICY "Users can view their own template tasks"
+ON public.template_tasks
+FOR SELECT
 USING (auth.uid() = user_id);
 
-CREATE POLICY "Users can create their own template tasks" 
-ON public.template_tasks 
-FOR INSERT 
+DROP POLICY IF EXISTS "Users can create their own template tasks" ON public.template_tasks;
+CREATE POLICY "Users can create their own template tasks"
+ON public.template_tasks
+FOR INSERT
 WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY "Users can update their own template tasks" 
-ON public.template_tasks 
-FOR UPDATE 
+DROP POLICY IF EXISTS "Users can update their own template tasks" ON public.template_tasks;
+CREATE POLICY "Users can update their own template tasks"
+ON public.template_tasks
+FOR UPDATE
 USING (auth.uid() = user_id)
 WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY "Users can delete their own template tasks" 
-ON public.template_tasks 
-FOR DELETE 
+DROP POLICY IF EXISTS "Users can delete their own template tasks" ON public.template_tasks;
+CREATE POLICY "Users can delete their own template tasks"
+ON public.template_tasks
+FOR DELETE
 USING (auth.uid() = user_id);
 
 -- Create trigger for automatic timestamp updates
+DROP TRIGGER IF EXISTS update_template_tasks_updated_at ON public.template_tasks;
 CREATE TRIGGER update_template_tasks_updated_at
 BEFORE UPDATE ON public.template_tasks
 FOR EACH ROW

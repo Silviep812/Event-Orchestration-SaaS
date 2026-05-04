@@ -1,6 +1,6 @@
 /**
  * Health & Wellness, Retreats, Meetup, Reunion, Special Event, and Sporting helpers load from `event_types`
- * for the matching `event_themes` row.
+ * for the matching `Themes Directory Catalog` row.
  */
 import { supabase } from "@/integrations/supabase/client";
 import { sportingSelectionTrailLabel, sportingTypeUiLabel } from "@/lib/sportingTypeUiLabel";
@@ -21,7 +21,7 @@ export async function resolveThemeId(
   matchers: ((name: string) => boolean)[],
   legacyFallback: number
 ): Promise<number> {
-  const { data: themes } = await supabase.from("event_themes").select("id, name");
+  const { data: themes } = await supabase.from("Themes Directory Catalog").select("id, name");
   if (themes?.length) {
     for (const m of matchers) {
       const t = themes.find((x) => m(x.name));
@@ -155,7 +155,7 @@ export async function loadHealthWellnessEventTypeGroups(): Promise<HealthWellnes
   const parentIds: Record<string, number> = {};
   const keyLabel: Record<string, string> = {};
 
-  const { data: themes } = await supabase.from("event_themes").select("id, name");
+  const { data: themes } = await supabase.from("Themes Directory Catalog").select("id, name");
   const hwTheme =
     themes?.find((t) => /health/i.test(t.name) && /wellness/i.test(t.name)) ??
     themes?.find((t) => /health\s*&\s*wellness/i.test(t.name)) ??
@@ -259,7 +259,7 @@ function isExcludedFromRetreats(label: string): boolean {
 export async function loadRetreatsEventTypeGroups(): Promise<RetreatsGroupsResult> {
   const typesByBranch: Record<string, { id: number; name: string }[]> = {};
   const rootIdByBranch: Record<string, number> = {};
-  const { data: themes } = await supabase.from("event_themes").select("id, name");
+  const { data: themes } = await supabase.from("Themes Directory Catalog").select("id, name");
   const rTheme =
     themes?.find((t) => /^retreats?$/i.test((t.name ?? "").trim())) ??
     themes?.find((t) => /retreat/i.test(t.name ?? ""));
@@ -476,7 +476,7 @@ export async function loadSportingDirectoryCategoryTypes(
 
 /** Leaf event types for the Sporting theme (children under each top-level directory row). */
 export async function loadSportingLeafEventTypes(): Promise<{ id: number; name: string }[]> {
-  const { data: themes } = await supabase.from("event_themes").select("id, name");
+  const { data: themes } = await supabase.from("Themes Directory Catalog").select("id, name");
   const sportTheme = themes?.find((t) => isSportThemeName(t.name));
   if (!sportTheme?.id) return [];
   const sm = await loadEventTypesByParentTag(sportTheme.id);

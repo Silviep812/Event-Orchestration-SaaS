@@ -111,7 +111,7 @@ describe("eventHasVendorBooking", () => {
         service_vendor_ids: null,
         entertainment_id: null,
         external_supplier_ids: null,
-        serv_vendor_rental_id: null,
+        service_rental_buy_id: null,
         venue_booking_completed: false,
       }),
     ).toBe(true);

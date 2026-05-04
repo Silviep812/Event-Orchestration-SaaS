@@ -1,5 +1,5 @@
 -- Create transportation_types table
-CREATE TABLE public.transportation_types (
+CREATE TABLE IF NOT EXISTS public.transportation_types (
   id SERIAL PRIMARY KEY,
   name TEXT NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
@@ -16,7 +16,7 @@ FOR SELECT
 USING (true);
 
 -- Create transportations table
-CREATE TABLE public.transportations (
+CREATE TABLE IF NOT EXISTS public.transportations (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   business_name TEXT NOT NULL,
   contact_name TEXT,
@@ -41,11 +41,13 @@ FOR SELECT
 USING (true);
 
 -- Create trigger for automatic timestamp updates
+DROP TRIGGER IF EXISTS update_transportation_types_updated_at ON public.transportation_types;
 CREATE TRIGGER update_transportation_types_updated_at
 BEFORE UPDATE ON public.transportation_types
 FOR EACH ROW
 EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_transportations_updated_at ON public.transportations;
 CREATE TRIGGER update_transportations_updated_at
 BEFORE UPDATE ON public.transportations
 FOR EACH ROW

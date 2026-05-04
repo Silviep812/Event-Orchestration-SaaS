@@ -2,7 +2,7 @@
 DROP TABLE IF EXISTS public.workflow_types CASCADE;
 
 -- Create workflow_types table with integer primary key
-CREATE TABLE public.workflow_types (
+CREATE TABLE IF NOT EXISTS public.workflow_types (
   id SERIAL PRIMARY KEY,
   name TEXT NOT NULL,
   description TEXT,
@@ -36,6 +36,7 @@ FOR DELETE
 USING (auth.role() = 'authenticated');
 
 -- Create trigger for automatic timestamp updates
+DROP TRIGGER IF EXISTS update_workflow_types_updated_at ON public.workflow_types;
 CREATE TRIGGER update_workflow_types_updated_at
 BEFORE UPDATE ON public.workflow_types
 FOR EACH ROW

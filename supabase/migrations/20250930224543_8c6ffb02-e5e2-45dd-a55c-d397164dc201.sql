@@ -1,5 +1,5 @@
 -- Create team_assignments table
-CREATE TABLE public.team_assignments (
+CREATE TABLE IF NOT EXISTS public.team_assignments (
   id SERIAL PRIMARY KEY,
   team_id uuid NOT NULL REFERENCES public.teams(id) ON DELETE CASCADE,
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -60,6 +60,7 @@ USING (
 );
 
 -- Create trigger for updated_at
+DROP TRIGGER IF EXISTS update_team_assignments_updated_at ON public.team_assignments;
 CREATE TRIGGER update_team_assignments_updated_at
 BEFORE UPDATE ON public.team_assignments
 FOR EACH ROW

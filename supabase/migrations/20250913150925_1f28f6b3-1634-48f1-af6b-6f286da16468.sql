@@ -1,5 +1,7 @@
 -- Create a new events table with proper structure
-CREATE TABLE public.events (
+-- Idempotent: public.events may already exist on remote.
+
+CREATE TABLE IF NOT EXISTS public.events (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL,
   title TEXT NOT NULL,
@@ -15,31 +17,33 @@ CREATE TABLE public.events (
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
 
--- Enable Row Level Security
 ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
 
--- Create policies for user access
-CREATE POLICY "Users can view their own events" 
-ON public.events 
-FOR SELECT 
+DROP POLICY IF EXISTS "Users can view their own events" ON public.events;
+CREATE POLICY "Users can view their own events"
+ON public.events
+FOR SELECT
 USING (auth.uid() = user_id);
 
-CREATE POLICY "Users can create their own events" 
-ON public.events 
-FOR INSERT 
+DROP POLICY IF EXISTS "Users can create their own events" ON public.events;
+CREATE POLICY "Users can create their own events"
+ON public.events
+FOR INSERT
 WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY "Users can update their own events" 
-ON public.events 
-FOR UPDATE 
+DROP POLICY IF EXISTS "Users can update their own events" ON public.events;
+CREATE POLICY "Users can update their own events"
+ON public.events
+FOR UPDATE
 USING (auth.uid() = user_id);
 
-CREATE POLICY "Users can delete their own events" 
-ON public.events 
-FOR DELETE 
+DROP POLICY IF EXISTS "Users can delete their own events" ON public.events;
+CREATE POLICY "Users can delete their own events"
+ON public.events
+FOR DELETE
 USING (auth.uid() = user_id);
 
--- Create trigger for automatic timestamp updates
+DROP TRIGGER IF EXISTS update_events_updated_at ON public.events;
 CREATE TRIGGER update_events_updated_at
 BEFORE UPDATE ON public.events
 FOR EACH ROW

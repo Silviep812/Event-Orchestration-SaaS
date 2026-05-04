@@ -1,5 +1,5 @@
 -- Create task_assignments table for role-based task assignments
-CREATE TABLE public.task_assignments (
+CREATE TABLE IF NOT EXISTS public.task_assignments (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   task_id UUID NOT NULL REFERENCES public.tasks(id) ON DELETE CASCADE,
   assigned_role app_role NOT NULL,
@@ -66,5 +66,5 @@ USING (
 );
 
 -- Add index for better performance
-CREATE INDEX idx_task_assignments_task_id ON public.task_assignments(task_id);
-CREATE INDEX idx_task_assignments_role ON public.task_assignments(assigned_role);
+CREATE INDEX IF NOT EXISTS idx_task_assignments_task_id ON public.task_assignments(task_id);
+CREATE INDEX IF NOT EXISTS idx_task_assignments_role ON public.task_assignments(assigned_role);

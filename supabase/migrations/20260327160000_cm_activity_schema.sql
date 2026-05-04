@@ -20,6 +20,7 @@ CREATE INDEX IF NOT EXISTS idx_cm_activity_created_at  ON public.cm_activity(cre
 
 ALTER TABLE public.cm_activity ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Owner can view cm_activity" ON public.cm_activity;
 CREATE POLICY "Owner can view cm_activity"
 ON public.cm_activity
 FOR SELECT TO authenticated
@@ -31,6 +32,7 @@ USING (
   )
 );
 
+DROP POLICY IF EXISTS "Owner can insert cm_activity" ON public.cm_activity;
 CREATE POLICY "Owner can insert cm_activity"
 ON public.cm_activity
 FOR INSERT TO authenticated

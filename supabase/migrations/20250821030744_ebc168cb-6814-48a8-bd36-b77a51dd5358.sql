@@ -50,18 +50,21 @@ BEGIN
 END $$;
 
 -- Create deny-by-default SELECT policy (no one can read rows directly)
+DROP POLICY IF EXISTS "No direct select on Authorization" ON public."Authorization";
 CREATE POLICY "No direct select on Authorization"
 ON public."Authorization"
 FOR SELECT
 USING (false);
 
 -- Only admins may insert/update/delete records if truly needed
+DROP POLICY IF EXISTS "Admins manage Authorization" ON public."Authorization";
 CREATE POLICY "Admins manage Authorization"
 ON public."Authorization"
 FOR INSERT
 TO authenticated
 WITH CHECK (public.has_role(auth.uid(), 'admin'));
 
+DROP POLICY IF EXISTS "Admins update Authorization" ON public."Authorization";
 CREATE POLICY "Admins update Authorization"
 ON public."Authorization"
 FOR UPDATE
@@ -69,6 +72,7 @@ TO authenticated
 USING (public.has_role(auth.uid(), 'admin'))
 WITH CHECK (public.has_role(auth.uid(), 'admin'));
 
+DROP POLICY IF EXISTS "Admins delete Authorization" ON public."Authorization";
 CREATE POLICY "Admins delete Authorization"
 ON public."Authorization"
 FOR DELETE
@@ -76,34 +80,100 @@ TO authenticated
 USING (public.has_role(auth.uid(), 'admin'));
 
 -- 3) Scrub any sensitive data already stored in Authorization
-UPDATE public."Authorization"
-SET pass_word = NULL,
-    create_password = NULL,
-    reset_pw = NULL
-WHERE pass_word IS NOT NULL
-   OR create_password IS NOT NULL
-   OR reset_pw IS NOT NULL;
+-- Columns may have been renamed/dropped on remote; only touch columns that exist.
+DO $scrub$
+DECLARE
+  sets text[] := '{}';
+  wheres text[] := '{}';
+  col text;
+  cols constant text[] := ARRAY['pass_word', 'create_password', 'reset_pw'];
+BEGIN
+  IF pg_catalog.to_regclass('public."Authorization"') IS NULL THEN
+    RETURN;
+  END IF;
+
+  FOREACH col IN ARRAY cols
+  LOOP
+    IF EXISTS (
+      SELECT 1
+      FROM information_schema.columns c
+      WHERE c.table_schema = 'public'
+        AND c.table_name = 'Authorization'
+        AND c.column_name = col
+    ) THEN
+      sets := array_append(sets, format('%I = NULL', col));
+      wheres := array_append(wheres, format('%I IS NOT NULL', col));
+    END IF;
+  END LOOP;
+
+  IF cardinality(sets) > 0 THEN
+    EXECUTE format(
+      'UPDATE public."Authorization" SET %s WHERE %s',
+      array_to_string(sets, ', '),
+      array_to_string(wheres, ' OR ')
+    );
+  END IF;
+END $scrub$;
 
 -- 4) Add trigger to prevent storing sensitive password fields going forward
-CREATE OR REPLACE FUNCTION public.scrub_authorization_sensitive_fields()
-RETURNS trigger
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path TO public
-AS $$
+DO $tr$
+DECLARE
+  assigns text := '';
+  col text;
+  cols constant text[] := ARRAY['pass_word', 'create_password', 'reset_pw'];
 BEGIN
-  -- Never persist plaintext or pseudo-password fields
-  NEW.pass_word := NULL;
-  NEW.create_password := NULL;
-  NEW.reset_pw := NULL;
-  RETURN NEW;
-END;
-$$;
+  IF pg_catalog.to_regclass('public."Authorization"') IS NULL THEN
+    RETURN;
+  END IF;
 
-DROP TRIGGER IF EXISTS trg_scrub_authorization_sensitive_fields ON public."Authorization";
-CREATE TRIGGER trg_scrub_authorization_sensitive_fields
-BEFORE INSERT OR UPDATE ON public."Authorization"
-FOR EACH ROW
-EXECUTE FUNCTION public.scrub_authorization_sensitive_fields();
+  FOREACH col IN ARRAY cols
+  LOOP
+    IF EXISTS (
+      SELECT 1
+      FROM information_schema.columns c
+      WHERE c.table_schema = 'public'
+        AND c.table_name = 'Authorization'
+        AND c.column_name = col
+    ) THEN
+      assigns := assigns || format('  NEW.%I := NULL;%s', col, chr(10));
+    END IF;
+  END LOOP;
+
+  IF assigns = '' THEN
+    EXECUTE $fn$
+      CREATE OR REPLACE FUNCTION public.scrub_authorization_sensitive_fields()
+      RETURNS trigger
+      LANGUAGE plpgsql
+      SECURITY DEFINER
+      SET search_path TO public
+      AS $body$
+      BEGIN
+        RETURN NEW;
+      END
+      $body$
+    $fn$;
+  ELSE
+    EXECUTE format($fn$
+      CREATE OR REPLACE FUNCTION public.scrub_authorization_sensitive_fields()
+      RETURNS trigger
+      LANGUAGE plpgsql
+      SECURITY DEFINER
+      SET search_path TO public
+      AS $body$
+      BEGIN
+%s        RETURN NEW;
+      END
+      $body$
+    $fn$, assigns);
+  END IF;
+
+  EXECUTE 'DROP TRIGGER IF EXISTS trg_scrub_authorization_sensitive_fields ON public."Authorization"';
+  EXECUTE $sql$
+    CREATE TRIGGER trg_scrub_authorization_sensitive_fields
+    BEFORE INSERT OR UPDATE ON public."Authorization"
+    FOR EACH ROW
+    EXECUTE FUNCTION public.scrub_authorization_sensitive_fields()
+  $sql$;
+END $tr$;
 
 COMMIT;

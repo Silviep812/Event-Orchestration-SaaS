@@ -1,6 +1,6 @@
 -- Add price column to suppliers table
 ALTER TABLE suppliers
-ADD COLUMN price numeric;
+ADD COLUMN IF NOT EXISTS price numeric;
 
 -- Add food_wholesaler category
 INSERT INTO supplier_categories (id, name) 
@@ -31,4 +31,5 @@ INSERT INTO suppliers (business_name, contact_name, email, phone_number, city, s
 
 -- Other
 ('Maryland Event Specialists', 'Kevin Thomas', 'contact@mdeventspec.com', '301-555-0111', 'Gaithersburg', 'MD', '20877', 5, 1, 1600.00),
-('Potomac Party Solutions', 'Maria Garcia', 'info@potomacparty.com', '240-555-0112', 'Potomac', 'MD', '20854', 5, 3, 1400.00);
+('Potomac Party Solutions', 'Maria Garcia', 'info@potomacparty.com', '240-555-0112', 'Potomac', 'MD', '20854', 5, 3, 1400.00)
+ON CONFLICT (business_name, email) DO NOTHING;

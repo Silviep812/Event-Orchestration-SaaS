@@ -40,4 +40,5 @@ SELECT id, 14 FROM serv_vendor_rentals WHERE business_name = 'Maryland Kids Play
 UNION ALL
 SELECT id, 13 FROM serv_vendor_rentals WHERE business_name = 'Baltimore Event Decor'
 UNION ALL
-SELECT id, 10 FROM serv_vendor_rentals WHERE business_name = 'Chesapeake Entertainment Co';
+SELECT id, 10 FROM serv_vendor_rentals WHERE business_name = 'Chesapeake Entertainment Co'
+ON CONFLICT (serv_vendor_rental_id, vendor_rental_type_id) DO NOTHING;

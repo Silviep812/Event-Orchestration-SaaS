@@ -12,7 +12,7 @@ interface WorkflowData {
   venue_id?: string;
   supplier_id?: string;
   serv_vendor_id?: string;
-  serv_vendor_rent_id?: string;
+  service_rental_buy_id?: string;
   event_id: string; // Now required due to NOT NULL constraint
   created_at?: string;
   updated_at?: string;
@@ -234,7 +234,7 @@ export const useWorkflow = () => {
           venue_id: 'Venue Selection',
           supplier_id: 'External vendor selection',
           serv_vendor_id: 'Service Vendor Selection',
-          serv_vendor_rent_id: 'Service Rental Selection',
+          service_rental_buy_id: 'Service Rental Selection',
           event_id: 'Event Selection',
         };
 
@@ -304,7 +304,7 @@ export const useWorkflow = () => {
           venue_id,
           supplier_id,
           serv_vendor_id,
-          serv_vendor_rent_id,
+          service_rental_buy_id,
           event_id,
           created_at,
           updated_at
@@ -339,7 +339,7 @@ export const useWorkflow = () => {
           venue_id,
           supplier_id,
           serv_vendor_id,
-          serv_vendor_rent_id,
+          service_rental_buy_id,
           event_id,
           created_at,
           updated_at
@@ -375,7 +375,7 @@ export const useWorkflow = () => {
           venue_id,
           supplier_id,
           serv_vendor_id,
-          serv_vendor_rent_id,
+          service_rental_buy_id,
           event_id,
           created_at,
           updated_at

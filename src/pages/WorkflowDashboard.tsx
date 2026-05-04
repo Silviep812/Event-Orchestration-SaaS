@@ -33,7 +33,7 @@ interface Workflow {
   venue_id?: string;
   supplier_id?: string;
   serv_vendor_id?: string;
-  serv_vendor_rent_id?: string;
+  service_rental_buy_id?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -145,7 +145,7 @@ export default function WorkflowDashboard() {
           if (workflow.hospitality_id) setSelectedHospitality(workflow.hospitality_id);
           if (workflow.venue_id) setSelectedVenue(workflow.venue_id);
           if (workflow.serv_vendor_id) setSelectedServiceVendor(workflow.serv_vendor_id);
-          if (workflow.serv_vendor_rent_id) setSelectedServiceRental(workflow.serv_vendor_rent_id);
+          if (workflow.service_rental_buy_id) setSelectedServiceRental(workflow.service_rental_buy_id);
           const { data: evSup } = await supabase
             .from("events")
             .select("external_supplier_ids")
@@ -341,7 +341,7 @@ export default function WorkflowDashboard() {
   const handleServiceRentalSelection = async (rentalId: string) => {
     setSelectedServiceRental(rentalId);
     const ok = await updateWorkflowSelections(
-      { serv_vendor_rent_id: rentalId },
+      { service_rental_buy_id: rentalId },
       workflowIdForEvent || undefined
     );
     if (ok) {
@@ -467,7 +467,7 @@ export default function WorkflowDashboard() {
     setSelectedHospitality(data.hospitality_id ?? undefined);
     setSelectedVenue(data.venue_id ?? undefined);
     setSelectedServiceVendor(data.serv_vendor_id ?? null);
-    setSelectedServiceRental(data.serv_vendor_rent_id ?? null);
+    setSelectedServiceRental(data.service_rental_buy_id ?? null);
     if (data.event_id) {
       const { data: evSup } = await supabase
         .from("events")

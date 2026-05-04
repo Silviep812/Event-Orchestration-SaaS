@@ -86,40 +86,40 @@ CREATE POLICY marketing_subscribers_admin
 ON public.marketing_subscribers
 FOR ALL
 TO authenticated
-USING (public.has_role(auth.uid(), 'admin'::public.app_role))
-WITH CHECK (public.has_role(auth.uid(), 'admin'::public.app_role));
+USING (public.has_permission_level(auth.uid(), 'admin'::public.permission_level))
+WITH CHECK (public.has_permission_level(auth.uid(), 'admin'::public.permission_level));
 
 DROP POLICY IF EXISTS marketing_campaigns_admin ON public.marketing_campaigns;
 CREATE POLICY marketing_campaigns_admin
 ON public.marketing_campaigns
 FOR ALL
 TO authenticated
-USING (public.has_role(auth.uid(), 'admin'::public.app_role))
-WITH CHECK (public.has_role(auth.uid(), 'admin'::public.app_role));
+USING (public.has_permission_level(auth.uid(), 'admin'::public.permission_level))
+WITH CHECK (public.has_permission_level(auth.uid(), 'admin'::public.permission_level));
 
 DROP POLICY IF EXISTS marketing_emails_admin ON public.marketing_emails;
 CREATE POLICY marketing_emails_admin
 ON public.marketing_emails
 FOR ALL
 TO authenticated
-USING (public.has_role(auth.uid(), 'admin'::public.app_role))
-WITH CHECK (public.has_role(auth.uid(), 'admin'::public.app_role));
+USING (public.has_permission_level(auth.uid(), 'admin'::public.permission_level))
+WITH CHECK (public.has_permission_level(auth.uid(), 'admin'::public.permission_level));
 
 DROP POLICY IF EXISTS marketing_email_deliveries_admin ON public.marketing_email_deliveries;
 CREATE POLICY marketing_email_deliveries_admin
 ON public.marketing_email_deliveries
 FOR ALL
 TO authenticated
-USING (public.has_role(auth.uid(), 'admin'::public.app_role))
-WITH CHECK (public.has_role(auth.uid(), 'admin'::public.app_role));
+USING (public.has_permission_level(auth.uid(), 'admin'::public.permission_level))
+WITH CHECK (public.has_permission_level(auth.uid(), 'admin'::public.permission_level));
 
 DROP POLICY IF EXISTS marketing_conversions_admin ON public.marketing_conversions;
 CREATE POLICY marketing_conversions_admin
 ON public.marketing_conversions
 FOR ALL
 TO authenticated
-USING (public.has_role(auth.uid(), 'admin'::public.app_role))
-WITH CHECK (public.has_role(auth.uid(), 'admin'::public.app_role));
+USING (public.has_permission_level(auth.uid(), 'admin'::public.permission_level))
+WITH CHECK (public.has_permission_level(auth.uid(), 'admin'::public.permission_level));
 
 REVOKE ALL ON public.marketing_subscribers FROM anon;
 GRANT INSERT ON public.marketing_subscribers TO anon;

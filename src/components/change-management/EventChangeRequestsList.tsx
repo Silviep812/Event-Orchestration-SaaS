@@ -135,7 +135,7 @@ export function EventChangeRequestsList({ eventId, refreshToken = 0, compact }: 
       let themeName: string | null = null;
       let categoryName: string | null = null;
       if (evRow?.theme_id != null) {
-        const { data: th } = await supabase.from("event_themes").select("name").eq("id", evRow.theme_id).maybeSingle();
+        const { data: th } = await supabase.from("Themes Directory Catalog").select("name").eq("id", evRow.theme_id).maybeSingle();
         themeName = th?.name ?? null;
       }
       if (evRow?.type_id != null) {

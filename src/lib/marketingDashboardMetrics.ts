@@ -104,7 +104,7 @@ export type EventVendorFlags = {
   service_vendor_ids: string[] | null;
   entertainment_id: string | null;
   external_supplier_ids: string[] | null;
-  serv_vendor_rental_id: string | null;
+  service_rental_buy_id: string | null;
   venue_booking_completed: boolean | null;
 };
 
@@ -113,7 +113,7 @@ export function eventHasVendorBooking(e: EventVendorFlags): boolean {
   if (e.service_vendor_ids && e.service_vendor_ids.length > 0) return true;
   if (e.entertainment_id) return true;
   if (e.external_supplier_ids && e.external_supplier_ids.length > 0) return true;
-  if (e.serv_vendor_rental_id) return true;
+  if (e.service_rental_buy_id) return true;
   return Boolean(e.venue_booking_completed);
 }
 

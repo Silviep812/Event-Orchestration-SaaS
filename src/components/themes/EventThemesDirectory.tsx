@@ -219,7 +219,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
       try {
         setLoading(true);
         const { data, error } = await supabase
-          .from('event_themes')
+          .from('Themes Directory Catalog')
           .select('id, name, description, tags, premium, created_at')
           .order('name');
 

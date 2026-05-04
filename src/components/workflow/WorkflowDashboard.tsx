@@ -415,7 +415,7 @@ export const WorkflowDashboard = ({
         // Fetch theme name
         if (workflowData.theme_id) {
           const { data: theme } = await supabase
-            .from('event_themes')
+            .from('Themes Directory Catalog')
             .select('name')
             .eq('id', workflowData.theme_id)
             .limit(1)
@@ -466,7 +466,7 @@ export const WorkflowDashboard = ({
         // Fetch service vendor name
         if (workflowData.serv_vendor_id) {
           const { data: serviceVendor } = await supabase
-            .from('serv_vendor_suppliers')
+            .from('vendor')
             .select('business_name')
             .eq('id', workflowData.serv_vendor_id)
             .limit(1)
@@ -475,18 +475,18 @@ export const WorkflowDashboard = ({
         }
 
         // // Fetch service rental name
-        if (workflowData.serv_vendor_rent_id) {
+        if (workflowData.service_rental_buy_id) {
           const { data: serviceRental } = await supabase
-            .from('serv_vendor_rentals')
+            .from('service_rental_buy')
             .select('*')
-            .eq('id', workflowData.serv_vendor_rent_id)
+            .eq('id', workflowData.service_rental_buy_id)
             .limit(1)
             .maybeSingle();
           if (serviceRental) {
             const rentalKeys = Object.keys(serviceRental).filter(key => 
               key !== 'rental_type_id' && key !== 'created_at' && serviceRental[key]
             );
-            newSelections.serviceRental = serviceRental?.business_name || `Service Rental ${workflowData.serv_vendor_rent_id}`;
+            newSelections.serviceRental = serviceRental?.business_name || `Service Rental ${workflowData.service_rental_buy_id}`;
           }
         }
 

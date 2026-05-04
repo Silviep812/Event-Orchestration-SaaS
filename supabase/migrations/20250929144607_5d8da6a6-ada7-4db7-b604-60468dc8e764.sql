@@ -1,5 +1,5 @@
 -- Create workflow_types table
-CREATE TABLE public.workflow_types (
+CREATE TABLE IF NOT EXISTS public.workflow_types (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT NOT NULL,
   description TEXT,
@@ -12,27 +12,32 @@ CREATE TABLE public.workflow_types (
 ALTER TABLE public.workflow_types ENABLE ROW LEVEL SECURITY;
 
 -- Create policies
-CREATE POLICY "Anyone can view workflow types" 
-ON public.workflow_types 
-FOR SELECT 
+DROP POLICY IF EXISTS "Anyone can view workflow types" ON public.workflow_types;
+CREATE POLICY "Anyone can view workflow types"
+ON public.workflow_types
+FOR SELECT
 USING (true);
 
-CREATE POLICY "Authenticated users can create workflow types" 
-ON public.workflow_types 
-FOR INSERT 
+DROP POLICY IF EXISTS "Authenticated users can create workflow types" ON public.workflow_types;
+CREATE POLICY "Authenticated users can create workflow types"
+ON public.workflow_types
+FOR INSERT
 WITH CHECK (auth.role() = 'authenticated');
 
-CREATE POLICY "Authenticated users can update workflow types" 
-ON public.workflow_types 
-FOR UPDATE 
+DROP POLICY IF EXISTS "Authenticated users can update workflow types" ON public.workflow_types;
+CREATE POLICY "Authenticated users can update workflow types"
+ON public.workflow_types
+FOR UPDATE
 USING (auth.role() = 'authenticated');
 
-CREATE POLICY "Authenticated users can delete workflow types" 
-ON public.workflow_types 
-FOR DELETE 
+DROP POLICY IF EXISTS "Authenticated users can delete workflow types" ON public.workflow_types;
+CREATE POLICY "Authenticated users can delete workflow types"
+ON public.workflow_types
+FOR DELETE
 USING (auth.role() = 'authenticated');
 
 -- Create trigger for automatic timestamp updates
+DROP TRIGGER IF EXISTS update_workflow_types_updated_at ON public.workflow_types;
 CREATE TRIGGER update_workflow_types_updated_at
 BEFORE UPDATE ON public.workflow_types
 FOR EACH ROW

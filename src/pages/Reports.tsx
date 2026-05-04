@@ -230,7 +230,7 @@ const Reports = () => {
         const themeIds = [...new Set(list.map((e) => e.theme_id).filter((x): x is number => x != null))];
         let themeMap: Record<number, string> = {};
         if (themeIds.length > 0) {
-          const { data: th } = await supabase.from("event_themes").select("id, name").in("id", themeIds);
+          const { data: th } = await supabase.from("Themes Directory Catalog").select("id, name").in("id", themeIds);
           themeMap = Object.fromEntries((th || []).map((t) => [t.id, t.name || ""]));
         }
         const eventIds = list.map((e) => e.id);

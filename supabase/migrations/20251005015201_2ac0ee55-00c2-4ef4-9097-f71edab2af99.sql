@@ -1,3 +1,3 @@
 -- Add Food Wholesaler category to Supplier Directory
 ALTER TABLE "Supplier Directory"
-ADD COLUMN "Food_Wholesaler" text;
+ADD COLUMN IF NOT EXISTS "Food_Wholesaler" text;

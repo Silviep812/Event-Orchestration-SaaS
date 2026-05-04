@@ -13,7 +13,14 @@ END $$;
 UPDATE hospitality_profiles hp
 SET cost = v.cost
 FROM venues v
+CROSS JOIN LATERAL (
+  SELECT COALESCE(
+    (SELECT id FROM public.venue_types WHERE name = 'Hospitality Location' ORDER BY id LIMIT 1),
+    (SELECT id FROM public.venue_types WHERE name = 'Other' ORDER BY id LIMIT 1)
+  ) AS id
+) ht
 WHERE hp.business_name = v.business_name
   AND hp.city = v.city
-  AND v.venue_type_id = '9'
+  AND v.venue_type_id = ht.id
+  AND ht.id IS NOT NULL
   AND v.cost IS NOT NULL;

@@ -1,5 +1,5 @@
 -- Create tasks_new table with similar structure to tasks
-CREATE TABLE public.tasks_new (
+CREATE TABLE IF NOT EXISTS public.tasks_new (
     id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
     event_id UUID,
     title TEXT NOT NULL,
@@ -45,6 +45,7 @@ FOR DELETE
 USING (created_by = auth.uid());
 
 -- Create trigger for automatic timestamp updates
+DROP TRIGGER IF EXISTS update_tasks_new_updated_at ON public.tasks_new;
 CREATE TRIGGER update_tasks_new_updated_at
 BEFORE UPDATE ON public.tasks_new
 FOR EACH ROW

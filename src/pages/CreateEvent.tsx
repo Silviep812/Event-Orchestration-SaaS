@@ -103,7 +103,7 @@ export default function CreateEvent() {
     { id: string; business_name: string; ent_type_id: number | null }[]
   >([]);
   const [selectedEntTypeId, setSelectedEntTypeId] = useState<number | null>(null);
-  /** External Vendor directory: procurement (`suppliers`), not rental equipment (`serv_vendor_suppliers`). */
+  /** External Vendor directory: procurement (`suppliers`), not rental equipment (`vendor`). */
   const [supplierCategories, setSupplierCategories] = useState<{ id: number; name: string }[]>([]);
   const [externalSupplierProfiles, setExternalSupplierProfiles] = useState<
     { id: string; business_name: string; category_id: number | null }[]
@@ -222,7 +222,7 @@ export default function CreateEvent() {
   useEffect(() => {
     const fetchThemes = async () => {
       const { data, error } = await supabase
-        .from('event_themes')
+        .from('Themes Directory Catalog')
         .select('id, name, premium')
         .order('name');
 

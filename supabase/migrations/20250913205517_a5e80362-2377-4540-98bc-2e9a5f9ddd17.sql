@@ -1,5 +1,5 @@
 -- Create tasks table
-CREATE TABLE public.tasks (
+CREATE TABLE IF NOT EXISTS public.tasks (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   title TEXT NOT NULL,
   description TEXT,
@@ -52,6 +52,7 @@ FOR DELETE
 USING (created_by = auth.uid());
 
 -- Create trigger for automatic timestamp updates
+DROP TRIGGER IF EXISTS update_tasks_updated_at ON public.tasks;
 CREATE TRIGGER update_tasks_updated_at
 BEFORE UPDATE ON public.tasks
 FOR EACH ROW

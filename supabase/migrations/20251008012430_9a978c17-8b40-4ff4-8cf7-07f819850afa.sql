@@ -12,10 +12,12 @@ WHERE ur.role = rpg.role
 
 -- Drop old functions CASCADE (this will drop all policies using them)
 DROP FUNCTION IF EXISTS public.has_permission_level(uuid, permission_level) CASCADE;
+DROP FUNCTION IF EXISTS public.has_permission_level(uuid, permission_level, uuid) CASCADE;
 DROP FUNCTION IF EXISTS public.has_min_permission_level(uuid, permission_level) CASCADE;
+DROP FUNCTION IF EXISTS public.has_min_permission_level(uuid, permission_level, uuid) CASCADE;
 
 -- Create updated has_permission_level function with optional event_id
-CREATE FUNCTION public.has_permission_level(_user_id uuid, _level permission_level, _event_id uuid DEFAULT NULL)
+CREATE OR REPLACE FUNCTION public.has_permission_level(_user_id uuid, _level permission_level, _event_id uuid DEFAULT NULL)
 RETURNS boolean
 LANGUAGE sql
 STABLE SECURITY DEFINER
@@ -31,7 +33,7 @@ AS $$
 $$;
 
 -- Create updated has_min_permission_level function with optional event_id
-CREATE FUNCTION public.has_min_permission_level(_user_id uuid, _level permission_level, _event_id uuid DEFAULT NULL)
+CREATE OR REPLACE FUNCTION public.has_min_permission_level(_user_id uuid, _level permission_level, _event_id uuid DEFAULT NULL)
 RETURNS boolean
 LANGUAGE sql
 STABLE SECURITY DEFINER
@@ -50,80 +52,98 @@ AS $$
   )
 $$;
 
--- Recreate all policies that were dropped
-
--- Create Event policies
+-- Recreate admin policies (DROP CASCADE may have skipped policies that used policy_* helpers from 20251007151216)
+DROP POLICY IF EXISTS "Admins can view all events" ON public."Create Event";
 CREATE POLICY "Admins can view all events"
 ON public."Create Event"
 FOR SELECT
-USING (has_permission_level(auth.uid(), 'admin'::permission_level));
+TO authenticated
+USING (public.has_permission_level(auth.uid(), 'admin'::public.permission_level));
 
+DROP POLICY IF EXISTS "Admins can delete events" ON public."Create Event";
 CREATE POLICY "Admins can delete events"
 ON public."Create Event"
 FOR DELETE
-USING (has_permission_level(auth.uid(), 'admin'::permission_level));
+TO authenticated
+USING (public.has_permission_level(auth.uid(), 'admin'::public.permission_level));
 
--- Manage Event policies
+DROP POLICY IF EXISTS "Admins can view all managed events" ON public."Manage Event";
 CREATE POLICY "Admins can view all managed events"
 ON public."Manage Event"
 FOR SELECT
-USING (has_permission_level(auth.uid(), 'admin'::permission_level));
+TO authenticated
+USING (public.has_permission_level(auth.uid(), 'admin'::public.permission_level));
 
+DROP POLICY IF EXISTS "Admins can delete managed events" ON public."Manage Event";
 CREATE POLICY "Admins can delete managed events"
 ON public."Manage Event"
 FOR DELETE
-USING (has_permission_level(auth.uid(), 'admin'::permission_level));
+TO authenticated
+USING (public.has_permission_level(auth.uid(), 'admin'::public.permission_level));
 
--- Budget items policies
+DROP POLICY IF EXISTS "Admins can view all budget items" ON public.budget_items;
 CREATE POLICY "Admins can view all budget items"
 ON public.budget_items
 FOR SELECT
-USING (has_permission_level(auth.uid(), 'admin'::permission_level));
+TO authenticated
+USING (public.has_permission_level(auth.uid(), 'admin'::public.permission_level));
 
+DROP POLICY IF EXISTS "Admins can delete budget items" ON public.budget_items;
 CREATE POLICY "Admins can delete budget items"
 ON public.budget_items
 FOR DELETE
-USING (has_permission_level(auth.uid(), 'admin'::permission_level));
+TO authenticated
+USING (public.has_permission_level(auth.uid(), 'admin'::public.permission_level));
 
--- User roles policies
+DROP POLICY IF EXISTS "Admins can view all role assignments" ON public.user_roles;
 CREATE POLICY "Admins can view all role assignments"
 ON public.user_roles
 FOR SELECT
-USING (has_permission_level(auth.uid(), 'admin'::permission_level));
+TO authenticated
+USING (public.has_permission_level(auth.uid(), 'admin'::public.permission_level));
 
+DROP POLICY IF EXISTS "Admins can insert role assignments" ON public.user_roles;
 CREATE POLICY "Admins can insert role assignments"
 ON public.user_roles
 FOR INSERT
-WITH CHECK (has_permission_level(auth.uid(), 'admin'::permission_level));
+TO authenticated
+WITH CHECK (public.has_permission_level(auth.uid(), 'admin'::public.permission_level));
 
+DROP POLICY IF EXISTS "Admins can update role assignments" ON public.user_roles;
 CREATE POLICY "Admins can update role assignments"
 ON public.user_roles
 FOR UPDATE
-USING (has_permission_level(auth.uid(), 'admin'::permission_level))
-WITH CHECK (has_permission_level(auth.uid(), 'admin'::permission_level));
+TO authenticated
+USING (public.has_permission_level(auth.uid(), 'admin'::public.permission_level))
+WITH CHECK (public.has_permission_level(auth.uid(), 'admin'::public.permission_level));
 
+DROP POLICY IF EXISTS "Admins can delete role assignments" ON public.user_roles;
 CREATE POLICY "Admins can delete role assignments"
 ON public.user_roles
 FOR DELETE
-USING (has_permission_level(auth.uid(), 'admin'::permission_level));
+TO authenticated
+USING (public.has_permission_level(auth.uid(), 'admin'::public.permission_level));
 
--- Bootstrap policies
+DROP POLICY IF EXISTS "Bootstrap: Allow role assignment for non-admin users" ON public.user_roles;
 CREATE POLICY "Bootstrap: Allow role assignment for non-admin users"
 ON public.user_roles
 FOR INSERT
+TO authenticated
 WITH CHECK (
-  auth.uid() IS NOT NULL 
-  AND NOT has_permission_level(auth.uid(), 'admin'::permission_level)
+  auth.uid() IS NOT NULL
+  AND NOT public.has_permission_level(auth.uid(), 'admin'::public.permission_level)
 );
 
+DROP POLICY IF EXISTS "Bootstrap: Allow role updates for non-admin users" ON public.user_roles;
 CREATE POLICY "Bootstrap: Allow role updates for non-admin users"
 ON public.user_roles
 FOR UPDATE
+TO authenticated
 USING (
-  auth.uid() IS NOT NULL 
-  AND NOT has_permission_level(auth.uid(), 'admin'::permission_level)
+  auth.uid() IS NOT NULL
+  AND NOT public.has_permission_level(auth.uid(), 'admin'::public.permission_level)
 )
 WITH CHECK (
-  auth.uid() IS NOT NULL 
-  AND NOT has_permission_level(auth.uid(), 'admin'::permission_level)
+  auth.uid() IS NOT NULL
+  AND NOT public.has_permission_level(auth.uid(), 'admin'::public.permission_level)
 );

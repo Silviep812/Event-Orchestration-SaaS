@@ -109,7 +109,7 @@ export default function Analytics({
   }, [eventId, queryEventId]);
 
   useEffect(() => {
-    supabase.from("event_themes").select("id, name").order("name").then(({ data }) => {
+    supabase.from("Themes Directory Catalog").select("id, name").order("name").then(({ data }) => {
       setThemeOptions(data || []);
     });
   }, []);

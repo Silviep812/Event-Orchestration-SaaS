@@ -8,9 +8,18 @@ CREATE POLICY "Hosts can insert vendor profiles" ON public."Vendor Profile" FOR 
 CREATE POLICY "Hosts can update vendor profiles" ON public."Vendor Profile" FOR UPDATE TO authenticated USING (has_role(auth.uid(), 'host'));
 CREATE POLICY "Hosts can delete vendor profiles" ON public."Vendor Profile" FOR DELETE TO authenticated USING (has_role(auth.uid(), 'host'));
 
--- Registration policies
-DROP POLICY IF EXISTS "Admins can manage registration" ON public."Registration";
-CREATE POLICY "Hosts can manage registration" ON public."Registration" FOR ALL TO authenticated USING (has_role(auth.uid(), 'host')) WITH CHECK (has_role(auth.uid(), 'host'));
+-- Registration policies (table may be absent on remote parity)
+DO $$
+BEGIN
+  IF to_regclass('public."Registration"') IS NOT NULL THEN
+    EXECUTE 'DROP POLICY IF EXISTS "Admins can manage registration" ON public."Registration"';
+    EXECUTE $p$
+      CREATE POLICY "Hosts can manage registration" ON public."Registration" FOR ALL TO authenticated
+      USING (has_role(auth.uid(), ''host''))
+      WITH CHECK (has_role(auth.uid(), ''host''))
+    $p$;
+  END IF;
+END $$;
 
 -- Subscription Plans policies
 DROP POLICY IF EXISTS "Admins can manage subscription plans" ON public."Subscription_Plans Directory";

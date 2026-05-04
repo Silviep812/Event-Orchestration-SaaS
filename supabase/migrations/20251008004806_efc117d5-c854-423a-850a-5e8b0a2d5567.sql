@@ -1,31 +1,32 @@
 -- Create RLS policies for user_roles table
+-- Use public.policy_has_permission_level (see 20251007151216) to avoid overload ambiguity.
 
--- Policy: Admins can view all role assignments
+DROP POLICY IF EXISTS "Admins can view all role assignments" ON public.user_roles;
 CREATE POLICY "Admins can view all role assignments"
 ON public.user_roles
 FOR SELECT
-USING (has_permission_level(auth.uid(), 'admin'::permission_level));
+USING (public.policy_has_permission_level(auth.uid(), 'admin'::public.permission_level));
 
--- Policy: Admins can insert role assignments
+DROP POLICY IF EXISTS "Admins can insert role assignments" ON public.user_roles;
 CREATE POLICY "Admins can insert role assignments"
 ON public.user_roles
 FOR INSERT
-WITH CHECK (has_permission_level(auth.uid(), 'admin'::permission_level));
+WITH CHECK (public.policy_has_permission_level(auth.uid(), 'admin'::public.permission_level));
 
--- Policy: Admins can update role assignments
+DROP POLICY IF EXISTS "Admins can update role assignments" ON public.user_roles;
 CREATE POLICY "Admins can update role assignments"
 ON public.user_roles
 FOR UPDATE
-USING (has_permission_level(auth.uid(), 'admin'::permission_level))
-WITH CHECK (has_permission_level(auth.uid(), 'admin'::permission_level));
+USING (public.policy_has_permission_level(auth.uid(), 'admin'::public.permission_level))
+WITH CHECK (public.policy_has_permission_level(auth.uid(), 'admin'::public.permission_level));
 
--- Policy: Admins can delete role assignments
+DROP POLICY IF EXISTS "Admins can delete role assignments" ON public.user_roles;
 CREATE POLICY "Admins can delete role assignments"
 ON public.user_roles
 FOR DELETE
-USING (has_permission_level(auth.uid(), 'admin'::permission_level));
+USING (public.policy_has_permission_level(auth.uid(), 'admin'::public.permission_level));
 
--- Policy: Users can view their own role assignments
+DROP POLICY IF EXISTS "Users can view their own role assignments" ON public.user_roles;
 CREATE POLICY "Users can view their own role assignments"
 ON public.user_roles
 FOR SELECT

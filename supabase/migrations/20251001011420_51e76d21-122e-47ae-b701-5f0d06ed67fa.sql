@@ -15,23 +15,34 @@ AS $$
   )
 $$;
 
--- Add policy to allow users to view profiles of their team members
+DROP POLICY IF EXISTS "Users can view team members profiles" ON public.profiles;
 CREATE POLICY "Users can view team members profiles"
 ON public.profiles
 FOR SELECT
 TO authenticated
 USING (public.are_team_members(auth.uid(), user_id));
 
--- Add policy to allow users to view User table data of their team members
-CREATE POLICY "Users can view team members user data"
-ON public."User"
-FOR SELECT
-TO authenticated
-USING (public.are_team_members(auth.uid(), userid));
+DO $pol$
+BEGIN
+  IF pg_catalog.to_regclass('public."User"') IS NOT NULL THEN
+    EXECUTE 'DROP POLICY IF EXISTS "Users can view team members user data" ON public."User"';
+    EXECUTE $p$
+      CREATE POLICY "Users can view team members user data"
+      ON public."User"
+      FOR SELECT
+      TO authenticated
+      USING (public.are_team_members(auth.uid(), userid))
+    $p$;
+  END IF;
 
--- Add policy to allow users to view User Profile data of their team members
-CREATE POLICY "Users can view team members user profile data"
-ON public."User Profile"
-FOR SELECT
-TO authenticated
-USING (public.are_team_members(auth.uid(), user_id));
+  IF pg_catalog.to_regclass('public."User Profile"') IS NOT NULL THEN
+    EXECUTE 'DROP POLICY IF EXISTS "Users can view team members user profile data" ON public."User Profile"';
+    EXECUTE $p$
+      CREATE POLICY "Users can view team members user profile data"
+      ON public."User Profile"
+      FOR SELECT
+      TO authenticated
+      USING (public.are_team_members(auth.uid(), user_id))
+    $p$;
+  END IF;
+END $pol$;

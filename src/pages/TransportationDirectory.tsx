@@ -93,10 +93,10 @@ const TransportationDirectory = () => {
         // with transportation-like supplier types so the directory is not blank.
         if (!cancelled && directProfiles.length === 0) {
           const { data: fallbackProfilesData, error: fallbackProfilesError } = await supabase
-            .from("serv_vendor_suppliers")
+            .from("vendor")
             .select("*, vendor_supplier_types(id, name)");
           if (fallbackProfilesError) {
-            console.error("serv_vendor_suppliers fallback:", fallbackProfilesError);
+            console.error("vendor fallback:", fallbackProfilesError);
           } else {
             const fallbackProfiles = (fallbackProfilesData || []).filter((row: any) => {
               const typeName = String(row.vendor_supplier_types?.name || "").toLowerCase();

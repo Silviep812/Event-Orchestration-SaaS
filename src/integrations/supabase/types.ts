@@ -44,18 +44,30 @@ export type Database = {
       Authorization: {
         Row: {
           created_at: string
+          pass_word: string | null
+          reset_pw: string | null
           sign_in: string
           sign_out: string | null
+          userid: string | null
+          userid_password: string | null
         }
         Insert: {
           created_at?: string
+          pass_word?: string | null
+          reset_pw?: string | null
           sign_in: string
           sign_out?: string | null
+          userid?: string | null
+          userid_password?: string | null
         }
         Update: {
           created_at?: string
+          pass_word?: string | null
+          reset_pw?: string | null
           sign_in?: string
           sign_out?: string | null
+          userid?: string | null
+          userid_password?: string | null
         }
         Relationships: []
       }
@@ -754,7 +766,7 @@ export type Database = {
           hospitality_assign_to: string | null
           marketing_assign_to_text: string | null
           service_rental_buy_assign_to_text: string | null
-          services_assign_to: string | null
+          service_vendor: string | null
           suppliers_assign_to: string | null
           transportation_assign_to: string | null
           vendors_assign_to: string | null
@@ -769,7 +781,7 @@ export type Database = {
           hospitality_assign_to?: string | null
           marketing_assign_to_text?: string | null
           service_rental_buy_assign_to_text?: string | null
-          services_assign_to?: string | null
+          service_vendor?: string | null
           suppliers_assign_to?: string | null
           transportation_assign_to?: string | null
           vendors_assign_to?: string | null
@@ -784,7 +796,7 @@ export type Database = {
           hospitality_assign_to?: string | null
           marketing_assign_to_text?: string | null
           service_rental_buy_assign_to_text?: string | null
-          services_assign_to?: string | null
+          service_vendor?: string | null
           suppliers_assign_to?: string | null
           transportation_assign_to?: string | null
           vendors_assign_to?: string | null
@@ -792,7 +804,7 @@ export type Database = {
         }
         Relationships: []
       }
-      Comments: {
+      "Communication Hub": {
         Row: {
           comment: string
           created_at: string
@@ -1420,6 +1432,43 @@ export type Database = {
           event_vend_location: string | null
           event_vend_start_date: string | null
           event_vend_type: string | null
+          booking_type: string | null
+          event_service_rental_buy_biz_name: string | null
+          event_service_rental_buy_collab_name: string | null
+          event_service_rental_buy_contact_name: string | null
+          event_service_rental_buy_contact_nbr: number | null
+          event_service_rental_buy_cost:
+            | Database["public"]["Enums"]["budget_category"]
+            | null
+          event_service_rental_buy_email: string | null
+          event_service_rental_buy_end_date: string | null
+          event_service_rental_buy_location: string | null
+          event_service_rental_buy_start_date: string | null
+          event_service_rental_buy_type: string | null
+          event_service_vendor_biz_name: string | null
+          event_service_vendor_collab_name: string | null
+          event_service_vendor_contact_name: string | null
+          event_service_vendor_contact_nbr: number | null
+          event_service_vendor_cost:
+            | Database["public"]["Enums"]["budget_category"]
+            | null
+          event_service_vendor_email: string | null
+          event_service_vendor_end_date: string | null
+          event_service_vendor_location: string | null
+          event_service_vendor_start_date: string | null
+          event_service_vendor_type: string | null
+          event_supplier_biz_name: string | null
+          event_supplier_collab_name: string | null
+          event_supplier_contact_name: string | null
+          event_supplier_contact_nbr: number | null
+          event_supplier_cost:
+            | Database["public"]["Enums"]["budget_category"]
+            | null
+          event_supplier_email: string | null
+          event_supplier_end_date: string | null
+          event_supplier_location: string | null
+          event_supplier_start_date: string | null
+          event_supplier_type: string | null
           event_venue_biz_name: string | null
           event_venue_check_in_date: string | null
           event_venue_check_out_date: string | null
@@ -1507,6 +1556,43 @@ export type Database = {
           event_vend_location?: string | null
           event_vend_start_date?: string | null
           event_vend_type?: string | null
+          booking_type?: string | null
+          event_service_rental_buy_biz_name?: string | null
+          event_service_rental_buy_collab_name?: string | null
+          event_service_rental_buy_contact_name?: string | null
+          event_service_rental_buy_contact_nbr?: number | null
+          event_service_rental_buy_cost?:
+            | Database["public"]["Enums"]["budget_category"]
+            | null
+          event_service_rental_buy_email?: string | null
+          event_service_rental_buy_end_date?: string | null
+          event_service_rental_buy_location?: string | null
+          event_service_rental_buy_start_date?: string | null
+          event_service_rental_buy_type?: string | null
+          event_service_vendor_biz_name?: string | null
+          event_service_vendor_collab_name?: string | null
+          event_service_vendor_contact_name?: string | null
+          event_service_vendor_contact_nbr?: number | null
+          event_service_vendor_cost?:
+            | Database["public"]["Enums"]["budget_category"]
+            | null
+          event_service_vendor_email?: string | null
+          event_service_vendor_end_date?: string | null
+          event_service_vendor_location?: string | null
+          event_service_vendor_start_date?: string | null
+          event_service_vendor_type?: string | null
+          event_supplier_biz_name?: string | null
+          event_supplier_collab_name?: string | null
+          event_supplier_contact_name?: string | null
+          event_supplier_contact_nbr?: number | null
+          event_supplier_cost?:
+            | Database["public"]["Enums"]["budget_category"]
+            | null
+          event_supplier_email?: string | null
+          event_supplier_end_date?: string | null
+          event_supplier_location?: string | null
+          event_supplier_start_date?: string | null
+          event_supplier_type?: string | null
           event_venue_biz_name?: string | null
           event_venue_check_in_date?: string | null
           event_venue_check_out_date?: string | null
@@ -1594,6 +1680,43 @@ export type Database = {
           event_vend_location?: string | null
           event_vend_start_date?: string | null
           event_vend_type?: string | null
+          booking_type?: string | null
+          event_service_rental_buy_biz_name?: string | null
+          event_service_rental_buy_collab_name?: string | null
+          event_service_rental_buy_contact_name?: string | null
+          event_service_rental_buy_contact_nbr?: number | null
+          event_service_rental_buy_cost?:
+            | Database["public"]["Enums"]["budget_category"]
+            | null
+          event_service_rental_buy_email?: string | null
+          event_service_rental_buy_end_date?: string | null
+          event_service_rental_buy_location?: string | null
+          event_service_rental_buy_start_date?: string | null
+          event_service_rental_buy_type?: string | null
+          event_service_vendor_biz_name?: string | null
+          event_service_vendor_collab_name?: string | null
+          event_service_vendor_contact_name?: string | null
+          event_service_vendor_contact_nbr?: number | null
+          event_service_vendor_cost?:
+            | Database["public"]["Enums"]["budget_category"]
+            | null
+          event_service_vendor_email?: string | null
+          event_service_vendor_end_date?: string | null
+          event_service_vendor_location?: string | null
+          event_service_vendor_start_date?: string | null
+          event_service_vendor_type?: string | null
+          event_supplier_biz_name?: string | null
+          event_supplier_collab_name?: string | null
+          event_supplier_contact_name?: string | null
+          event_supplier_contact_nbr?: number | null
+          event_supplier_cost?:
+            | Database["public"]["Enums"]["budget_category"]
+            | null
+          event_supplier_email?: string | null
+          event_supplier_end_date?: string | null
+          event_supplier_location?: string | null
+          event_supplier_start_date?: string | null
+          event_supplier_type?: string | null
           event_venue_biz_name?: string | null
           event_venue_check_in_date?: string | null
           event_venue_check_out_date?: string | null
@@ -1618,11 +1741,12 @@ export type Database = {
           created_at: string
           entertainment_types_text: string | null
           event_id: number
+          external_vendor_types_text: string | null
           hospitality_types: string | null
           marketing_types_text: string | null
-          service_rental_type: string | null
-          service_vendor_type: string | null
-          supply_type: string | null
+          service_rental_buy_type: string | null
+          service_vendor_types: string | null
+          supplier_types: string | null
           transportation_types_text: string | null
           vendor_types: string | null
           venue_types: string | null
@@ -1632,11 +1756,12 @@ export type Database = {
           created_at?: string
           entertainment_types_text?: string | null
           event_id?: number
+          external_vendor_types_text?: string | null
           hospitality_types?: string | null
           marketing_types_text?: string | null
-          service_rental_type?: string | null
-          service_vendor_type?: string | null
-          supply_type?: string | null
+          service_rental_buy_type?: string | null
+          service_vendor_types?: string | null
+          supplier_types?: string | null
           transportation_types_text?: string | null
           vendor_types?: string | null
           venue_types?: string | null
@@ -1646,11 +1771,12 @@ export type Database = {
           created_at?: string
           entertainment_types_text?: string | null
           event_id?: number
+          external_vendor_types_text?: string | null
           hospitality_types?: string | null
           marketing_types_text?: string | null
-          service_rental_type?: string | null
-          service_vendor_type?: string | null
-          supply_type?: string | null
+          service_rental_buy_type?: string | null
+          service_vendor_types?: string | null
+          supplier_types?: string | null
           transportation_types_text?: string | null
           vendor_types?: string | null
           venue_types?: string | null
@@ -1719,7 +1845,7 @@ export type Database = {
           },
         ]
       }
-      event_themes: {
+      "Themes Directory Catalog": {
         Row: {
           celebration_types: string[] | null
           created_at: string
@@ -1819,7 +1945,7 @@ export type Database = {
           external_supplier_ids: string[] | null
           id: string
           location: string | null
-          serv_vendor_rental_id: string | null
+          service_rental_buy_id: string | null
           service_vendor_id: string | null
           service_vendor_ids: string[] | null
           start_date: string
@@ -1846,7 +1972,7 @@ export type Database = {
           external_supplier_ids?: string[] | null
           id?: string
           location?: string | null
-          serv_vendor_rental_id?: string | null
+          service_rental_buy_id?: string | null
           service_vendor_id?: string | null
           service_vendor_ids?: string[] | null
           start_date: string
@@ -1873,7 +1999,7 @@ export type Database = {
           external_supplier_ids?: string[] | null
           id?: string
           location?: string | null
-          serv_vendor_rental_id?: string | null
+          service_rental_buy_id?: string | null
           service_vendor_id?: string | null
           service_vendor_ids?: string[] | null
           start_date?: string
@@ -1896,17 +2022,17 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "events_serv_vendor_rental_id_fkey"
-            columns: ["serv_vendor_rental_id"]
+            foreignKeyName: "events_service_rental_buy_id_fkey"
+            columns: ["service_rental_buy_id"]
             isOneToOne: false
-            referencedRelation: "serv_vendor_rentals"
+            referencedRelation: "service_rental_buy"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "events_service_vendor_id_fkey"
             columns: ["service_vendor_id"]
             isOneToOne: false
-            referencedRelation: "serv_vendor_suppliers"
+            referencedRelation: "vendor"
             referencedColumns: ["id"]
           },
           {
@@ -2156,23 +2282,24 @@ export type Database = {
           hosp_cost: number | null
           hosp_email: string | null
           hosp_location: string | null
-          service_biz_name: string | null
-          service_cost: number | null
-          service_delivery_date: string | null
-          service_delivery_location: string | null
-          service_delivery_time: string | null
-          service_rental_type: string[] | null
-          service_type: string[] | null
+          marketing_type: string[] | null
+          service_rental_buy_type: string[] | null
+          service_vendor_biz_name: string | null
+          service_vendor_cost: number | null
+          service_vendor_delivery_date: string | null
+          service_vendor_delivery_location: string | null
+          service_vendor_delivery_time: string | null
           service_vendor_type: string[] | null
+          service_vendor_types: string[] | null
           set_priority: string | null
           supplier_biz_name: string | null
           supplier_contact_name: string | null
           supplier_contact_nbr: number | null
+          supplier_cost: number | null
+          supplier_delivery_date: string | null
+          supplier_delivery_time: string | null
           supplier_email: string | null
-          supply_cost: number | null
-          supply_delivery_date: string | null
-          supply_delivery_time: string | null
-          supply_type: string[] | null
+          supplier_types: string[] | null
           task_status: string | null
           transportation_type: string[] | null
           vendor_biz_name: string | null
@@ -2212,23 +2339,24 @@ export type Database = {
           hosp_cost?: number | null
           hosp_email?: string | null
           hosp_location?: string | null
-          service_biz_name?: string | null
-          service_cost?: number | null
-          service_delivery_date?: string | null
-          service_delivery_location?: string | null
-          service_delivery_time?: string | null
-          service_rental_type?: string[] | null
-          service_type?: string[] | null
+          marketing_type?: string[] | null
+          service_rental_buy_type?: string[] | null
+          service_vendor_biz_name?: string | null
+          service_vendor_cost?: number | null
+          service_vendor_delivery_date?: string | null
+          service_vendor_delivery_location?: string | null
+          service_vendor_delivery_time?: string | null
           service_vendor_type?: string[] | null
+          service_vendor_types?: string[] | null
           set_priority?: string | null
           supplier_biz_name?: string | null
           supplier_contact_name?: string | null
           supplier_contact_nbr?: number | null
+          supplier_cost?: number | null
+          supplier_delivery_date?: string | null
+          supplier_delivery_time?: string | null
           supplier_email?: string | null
-          supply_cost?: number | null
-          supply_delivery_date?: string | null
-          supply_delivery_time?: string | null
-          supply_type?: string[] | null
+          supplier_types?: string[] | null
           task_status?: string | null
           transportation_type?: string[] | null
           vendor_biz_name?: string | null
@@ -2268,23 +2396,24 @@ export type Database = {
           hosp_cost?: number | null
           hosp_email?: string | null
           hosp_location?: string | null
-          service_biz_name?: string | null
-          service_cost?: number | null
-          service_delivery_date?: string | null
-          service_delivery_location?: string | null
-          service_delivery_time?: string | null
-          service_rental_type?: string[] | null
-          service_type?: string[] | null
+          marketing_type?: string[] | null
+          service_rental_buy_type?: string[] | null
+          service_vendor_biz_name?: string | null
+          service_vendor_cost?: number | null
+          service_vendor_delivery_date?: string | null
+          service_vendor_delivery_location?: string | null
+          service_vendor_delivery_time?: string | null
           service_vendor_type?: string[] | null
+          service_vendor_types?: string[] | null
           set_priority?: string | null
           supplier_biz_name?: string | null
           supplier_contact_name?: string | null
           supplier_contact_nbr?: number | null
+          supplier_cost?: number | null
+          supplier_delivery_date?: string | null
+          supplier_delivery_time?: string | null
           supplier_email?: string | null
-          supply_cost?: number | null
-          supply_delivery_date?: string | null
-          supply_delivery_time?: string | null
-          supply_type?: string[] | null
+          supplier_types?: string[] | null
           task_status?: string | null
           transportation_type?: string[] | null
           vendor_biz_name?: string | null
@@ -3264,34 +3393,34 @@ export type Database = {
           },
         ]
       }
-      serv_vendor_rental_assignments: {
+      service_rental_buy_assignments: {
         Row: {
           created_at: string
           id: number
-          serv_vendor_rental_id: string | null
+          service_rental_buy_id: string | null
           updated_at: string
           vendor_rental_type_id: number | null
         }
         Insert: {
           created_at?: string
           id?: number
-          serv_vendor_rental_id?: string | null
+          service_rental_buy_id?: string | null
           updated_at?: string
           vendor_rental_type_id?: number | null
         }
         Update: {
           created_at?: string
           id?: number
-          serv_vendor_rental_id?: string | null
+          service_rental_buy_id?: string | null
           updated_at?: string
           vendor_rental_type_id?: number | null
         }
         Relationships: [
           {
-            foreignKeyName: "serv_vendor_rental_types_serv_vendor_rental_id_fkey"
-            columns: ["serv_vendor_rental_id"]
+            foreignKeyName: "serv_vendor_rental_types_service_rental_buy_id_fkey"
+            columns: ["service_rental_buy_id"]
             isOneToOne: false
-            referencedRelation: "serv_vendor_rentals"
+            referencedRelation: "service_rental_buy"
             referencedColumns: ["id"]
           },
           {
@@ -3303,7 +3432,7 @@ export type Database = {
           },
         ]
       }
-      serv_vendor_rentals: {
+      service_rental_buy: {
         Row: {
           business_name: string
           city: string | null
@@ -3348,7 +3477,7 @@ export type Database = {
         }
         Relationships: []
       }
-      serv_vendor_suppliers: {
+      vendor: {
         Row: {
           business_name: string
           checklist: Json | null
@@ -3411,7 +3540,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "serv_vendor_suppliers_vendor_sup_type_id_fkey"
+            foreignKeyName: "vendor_vendor_sup_type_id_fkey"
             columns: ["vendor_sup_type_id"]
             isOneToOne: false
             referencedRelation: "vendor_supplier_types"
@@ -3419,7 +3548,7 @@ export type Database = {
           },
         ]
       }
-      "Service Profile": {
+      "Service_Vendor Profile": {
         Row: {
           "Business Name": string | null
           Contact_Name: string | null
@@ -3515,36 +3644,6 @@ export type Database = {
         }
         Relationships: []
       }
-      "Service Vendor Directory": {
-        Row: {
-          bakery: string | null
-          caterer: string | null
-          chef: string | null
-          created_at: string
-          mixologist: string | null
-          service_vendor_id: string
-          videographer: string | null
-        }
-        Insert: {
-          bakery?: string | null
-          caterer?: string | null
-          chef?: string | null
-          created_at?: string
-          mixologist?: string | null
-          service_vendor_id: string
-          videographer?: string | null
-        }
-        Update: {
-          bakery?: string | null
-          caterer?: string | null
-          chef?: string | null
-          created_at?: string
-          mixologist?: string | null
-          service_vendor_id?: string
-          videographer?: string | null
-        }
-        Relationships: []
-      }
       "Subscription_Plans Directory": {
         Row: {
           created_at: string
@@ -3587,6 +3686,7 @@ export type Database = {
           Merchandizer: string | null
           Online_Market: string | null
           Other: string | null
+          other_manual_text: string | null
           Wholesaler: string | null
         }
         Insert: {
@@ -3597,6 +3697,7 @@ export type Database = {
           Merchandizer?: string | null
           Online_Market?: string | null
           Other?: string | null
+          other_manual_text?: string | null
           Wholesaler?: string | null
         }
         Update: {
@@ -3607,6 +3708,7 @@ export type Database = {
           Merchandizer?: string | null
           Online_Market?: string | null
           Other?: string | null
+          other_manual_text?: string | null
           Wholesaler?: string | null
         }
         Relationships: []
@@ -3622,7 +3724,7 @@ export type Database = {
           supplier_email: string | null
           supplier_location: string | null
           supplier_type: string | null
-          supply_id: string
+          supplier_id: string
           wholesaler_supplier_biz_name: string | null
         }
         Insert: {
@@ -3635,7 +3737,7 @@ export type Database = {
           supplier_email?: string | null
           supplier_location?: string | null
           supplier_type?: string | null
-          supply_id: string
+          supplier_id: string
           wholesaler_supplier_biz_name?: string | null
         }
         Update: {
@@ -3648,7 +3750,7 @@ export type Database = {
           supplier_email?: string | null
           supplier_location?: string | null
           supplier_type?: string | null
-          supply_id?: string
+          supplier_id?: string
           wholesaler_supplier_biz_name?: string | null
         }
         Relationships: []
@@ -4249,6 +4351,7 @@ export type Database = {
           bridal_shower: string | null
           Celebration: string | null
           Dining: string | null
+          event_themes_catalog: Json | null
           Festival: string | null
           Health_Wellness: string | null
           market_place: string[] | null
@@ -4265,6 +4368,7 @@ export type Database = {
           bridal_shower?: string | null
           Celebration?: string | null
           Dining?: string | null
+          event_themes_catalog?: Json | null
           Festival?: string | null
           Health_Wellness?: string | null
           market_place?: string[] | null
@@ -4281,6 +4385,7 @@ export type Database = {
           bridal_shower?: string | null
           Celebration?: string | null
           Dining?: string | null
+          event_themes_catalog?: Json | null
           Festival?: string | null
           Health_Wellness?: string | null
           market_place?: string[] | null
@@ -4293,6 +4398,80 @@ export type Database = {
           wedding?: string | null
         }
         Relationships: []
+      }
+      "external_vendor directory": {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          manual_entry: string | null
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          id?: string
+          manual_entry?: string | null
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          manual_entry?: string | null
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      "external_vendor profile": {
+        Row: {
+          business_name: string | null
+          contact_name: string | null
+          created_at: string
+          email: string | null
+          external_vendor_directory_id: string | null
+          id: string
+          manual_entry: string | null
+          notes: string | null
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          business_name?: string | null
+          contact_name?: string | null
+          created_at?: string
+          email?: string | null
+          external_vendor_directory_id?: string | null
+          id?: string
+          manual_entry?: string | null
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          business_name?: string | null
+          contact_name?: string | null
+          created_at?: string
+          email?: string | null
+          external_vendor_directory_id?: string | null
+          id?: string
+          manual_entry?: string | null
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_vendor profile_external_vendor_directory_id_fkey"
+            columns: ["external_vendor_directory_id"]
+            isOneToOne: false
+            referencedRelation: "external_vendor directory"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       "Transportation Directory": {
         Row: {
@@ -4664,7 +4843,7 @@ export type Database = {
           Subscription_Start_Date: string | null
           Subscription_type: string | null
           Subscription_Upgrade_Type: string | null
-          Subscrition_End_Date: string | null
+          Subscription_End_Date: string | null
           User_Category: string | null
           User_Contact_Name: string | null
           User_Contact_Ph_Nbr: number | null
@@ -4684,7 +4863,7 @@ export type Database = {
           Subscription_Start_Date?: string | null
           Subscription_type?: string | null
           Subscription_Upgrade_Type?: string | null
-          Subscrition_End_Date?: string | null
+          Subscription_End_Date?: string | null
           User_Category?: string | null
           User_Contact_Name?: string | null
           User_Contact_Ph_Nbr?: number | null
@@ -4704,7 +4883,7 @@ export type Database = {
           Subscription_Start_Date?: string | null
           Subscription_type?: string | null
           Subscription_Upgrade_Type?: string | null
-          Subscrition_End_Date?: string | null
+          Subscription_End_Date?: string | null
           User_Category?: string | null
           User_Contact_Name?: string | null
           User_Contact_Ph_Nbr?: number | null
@@ -4794,6 +4973,7 @@ export type Database = {
           id: number
           Mobile_Pop_Up: string | null
           Other: string | null
+          other_manual_text: string | null
           Videographer: string | null
           Winery: string | null
         }
@@ -4811,6 +4991,7 @@ export type Database = {
           id?: number
           Mobile_Pop_Up?: string | null
           Other?: string | null
+          other_manual_text?: string | null
           Videographer?: string | null
           Winery?: string | null
         }
@@ -4828,6 +5009,7 @@ export type Database = {
           id?: number
           Mobile_Pop_Up?: string | null
           Other?: string | null
+          other_manual_text?: string | null
           Videographer?: string | null
           Winery?: string | null
         }
@@ -5230,7 +5412,7 @@ export type Database = {
           hospitality_id: string | null
           id: string
           serv_vendor_id: string | null
-          serv_vendor_rent_id: string | null
+          service_rental_buy_id: string | null
           supplier_id: string | null
           theme_id: number | null
           transportation_id: string | null
@@ -5249,7 +5431,7 @@ export type Database = {
           hospitality_id?: string | null
           id?: string
           serv_vendor_id?: string | null
-          serv_vendor_rent_id?: string | null
+          service_rental_buy_id?: string | null
           supplier_id?: string | null
           theme_id?: number | null
           transportation_id?: string | null
@@ -5268,7 +5450,7 @@ export type Database = {
           hospitality_id?: string | null
           id?: string
           serv_vendor_id?: string | null
-          serv_vendor_rent_id?: string | null
+          service_rental_buy_id?: string | null
           supplier_id?: string | null
           theme_id?: number | null
           transportation_id?: string | null
@@ -5318,14 +5500,14 @@ export type Database = {
             foreignKeyName: "workflows_serv_vendor_id_fkey"
             columns: ["serv_vendor_id"]
             isOneToOne: false
-            referencedRelation: "serv_vendor_suppliers"
+            referencedRelation: "vendor"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "workflows_serv_vendor_rent_id_fkey"
-            columns: ["serv_vendor_rent_id"]
+            foreignKeyName: "workflows_service_rental_buy_id_fkey"
+            columns: ["service_rental_buy_id"]
             isOneToOne: false
-            referencedRelation: "serv_vendor_rentals"
+            referencedRelation: "service_rental_buy"
             referencedColumns: ["id"]
           },
           {
@@ -5339,7 +5521,7 @@ export type Database = {
             foreignKeyName: "workflows_theme_id_fkey"
             columns: ["theme_id"]
             isOneToOne: false
-            referencedRelation: "event_themes"
+            referencedRelation: "Themes Directory Catalog"
             referencedColumns: ["id"]
           },
           {
@@ -5558,7 +5740,7 @@ export type Database = {
           expected_attendees: number | null
           id: string | null
           location: string | null
-          serv_vendor_rental_id: string | null
+          service_rental_buy_id: string | null
           start_date: string | null
           start_time: string | null
           status: Database["public"]["Enums"]["event_status_enum"] | null
@@ -5580,7 +5762,7 @@ export type Database = {
           expected_attendees?: number | null
           id?: string | null
           location?: string | null
-          serv_vendor_rental_id?: string | null
+          service_rental_buy_id?: string | null
           start_date?: string | null
           start_time?: string | null
           status?: Database["public"]["Enums"]["event_status_enum"] | null
@@ -5602,7 +5784,7 @@ export type Database = {
           expected_attendees?: number | null
           id?: string | null
           location?: string | null
-          serv_vendor_rental_id?: string | null
+          service_rental_buy_id?: string | null
           start_date?: string | null
           start_time?: string | null
           status?: Database["public"]["Enums"]["event_status_enum"] | null
@@ -5622,10 +5804,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "events_serv_vendor_rental_id_fkey"
-            columns: ["serv_vendor_rental_id"]
+            foreignKeyName: "events_service_rental_buy_id_fkey"
+            columns: ["service_rental_buy_id"]
             isOneToOne: false
-            referencedRelation: "serv_vendor_rentals"
+            referencedRelation: "service_rental_buy"
             referencedColumns: ["id"]
           },
           {

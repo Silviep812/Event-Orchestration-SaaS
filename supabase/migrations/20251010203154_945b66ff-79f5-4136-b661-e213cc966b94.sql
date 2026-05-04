@@ -21,5 +21,5 @@ WHERE id IN (
 );
 
 -- Step 3: Now create the constraint allowing only ONE role per user per event
-CREATE UNIQUE INDEX user_roles_user_event_unique 
+CREATE UNIQUE INDEX IF NOT EXISTS user_roles_user_event_unique 
 ON public.user_roles (user_id, COALESCE(event_id, '00000000-0000-0000-0000-000000000000'::uuid));

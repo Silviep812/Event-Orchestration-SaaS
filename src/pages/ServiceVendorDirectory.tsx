@@ -30,10 +30,10 @@ const ServiceVendorDirectory = () => {
         setVendorTypes(typesData || []);
 
         const { data: profilesData, error: profilesError } = await supabase
-          .from('serv_vendor_suppliers')
+          .from('vendor')
           .select('*, vendor_supplier_types(*)');
         if (profilesError) {
-          console.error('serv_vendor_suppliers:', profilesError);
+          console.error('vendor:', profilesError);
           toast({ title: "Service vendor profiles", description: commentsPlannerCopy.toastGeneric, variant: "destructive" });
         }
         setVendorProfiles(profilesData || []);

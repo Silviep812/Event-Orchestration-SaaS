@@ -143,13 +143,13 @@ export default function MarketingCampaign() {
       const segRows = await supabase.from("marketing_subscribers").select("id, user_type").limit(4000);
 
       const vendorsRes = await supabase
-        .from("serv_vendor_suppliers")
+        .from("vendor")
         .select("id, vendor_supplier_types ( name )")
         .limit(6000);
 
       const eventsRes = await supabase
         .from("events")
-        .select("service_vendor_id, service_vendor_ids, entertainment_id, external_supplier_ids, serv_vendor_rental_id, venue_booking_completed")
+        .select("service_vendor_id, service_vendor_ids, entertainment_id, external_supplier_ids, service_rental_buy_id, venue_booking_completed")
         .eq("archived", false)
         .limit(8000);
 
@@ -714,7 +714,7 @@ export default function MarketingCampaign() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold">{vendorSignupCount}</div>
-                  <p className="text-sm text-muted-foreground mt-1">Rows in `serv_vendor_suppliers` (service vendor directory).</p>
+                  <p className="text-sm text-muted-foreground mt-1">Rows in `vendor` (service vendor profile directory).</p>
                 </CardContent>
               </Card>
               <Card>

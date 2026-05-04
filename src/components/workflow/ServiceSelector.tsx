@@ -11,7 +11,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { workflowPlannerCopy } from "@/lib/nudges";
 
 /**
- * Data: `serv_vendor_suppliers` / `serv_vendor_rentals` (equipment & service partners).
+ * Data: `vendor` / `service_rental_buy` (equipment & service partners).
  * External procurement vendors use `suppliers` — see SupplierSelector (next wizard step).
  */
 
@@ -58,7 +58,7 @@ interface VendorRentalType {
 
 interface VendorRentalAssignment {
   id: number;
-  serv_vendor_rental_id: string;
+  service_rental_buy_id: string;
   vendor_rental_type_id: number;
   created_at: string;
   updated_at: string;
@@ -120,11 +120,11 @@ export function ServiceSelector({ onSelectServiceVendor, onSelectServiceRental, 
 
       // Fetch all data in parallel
       const [vendorsResult, vendorTypesResult, rentalsResult, rentalTypesResult, assignmentsResult] = await Promise.all([
-        supabase.from('serv_vendor_suppliers').select('*'),
+        supabase.from('vendor').select('*'),
         supabase.from('vendor_supplier_types').select('*'),
-        supabase.from('serv_vendor_rentals').select('*'),
+        supabase.from('service_rental_buy').select('*'),
         supabase.from('vendor_rental_types').select('*'),
-        supabase.from('serv_vendor_rental_assignments').select('*')
+        supabase.from('service_rental_buy_assignments').select('*')
       ]);
 
       if (vendorsResult.error) throw vendorsResult.error;
@@ -166,7 +166,7 @@ export function ServiceSelector({ onSelectServiceVendor, onSelectServiceRental, 
   const convertedRentals: Service[] = rentals.map(rental => {
     // Find all rental types for this rental vendor through assignments
     const rentalTypeIds = rentalAssignments
-      .filter(assignment => assignment.serv_vendor_rental_id === rental.id)
+      .filter(assignment => assignment.service_rental_buy_id === rental.id)
       .map(assignment => assignment.vendor_rental_type_id);
     
     const associatedTypes = rentalTypes

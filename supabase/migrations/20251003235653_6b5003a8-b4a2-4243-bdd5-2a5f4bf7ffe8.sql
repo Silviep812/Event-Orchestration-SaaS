@@ -1,18 +1,22 @@
--- Add Rejuvenating group under Health and Wellness theme
--- First, insert the Rejuvenating parent group
-INSERT INTO event_types (name, theme_id, parent_id, created_at)
-VALUES ('Rejuvenating', 2, 16, now());
+-- Add Rejuvenating group under Health and Wellness theme (skip if any already exist)
+INSERT INTO public.event_types (name, theme_id, parent_id, created_at)
+SELECT 'Rejuvenating', 2, 16, now()
+WHERE NOT EXISTS (
+  SELECT 1 FROM public.event_types
+  WHERE name = 'Rejuvenating' AND parent_id = 16 AND theme_id = 2
+);
 
--- Get the ID of the newly created Rejuvenating parent
--- Then insert rejuvenating event types alphabetically
-INSERT INTO event_types (name, theme_id, parent_id, created_at)
-SELECT 
-  event_type,
-  2,
-  (SELECT id FROM event_types WHERE name = 'Rejuvenating' AND parent_id = 16 AND theme_id = 2),
-  now()
+-- Rejuvenating event types under canonical parent (lowest id if duplicates)
+INSERT INTO public.event_types (name, theme_id, parent_id, created_at)
+SELECT t.event_type, 2, p.id, now()
 FROM (
-  VALUES 
+  SELECT id FROM public.event_types
+  WHERE name = 'Rejuvenating' AND parent_id = 16 AND theme_id = 2
+  ORDER BY id ASC
+  LIMIT 1
+) AS p(id)
+CROSS JOIN (
+  VALUES
     ('Aromatherapy Session'),
     ('Ayurvedic Retreat'),
     ('Beauty Treatment Day'),
@@ -33,5 +37,8 @@ FROM (
     ('Thermal Bath Experience'),
     ('Wellness Spa Retreat'),
     ('Yoga and Massage Combo')
-) AS types(event_type)
-ORDER BY event_type;
+) AS t(event_type)
+WHERE NOT EXISTS (
+  SELECT 1 FROM public.event_types et
+  WHERE et.parent_id = p.id AND et.name = t.event_type AND et.theme_id = 2
+);

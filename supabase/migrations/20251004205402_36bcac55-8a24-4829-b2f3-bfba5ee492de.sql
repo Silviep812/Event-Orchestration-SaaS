@@ -74,19 +74,29 @@ ALTER TABLE public.registry_submissions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.barcode_submissions ENABLE ROW LEVEL SECURITY;
 
 -- Create policies to allow anyone to view and insert (public facing forms)
+DROP POLICY IF EXISTS "Anyone can view RSVP submissions" ON public.rsvp_submissions;
 CREATE POLICY "Anyone can view RSVP submissions" ON public.rsvp_submissions FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Anyone can create RSVP submissions" ON public.rsvp_submissions;
 CREATE POLICY "Anyone can create RSVP submissions" ON public.rsvp_submissions FOR INSERT WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Anyone can view confirmation submissions" ON public.confirmation_submissions;
 CREATE POLICY "Anyone can view confirmation submissions" ON public.confirmation_submissions FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Anyone can create confirmation submissions" ON public.confirmation_submissions;
 CREATE POLICY "Anyone can create confirmation submissions" ON public.confirmation_submissions FOR INSERT WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Anyone can view reservation submissions" ON public.reservation_submissions;
 CREATE POLICY "Anyone can view reservation submissions" ON public.reservation_submissions FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Anyone can create reservation submissions" ON public.reservation_submissions;
 CREATE POLICY "Anyone can create reservation submissions" ON public.reservation_submissions FOR INSERT WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Anyone can view registry submissions" ON public.registry_submissions;
 CREATE POLICY "Anyone can view registry submissions" ON public.registry_submissions FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Anyone can create registry submissions" ON public.registry_submissions;
 CREATE POLICY "Anyone can create registry submissions" ON public.registry_submissions FOR INSERT WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Anyone can view barcode submissions" ON public.barcode_submissions;
 CREATE POLICY "Anyone can view barcode submissions" ON public.barcode_submissions FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Anyone can create barcode submissions" ON public.barcode_submissions;
 CREATE POLICY "Anyone can create barcode submissions" ON public.barcode_submissions FOR INSERT WITH CHECK (true);
 
 -- Create updated_at trigger function if it doesn't exist
@@ -99,38 +109,43 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Create triggers for updated_at
+DROP TRIGGER IF EXISTS set_updated_at_rsvp ON public.rsvp_submissions;
 CREATE TRIGGER set_updated_at_rsvp
   BEFORE UPDATE ON public.rsvp_submissions
   FOR EACH ROW
   EXECUTE FUNCTION public.handle_updated_at();
 
+DROP TRIGGER IF EXISTS set_updated_at_confirmation ON public.confirmation_submissions;
 CREATE TRIGGER set_updated_at_confirmation
   BEFORE UPDATE ON public.confirmation_submissions
   FOR EACH ROW
   EXECUTE FUNCTION public.handle_updated_at();
 
+DROP TRIGGER IF EXISTS set_updated_at_reservation ON public.reservation_submissions;
 CREATE TRIGGER set_updated_at_reservation
   BEFORE UPDATE ON public.reservation_submissions
   FOR EACH ROW
   EXECUTE FUNCTION public.handle_updated_at();
 
+DROP TRIGGER IF EXISTS set_updated_at_registry ON public.registry_submissions;
 CREATE TRIGGER set_updated_at_registry
   BEFORE UPDATE ON public.registry_submissions
   FOR EACH ROW
   EXECUTE FUNCTION public.handle_updated_at();
 
+DROP TRIGGER IF EXISTS set_updated_at_barcode ON public.barcode_submissions;
 CREATE TRIGGER set_updated_at_barcode
   BEFORE UPDATE ON public.barcode_submissions
   FOR EACH ROW
   EXECUTE FUNCTION public.handle_updated_at();
 
 -- Create indexes for better query performance
-CREATE INDEX idx_rsvp_book_id ON public.rsvp_submissions(book_id);
-CREATE INDEX idx_rsvp_email ON public.rsvp_submissions(guest_email);
-CREATE INDEX idx_confirmation_book_id ON public.confirmation_submissions(book_id);
-CREATE INDEX idx_confirmation_number ON public.confirmation_submissions(confirmation_number);
-CREATE INDEX idx_reservation_book_id ON public.reservation_submissions(book_id);
-CREATE INDEX idx_reservation_email ON public.reservation_submissions(email);
-CREATE INDEX idx_registry_book_id ON public.registry_submissions(book_id);
-CREATE INDEX idx_barcode_book_id ON public.barcode_submissions(book_id);
-CREATE INDEX idx_barcode_ticket ON public.barcode_submissions(ticket_number);
+CREATE INDEX IF NOT EXISTS idx_rsvp_book_id ON public.rsvp_submissions(book_id);
+CREATE INDEX IF NOT EXISTS idx_rsvp_email ON public.rsvp_submissions(guest_email);
+CREATE INDEX IF NOT EXISTS idx_confirmation_book_id ON public.confirmation_submissions(book_id);
+CREATE INDEX IF NOT EXISTS idx_confirmation_number ON public.confirmation_submissions(confirmation_number);
+CREATE INDEX IF NOT EXISTS idx_reservation_book_id ON public.reservation_submissions(book_id);
+CREATE INDEX IF NOT EXISTS idx_reservation_email ON public.reservation_submissions(email);
+CREATE INDEX IF NOT EXISTS idx_registry_book_id ON public.registry_submissions(book_id);
+CREATE INDEX IF NOT EXISTS idx_barcode_book_id ON public.barcode_submissions(book_id);
+CREATE INDEX IF NOT EXISTS idx_barcode_ticket ON public.barcode_submissions(ticket_number);

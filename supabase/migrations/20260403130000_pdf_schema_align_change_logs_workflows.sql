@@ -243,14 +243,30 @@ END $$;
 
 -- ────────────────────────────────────────────────────────────
 -- 3) team_assignments.is_coordinator → is_collaborator
+-- Idempotent: some DBs already have is_collaborator (20260329120000) while is_coordinator remains.
 -- ────────────────────────────────────────────────────────────
 DO $$
 BEGIN
   IF EXISTS (
     SELECT 1 FROM information_schema.columns
     WHERE table_schema = 'public' AND table_name = 'team_assignments' AND column_name = 'is_coordinator'
+  )
+  AND NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'team_assignments' AND column_name = 'is_collaborator'
   ) THEN
     ALTER TABLE public.team_assignments RENAME COLUMN is_coordinator TO is_collaborator;
+  ELSIF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'team_assignments' AND column_name = 'is_coordinator'
+  )
+  AND EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'team_assignments' AND column_name = 'is_collaborator'
+  ) THEN
+    UPDATE public.team_assignments
+    SET is_collaborator = COALESCE(is_collaborator, false) OR COALESCE(is_coordinator, false);
+    ALTER TABLE public.team_assignments DROP COLUMN is_coordinator;
   END IF;
 END $$;
 

@@ -81,9 +81,9 @@ interface ManageEventData {
   venue?: string;
   entertainment_id?: string | null;
   entertainment_ids?: string[] | null;
-  /** External Vendor / procurement (`suppliers` table), not serv_vendor_suppliers. */
+  /** External Vendor / procurement (`suppliers` table), not `vendor` rentals directory. */
   external_supplier_ids?: string[] | null;
-  serv_vendor_rental_id?: string | null;
+  service_rental_buy_id?: string | null;
   service_vendor_id?: string | null;
   service_vendor_ids?: string[] | null;
   archived?: boolean;
@@ -400,7 +400,7 @@ const ManageEvent = () => {
   const fetchThemes = async () => {
     try {
       const { data, error } = await supabase
-        .from('event_themes')
+        .from('Themes Directory Catalog')
         .select('id, name, premium')
         .order('name');
       
