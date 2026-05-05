@@ -9,6 +9,7 @@ import { Wrench, Users, Camera, UtensilsCrossed, Music, Car, CheckCircle2, Build
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { workflowPlannerCopy } from "@/lib/nudges";
+import { DirectoryProfileLink } from "@/components/resource-directory/DirectoryProfileLink";
 
 /**
  * Data: `vendor` / `service_rental_buy` (equipment & service partners).
@@ -333,6 +334,7 @@ export function ServiceSelector({ onSelectServiceVendor, onSelectServiceRental, 
                                   <strong>Location:</strong> {service.location}
                                 </p>
                                 <p className="text-xs">{service.description}</p>
+                                <DirectoryProfileLink kind="vendor" id={service.id} className="text-xs mt-1" />
                               </div>
                             </div>
                             <div className="flex gap-2">
@@ -439,6 +441,7 @@ export function ServiceSelector({ onSelectServiceVendor, onSelectServiceRental, 
                                   <strong>Location:</strong> {service.location}
                                 </p>
                                 <p className="text-xs">{service.description}</p>
+                                <DirectoryProfileLink kind="service_rental_buy" id={service.id} className="text-xs mt-1" />
                               </div>
                             </div>
                             <div className="flex gap-2">

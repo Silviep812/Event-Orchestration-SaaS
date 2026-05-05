@@ -10,6 +10,9 @@ import { Building, Home, Utensils, MapPin, Trees, Dumbbell, Warehouse, Users, Bu
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { formatDirectoryPrice } from "@/lib/formatDirectoryPrice";
+import { DirectoryProfileLink } from "@/components/resource-directory/DirectoryProfileLink";
+import { directoryProfileElementId } from "@/lib/directoryProfileLinks";
+import { useDirectoryProfileHighlight } from "@/hooks/useDirectoryProfileHighlight";
 
 const VenueDirectory = () => {
   const [venueProfiles, setVenueProfiles] = useState<any[]>([]);
@@ -20,6 +23,7 @@ const VenueDirectory = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { highlightClass } = useDirectoryProfileHighlight(loading);
 
   // Fetch venue profiles and types from Supabase
   useEffect(() => {
@@ -249,7 +253,11 @@ const VenueDirectory = () => {
                 const IconComponent = typeOption?.icon || HelpCircle;
                 
                 return (
-                  <Card key={profile.id || profile.created_at} className="hover:shadow-lg transition-shadow relative overflow-visible">
+                  <Card
+                    key={profile.id || profile.created_at}
+                    id={profile.id ? directoryProfileElementId(profile.id) : undefined}
+                    className={`hover:shadow-lg transition-shadow relative overflow-visible ${profile.id ? highlightClass(profile.id) : ""}`}
+                  >
                     <CardHeader className="pb-3">
                       <div className="flex items-center gap-2">
                         <IconComponent className="h-5 w-5 text-primary" />
@@ -288,7 +296,10 @@ const VenueDirectory = () => {
                         <p><strong>Location:</strong> {[profile.city, profile.state, profile.zip].filter(Boolean).join(', ') || 'Location not specified'}</p>
                       </div>
                       
-                      <div className="pt-3 border-t mt-3">
+                      <div className="pt-3 border-t mt-3 space-y-2">
+                        {profile.id ? (
+                          <DirectoryProfileLink kind="venue" id={profile.id} className="w-full justify-center py-1.5" />
+                        ) : null}
                         <Button 
                           type="button"
                           className="w-full relative z-20 pointer-events-auto"

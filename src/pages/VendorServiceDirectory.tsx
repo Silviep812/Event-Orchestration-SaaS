@@ -3,12 +3,16 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useEffect, useState, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Truck, Camera, Lightbulb, Music, Gamepad2, Flower, Home, Table, Mail } from "lucide-react";
 import { DirectoryPageHeader } from "@/components/resource-directory/DirectoryPageHeader";
 import { useToast } from "@/hooks/use-toast";
 import { commentsPlannerCopy } from "@/lib/nudges";
 import { formatDirectoryPrice } from "@/lib/formatDirectoryPrice";
+import { DirectoryProfileLink } from "@/components/resource-directory/DirectoryProfileLink";
+import { directoryProfileElementId } from "@/lib/directoryProfileLinks";
+import { useDirectoryProfileHighlight } from "@/hooks/useDirectoryProfileHighlight";
 
 const VendorServiceDirectory = () => {
   const [serviceTypes, setServiceTypes] = useState<any[]>([]);
@@ -17,6 +21,28 @@ const VendorServiceDirectory = () => {
   const [locationFilter, setLocationFilter] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const rentalIdParam = useSearchParams()[0].get("rentalId");
+  const [rentalPreview, setRentalPreview] = useState<Record<string, unknown> | null>(null);
+  const { highlightClass, rentalHighlightClass } = useDirectoryProfileHighlight(loading);
+
+  useEffect(() => {
+    if (!rentalIdParam) {
+      setRentalPreview(null);
+      return;
+    }
+    let cancelled = false;
+    void supabase
+      .from("service_rental_buy")
+      .select("*")
+      .eq("id", rentalIdParam)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!cancelled) setRentalPreview(data ?? null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [rentalIdParam]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -199,6 +225,31 @@ const VendorServiceDirectory = () => {
         </CardContent>
       </Card>
 
+      {rentalPreview && rentalIdParam && typeof rentalPreview.id === "string" ? (
+        <Card
+          id={`directory-rental-${rentalIdParam}`}
+          className={`border-primary/40 bg-muted/30 ${rentalHighlightClass(rentalPreview.id as string)}`}
+        >
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Linked equipment / rental partner</CardTitle>
+            <p className="text-sm text-muted-foreground font-normal">
+              Opened from a shared profile link (<code className="text-xs">service_rental_buy</code>).
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <p className="font-semibold">{String(rentalPreview.business_name ?? "Rental partner")}</p>
+            <p className="text-muted-foreground">
+              {[rentalPreview.city, rentalPreview.state, rentalPreview.zip].filter(Boolean).join(", ") || "—"}
+            </p>
+            {typeof rentalPreview.email === "string" && rentalPreview.email.trim() ? (
+              <a className="text-primary hover:underline" href={`mailto:${rentalPreview.email.trim()}`}>
+                {rentalPreview.email}
+              </a>
+            ) : null}
+          </CardContent>
+        </Card>
+      ) : null}
+
       <Card>
         <CardHeader>
           <CardTitle>
@@ -228,7 +279,11 @@ const VendorServiceDirectory = () => {
                 const IconComponent = getServiceIcon(typeName);
                 
                 return (
-                  <Card key={profile.id} className="hover:shadow-lg transition-shadow">
+                  <Card
+                    key={profile.id}
+                    id={directoryProfileElementId(profile.id)}
+                    className={`hover:shadow-lg transition-shadow ${highlightClass(profile.id)}`}
+                  >
                     <CardHeader className="pb-3">
                       <div className="flex items-center gap-2">
                         <IconComponent className="h-5 w-5 text-primary" />
@@ -278,7 +333,8 @@ const VendorServiceDirectory = () => {
                         <p className="text-sm text-muted-foreground">{profile.description}</p>
                       )}
                       
-                      <div className="flex gap-2 mt-4">
+                      <div className="flex flex-col gap-2 mt-4">
+                        <DirectoryProfileLink kind="vendor" id={profile.id} className="w-full justify-center py-2 border rounded-md border-border" />
                         <Button 
                           className="w-full" 
                           variant="outline"

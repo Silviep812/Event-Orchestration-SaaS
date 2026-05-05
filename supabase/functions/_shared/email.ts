@@ -1,5 +1,15 @@
 /**
- * Provider-agnostic email send — Resend today; swap implementation here only.
+ * Outbound email: keep all vendor-specific transport **behind** `sendEmail()`.
+ * Supabase remains source of truth (`email_events` logging); templates/callers stay provider-agnostic.
+ *
+ * | Provider   | When to use |
+ * |-----------|-------------|
+ * | resend    | **Default** — set `RESEND_API_KEY` |
+ * | sendgrid  | Future: add branch in `sendWithConfiguredProvider` |
+ * | postmark  | Future |
+ * | activecampaign | Future (often via their API, not SMTP) |
+ *
+ * Optional: `EMAIL_PROVIDER=resend` (default) to force selection later.
  */
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.53.0";
@@ -47,7 +57,20 @@ async function logEmailEvent(
   });
 }
 
-export async function sendEmail(
+type EmailProviderId = "resend";
+
+function configuredProvider(): EmailProviderId {
+  const p = Deno.env.get("EMAIL_PROVIDER")?.trim().toLowerCase();
+  if (p && p !== "resend") {
+    console.warn(
+      `[email] EMAIL_PROVIDER=${p} is not implemented; using resend. ` +
+        "Add a branch in sendWithConfiguredProvider for SendGrid/Postmark when ready.",
+    );
+  }
+  return "resend";
+}
+
+async function sendWithResend(
   input: SendEmailInput,
   options?: { logToDb?: boolean },
 ): Promise<{ ok: boolean; error?: string; ids?: string[] }> {
@@ -80,4 +103,16 @@ export async function sendEmail(
   }
 
   return { ok: true, ids };
+}
+
+/** Single entry for Edge Functions — implements the active provider. */
+export async function sendEmail(
+  input: SendEmailInput,
+  options?: { logToDb?: boolean },
+): Promise<{ ok: boolean; error?: string; ids?: string[] }> {
+  const provider = configuredProvider();
+  if (provider === "resend") {
+    return sendWithResend(input, options);
+  }
+  return { ok: false, error: "No email provider configured" };
 }

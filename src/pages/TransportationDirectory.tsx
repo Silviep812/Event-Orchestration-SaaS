@@ -20,6 +20,9 @@ import { AlertCircle } from "lucide-react";
 import { normalizeExternalUrl, openReservationUrl } from "@/lib/openExternalOrMailto";
 import { commentsPlannerCopy, workflowPlannerCopy } from "@/lib/nudges";
 import { formatDirectoryPrice } from "@/lib/formatDirectoryPrice";
+import { DirectoryProfileLink } from "@/components/resource-directory/DirectoryProfileLink";
+import { directoryProfileElementId } from "@/lib/directoryProfileLinks";
+import { useDirectoryProfileHighlight } from "@/hooks/useDirectoryProfileHighlight";
 
 function isMissingTableOrSchemaCacheError(message: string): boolean {
   const m = message.toLowerCase();
@@ -41,6 +44,7 @@ const TransportationDirectory = () => {
   const [profilesLoadError, setProfilesLoadError] = useState<string | null>(null);
   const [typesLoadError, setTypesLoadError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const { highlightClass } = useDirectoryProfileHighlight(loading);
 
   useEffect(() => {
     let cancelled = false;
@@ -437,7 +441,11 @@ const TransportationDirectory = () => {
                 const IconComponent = getTransportationIcon(transportationType);
                 
                 return (
-                  <Card key={profile.id} className="hover:shadow-lg transition-shadow">
+                  <Card
+                    key={profile.id}
+                    id={directoryProfileElementId(profile.id)}
+                    className={`hover:shadow-lg transition-shadow ${highlightClass(profile.id)}`}
+                  >
                     <CardHeader className="pb-3">
                       <div className="flex items-center gap-2">
                         <IconComponent className="h-5 w-5 text-primary" />
@@ -491,6 +499,8 @@ const TransportationDirectory = () => {
                           Profile / website
                         </a>
                       )}
+
+                      <DirectoryProfileLink kind="transportation" id={profile.id} className="w-full justify-center py-1.5 border rounded-md border-border" />
 
                       {profile.special_accommodations && profile.special_accommodations.length > 0 && (
                         <div>

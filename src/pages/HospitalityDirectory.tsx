@@ -10,6 +10,9 @@ import { Hotel, Home, MapPin, Coffee, Mail, Globe, DollarSign, Users, ExternalLi
 import { useToast } from "@/hooks/use-toast";
 import { DirectoryPageHeader } from "@/components/resource-directory/DirectoryPageHeader";
 import { openReservationUrl } from "@/lib/openExternalOrMailto";
+import { DirectoryProfileLink } from "@/components/resource-directory/DirectoryProfileLink";
+import { directoryProfileElementId } from "@/lib/directoryProfileLinks";
+import { useDirectoryProfileHighlight } from "@/hooks/useDirectoryProfileHighlight";
 
 const HospitalityDirectory = () => {
   const [hospitalityProfiles, setHospitalityProfiles] = useState<any[]>([]);
@@ -23,6 +26,7 @@ const HospitalityDirectory = () => {
     email: "",
   });
   const { toast } = useToast();
+  const { highlightClass } = useDirectoryProfileHighlight(loading);
 
   useEffect(() => {
     fetchHospitalityProfiles();
@@ -317,7 +321,11 @@ const HospitalityDirectory = () => {
                 const IconComponent = typeOption?.icon || Hotel;
                 
                 return (
-                  <Card key={profile.id} className="hover:shadow-md transition-shadow">
+                  <Card
+                    key={profile.id}
+                    id={profile.id ? directoryProfileElementId(profile.id) : undefined}
+                    className={`hover:shadow-md transition-shadow ${profile.id ? highlightClass(profile.id) : ""}`}
+                  >
                     <CardHeader className="pb-3">
                       <div className="flex items-center justify-between">
                         <CardTitle className="text-lg flex items-center gap-2">
@@ -380,6 +388,12 @@ const HospitalityDirectory = () => {
                           </a>
                         </div>
                       )}
+
+                      {profile.id ? (
+                        <div className="pt-1">
+                          <DirectoryProfileLink kind="hospitality" id={profile.id} className="w-full justify-center" />
+                        </div>
+                      ) : null}
 
                       {(profile.make_reservations?.toString().trim() ||
                         profile.website?.toString().trim() ||

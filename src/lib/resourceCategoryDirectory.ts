@@ -9,8 +9,11 @@ export const RESOURCE_CATEGORY_DIRECTORY_ROUTES: Record<
   Equipment: { path: "/dashboard/vendor-service", label: "Vendor / service directory" },
   Personnel: { path: "/dashboard/service-vendor", label: "Service vendor directory" },
   Venue: { path: "/dashboard/venue", label: "Venue directory" },
+  Hospitality: { path: "/dashboard/hospitality", label: "Hospitality directory" },
   Transportation: { path: "/dashboard/transportation", label: "Transportation directory" },
   Supplies: { path: "/dashboard/supplier", label: "External vendor directory" },
+  Marketing: { path: "/dashboard/marketing-campaign", label: "Marketing campaign" },
+  Entertainment: { path: "/dashboard/entertainment", label: "Entertainment directory" },
 };
 
 export function directoryLinkForResourceCategoryName(name: string): { path: string; label: string } | null {

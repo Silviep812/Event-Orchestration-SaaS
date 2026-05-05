@@ -9,6 +9,9 @@ import { Label } from "@/components/ui/label";
 import { Package, Truck, ShoppingCart, Store, Building, MapPin, Mail } from "lucide-react";
 import { DirectoryPageHeader } from "@/components/resource-directory/DirectoryPageHeader";
 import { formatDirectoryPrice } from "@/lib/formatDirectoryPrice";
+import { DirectoryProfileLink } from "@/components/resource-directory/DirectoryProfileLink";
+import { directoryProfileElementId } from "@/lib/directoryProfileLinks";
+import { useDirectoryProfileHighlight } from "@/hooks/useDirectoryProfileHighlight";
 
 interface Supplier {
   id: string;
@@ -31,6 +34,7 @@ export default function SupplierDirectory() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [locationFilter, setLocationFilter] = useState("");
   const [loading, setLoading] = useState(true);
+  const { highlightClass } = useDirectoryProfileHighlight(loading);
 
   useEffect(() => {
     fetchSuppliers();
@@ -186,7 +190,11 @@ export default function SupplierDirectory() {
           ) : filteredSuppliers.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredSuppliers.map((supplier) => (
-                <Card key={supplier.id} className="hover:shadow-md transition-all">
+                <Card
+                  key={supplier.id}
+                  id={directoryProfileElementId(supplier.id)}
+                  className={`hover:shadow-md transition-all ${highlightClass(supplier.id)}`}
+                >
                   <CardContent className="p-4">
                       <div className="space-y-3">
                         <div className="space-y-1">
@@ -237,7 +245,8 @@ export default function SupplierDirectory() {
                           </p>
                         )}
                       </div>
-                      <div className="flex gap-2 mt-3">
+                      <div className="flex flex-col gap-2 mt-3">
+                        <DirectoryProfileLink kind="supplier" id={supplier.id} className="w-full justify-center py-1.5 border rounded-md border-border" />
                         <Button className="w-full" size="sm" onClick={() => supplier.email && window.open(`mailto:${supplier.email}`)} disabled={!supplier.email}>
                           <Mail className="h-4 w-4 mr-2" />
                           Email

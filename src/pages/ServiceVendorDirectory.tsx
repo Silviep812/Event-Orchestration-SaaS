@@ -9,6 +9,9 @@ import { DirectoryPageHeader } from "@/components/resource-directory/DirectoryPa
 import { useToast } from "@/hooks/use-toast";
 import { commentsPlannerCopy } from "@/lib/nudges";
 import { formatDirectoryPrice } from "@/lib/formatDirectoryPrice";
+import { DirectoryProfileLink } from "@/components/resource-directory/DirectoryProfileLink";
+import { directoryProfileElementId } from "@/lib/directoryProfileLinks";
+import { useDirectoryProfileHighlight } from "@/hooks/useDirectoryProfileHighlight";
 
 const ServiceVendorDirectory = () => {
   const [vendorTypes, setVendorTypes] = useState<any[]>([]);
@@ -17,6 +20,7 @@ const ServiceVendorDirectory = () => {
   const [locationFilter, setLocationFilter] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { highlightClass } = useDirectoryProfileHighlight(loading);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -210,7 +214,11 @@ const ServiceVendorDirectory = () => {
                 const IconComponent = getVendorIcon(vendorType);
                 
                 return (
-                  <Card key={profile.id} className="hover:shadow-lg transition-shadow">
+                  <Card
+                    key={profile.id}
+                    id={directoryProfileElementId(profile.id)}
+                    className={`hover:shadow-lg transition-shadow ${highlightClass(profile.id)}`}
+                  >
                     <CardHeader className="pb-3">
                       <div className="flex items-center gap-2">
                         <IconComponent className="h-5 w-5 text-primary" />
@@ -275,7 +283,8 @@ const ServiceVendorDirectory = () => {
                         </div>
                       )}
                       
-                      <div className="flex gap-2 mt-4">
+                      <div className="flex flex-col gap-2 mt-4">
+                        <DirectoryProfileLink kind="service_vendor" id={profile.id} className="w-full justify-center py-2 border rounded-md border-border" />
                         <Button 
                           className="w-full" 
                           variant="outline"

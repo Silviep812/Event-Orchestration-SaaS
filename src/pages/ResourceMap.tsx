@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { MapPin, ExternalLink } from "lucide-react";
+import { DirectoryProfileLink } from "@/components/resource-directory/DirectoryProfileLink";
 
 interface VenueRow {
   id: string;
@@ -120,12 +121,15 @@ export default function ResourceMap() {
                         {[v.city, v.state, v.zip].filter(Boolean).join(", ") || "—"}
                       </div>
                     </div>
-                    <Button variant="outline" size="sm" asChild>
-                      <a href={href} target="_blank" rel="noopener noreferrer">
-                        <ExternalLink className="h-4 w-4 mr-1" />
-                        Map
-                      </a>
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <DirectoryProfileLink kind="venue" id={v.id} className="text-sm" label="Directory profile" />
+                      <Button variant="outline" size="sm" asChild>
+                        <a href={href} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="h-4 w-4 mr-1" />
+                          Map
+                        </a>
+                      </Button>
+                    </div>
                   </li>
                 );
               })}

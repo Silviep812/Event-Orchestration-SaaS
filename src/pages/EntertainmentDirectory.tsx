@@ -9,6 +9,9 @@ import { DirectoryPageHeader } from "@/components/resource-directory/DirectoryPa
 import { useToast } from "@/hooks/use-toast";
 import { commentsPlannerCopy } from "@/lib/nudges";
 import { formatDirectoryPrice } from "@/lib/formatDirectoryPrice";
+import { DirectoryProfileLink } from "@/components/resource-directory/DirectoryProfileLink";
+import { directoryProfileElementId } from "@/lib/directoryProfileLinks";
+import { useDirectoryProfileHighlight } from "@/hooks/useDirectoryProfileHighlight";
 
 function entertainmentTypeRowKey(type: { id?: unknown; name?: string | null }, index: number): string {
   if (type?.id != null && String(type.id) !== "") return String(type.id);
@@ -23,6 +26,7 @@ function EntertainmentDirectory() {
   const [locationFilter, setLocationFilter] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { highlightClass } = useDirectoryProfileHighlight(loading);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -215,7 +219,11 @@ function EntertainmentDirectory() {
                 const IconComponent = getEntertainmentIcon(entertainmentType);
                 
                 return (
-                  <Card key={profile.id} className="hover:shadow-lg transition-shadow">
+                  <Card
+                    key={profile.id}
+                    id={directoryProfileElementId(profile.id)}
+                    className={`hover:shadow-lg transition-shadow ${highlightClass(profile.id)}`}
+                  >
                     <CardHeader className="pb-3">
                       <div className="flex items-center gap-2">
                         <IconComponent className="h-5 w-5 text-primary" />
@@ -255,7 +263,8 @@ function EntertainmentDirectory() {
                         <p className="text-sm text-muted-foreground">{profile.description}</p>
                       )}
                       
-                      <div className="flex gap-2 mt-2">
+                      <div className="flex flex-col gap-2 mt-2">
+                        <DirectoryProfileLink kind="entertainment" id={profile.id} className="w-full justify-center py-1.5 border rounded-md border-border" />
                         <Button className="w-full" size="sm" onClick={() => profile.email && window.open(`mailto:${profile.email}`)} disabled={!profile.email}>
                           <Mail className="h-4 w-4 mr-2" />
                           Email

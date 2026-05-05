@@ -23,6 +23,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { marketingAdminCopy } from "@/lib/nudges";
+import { DirectoryProfileLink } from "@/components/resource-directory/DirectoryProfileLink";
+import { directoryProfileElementId } from "@/lib/directoryProfileLinks";
+import { useDirectoryProfileHighlight } from "@/hooks/useDirectoryProfileHighlight";
 import { useToast } from "@/hooks/use-toast";
 import {
   Bar,
@@ -75,6 +78,7 @@ export default function MarketingCampaign() {
   const isAdmin = userRoles.includes("admin");
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
+  const { profileId: highlightedProfileId } = useDirectoryProfileHighlight(loading);
   const [counts, setCounts] = useState<Counts | null>(null);
   const [recent, setRecent] = useState<
     { id: string; email: string; name: string | null; signup_source: string | null; created_at: string }[]
@@ -898,15 +902,23 @@ export default function MarketingCampaign() {
                   <TableHead>Email</TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Source</TableHead>
+                  <TableHead>Profile</TableHead>
                   <TableHead className="text-right">Joined</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {recent.map((r) => (
-                  <TableRow key={r.id}>
+                  <TableRow
+                    key={r.id}
+                    id={directoryProfileElementId(r.id)}
+                    className={highlightedProfileId === r.id ? "bg-muted/70" : undefined}
+                  >
                     <TableCell className="font-mono text-sm">{r.email}</TableCell>
                     <TableCell>{r.name ?? "—"}</TableCell>
                     <TableCell>{r.signup_source ?? "—"}</TableCell>
+                    <TableCell>
+                      <DirectoryProfileLink kind="marketing_subscriber" id={r.id} label="Subscriber profile" />
+                    </TableCell>
                     <TableCell className="text-right text-muted-foreground text-sm">
                       {new Date(r.created_at).toLocaleDateString()}
                     </TableCell>
