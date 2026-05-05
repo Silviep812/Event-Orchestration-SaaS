@@ -1,42 +1,52 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
-import Index from "./pages/Index";
-import Auth from "./pages/Auth";
-import Dashboard from "./pages/Dashboard";
-import DashboardHome from "./pages/DashboardHome";
-import WorkflowDashboard from "./pages/WorkflowDashboard";
-import ThemesDirectory from "./pages/ThemesDirectory";
-import ProjectManagement from "./pages/ProjectManagement";
-import PlanningAssets from "./components/PlanningAssets";
-import EditTemplate from "./pages/EditTemplate";
-import Analytics from "./components/Analytics";
-import EventCalendar from "./components/EventCalendar";
-import ManageEventPage from "./pages/ManageEvent";
-import CreateEvent from "./pages/CreateEvent";
-import Reports from "./pages/Reports";
-import Collaborate from "./pages/Collaborate";
-import Comments from "./pages/Comments";
-import TrackProgress from "./pages/TrackProgress";
-import Notifications from "./pages/Notifications";
-import NotFound from "./pages/NotFound";
-import BookingsDirectory from "./pages/BookingsDirectory";
-import VenueDirectory from "./pages/VenueDirectory";
-import HospitalityDirectory from "./pages/HospitalityDirectory";
-import VendorServiceDirectory from "./pages/VendorServiceDirectory";
-import ServiceVendorDirectory from "./pages/ServiceVendorDirectory";
-import TransportationDirectory from "./pages/TransportationDirectory";
-import EntertainmentDirectory from "./pages/EntertainmentDirectory";
-import SupplierDirectory from "./pages/SupplierDirectory";
-import Profile from "./pages/Profile";
-import TaskTimeline from "./pages/TaskTimeline";
-import ResourceMap from "./pages/ResourceMap";
-import MarketingCampaign from "./pages/MarketingCampaign";
-import MarketingCreatives from "./pages/MarketingCreatives";
-import Onboarding from "./pages/Onboarding";
-import { ProtectedRoute } from "./components/ProtectedRoute";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+
+const Index = lazy(() => import("./pages/Index"));
+const Auth = lazy(() => import("./pages/Auth"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const DashboardHome = lazy(() => import("./pages/DashboardHome"));
+const WorkflowDashboard = lazy(() => import("./pages/WorkflowDashboard"));
+const ThemesDirectory = lazy(() => import("./pages/ThemesDirectory"));
+const ProjectManagement = lazy(() => import("./pages/ProjectManagement"));
+const PlanningAssets = lazy(() => import("./components/PlanningAssets"));
+const EditTemplate = lazy(() => import("./pages/EditTemplate"));
+const Analytics = lazy(() => import("./components/Analytics"));
+const EventCalendar = lazy(() => import("./components/EventCalendar"));
+const ManageEventPage = lazy(() => import("./pages/ManageEvent"));
+const CreateEvent = lazy(() => import("./pages/CreateEvent"));
+const Reports = lazy(() => import("./pages/Reports"));
+const Collaborate = lazy(() => import("./pages/Collaborate"));
+const Comments = lazy(() => import("./pages/Comments"));
+const TrackProgress = lazy(() => import("./pages/TrackProgress"));
+const Notifications = lazy(() => import("./pages/Notifications"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const BookingsDirectory = lazy(() => import("./pages/BookingsDirectory"));
+const VenueDirectory = lazy(() => import("./pages/VenueDirectory"));
+const HospitalityDirectory = lazy(() => import("./pages/HospitalityDirectory"));
+const VendorServiceDirectory = lazy(() => import("./pages/VendorServiceDirectory"));
+const ServiceVendorDirectory = lazy(() => import("./pages/ServiceVendorDirectory"));
+const TransportationDirectory = lazy(() => import("./pages/TransportationDirectory"));
+const EntertainmentDirectory = lazy(() => import("./pages/EntertainmentDirectory"));
+const SupplierDirectory = lazy(() => import("./pages/SupplierDirectory"));
+const Profile = lazy(() => import("./pages/Profile"));
+const TaskTimeline = lazy(() => import("./pages/TaskTimeline"));
+const ResourceMap = lazy(() => import("./pages/ResourceMap"));
+const MarketingCampaign = lazy(() => import("./pages/MarketingCampaign"));
+const MarketingCreatives = lazy(() => import("./pages/MarketingCreatives"));
+const Onboarding = lazy(() => import("./pages/Onboarding"));
+
+function RouteFallback() {
+  return (
+    <div className="flex min-h-[40vh] items-center justify-center text-sm text-muted-foreground">
+      Loading…
+    </div>
+  );
+}
 
 const App = () => (
   <AuthProvider>
@@ -44,7 +54,8 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
+        <Suspense fallback={<RouteFallback />}>
+          <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/contact" element={<Navigate to="/" replace />} />
             <Route path="/auth" element={<Auth />} />
@@ -95,7 +106,8 @@ const App = () => (
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </BrowserRouter>
+        </Suspense>
+      </BrowserRouter>
     </TooltipProvider>
   </AuthProvider>
 );
