@@ -25,3 +25,20 @@ dist-ssr
 
 # Generated PDF text extracts (regenerate with scripts/extract-docs-assets-pdf.py)
 docs/assets/_extracted/
+
+# Environment variables - NEVER commit these files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+
+# Supabase local files
+.supabase/
+
+# OS specific
+Thumbs.db
+
+# Database
+supabase/seed.sql
