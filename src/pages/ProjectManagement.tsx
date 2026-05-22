@@ -118,7 +118,7 @@ export default function ProjectManagement() {
       </div>
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-        <TabsList className="grid h-auto w-full grid-cols-1 gap-1 p-1 sm:grid-cols-3">
+        <TabsList className="grid h-auto w-full grid-cols-1 gap-1 p-1 sm:grid-cols-4">
           <TabsTrigger value="tasks" className="w-full flex items-center justify-center gap-2">
             <CheckCircle2 className="h-4 w-4" />
             Task
@@ -130,6 +130,10 @@ export default function ProjectManagement() {
           <TabsTrigger value="collaborator" className="w-full flex items-center justify-center gap-2">
             <Users className="h-4 w-4" />
             Collaborator
+          </TabsTrigger>
+          <TabsTrigger value="change-request" className="w-full flex items-center justify-center gap-2">
+            <GitPullRequest className="h-4 w-4" />
+            Change Request
           </TabsTrigger>
         </TabsList>
 
