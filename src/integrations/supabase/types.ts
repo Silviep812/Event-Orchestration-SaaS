@@ -71,8 +71,45 @@ export type Database = {
         }
         Relationships: []
       }
+      barcode_submissions: {
+        Row: {
+          book_id: string
+          created_at: string
+          email: string
+          event_name: string
+          id: string
+          notes: string | null
+          phone: string | null
+          ticket_number: string
+          updated_at: string
+        }
+        Insert: {
+          book_id: string
+          created_at?: string
+          email: string
+          event_name: string
+          id?: string
+          notes?: string | null
+          phone?: string | null
+          ticket_number: string
+          updated_at?: string
+        }
+        Update: {
+          book_id?: string
+          created_at?: string
+          email?: string
+          event_name?: string
+          id?: string
+          notes?: string | null
+          phone?: string | null
+          ticket_number?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       "Bookings Directory": {
         Row: {
+          barcode: boolean | null
           book_id: string
           confirmation: boolean | null
           created_at: string
@@ -83,6 +120,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          barcode?: boolean | null
           book_id: string
           confirmation?: boolean | null
           created_at?: string
@@ -93,6 +131,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          barcode?: boolean | null
           book_id?: string
           confirmation?: boolean | null
           created_at?: string
@@ -101,6 +140,36 @@ export type Database = {
           reservation?: boolean | null
           rsvp?: boolean | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      "Bookings Profile": {
+        Row: {
+          booking_type: string | null
+          contact_info: string | null
+          created_at: string | null
+          id: string
+          name: string | null
+          notes: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          booking_type?: string | null
+          contact_info?: string | null
+          created_at?: string | null
+          id?: string
+          name?: string | null
+          notes?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          booking_type?: string | null
+          contact_info?: string | null
+          created_at?: string | null
+          id?: string
+          name?: string | null
+          notes?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -269,21 +338,7 @@ export type Database = {
             foreignKeyName: "change_requests_task_id_fkey"
             columns: ["task_id"]
             isOneToOne: false
-            referencedRelation: "event_task_timeline_view"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "change_requests_task_id_fkey"
-            columns: ["task_id"]
-            isOneToOne: false
-            referencedRelation: "tasks"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "change_requests_task_id_fkey"
-            columns: ["task_id"]
-            isOneToOne: false
-            referencedRelation: "unified_tasks"
+            referencedRelation: "tasks_old"
             referencedColumns: ["id"]
           },
         ]
@@ -379,13 +434,6 @@ export type Database = {
             foreignKeyName: "check_lists_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: false
-            referencedRelation: "event_kpi_view"
-            referencedColumns: ["event_id"]
-          },
-          {
-            foreignKeyName: "check_lists_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
             referencedRelation: "events"
             referencedColumns: ["id"]
           },
@@ -460,13 +508,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "due_soon_events"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "cm_activity_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "event_kpi_view"
-            referencedColumns: ["event_id"]
           },
           {
             foreignKeyName: "cm_activity_event_id_fkey"
@@ -1130,13 +1171,6 @@ export type Database = {
             foreignKeyName: "email_events_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: false
-            referencedRelation: "event_kpi_view"
-            referencedColumns: ["event_id"]
-          },
-          {
-            foreignKeyName: "email_events_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
             referencedRelation: "events"
             referencedColumns: ["id"]
           },
@@ -1364,6 +1398,7 @@ export type Database = {
       }
       "Event Plan Report": {
         Row: {
+          booking_type: string | null
           created_at: string
           event_attendee_count: number | null
           event_budget: number | null
@@ -1406,33 +1441,6 @@ export type Database = {
           event_market_email: string | null
           event_market_type: string | null
           event_priority: string | null
-          event_start_date: string | null
-          event_start_time: string | null
-          event_status: string | null
-          event_theme: string | null
-          event_total_cost: number | null
-          event_transport_biz_name: string | null
-          event_transport_collab_name: string | null
-          event_transport_contact_name: string | null
-          event_transport_contact_nbr: number | null
-          event_transport_cost: number | null
-          event_transport_email: string | null
-          event_transport_end_date: string | null
-          event_transport_location: string | null
-          event_transport_start_date: string | null
-          event_transport_type: string | null
-          event_type: string | null
-          event_vend_biz_name: string | null
-          event_vend_collab_name: string | null
-          event_vend_contact_name: string | null
-          event_vend_contact_nbr: number | null
-          event_vend_cost: Database["public"]["Enums"]["budget_category"] | null
-          event_vend_email: string | null
-          event_vend_end_date: string | null
-          event_vend_location: string | null
-          event_vend_start_date: string | null
-          event_vend_type: string | null
-          booking_type: string | null
           event_service_rental_buy_biz_name: string | null
           event_service_rental_buy_collab_name: string | null
           event_service_rental_buy_contact_name: string | null
@@ -1457,6 +1465,9 @@ export type Database = {
           event_service_vendor_location: string | null
           event_service_vendor_start_date: string | null
           event_service_vendor_type: string | null
+          event_start_date: string | null
+          event_start_time: string | null
+          event_status: string | null
           event_supplier_biz_name: string | null
           event_supplier_collab_name: string | null
           event_supplier_contact_name: string | null
@@ -1469,6 +1480,29 @@ export type Database = {
           event_supplier_location: string | null
           event_supplier_start_date: string | null
           event_supplier_type: string | null
+          event_theme: string | null
+          event_total_cost: number | null
+          event_transport_biz_name: string | null
+          event_transport_collab_name: string | null
+          event_transport_contact_name: string | null
+          event_transport_contact_nbr: number | null
+          event_transport_cost: number | null
+          event_transport_email: string | null
+          event_transport_end_date: string | null
+          event_transport_location: string | null
+          event_transport_start_date: string | null
+          event_transport_type: string | null
+          event_type: string | null
+          event_vend_biz_name: string | null
+          event_vend_collab_name: string | null
+          event_vend_contact_name: string | null
+          event_vend_contact_nbr: number | null
+          event_vend_cost: Database["public"]["Enums"]["budget_category"] | null
+          event_vend_email: string | null
+          event_vend_end_date: string | null
+          event_vend_location: string | null
+          event_vend_start_date: string | null
+          event_vend_type: string | null
           event_venue_biz_name: string | null
           event_venue_check_in_date: string | null
           event_venue_check_out_date: string | null
@@ -1486,6 +1520,7 @@ export type Database = {
           venue_email: string | null
         }
         Insert: {
+          booking_type?: string | null
           created_at?: string
           event_attendee_count?: number | null
           event_budget?: number | null
@@ -1528,9 +1563,45 @@ export type Database = {
           event_market_email?: string | null
           event_market_type?: string | null
           event_priority?: string | null
+          event_service_rental_buy_biz_name?: string | null
+          event_service_rental_buy_collab_name?: string | null
+          event_service_rental_buy_contact_name?: string | null
+          event_service_rental_buy_contact_nbr?: number | null
+          event_service_rental_buy_cost?:
+            | Database["public"]["Enums"]["budget_category"]
+            | null
+          event_service_rental_buy_email?: string | null
+          event_service_rental_buy_end_date?: string | null
+          event_service_rental_buy_location?: string | null
+          event_service_rental_buy_start_date?: string | null
+          event_service_rental_buy_type?: string | null
+          event_service_vendor_biz_name?: string | null
+          event_service_vendor_collab_name?: string | null
+          event_service_vendor_contact_name?: string | null
+          event_service_vendor_contact_nbr?: number | null
+          event_service_vendor_cost?:
+            | Database["public"]["Enums"]["budget_category"]
+            | null
+          event_service_vendor_email?: string | null
+          event_service_vendor_end_date?: string | null
+          event_service_vendor_location?: string | null
+          event_service_vendor_start_date?: string | null
+          event_service_vendor_type?: string | null
           event_start_date?: string | null
           event_start_time?: string | null
           event_status?: string | null
+          event_supplier_biz_name?: string | null
+          event_supplier_collab_name?: string | null
+          event_supplier_contact_name?: string | null
+          event_supplier_contact_nbr?: number | null
+          event_supplier_cost?:
+            | Database["public"]["Enums"]["budget_category"]
+            | null
+          event_supplier_email?: string | null
+          event_supplier_end_date?: string | null
+          event_supplier_location?: string | null
+          event_supplier_start_date?: string | null
+          event_supplier_type?: string | null
           event_theme?: string | null
           event_total_cost?: number | null
           event_transport_biz_name?: string | null
@@ -1556,43 +1627,6 @@ export type Database = {
           event_vend_location?: string | null
           event_vend_start_date?: string | null
           event_vend_type?: string | null
-          booking_type?: string | null
-          event_service_rental_buy_biz_name?: string | null
-          event_service_rental_buy_collab_name?: string | null
-          event_service_rental_buy_contact_name?: string | null
-          event_service_rental_buy_contact_nbr?: number | null
-          event_service_rental_buy_cost?:
-            | Database["public"]["Enums"]["budget_category"]
-            | null
-          event_service_rental_buy_email?: string | null
-          event_service_rental_buy_end_date?: string | null
-          event_service_rental_buy_location?: string | null
-          event_service_rental_buy_start_date?: string | null
-          event_service_rental_buy_type?: string | null
-          event_service_vendor_biz_name?: string | null
-          event_service_vendor_collab_name?: string | null
-          event_service_vendor_contact_name?: string | null
-          event_service_vendor_contact_nbr?: number | null
-          event_service_vendor_cost?:
-            | Database["public"]["Enums"]["budget_category"]
-            | null
-          event_service_vendor_email?: string | null
-          event_service_vendor_end_date?: string | null
-          event_service_vendor_location?: string | null
-          event_service_vendor_start_date?: string | null
-          event_service_vendor_type?: string | null
-          event_supplier_biz_name?: string | null
-          event_supplier_collab_name?: string | null
-          event_supplier_contact_name?: string | null
-          event_supplier_contact_nbr?: number | null
-          event_supplier_cost?:
-            | Database["public"]["Enums"]["budget_category"]
-            | null
-          event_supplier_email?: string | null
-          event_supplier_end_date?: string | null
-          event_supplier_location?: string | null
-          event_supplier_start_date?: string | null
-          event_supplier_type?: string | null
           event_venue_biz_name?: string | null
           event_venue_check_in_date?: string | null
           event_venue_check_out_date?: string | null
@@ -1610,6 +1644,7 @@ export type Database = {
           venue_email?: string | null
         }
         Update: {
+          booking_type?: string | null
           created_at?: string
           event_attendee_count?: number | null
           event_budget?: number | null
@@ -1652,9 +1687,45 @@ export type Database = {
           event_market_email?: string | null
           event_market_type?: string | null
           event_priority?: string | null
+          event_service_rental_buy_biz_name?: string | null
+          event_service_rental_buy_collab_name?: string | null
+          event_service_rental_buy_contact_name?: string | null
+          event_service_rental_buy_contact_nbr?: number | null
+          event_service_rental_buy_cost?:
+            | Database["public"]["Enums"]["budget_category"]
+            | null
+          event_service_rental_buy_email?: string | null
+          event_service_rental_buy_end_date?: string | null
+          event_service_rental_buy_location?: string | null
+          event_service_rental_buy_start_date?: string | null
+          event_service_rental_buy_type?: string | null
+          event_service_vendor_biz_name?: string | null
+          event_service_vendor_collab_name?: string | null
+          event_service_vendor_contact_name?: string | null
+          event_service_vendor_contact_nbr?: number | null
+          event_service_vendor_cost?:
+            | Database["public"]["Enums"]["budget_category"]
+            | null
+          event_service_vendor_email?: string | null
+          event_service_vendor_end_date?: string | null
+          event_service_vendor_location?: string | null
+          event_service_vendor_start_date?: string | null
+          event_service_vendor_type?: string | null
           event_start_date?: string | null
           event_start_time?: string | null
           event_status?: string | null
+          event_supplier_biz_name?: string | null
+          event_supplier_collab_name?: string | null
+          event_supplier_contact_name?: string | null
+          event_supplier_contact_nbr?: number | null
+          event_supplier_cost?:
+            | Database["public"]["Enums"]["budget_category"]
+            | null
+          event_supplier_email?: string | null
+          event_supplier_end_date?: string | null
+          event_supplier_location?: string | null
+          event_supplier_start_date?: string | null
+          event_supplier_type?: string | null
           event_theme?: string | null
           event_total_cost?: number | null
           event_transport_biz_name?: string | null
@@ -1680,43 +1751,6 @@ export type Database = {
           event_vend_location?: string | null
           event_vend_start_date?: string | null
           event_vend_type?: string | null
-          booking_type?: string | null
-          event_service_rental_buy_biz_name?: string | null
-          event_service_rental_buy_collab_name?: string | null
-          event_service_rental_buy_contact_name?: string | null
-          event_service_rental_buy_contact_nbr?: number | null
-          event_service_rental_buy_cost?:
-            | Database["public"]["Enums"]["budget_category"]
-            | null
-          event_service_rental_buy_email?: string | null
-          event_service_rental_buy_end_date?: string | null
-          event_service_rental_buy_location?: string | null
-          event_service_rental_buy_start_date?: string | null
-          event_service_rental_buy_type?: string | null
-          event_service_vendor_biz_name?: string | null
-          event_service_vendor_collab_name?: string | null
-          event_service_vendor_contact_name?: string | null
-          event_service_vendor_contact_nbr?: number | null
-          event_service_vendor_cost?:
-            | Database["public"]["Enums"]["budget_category"]
-            | null
-          event_service_vendor_email?: string | null
-          event_service_vendor_end_date?: string | null
-          event_service_vendor_location?: string | null
-          event_service_vendor_start_date?: string | null
-          event_service_vendor_type?: string | null
-          event_supplier_biz_name?: string | null
-          event_supplier_collab_name?: string | null
-          event_supplier_contact_name?: string | null
-          event_supplier_contact_nbr?: number | null
-          event_supplier_cost?:
-            | Database["public"]["Enums"]["budget_category"]
-            | null
-          event_supplier_email?: string | null
-          event_supplier_end_date?: string | null
-          event_supplier_location?: string | null
-          event_supplier_start_date?: string | null
-          event_supplier_type?: string | null
           event_venue_biz_name?: string | null
           event_venue_check_in_date?: string | null
           event_venue_check_out_date?: string | null
@@ -1826,13 +1860,6 @@ export type Database = {
             foreignKeyName: "event_resource_selections_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: false
-            referencedRelation: "event_kpi_view"
-            referencedColumns: ["event_id"]
-          },
-          {
-            foreignKeyName: "event_resource_selections_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
             referencedRelation: "events"
             referencedColumns: ["id"]
           },
@@ -1844,60 +1871,6 @@ export type Database = {
             referencedColumns: ["event_id"]
           },
         ]
-      }
-      "Themes Directory Catalog": {
-        Row: {
-          celebration_types: string[] | null
-          created_at: string
-          description: string | null
-          dining_types: string[] | null
-          festival_types: string[] | null
-          health_wellness_types: string[] | null
-          holiday_types: string[] | null
-          id: number
-          name: string
-          personal_types: string[] | null
-          premium: boolean
-          retreat_types: string[] | null
-          reunion_types: string[] | null
-          tags: string[] | null
-          wedding_types: string[] | null
-        }
-        Insert: {
-          celebration_types?: string[] | null
-          created_at?: string
-          description?: string | null
-          dining_types?: string[] | null
-          festival_types?: string[] | null
-          health_wellness_types?: string[] | null
-          holiday_types?: string[] | null
-          id?: number
-          name: string
-          personal_types?: string[] | null
-          premium?: boolean
-          retreat_types?: string[] | null
-          reunion_types?: string[] | null
-          tags?: string[] | null
-          wedding_types?: string[] | null
-        }
-        Update: {
-          celebration_types?: string[] | null
-          created_at?: string
-          description?: string | null
-          dining_types?: string[] | null
-          festival_types?: string[] | null
-          health_wellness_types?: string[] | null
-          holiday_types?: string[] | null
-          id?: number
-          name?: string
-          personal_types?: string[] | null
-          premium?: boolean
-          retreat_types?: string[] | null
-          reunion_types?: string[] | null
-          tags?: string[] | null
-          wedding_types?: string[] | null
-        }
-        Relationships: []
       }
       event_types: {
         Row: {
@@ -1921,15 +1894,7 @@ export type Database = {
           parent_id?: number | null
           theme_id?: number | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "event_types_parent_id_fkey"
-            columns: ["parent_id"]
-            isOneToOne: false
-            referencedRelation: "event_types"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       events: {
         Row: {
@@ -2022,7 +1987,7 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "events_service_rental_buy_id_fkey"
+            foreignKeyName: "events_serv_vendor_rental_id_fkey"
             columns: ["service_rental_buy_id"]
             isOneToOne: false
             referencedRelation: "service_rental_buy"
@@ -2040,6 +2005,80 @@ export type Database = {
             columns: ["type_id"]
             isOneToOne: false
             referencedRelation: "event_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      "external_vendor directory": {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          manual_entry: string | null
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          id?: string
+          manual_entry?: string | null
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          manual_entry?: string | null
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      "external_vendor profile": {
+        Row: {
+          business_name: string | null
+          contact_name: string | null
+          created_at: string
+          email: string | null
+          external_vendor_directory_id: string | null
+          id: string
+          manual_entry: string | null
+          notes: string | null
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          business_name?: string | null
+          contact_name?: string | null
+          created_at?: string
+          email?: string | null
+          external_vendor_directory_id?: string | null
+          id?: string
+          manual_entry?: string | null
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          business_name?: string | null
+          contact_name?: string | null
+          created_at?: string
+          email?: string | null
+          external_vendor_directory_id?: string | null
+          id?: string
+          manual_entry?: string | null
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_vendor profile_external_vendor_directory_id_fkey"
+            columns: ["external_vendor_directory_id"]
+            isOneToOne: false
+            referencedRelation: "external_vendor directory"
             referencedColumns: ["id"]
           },
         ]
@@ -2484,13 +2523,6 @@ export type Database = {
             foreignKeyName: "Manage Event Tasks_linked_event_id_fkey"
             columns: ["linked_event_id"]
             isOneToOne: false
-            referencedRelation: "event_kpi_view"
-            referencedColumns: ["event_id"]
-          },
-          {
-            foreignKeyName: "Manage Event Tasks_linked_event_id_fkey"
-            columns: ["linked_event_id"]
-            isOneToOne: false
             referencedRelation: "events"
             referencedColumns: ["id"]
           },
@@ -2539,6 +2571,36 @@ export type Database = {
           "PR / Press"?: string | null
           "Print Media"?: string | null
           "Social Media"?: string | null
+        }
+        Relationships: []
+      }
+      "Marketing Profile": {
+        Row: {
+          contact_info: string | null
+          created_at: string | null
+          id: string
+          marketing_type: string[] | null
+          name: string | null
+          notes: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          contact_info?: string | null
+          created_at?: string | null
+          id?: string
+          marketing_type?: string[] | null
+          name?: string | null
+          notes?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          contact_info?: string | null
+          created_at?: string | null
+          id?: string
+          marketing_type?: string[] | null
+          name?: string | null
+          notes?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -2925,13 +2987,6 @@ export type Database = {
             foreignKeyName: "notifications_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: false
-            referencedRelation: "event_kpi_view"
-            referencedColumns: ["event_id"]
-          },
-          {
-            foreignKeyName: "notifications_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
             referencedRelation: "events"
             referencedColumns: ["id"]
           },
@@ -3295,13 +3350,6 @@ export type Database = {
             foreignKeyName: "resources_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: false
-            referencedRelation: "event_kpi_view"
-            referencedColumns: ["event_id"]
-          },
-          {
-            foreignKeyName: "resources_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
             referencedRelation: "events"
             referencedColumns: ["id"]
           },
@@ -3393,200 +3441,6 @@ export type Database = {
           },
         ]
       }
-      service_rental_buy_assignments: {
-        Row: {
-          created_at: string
-          id: number
-          service_rental_buy_id: string | null
-          updated_at: string
-          vendor_rental_type_id: number | null
-        }
-        Insert: {
-          created_at?: string
-          id?: number
-          service_rental_buy_id?: string | null
-          updated_at?: string
-          vendor_rental_type_id?: number | null
-        }
-        Update: {
-          created_at?: string
-          id?: number
-          service_rental_buy_id?: string | null
-          updated_at?: string
-          vendor_rental_type_id?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "serv_vendor_rental_types_service_rental_buy_id_fkey"
-            columns: ["service_rental_buy_id"]
-            isOneToOne: false
-            referencedRelation: "service_rental_buy"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "serv_vendor_rental_types_vendor_rental_type_id_fkey"
-            columns: ["vendor_rental_type_id"]
-            isOneToOne: false
-            referencedRelation: "vendor_rental_types"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      service_rental_buy: {
-        Row: {
-          business_name: string
-          city: string | null
-          contact_name: string | null
-          created_at: string
-          description: string | null
-          email: string | null
-          id: string
-          phone_number: string | null
-          price: number | null
-          state: string | null
-          updated_at: string
-          zip: string | null
-        }
-        Insert: {
-          business_name: string
-          city?: string | null
-          contact_name?: string | null
-          created_at?: string
-          description?: string | null
-          email?: string | null
-          id?: string
-          phone_number?: string | null
-          price?: number | null
-          state?: string | null
-          updated_at?: string
-          zip?: string | null
-        }
-        Update: {
-          business_name?: string
-          city?: string | null
-          contact_name?: string | null
-          created_at?: string
-          description?: string | null
-          email?: string | null
-          id?: string
-          phone_number?: string | null
-          price?: number | null
-          state?: string | null
-          updated_at?: string
-          zip?: string | null
-        }
-        Relationships: []
-      }
-      vendor: {
-        Row: {
-          business_name: string
-          checklist: Json | null
-          checklist_completed_count: number | null
-          city: string | null
-          contact_name: string | null
-          created_at: string
-          description: string | null
-          email: string | null
-          id: string
-          instagram_url: string | null
-          linkedin_url: string | null
-          phone_number: string | null
-          price: number | null
-          rating: number | null
-          state: string | null
-          updated_at: string
-          vendor_sup_type_id: number | null
-          zip: string | null
-        }
-        Insert: {
-          business_name: string
-          checklist?: Json | null
-          checklist_completed_count?: number | null
-          city?: string | null
-          contact_name?: string | null
-          created_at?: string
-          description?: string | null
-          email?: string | null
-          id?: string
-          instagram_url?: string | null
-          linkedin_url?: string | null
-          phone_number?: string | null
-          price?: number | null
-          rating?: number | null
-          state?: string | null
-          updated_at?: string
-          vendor_sup_type_id?: number | null
-          zip?: string | null
-        }
-        Update: {
-          business_name?: string
-          checklist?: Json | null
-          checklist_completed_count?: number | null
-          city?: string | null
-          contact_name?: string | null
-          created_at?: string
-          description?: string | null
-          email?: string | null
-          id?: string
-          instagram_url?: string | null
-          linkedin_url?: string | null
-          phone_number?: string | null
-          price?: number | null
-          rating?: number | null
-          state?: string | null
-          updated_at?: string
-          vendor_sup_type_id?: number | null
-          zip?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "vendor_vendor_sup_type_id_fkey"
-            columns: ["vendor_sup_type_id"]
-            isOneToOne: false
-            referencedRelation: "vendor_supplier_types"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      "Service_Vendor Profile": {
-        Row: {
-          "Business Name": string | null
-          Contact_Name: string | null
-          Contact_Ph_Nbr: number | null
-          created_at: string
-          Email: string | null
-          id: number
-          Location: string | null
-          Price: number | null
-          service_provided_listing: string | null
-          Service_Type: string | null
-        }
-        Insert: {
-          "Business Name"?: string | null
-          Contact_Name?: string | null
-          Contact_Ph_Nbr?: number | null
-          created_at?: string
-          Email?: string | null
-          id?: number
-          Location?: string | null
-          Price?: number | null
-          service_provided_listing?: string | null
-          Service_Type?: string | null
-        }
-        Update: {
-          "Business Name"?: string | null
-          Contact_Name?: string | null
-          Contact_Ph_Nbr?: number | null
-          created_at?: string
-          Email?: string | null
-          id?: number
-          Location?: string | null
-          Price?: number | null
-          service_provided_listing?: string | null
-          Service_Type?: string | null
-        }
-        Relationships: []
-      }
       "Service Rental/Sale Directory": {
         Row: {
           audio_visual_equip: string | null
@@ -3644,6 +3498,168 @@ export type Database = {
         }
         Relationships: []
       }
+      service_rental_buy: {
+        Row: {
+          business_name: string
+          city: string | null
+          contact_name: string | null
+          created_at: string
+          description: string | null
+          email: string | null
+          id: string
+          phone_number: string | null
+          price: number | null
+          state: string | null
+          updated_at: string
+          zip: string | null
+        }
+        Insert: {
+          business_name: string
+          city?: string | null
+          contact_name?: string | null
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          id?: string
+          phone_number?: string | null
+          price?: number | null
+          state?: string | null
+          updated_at?: string
+          zip?: string | null
+        }
+        Update: {
+          business_name?: string
+          city?: string | null
+          contact_name?: string | null
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          id?: string
+          phone_number?: string | null
+          price?: number | null
+          state?: string | null
+          updated_at?: string
+          zip?: string | null
+        }
+        Relationships: []
+      }
+      service_rental_buy_assignments: {
+        Row: {
+          created_at: string
+          id: number
+          service_rental_buy_id: string | null
+          updated_at: string
+          vendor_rental_type_id: number | null
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          service_rental_buy_id?: string | null
+          updated_at?: string
+          vendor_rental_type_id?: number | null
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          service_rental_buy_id?: string | null
+          updated_at?: string
+          vendor_rental_type_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "serv_vendor_rental_types_serv_vendor_rental_id_fkey"
+            columns: ["service_rental_buy_id"]
+            isOneToOne: false
+            referencedRelation: "service_rental_buy"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "serv_vendor_rental_types_vendor_rental_type_id_fkey"
+            columns: ["vendor_rental_type_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_rental_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_rental_types: {
+        Row: {
+          created_at: string
+          id: number
+          serv_vendor_rental_id: string | null
+          updated_at: string
+          vendor_rental_type_id: number | null
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          serv_vendor_rental_id?: string | null
+          updated_at?: string
+          vendor_rental_type_id?: number | null
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          serv_vendor_rental_id?: string | null
+          updated_at?: string
+          vendor_rental_type_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "serv_vendor_rental_types_serv_vendor_rental_id_fkey1"
+            columns: ["serv_vendor_rental_id"]
+            isOneToOne: false
+            referencedRelation: "service_rental_buy"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "serv_vendor_rental_types_vendor_rental_type_id_fkey1"
+            columns: ["vendor_rental_type_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_rental_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      "Service_Vendor Profile": {
+        Row: {
+          "Business Name": string | null
+          Contact_Name: string | null
+          Contact_Ph_Nbr: number | null
+          created_at: string
+          Email: string | null
+          id: number
+          Location: string | null
+          Price: number | null
+          service_provided_listing: string | null
+          Service_Type: string | null
+        }
+        Insert: {
+          "Business Name"?: string | null
+          Contact_Name?: string | null
+          Contact_Ph_Nbr?: number | null
+          created_at?: string
+          Email?: string | null
+          id?: number
+          Location?: string | null
+          Price?: number | null
+          service_provided_listing?: string | null
+          Service_Type?: string | null
+        }
+        Update: {
+          "Business Name"?: string | null
+          Contact_Name?: string | null
+          Contact_Ph_Nbr?: number | null
+          created_at?: string
+          Email?: string | null
+          id?: number
+          Location?: string | null
+          Price?: number | null
+          service_provided_listing?: string | null
+          Service_Type?: string | null
+        }
+        Relationships: []
+      }
       "Subscription_Plans Directory": {
         Row: {
           created_at: string
@@ -3674,6 +3690,39 @@ export type Database = {
           "Special Promo"?: string | null
           Standard_Plan?: number | null
           Trial?: string | null
+        }
+        Relationships: []
+      }
+      "Subscription_Plans Profile": {
+        Row: {
+          created_at: string | null
+          features: string[] | null
+          id: string
+          notes: string | null
+          plan_name: string | null
+          plan_type: string | null
+          price: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          features?: string[] | null
+          id?: string
+          notes?: string | null
+          plan_name?: string | null
+          plan_type?: string | null
+          price?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          features?: string[] | null
+          id?: string
+          notes?: string | null
+          plan_name?: string | null
+          plan_type?: string | null
+          price?: number | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -3722,9 +3771,9 @@ export type Database = {
           supplier_contact_name: string | null
           supplier_contact_nbr: number | null
           supplier_email: string | null
+          supplier_id: string
           supplier_location: string | null
           supplier_type: string | null
-          supplier_id: string
           wholesaler_supplier_biz_name: string | null
         }
         Insert: {
@@ -3735,9 +3784,9 @@ export type Database = {
           supplier_contact_name?: string | null
           supplier_contact_nbr?: number | null
           supplier_email?: string | null
+          supplier_id: string
           supplier_location?: string | null
           supplier_type?: string | null
-          supplier_id: string
           wholesaler_supplier_biz_name?: string | null
         }
         Update: {
@@ -3748,9 +3797,9 @@ export type Database = {
           supplier_contact_name?: string | null
           supplier_contact_nbr?: number | null
           supplier_email?: string | null
+          supplier_id?: string
           supplier_location?: string | null
           supplier_type?: string | null
-          supplier_id?: string
           wholesaler_supplier_biz_name?: string | null
         }
         Relationships: []
@@ -3920,6 +3969,52 @@ export type Database = {
           },
         ]
       }
+      task_assignments: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          task_id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          task_id: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          task_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_assignments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "event_task_timeline_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_assignments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_assignments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "unified_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_collaborator_assignments: {
         Row: {
           created_at: string
@@ -3962,6 +4057,195 @@ export type Database = {
         ]
       }
       tasks: {
+        Row: {
+          actual_hours: number | null
+          archived: boolean
+          assigned_bookings_role: string | null
+          assigned_coordinator_name: string | null
+          assigned_entertainment_role: string | null
+          assigned_external_vendor_role: string | null
+          assigned_hospitality_role: string | null
+          assigned_service_rental_role: string | null
+          assigned_service_vendor_role: string | null
+          assigned_supplier_vendor_role: string | null
+          assigned_to: string | null
+          assigned_to_display_name: string | null
+          assigned_transportation_role: string | null
+          assigned_venue_role: string | null
+          assined_vendor_role: string | null
+          category: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          due_date: string | null
+          end_date: string | null
+          end_time: string | null
+          estimated_hours: number | null
+          event_id: string | null
+          id: string
+          priority: Database["public"]["Enums"]["task_priority"]
+          start_date: string | null
+          start_time: string | null
+          status: Database["public"]["Enums"]["task_status"] | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          actual_hours?: number | null
+          archived?: boolean
+          assigned_bookings_role?: string | null
+          assigned_coordinator_name?: string | null
+          assigned_entertainment_role?: string | null
+          assigned_external_vendor_role?: string | null
+          assigned_hospitality_role?: string | null
+          assigned_service_rental_role?: string | null
+          assigned_service_vendor_role?: string | null
+          assigned_supplier_vendor_role?: string | null
+          assigned_to?: string | null
+          assigned_to_display_name?: string | null
+          assigned_transportation_role?: string | null
+          assigned_venue_role?: string | null
+          assined_vendor_role?: string | null
+          category?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          due_date?: string | null
+          end_date?: string | null
+          end_time?: string | null
+          estimated_hours?: number | null
+          event_id?: string | null
+          id?: string
+          priority?: Database["public"]["Enums"]["task_priority"]
+          start_date?: string | null
+          start_time?: string | null
+          status?: Database["public"]["Enums"]["task_status"] | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          actual_hours?: number | null
+          archived?: boolean
+          assigned_bookings_role?: string | null
+          assigned_coordinator_name?: string | null
+          assigned_entertainment_role?: string | null
+          assigned_external_vendor_role?: string | null
+          assigned_hospitality_role?: string | null
+          assigned_service_rental_role?: string | null
+          assigned_service_vendor_role?: string | null
+          assigned_supplier_vendor_role?: string | null
+          assigned_to?: string | null
+          assigned_to_display_name?: string | null
+          assigned_transportation_role?: string | null
+          assigned_venue_role?: string | null
+          assined_vendor_role?: string | null
+          category?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          due_date?: string | null
+          end_date?: string | null
+          end_time?: string | null
+          estimated_hours?: number | null
+          event_id?: string | null
+          id?: string
+          priority?: Database["public"]["Enums"]["task_priority"]
+          start_date?: string | null
+          start_time?: string | null
+          status?: Database["public"]["Enums"]["task_status"] | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      tasks_assignments: {
+        Row: {
+          actual_hours: number | null
+          assigned_to: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          due_date: string | null
+          estimated_hours: number | null
+          event_id: string
+          event_theme: string
+          id: string
+          priority: Database["public"]["Enums"]["task_priority"]
+          status: Database["public"]["Enums"]["task_status"] | null
+          task_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          actual_hours?: number | null
+          assigned_to?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          due_date?: string | null
+          estimated_hours?: number | null
+          event_id: string
+          event_theme: string
+          id?: string
+          priority?: Database["public"]["Enums"]["task_priority"]
+          status?: Database["public"]["Enums"]["task_status"] | null
+          task_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          actual_hours?: number | null
+          assigned_to?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          due_date?: string | null
+          estimated_hours?: number | null
+          event_id?: string
+          event_theme?: string
+          id?: string
+          priority?: Database["public"]["Enums"]["task_priority"]
+          status?: Database["public"]["Enums"]["task_status"] | null
+          task_name?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      tasks_dependencies: {
+        Row: {
+          created_at: string
+          depends_on_task_id: string
+          id: string
+          task_id: string
+        }
+        Insert: {
+          created_at?: string
+          depends_on_task_id: string
+          id?: string
+          task_id: string
+        }
+        Update: {
+          created_at?: string
+          depends_on_task_id?: string
+          id?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_dependencies_depends_on_task_id_fkey"
+            columns: ["depends_on_task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks_old"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_dependencies_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks_old"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tasks_old: {
         Row: {
           actual_hours: number | null
           archived: boolean
@@ -4099,121 +4383,6 @@ export type Database = {
             columns: ["change_request_id"]
             isOneToOne: false
             referencedRelation: "change_requests"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      tasks_assignments: {
-        Row: {
-          actual_hours: number | null
-          assigned_to: string | null
-          created_at: string
-          created_by: string
-          description: string | null
-          due_date: string | null
-          estimated_hours: number | null
-          event_id: string
-          event_theme: string
-          id: string
-          priority: Database["public"]["Enums"]["task_priority"]
-          status: Database["public"]["Enums"]["task_status"] | null
-          task_name: string | null
-          updated_at: string
-        }
-        Insert: {
-          actual_hours?: number | null
-          assigned_to?: string | null
-          created_at?: string
-          created_by: string
-          description?: string | null
-          due_date?: string | null
-          estimated_hours?: number | null
-          event_id: string
-          event_theme: string
-          id?: string
-          priority?: Database["public"]["Enums"]["task_priority"]
-          status?: Database["public"]["Enums"]["task_status"] | null
-          task_name?: string | null
-          updated_at?: string
-        }
-        Update: {
-          actual_hours?: number | null
-          assigned_to?: string | null
-          created_at?: string
-          created_by?: string
-          description?: string | null
-          due_date?: string | null
-          estimated_hours?: number | null
-          event_id?: string
-          event_theme?: string
-          id?: string
-          priority?: Database["public"]["Enums"]["task_priority"]
-          status?: Database["public"]["Enums"]["task_status"] | null
-          task_name?: string | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      tasks_dependencies: {
-        Row: {
-          created_at: string
-          depends_on_task_id: string
-          id: string
-          task_id: string
-        }
-        Insert: {
-          created_at?: string
-          depends_on_task_id: string
-          id?: string
-          task_id: string
-        }
-        Update: {
-          created_at?: string
-          depends_on_task_id?: string
-          id?: string
-          task_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "tasks_dependencies_depends_on_task_id_fkey"
-            columns: ["depends_on_task_id"]
-            isOneToOne: false
-            referencedRelation: "event_task_timeline_view"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tasks_dependencies_depends_on_task_id_fkey"
-            columns: ["depends_on_task_id"]
-            isOneToOne: false
-            referencedRelation: "tasks"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tasks_dependencies_depends_on_task_id_fkey"
-            columns: ["depends_on_task_id"]
-            isOneToOne: false
-            referencedRelation: "unified_tasks"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tasks_dependencies_task_id_fkey"
-            columns: ["task_id"]
-            isOneToOne: false
-            referencedRelation: "event_task_timeline_view"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tasks_dependencies_task_id_fkey"
-            columns: ["task_id"]
-            isOneToOne: false
-            referencedRelation: "tasks"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tasks_dependencies_task_id_fkey"
-            columns: ["task_id"]
-            isOneToOne: false
-            referencedRelation: "unified_tasks"
             referencedColumns: ["id"]
           },
         ]
@@ -4399,79 +4568,59 @@ export type Database = {
         }
         Relationships: []
       }
-      "external_vendor directory": {
+      "Themes Directory Catalog": {
         Row: {
-          category: string
+          celebration_types: string[] | null
           created_at: string
-          id: string
-          manual_entry: string | null
-          type: string
-          updated_at: string
+          description: string | null
+          dining_types: string[] | null
+          festival_types: string[] | null
+          health_wellness_types: string[] | null
+          holiday_types: string[] | null
+          id: number
+          name: string
+          personal_types: string[] | null
+          premium: boolean
+          retreat_types: string[] | null
+          reunion_types: string[] | null
+          tags: string[] | null
+          wedding_types: string[] | null
         }
         Insert: {
-          category: string
+          celebration_types?: string[] | null
           created_at?: string
-          id?: string
-          manual_entry?: string | null
-          type: string
-          updated_at?: string
+          description?: string | null
+          dining_types?: string[] | null
+          festival_types?: string[] | null
+          health_wellness_types?: string[] | null
+          holiday_types?: string[] | null
+          id?: number
+          name: string
+          personal_types?: string[] | null
+          premium?: boolean
+          retreat_types?: string[] | null
+          reunion_types?: string[] | null
+          tags?: string[] | null
+          wedding_types?: string[] | null
         }
         Update: {
-          category?: string
+          celebration_types?: string[] | null
           created_at?: string
-          id?: string
-          manual_entry?: string | null
-          type?: string
-          updated_at?: string
+          description?: string | null
+          dining_types?: string[] | null
+          festival_types?: string[] | null
+          health_wellness_types?: string[] | null
+          holiday_types?: string[] | null
+          id?: number
+          name?: string
+          personal_types?: string[] | null
+          premium?: boolean
+          retreat_types?: string[] | null
+          reunion_types?: string[] | null
+          tags?: string[] | null
+          wedding_types?: string[] | null
         }
         Relationships: []
-      }
-      "external_vendor profile": {
-        Row: {
-          business_name: string | null
-          contact_name: string | null
-          created_at: string
-          email: string | null
-          external_vendor_directory_id: string | null
-          id: string
-          manual_entry: string | null
-          notes: string | null
-          phone: string | null
-          updated_at: string
-        }
-        Insert: {
-          business_name?: string | null
-          contact_name?: string | null
-          created_at?: string
-          email?: string | null
-          external_vendor_directory_id?: string | null
-          id?: string
-          manual_entry?: string | null
-          notes?: string | null
-          phone?: string | null
-          updated_at?: string
-        }
-        Update: {
-          business_name?: string | null
-          contact_name?: string | null
-          created_at?: string
-          email?: string | null
-          external_vendor_directory_id?: string | null
-          id?: string
-          manual_entry?: string | null
-          notes?: string | null
-          phone?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "external_vendor profile_external_vendor_directory_id_fkey"
-            columns: ["external_vendor_directory_id"]
-            isOneToOne: false
-            referencedRelation: "external_vendor directory"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       "Transportation Directory": {
         Row: {
@@ -4814,13 +4963,6 @@ export type Database = {
             foreignKeyName: "uploads_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: false
-            referencedRelation: "event_kpi_view"
-            referencedColumns: ["event_id"]
-          },
-          {
-            foreignKeyName: "uploads_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
             referencedRelation: "events"
             referencedColumns: ["id"]
           },
@@ -4840,10 +4982,10 @@ export type Database = {
           id: number
           Pay_Method: string | null
           Sibscription_Upgrade_Date: string | null
+          Subscription_End_Date: string | null
           Subscription_Start_Date: string | null
           Subscription_type: string | null
           Subscription_Upgrade_Type: string | null
-          Subscription_End_Date: string | null
           User_Category: string | null
           User_Contact_Name: string | null
           User_Contact_Ph_Nbr: number | null
@@ -4860,10 +5002,10 @@ export type Database = {
           id?: number
           Pay_Method?: string | null
           Sibscription_Upgrade_Date?: string | null
+          Subscription_End_Date?: string | null
           Subscription_Start_Date?: string | null
           Subscription_type?: string | null
           Subscription_Upgrade_Type?: string | null
-          Subscription_End_Date?: string | null
           User_Category?: string | null
           User_Contact_Name?: string | null
           User_Contact_Ph_Nbr?: number | null
@@ -4880,10 +5022,10 @@ export type Database = {
           id?: number
           Pay_Method?: string | null
           Sibscription_Upgrade_Date?: string | null
+          Subscription_End_Date?: string | null
           Subscription_Start_Date?: string | null
           Subscription_type?: string | null
           Subscription_Upgrade_Type?: string | null
-          Subscription_End_Date?: string | null
           User_Category?: string | null
           User_Contact_Name?: string | null
           User_Contact_Ph_Nbr?: number | null
@@ -4939,13 +5081,6 @@ export type Database = {
             foreignKeyName: "user_roles_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: false
-            referencedRelation: "event_kpi_view"
-            referencedColumns: ["event_id"]
-          },
-          {
-            foreignKeyName: "user_roles_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
             referencedRelation: "events"
             referencedColumns: ["id"]
           },
@@ -4955,6 +5090,77 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vendor_category_counts"
             referencedColumns: ["event_id"]
+          },
+        ]
+      }
+      vendor: {
+        Row: {
+          business_name: string
+          checklist: Json | null
+          checklist_completed_count: number | null
+          city: string | null
+          contact_name: string | null
+          created_at: string
+          description: string | null
+          email: string | null
+          id: string
+          instagram_url: string | null
+          linkedin_url: string | null
+          phone_number: string | null
+          price: number | null
+          rating: number | null
+          state: string | null
+          updated_at: string
+          vendor_sup_type_id: number | null
+          zip: string | null
+        }
+        Insert: {
+          business_name: string
+          checklist?: Json | null
+          checklist_completed_count?: number | null
+          city?: string | null
+          contact_name?: string | null
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          id?: string
+          instagram_url?: string | null
+          linkedin_url?: string | null
+          phone_number?: string | null
+          price?: number | null
+          rating?: number | null
+          state?: string | null
+          updated_at?: string
+          vendor_sup_type_id?: number | null
+          zip?: string | null
+        }
+        Update: {
+          business_name?: string
+          checklist?: Json | null
+          checklist_completed_count?: number | null
+          city?: string | null
+          contact_name?: string | null
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          id?: string
+          instagram_url?: string | null
+          linkedin_url?: string | null
+          phone_number?: string | null
+          price?: number | null
+          rating?: number | null
+          state?: string | null
+          updated_at?: string
+          vendor_sup_type_id?: number | null
+          zip?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "serv_vendor_suppliers_vendor_sup_type_id_fkey"
+            columns: ["vendor_sup_type_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_supplier_types"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -5472,13 +5678,6 @@ export type Database = {
             foreignKeyName: "workflows_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: true
-            referencedRelation: "event_kpi_view"
-            referencedColumns: ["event_id"]
-          },
-          {
-            foreignKeyName: "workflows_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: true
             referencedRelation: "events"
             referencedColumns: ["id"]
           },
@@ -5504,7 +5703,7 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "workflows_service_rental_buy_id_fkey"
+            foreignKeyName: "workflows_serv_vendor_rent_id_fkey"
             columns: ["service_rental_buy_id"]
             isOneToOne: false
             referencedRelation: "service_rental_buy"
@@ -5518,24 +5717,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "workflows_theme_id_fkey"
-            columns: ["theme_id"]
-            isOneToOne: false
-            referencedRelation: "Themes Directory Catalog"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "workflows_venue_profile_id_fkey"
             columns: ["venue_id"]
             isOneToOne: false
             referencedRelation: "venues"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "workflows_workflow_type_id_fkey"
-            columns: ["workflow_type_id"]
-            isOneToOne: false
-            referencedRelation: "workflow_types"
             referencedColumns: ["id"]
           },
         ]
@@ -5585,13 +5770,6 @@ export type Database = {
             foreignKeyName: "cm_activity_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: false
-            referencedRelation: "event_kpi_view"
-            referencedColumns: ["event_id"]
-          },
-          {
-            foreignKeyName: "cm_activity_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
             referencedRelation: "events"
             referencedColumns: ["id"]
           },
@@ -5623,13 +5801,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "due_soon_events"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "cm_activity_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "event_kpi_view"
-            referencedColumns: ["event_id"]
           },
           {
             foreignKeyName: "cm_activity_event_id_fkey"
@@ -5737,10 +5908,14 @@ export type Database = {
           end_date: string | null
           end_time: string | null
           entertainment_id: string | null
+          entertainment_ids: string[] | null
           expected_attendees: number | null
+          external_supplier_ids: string[] | null
           id: string | null
           location: string | null
           service_rental_buy_id: string | null
+          service_vendor_id: string | null
+          service_vendor_ids: string[] | null
           start_date: string | null
           start_time: string | null
           status: Database["public"]["Enums"]["event_status_enum"] | null
@@ -5750,6 +5925,7 @@ export type Database = {
           updated_at: string | null
           user_id: string | null
           venue: string | null
+          venue_booking_completed: boolean | null
         }
         Insert: {
           archived?: boolean | null
@@ -5759,10 +5935,14 @@ export type Database = {
           end_date?: string | null
           end_time?: string | null
           entertainment_id?: string | null
+          entertainment_ids?: string[] | null
           expected_attendees?: number | null
+          external_supplier_ids?: string[] | null
           id?: string | null
           location?: string | null
           service_rental_buy_id?: string | null
+          service_vendor_id?: string | null
+          service_vendor_ids?: string[] | null
           start_date?: string | null
           start_time?: string | null
           status?: Database["public"]["Enums"]["event_status_enum"] | null
@@ -5772,6 +5952,7 @@ export type Database = {
           updated_at?: string | null
           user_id?: string | null
           venue?: string | null
+          venue_booking_completed?: boolean | null
         }
         Update: {
           archived?: boolean | null
@@ -5781,10 +5962,14 @@ export type Database = {
           end_date?: string | null
           end_time?: string | null
           entertainment_id?: string | null
+          entertainment_ids?: string[] | null
           expected_attendees?: number | null
+          external_supplier_ids?: string[] | null
           id?: string | null
           location?: string | null
           service_rental_buy_id?: string | null
+          service_vendor_id?: string | null
+          service_vendor_ids?: string[] | null
           start_date?: string | null
           start_time?: string | null
           status?: Database["public"]["Enums"]["event_status_enum"] | null
@@ -5794,6 +5979,7 @@ export type Database = {
           updated_at?: string | null
           user_id?: string | null
           venue?: string | null
+          venue_booking_completed?: boolean | null
         }
         Relationships: [
           {
@@ -5804,48 +5990,19 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "events_service_rental_buy_id_fkey"
+            foreignKeyName: "events_serv_vendor_rental_id_fkey"
             columns: ["service_rental_buy_id"]
             isOneToOne: false
             referencedRelation: "service_rental_buy"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "events_type_id_fkey"
-            columns: ["type_id"]
+            foreignKeyName: "events_service_vendor_id_fkey"
+            columns: ["service_vendor_id"]
             isOneToOne: false
-            referencedRelation: "event_types"
+            referencedRelation: "vendor"
             referencedColumns: ["id"]
           },
-        ]
-      }
-      event_kpi_view: {
-        Row: {
-          allocated_resources: number | null
-          avg_task_duration: number | null
-          budget_utilization_rate: number | null
-          completed_tasks: number | null
-          created_at: string | null
-          end_date: string | null
-          event_id: string | null
-          in_progress_tasks: number | null
-          location: string | null
-          pending_tasks: number | null
-          resource_utilization_rate: number | null
-          start_date: string | null
-          status: Database["public"]["Enums"]["event_status_enum"] | null
-          task_completion_rate: number | null
-          theme_id: number | null
-          title: string | null
-          total_budget: number | null
-          total_resources: number | null
-          total_resources_count: number | null
-          total_spent: number | null
-          total_task_hours: number | null
-          total_tasks: number | null
-          type_id: number | null
-        }
-        Relationships: [
           {
             foreignKeyName: "events_type_id_fkey"
             columns: ["type_id"]
@@ -5898,13 +6055,6 @@ export type Database = {
             foreignKeyName: "event_resource_selections_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: false
-            referencedRelation: "event_kpi_view"
-            referencedColumns: ["event_id"]
-          },
-          {
-            foreignKeyName: "event_resource_selections_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
             referencedRelation: "events"
             referencedColumns: ["id"]
           },
@@ -5921,8 +6071,6 @@ export type Database = {
         Row: {
           actual_hours: number | null
           archived: boolean | null
-          assign_hospitality: string | null
-          assign_transportation: string | null
           assigned_bookings_role: string | null
           assigned_coordinator_name: string | null
           assigned_entertainment_role: string | null
@@ -5935,11 +6083,8 @@ export type Database = {
           assigned_to_display_name: string | null
           assigned_transportation_role: string | null
           assigned_venue_role: string | null
-          assignment_type: string | null
           assined_vendor_role: string | null
           category: string | null
-          change_request_id: string | null
-          checklist: Json | null
           created_at: string | null
           created_by: string | null
           description: string | null
@@ -5952,36 +6097,13 @@ export type Database = {
           event_title: string | null
           id: string | null
           priority: Database["public"]["Enums"]["task_priority"] | null
-          resource_assignments: Json | null
           start_date: string | null
           start_time: string | null
           status: Database["public"]["Enums"]["task_status"] | null
           title: string | null
           updated_at: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "tasks_assign_hospitality_fkey"
-            columns: ["assign_hospitality"]
-            isOneToOne: false
-            referencedRelation: "hospitality_profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tasks_assign_transportation_fkey"
-            columns: ["assign_transportation"]
-            isOneToOne: false
-            referencedRelation: "transportation_profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tasks_change_request_id_fkey"
-            columns: ["change_request_id"]
-            isOneToOne: false
-            referencedRelation: "change_requests"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       mv_daily_activity: {
         Row: {
@@ -5997,13 +6119,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "due_soon_events"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "cm_activity_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "event_kpi_view"
-            referencedColumns: ["event_id"]
           },
           {
             foreignKeyName: "cm_activity_event_id_fkey"
@@ -6035,13 +6150,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "due_soon_events"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "cm_activity_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "event_kpi_view"
-            referencedColumns: ["event_id"]
           },
           {
             foreignKeyName: "cm_activity_event_id_fkey"
@@ -6125,13 +6233,6 @@ export type Database = {
             foreignKeyName: "cm_activity_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: false
-            referencedRelation: "event_kpi_view"
-            referencedColumns: ["event_id"]
-          },
-          {
-            foreignKeyName: "cm_activity_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
             referencedRelation: "events"
             referencedColumns: ["id"]
           },
@@ -6202,8 +6303,6 @@ export type Database = {
         Row: {
           actual_hours: number | null
           archived: boolean | null
-          assign_hospitality: string | null
-          assign_transportation: string | null
           assigned_bookings_role: string | null
           assigned_coordinator_name: string | null
           assigned_entertainment_role: string | null
@@ -6216,11 +6315,8 @@ export type Database = {
           assigned_to_display_name: string | null
           assigned_transportation_role: string | null
           assigned_venue_role: string | null
-          assignment_type: string | null
           assined_vendor_role: string | null
           category: string | null
-          change_request_id: string | null
-          checklist: Json | null
           created_at: string | null
           created_by: string | null
           description: string | null
@@ -6233,36 +6329,13 @@ export type Database = {
           event_title: string | null
           id: string | null
           priority: Database["public"]["Enums"]["task_priority"] | null
-          resource_assignments: Json | null
           start_date: string | null
           start_time: string | null
           status: Database["public"]["Enums"]["task_status"] | null
           title: string | null
           updated_at: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "tasks_assign_hospitality_fkey"
-            columns: ["assign_hospitality"]
-            isOneToOne: false
-            referencedRelation: "hospitality_profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tasks_assign_transportation_fkey"
-            columns: ["assign_transportation"]
-            isOneToOne: false
-            referencedRelation: "transportation_profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tasks_change_request_id_fkey"
-            columns: ["change_request_id"]
-            isOneToOne: false
-            referencedRelation: "change_requests"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       user_profiles_teammate_view: {
         Row: {
@@ -6341,33 +6414,41 @@ export type Database = {
         Args: { u1: string; u2: string }
         Returns: boolean
       }
+      generate_magic_link: { Args: { user_email: string }; Returns: string }
       get_my_events_safe: {
         Args: never
         Returns: {
-          booking_type: string[]
-          created_at: string
-          event_budget: number
-          event_collaborators: string[]
-          event_description: string
-          event_end_date: string
-          event_end_time: string
-          event_location: string[]
-          event_start_date: string
-          event_start_time: string
-          event_theme: string[]
-          is_booking_available: boolean
-          is_service_rental_available: boolean
-          is_service_type_availabe: boolean
-          is_supply_available: boolean
-          is_transportation_available: boolean
-          is_venue_available: boolean
-          notification: string
-          priority: string[]
-          resources: string[]
-          service_rental_type: string
-          supplier_type: string[]
-          transportation_type: string
+          booking_type: string[] | null
+          created_at: string | null
+          event_budget: number | null
+          event_collaborators: string[] | null
+          event_description: string | null
+          event_end_date: string | null
+          event_end_time: string | null
+          event_location: string[] | null
+          event_start_date: string | null
+          event_start_time: string | null
+          event_theme: string[] | null
+          is_booking_available: boolean | null
+          is_service_rental_available: boolean | null
+          is_service_type_availabe: boolean | null
+          is_supply_available: boolean | null
+          is_transportation_available: boolean | null
+          is_venue_available: boolean | null
+          notification: string | null
+          priority: string[] | null
+          resources: string[] | null
+          service_rental_type: string | null
+          supplier_type: string[] | null
+          transportation_type: string | null
+          userid: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "create_event_safe"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       get_user_directory_safe: {
         Args: never
@@ -6435,6 +6516,20 @@ export type Database = {
         }
         Returns: undefined
       }
+      policy_has_min_permission_level: {
+        Args: {
+          _level: Database["public"]["Enums"]["permission_level"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      policy_has_permission_level: {
+        Args: {
+          _level: Database["public"]["Enums"]["permission_level"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       recalculate_downstream_tasks:
         | {
             Args: { p_new_due_date?: string; p_task_id: string }
@@ -6490,6 +6585,14 @@ export type Database = {
         Args: { p_event_id: string }
         Returns: boolean
       }
+      validate_magic_link: {
+        Args: { input_token: string }
+        Returns: {
+          is_valid: boolean
+          reason: string
+          user_email: string
+        }[]
+      }
       workflow_analytics_refresh_all: { Args: never; Returns: undefined }
     }
     Enums: {
@@ -6500,16 +6603,6 @@ export type Database = {
         | "venue_owner"
         | "hospitality_provider"
         | "manager"
-        | "partner"
-        | "sponsor"
-        | "stakeholder"
-        | "venue_manager"
-        | "admin"
-        | "event_manager"
-        | "vendor_coordinator"
-        | "budget_manager"
-        | "task_coordinator"
-        | "client"
       budget_category:
         | "venue"
         | "catering"
@@ -6685,16 +6778,6 @@ export const Constants = {
         "venue_owner",
         "hospitality_provider",
         "manager",
-        "partner",
-        "sponsor",
-        "stakeholder",
-        "venue_manager",
-        "admin",
-        "event_manager",
-        "vendor_coordinator",
-        "budget_manager",
-        "task_coordinator",
-        "client",
       ],
       budget_category: [
         "venue",

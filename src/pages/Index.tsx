@@ -87,16 +87,15 @@ const Index = () => {
             />
           </div>
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4 text-balance text-foreground tracking-tight">
-            Plan memorable events — without the chaos
+            Plan Memorable Events—Without the Chaos
           </h1>
           <p className="text-lg sm:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed text-pretty">
-            Ida Event Partners helps you organize, collaborate, and stay ahead. Try it free while we welcome planners — warm,
-            professional, and built for real events.
+            Bring your vision to life with ease. With IDA Event Partners, you can create unforgettable events while we handle the complexity behind the scenes.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center flex-wrap">
             <Link to="/auth">
               <Button size="lg" className="w-full sm:w-auto text-lg px-8 py-3 shadow-md">
-                Start your free trial
+                Start with Your Vision
               </Button>
             </Link>
             <Button
