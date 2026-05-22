@@ -548,8 +548,34 @@ export default function CreateEvent() {
         setEventTypes([]);
         return;
       }
-      
-      setEventTypes(data || []);
+
+      let categories = data || [];
+
+      // Single-root-wrapper themes (e.g. Special Event): the only top-level row is a wrapper
+      // around the real category rows. Unwrap it so Category dropdown shows real categories,
+      // not the wrapper name, and Type dropdown gets leaf types.
+      if (categories.length === 1) {
+        const root = categories[0];
+        const { data: children } = await supabase
+          .from('event_types')
+          .select('id, name, theme_id, parent_id')
+          .eq('parent_id', root.id)
+          .order('name');
+        const childList = children ?? [];
+        if (childList.length > 0) {
+          // Check at least one child has grandchildren — confirms wrapper structure.
+          const childIds = childList.map((c) => c.id);
+          const { count: grandCount } = await supabase
+            .from('event_types')
+            .select('id', { count: 'exact', head: true })
+            .in('parent_id', childIds);
+          if ((grandCount ?? 0) > 0) {
+            categories = childList;
+          }
+        }
+      }
+
+      setEventTypes(categories);
 
       if (searchParams.get("subTypeId")) {
         return;
