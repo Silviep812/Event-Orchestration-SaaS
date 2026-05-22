@@ -1092,14 +1092,14 @@ export function TaskManager({
     isCreatingTaskRef.current = true;
     setIsCreatingTask(true);
     try {
-      await executeCreateTask();
+      await executeCreateTask(undefined, options);
     } finally {
       isCreatingTaskRef.current = false;
       setIsCreatingTask(false);
     }
   };
 
-  const executeCreateTask = async (overrideDueDate?: string) => {
+  const executeCreateTask = async (overrideDueDate?: string, options?: { skipDependencyDialog?: boolean }) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
