@@ -418,6 +418,18 @@ export function EventChangeRequestsList({ eventId, refreshToken = 0, compact }: 
                             ? "Event details were updated where supported."
                             : "Request approved. Unsupported fields are not auto-applied.";
                       toast({ title: "Approved", description: desc });
+                      if (r.requested_by) {
+                        await supabase.from("notifications").insert({
+                          recipient_id: r.requested_by,
+                          sender_id: user?.id ?? null,
+                          title: "Change request approved",
+                          message: `Your change request was approved${r.description ? `: ${r.description}` : ""}.`,
+                          type: "change_request_approved",
+                          entity_type: "change_request",
+                          entity_id: r.id,
+                          event_id: r.event_id ?? eventId ?? null,
+                        });
+                      }
                       window.dispatchEvent(
                         new CustomEvent("iep-change-requests-updated", {
                           detail: { eventId: r.event_id ?? eventId },
