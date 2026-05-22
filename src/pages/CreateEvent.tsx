@@ -733,7 +733,7 @@ export default function CreateEvent() {
     if (Number.isNaN(attendeesNum) || attendeesNum < 1) {
       toast({
         title: "Attendees required",
-        description: "Enter the expected number of attendees (at least 1).",
+        description: "Number of attendees is required. Events depend on attendee count for planning.",
         variant: "destructive",
       });
       return;
