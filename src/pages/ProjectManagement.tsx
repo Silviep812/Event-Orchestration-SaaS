@@ -35,10 +35,10 @@ export default function ProjectManagement() {
 
   useEffect(() => {
     const tab = searchParams.get("tab");
-    if (tab === "tasks" || tab === "budget" || tab === "collaborator") {
+    if (tab === "tasks" || tab === "budget" || tab === "collaborator" || tab === "change-request") {
       setActiveTab(tab);
     } else if (tab === "change-management") {
-      setActiveTab("collaborator");
+      setActiveTab("change-request");
     } else if (!tab) {
       setActiveTab("tasks");
     }
