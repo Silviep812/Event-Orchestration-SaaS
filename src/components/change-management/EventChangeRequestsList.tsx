@@ -251,7 +251,11 @@ export function EventChangeRequestsList({ eventId, refreshToken = 0, compact }: 
           <div className="space-y-1 min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant={statusVariant(r.status)} className="capitalize">
-                {r.status?.replace(/_/g, " ") || "unknown"}
+                {(() => {
+                  const s = (r.status || "").toLowerCase();
+                  if (s === "open" || s === "pending") return "Pending";
+                  return (r.status || "unknown").replace(/_/g, " ");
+                })()}
               </Badge>
               <Badge variant={rolloutTimingVariant(r.rollout_timing)} className="capitalize">
                 {rolloutTimingLabel(r.rollout_timing)}
