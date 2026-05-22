@@ -180,6 +180,95 @@ const Index = () => {
         </div>
       </section>
 
+      <section id="pricing" className="px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+        <div className="max-w-7xl mx-auto">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-center mb-12 text-balance">
+            Pricing plans
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              {
+                name: "Starter Plan",
+                price: "Free",
+                features: ["Basic event creation", "Limited templates", "Core planning tools"],
+                cta: "Get started free",
+                href: "/auth",
+                disabled: false,
+                highlight: false,
+              },
+              {
+                name: "Pro Plan",
+                price: "",
+                features: [
+                  "Unlimited events",
+                  "Advanced AI workflows",
+                  "Real-time collaboration tools",
+                  "Analytics dashboard",
+                ],
+                cta: "Upgrade to Pro",
+                href: "/auth",
+                disabled: false,
+                highlight: true,
+              },
+              {
+                name: "Business Plan",
+                price: "",
+                features: [
+                  "Multi-user collaboration",
+                  "Vendor and partner integrations",
+                  "Priority support",
+                  "Custom workflow automation",
+                ],
+                cta: "Coming Soon",
+                href: "",
+                disabled: true,
+                highlight: false,
+              },
+            ].map((tier) => (
+              <Card
+                key={tier.name}
+                className={`flex flex-col h-full border ${
+                  tier.highlight
+                    ? "border-amber-300/80 shadow-lg ring-2 ring-amber-200/60 bg-gradient-to-br from-amber-50/90 to-orange-50/80 dark:from-amber-900/20 dark:to-orange-900/15"
+                    : "border-amber-100/60 shadow-md bg-white/70 dark:bg-muted/20"
+                }`}
+              >
+                <CardHeader>
+                  <CardTitle className="text-xl font-bold text-foreground">{tier.name}</CardTitle>
+                  {tier.price && (
+                    <CardDescription className="text-2xl font-semibold text-foreground">
+                      {tier.price}
+                    </CardDescription>
+                  )}
+                </CardHeader>
+                <CardContent className="flex flex-col flex-1 gap-6">
+                  <ul className="space-y-2 text-base text-muted-foreground flex-1">
+                    {tier.features.map((f) => (
+                      <li key={f} className="flex items-start gap-2">
+                        <span className="mt-2 inline-block h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                        <span>{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  {tier.disabled ? (
+                    <Button size="lg" disabled className="w-full">
+                      {tier.cta}
+                    </Button>
+                  ) : (
+                    <Link to={tier.href} className="w-full">
+                      <Button size="lg" className="w-full">
+                        {tier.cta}
+                      </Button>
+                    </Link>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+
       <section
         id="waitlist"
         className="px-4 sm:px-6 lg:px-8 py-12 sm:py-16 border-y border-amber-100/60 bg-white/55 dark:bg-muted/25 backdrop-blur-sm"
