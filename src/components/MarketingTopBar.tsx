@@ -182,7 +182,7 @@ export function MarketingTopBar({ page = "home" }: MarketingTopBarProps) {
               >
                 Pricing
               </Button>
-              <div className="px-2 py-2 text-sm text-primary font-medium">Free trial for planners</div>
+              <div className="px-2 py-2 text-sm text-primary font-medium">Free Starter Plan for Event Planners</div>
               {showSignInCta && (
                 <>
                   <Button variant="outline" className="w-full" onClick={() => navigate("/auth")}>
