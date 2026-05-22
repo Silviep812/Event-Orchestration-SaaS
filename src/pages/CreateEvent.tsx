@@ -733,7 +733,7 @@ export default function CreateEvent() {
     if (Number.isNaN(attendeesNum) || attendeesNum < 1) {
       toast({
         title: "Attendees required",
-        description: "Enter the expected number of attendees (at least 1).",
+        description: "Number of attendees is required. Events depend on attendee count for planning.",
         variant: "destructive",
       });
       return;
@@ -1482,12 +1482,14 @@ export default function CreateEvent() {
                   type="text"
                   inputMode="numeric"
                   autoComplete="off"
+                  aria-invalid={errors.expectedAttendees ? "true" : "false"}
+                  className={errors.expectedAttendees ? "border-destructive focus-visible:ring-destructive" : ""}
                   {...register("expectedAttendees", {
-                    required: "Expected attendees is required",
+                    required: "Number of attendees is required. Events depend on attendee count for planning.",
                     validate: (v) =>
                       /^\d+$/.test(String(v).trim()) && parseInt(String(v).trim(), 10) > 0
                         ? true
-                        : "Enter a whole number of attendees (at least 1)",
+                        : "Number of attendees is required. Events depend on attendee count for planning.",
                   })}
                   placeholder="Number of people attending"
                 />
@@ -1495,7 +1497,7 @@ export default function CreateEvent() {
                   <p className="text-sm text-destructive mt-1">{errors.expectedAttendees.message}</p>
                 )}
                 <p className="text-xs text-muted-foreground mt-1">
-                  Required for planning: expected attendance drives capacity, staffing, and budget decisions.
+                  Number of attendees is required. Events depend on attendee count for planning.
                 </p>
               </div>
 
