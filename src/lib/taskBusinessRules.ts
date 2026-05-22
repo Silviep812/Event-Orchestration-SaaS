@@ -9,14 +9,13 @@
  */
 
 export const TASK_ASSIGNMENT_CATEGORIES = [
-  { value: "Bookings", label: "Bookings" },
+  { value: "Bookings", label: "Booking" },
   { value: "Venue", label: "Venue" },
   { value: "Hospitality", label: "Hospitality Provider" },
-  { value: "Vendor Service Rental/Buy", label: "Rent Service Vendor" },
-  { value: "Service Vendor", label: "Service Vendor" },
+  { value: "Vendor Service Rental/Buy", label: "Service Rental" },
   { value: "Suppliers", label: "External Vendor" },
   { value: "Vendors", label: "Vendors" },
-  { value: "Transportation", label: "Transportation Provider" },
+  { value: "Transportation", label: "Transportation" },
   { value: "Entertainment", label: "Entertainment" },
   { value: "Marketing", label: "Marketing" },
 ] as const;
@@ -36,8 +35,7 @@ export const DEPENDENCY_OPTIONS_BY_CATEGORY: Record<string, readonly string[]> =
   Hospitality: ["Amenities confirmed", "Final agenda approved"],
   /** Rent Service Vendor — tables, chairs, rental equipment */
   "Vendor Service Rental/Buy": ["Budget approval", "Rental availability"],
-  /** Service Vendor — security, volunteers, tech, etc. (operational gates). */
-  "Service Vendor": ["Budget approval", "Scope of services confirmed", "Venue compatibility confirmed"],
+  
   /** External Vendor (Procurement) */
   Suppliers: ["Procurement approved", "Availability confirmed", "Contract signed"],
   Vendors: ["Venue confirmed", "Decision approved", "Contract signed"],
