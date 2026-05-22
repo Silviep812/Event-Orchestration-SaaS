@@ -9,14 +9,13 @@
  */
 
 export const TASK_ASSIGNMENT_CATEGORIES = [
-  { value: "Bookings", label: "Bookings" },
+  { value: "Bookings", label: "Booking" },
   { value: "Venue", label: "Venue" },
   { value: "Hospitality", label: "Hospitality Provider" },
-  { value: "Vendor Service Rental/Buy", label: "Rent Service Vendor" },
-  { value: "Service Vendor", label: "Service Vendor" },
+  { value: "Vendor Service Rental/Buy", label: "Service Rental" },
   { value: "Suppliers", label: "External Vendor" },
   { value: "Vendors", label: "Vendors" },
-  { value: "Transportation", label: "Transportation Provider" },
+  { value: "Transportation", label: "Transportation" },
   { value: "Entertainment", label: "Entertainment" },
   { value: "Marketing", label: "Marketing" },
 ] as const;
