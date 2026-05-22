@@ -3178,6 +3178,18 @@ export function TaskManager({
               <Button onClick={handleUpdateTask} className="flex-1">
                 Save task assignment
               </Button>
+              <Button
+                variant="secondary"
+                onClick={async () => {
+                  await handleUpdateTask();
+                  setIsEditDialogOpen(false);
+                  setSelectedTask(null);
+                  setSelectedDependencies([]);
+                }}
+                className="flex-1"
+              >
+                Save and Exit
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
