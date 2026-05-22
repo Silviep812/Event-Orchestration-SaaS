@@ -1483,8 +1483,8 @@ const ManageEvent = () => {
   return (
     <>
     <div className="container mx-auto p-4 lg:p-6 space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
+      <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4">
+        <div className="min-w-0 flex-1">
           <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
             Manage Event
           </h1>
@@ -1498,7 +1498,7 @@ const ManageEvent = () => {
           </p>
         </div>
         
-        <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 sm:justify-end max-w-full min-w-0">
+        <div className="flex flex-row flex-wrap items-center gap-2 justify-start xl:justify-end w-full xl:w-auto shrink-0">
           {selectedEvent?.id && !selectedEvent.archived && (
             <Button
               type="button"
