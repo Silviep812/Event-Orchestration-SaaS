@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useEventFilter } from "@/hooks/useEventFilter";
-import { CheckCircle2, DollarSign, Users } from "lucide-react";
+import { CheckCircle2, DollarSign, Users, GitPullRequest } from "lucide-react";
 import { format } from "date-fns";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useEffect, useState } from "react";
