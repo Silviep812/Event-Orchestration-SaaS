@@ -171,7 +171,15 @@ export default function ProjectManagement() {
             <TaskManager selectedEventFilter={selectedEventFilter} suppressPrimaryHeading />
           </div>
 
-          <div className="space-y-4 border-t pt-6">
+          {selectedEventFilter !== "all" ? (
+            <div className="space-y-4 border-t pt-6">
+              <EventStakeholdersPanel eventId={selectedEventFilter} />
+            </div>
+          ) : null}
+        </TabsContent>
+
+        <TabsContent value="change-request" className="space-y-8">
+          <div className="space-y-4">
             <h3 className="text-lg font-semibold">Create change request &amp; collaborator checklists</h3>
             <CollaboratorPanel
               selectedEventFilter={selectedEventFilter}
@@ -188,12 +196,6 @@ export default function ProjectManagement() {
             </p>
             <ChangeManagementPanel selectedEventFilter={selectedEventFilter} />
           </div>
-
-          {selectedEventFilter !== "all" ? (
-            <div className="space-y-4 border-t pt-6">
-              <EventStakeholdersPanel eventId={selectedEventFilter} />
-            </div>
-          ) : null}
         </TabsContent>
       </Tabs>
     </div>
