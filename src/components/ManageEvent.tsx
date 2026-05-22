@@ -2001,17 +2001,7 @@ const ManageEvent = () => {
                           placeholder="Enter venue name"
                         />
                       </div>
-                      
-                      <div className="space-y-1.5">
-                        <Label htmlFor="location">Location</Label>
-                        <Input
-                          id="location"
-                          className="w-full min-w-0"
-                          value={selectedEvent.location || ''}
-                          onChange={(e) => handleFieldChange('location', e.target.value)}
-                          placeholder="Enter event location"
-                        />
-                      </div>
+      
 
                       <div className="md:col-span-2 space-y-2 border rounded-md p-3 bg-muted/30 min-w-0">
                         <Label>Entertainment profiles (optional)</Label>
