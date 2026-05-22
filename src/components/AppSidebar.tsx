@@ -198,28 +198,28 @@ const menuGroups = [
         hoverColor: "hover:bg-orange-50"
       },
       {
-        title: "Venues",
+        title: "Venue Directory",
         url: "/dashboard/venue",
         icon: Building2,
         color: "text-orange-600",
         hoverColor: "hover:bg-orange-50"
       },
       {
-        title: "Hospitality",
+        title: "Hospitality Directory",
         url: "/dashboard/hospitality",
         icon: Coffee,
         color: "text-orange-600",
         hoverColor: "hover:bg-orange-50"
       },
       {
-        title: "Vendor Service Rental/Buy",
+        title: "Service Rental Directory",
         url: "/dashboard/vendor-service",
         icon: ShoppingCart,
         color: "text-orange-600",
         hoverColor: "hover:bg-orange-50"
       },
       {
-        title: "Service Vendor",
+        title: "Service Vendor Directory",
         url: "/dashboard/service-vendor",
         icon: Truck,
         color: "text-orange-600",
@@ -233,14 +233,14 @@ const menuGroups = [
         hoverColor: "hover:bg-orange-50"
       },
       {
-        title: "Entertainment",
+        title: "Entertainment Directory",
         url: "/dashboard/entertainment",
         icon: Users,
         color: "text-orange-600",
         hoverColor: "hover:bg-orange-50"
       },
       {
-        title: "External Vendors",
+        title: "Supplier Directory",
         url: "/dashboard/supplier",
         icon: Package,
         color: "text-orange-600",
@@ -250,13 +250,6 @@ const menuGroups = [
         title: "Resource map",
         url: "/dashboard/resource-map",
         icon: MapPin,
-        color: "text-orange-600",
-        hoverColor: "hover:bg-orange-50"
-      },
-      {
-        title: "Supplier",
-        url: "/dashboard/supplier",
-        icon: Package,
         color: "text-orange-600",
         hoverColor: "hover:bg-orange-50"
       }
