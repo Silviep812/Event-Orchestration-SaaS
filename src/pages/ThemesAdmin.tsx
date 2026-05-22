@@ -42,7 +42,7 @@ export default function ThemesAdmin() {
         return;
       }
 
-      setThemesData(data || []);
+      setThemesData((data || []) as any);
     } catch (error) {
       console.error('Error in fetchThemes:', error);
       toast({
