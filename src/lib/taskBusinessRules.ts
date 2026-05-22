@@ -35,8 +35,7 @@ export const DEPENDENCY_OPTIONS_BY_CATEGORY: Record<string, readonly string[]> =
   Hospitality: ["Amenities confirmed", "Final agenda approved"],
   /** Rent Service Vendor — tables, chairs, rental equipment */
   "Vendor Service Rental/Buy": ["Budget approval", "Rental availability"],
-  /** Service Vendor — security, volunteers, tech, etc. (operational gates). */
-  "Service Vendor": ["Budget approval", "Scope of services confirmed", "Venue compatibility confirmed"],
+  
   /** External Vendor (Procurement) */
   Suppliers: ["Procurement approved", "Availability confirmed", "Contract signed"],
   Vendors: ["Venue confirmed", "Decision approved", "Contract signed"],
