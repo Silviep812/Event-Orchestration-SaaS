@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useEventFilter } from "@/hooks/useEventFilter";
-import { CheckCircle2, DollarSign, Users } from "lucide-react";
+import { CheckCircle2, DollarSign, Users, GitPullRequest } from "lucide-react";
 import { format } from "date-fns";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -35,10 +35,10 @@ export default function ProjectManagement() {
 
   useEffect(() => {
     const tab = searchParams.get("tab");
-    if (tab === "tasks" || tab === "budget" || tab === "collaborator") {
+    if (tab === "tasks" || tab === "budget" || tab === "collaborator" || tab === "change-request") {
       setActiveTab(tab);
     } else if (tab === "change-management") {
-      setActiveTab("collaborator");
+      setActiveTab("change-request");
     } else if (!tab) {
       setActiveTab("tasks");
     }
@@ -118,7 +118,7 @@ export default function ProjectManagement() {
       </div>
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-        <TabsList className="grid h-auto w-full grid-cols-1 gap-1 p-1 sm:grid-cols-3">
+        <TabsList className="grid h-auto w-full grid-cols-1 gap-1 p-1 sm:grid-cols-4">
           <TabsTrigger value="tasks" className="w-full flex items-center justify-center gap-2">
             <CheckCircle2 className="h-4 w-4" />
             Task
@@ -130,6 +130,10 @@ export default function ProjectManagement() {
           <TabsTrigger value="collaborator" className="w-full flex items-center justify-center gap-2">
             <Users className="h-4 w-4" />
             Collaborator
+          </TabsTrigger>
+          <TabsTrigger value="change-request" className="w-full flex items-center justify-center gap-2">
+            <GitPullRequest className="h-4 w-4" />
+            Change Request
           </TabsTrigger>
         </TabsList>
 
@@ -167,7 +171,15 @@ export default function ProjectManagement() {
             <TaskManager selectedEventFilter={selectedEventFilter} suppressPrimaryHeading />
           </div>
 
-          <div className="space-y-4 border-t pt-6">
+          {selectedEventFilter !== "all" ? (
+            <div className="space-y-4 border-t pt-6">
+              <EventStakeholdersPanel eventId={selectedEventFilter} />
+            </div>
+          ) : null}
+        </TabsContent>
+
+        <TabsContent value="change-request" className="space-y-8">
+          <div className="space-y-4">
             <h3 className="text-lg font-semibold">Create change request &amp; collaborator checklists</h3>
             <CollaboratorPanel
               selectedEventFilter={selectedEventFilter}
@@ -184,12 +196,6 @@ export default function ProjectManagement() {
             </p>
             <ChangeManagementPanel selectedEventFilter={selectedEventFilter} />
           </div>
-
-          {selectedEventFilter !== "all" ? (
-            <div className="space-y-4 border-t pt-6">
-              <EventStakeholdersPanel eventId={selectedEventFilter} />
-            </div>
-          ) : null}
         </TabsContent>
       </Tabs>
     </div>
