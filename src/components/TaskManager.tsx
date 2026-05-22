@@ -1067,7 +1067,7 @@ export function TaskManager({
     });
   };
 
-  const createTask = async () => {
+  const createTask = async (options?: { skipDependencyDialog?: boolean }) => {
     if (isCreatingTaskRef.current) return;
 
     const validationResult = createTaskSchema.safeParse(createTaskValidationPayload);
@@ -1092,14 +1092,14 @@ export function TaskManager({
     isCreatingTaskRef.current = true;
     setIsCreatingTask(true);
     try {
-      await executeCreateTask();
+      await executeCreateTask(undefined, options);
     } finally {
       isCreatingTaskRef.current = false;
       setIsCreatingTask(false);
     }
   };
 
-  const executeCreateTask = async (overrideDueDate?: string) => {
+  const executeCreateTask = async (overrideDueDate?: string, options?: { skipDependencyDialog?: boolean }) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
@@ -1223,16 +1223,23 @@ export function TaskManager({
       await fetchTasks();
       await fetchAvailableTasks();
       
-      // Open dependency dialog with the new task
-      setTaskForDependencies({ id: createdTask.id, title: titleToSave });
-      setShouldPreserveForm(true);
-      setShowDependencyDialog(true);
-      
-      toast({
-        title: "Task created",
-        description:
-          "Prerequisites for this assignment type are saved. Use the next dialog to link task-to-task dependencies (order of work) for this event.",
-      });
+      if (options?.skipDependencyDialog) {
+        toast({
+          title: "Saved",
+          description: "Task assignment saved.",
+        });
+      } else {
+        // Open dependency dialog with the new task
+        setTaskForDependencies({ id: createdTask.id, title: titleToSave });
+        setShouldPreserveForm(true);
+        setShowDependencyDialog(true);
+
+        toast({
+          title: "Task created",
+          description:
+            "Prerequisites for this assignment type are saved. Use the next dialog to link task-to-task dependencies (order of work) for this event.",
+        });
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to create task. Please try again.";
       const isCircularDependency = errorMessage.includes("Circular dependency detected");
@@ -2267,11 +2274,20 @@ export function TaskManager({
               </Button>
               <Button
                 type="button"
-                onClick={createTask}
+                onClick={() => createTask()}
                 className="flex-1"
                 disabled={!isCreateTaskFormValid || isCreatingTask}
               >
                 {isCreatingTask ? "Saving…" : "Save task assignment"}
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => createTask({ skipDependencyDialog: true })}
+                className="flex-1"
+                disabled={!isCreateTaskFormValid || isCreatingTask}
+              >
+                {isCreatingTask ? "Saving…" : "Save and Exit"}
               </Button>
             </div>
           </DialogContent>
@@ -3161,6 +3177,18 @@ export function TaskManager({
               </Button>
               <Button onClick={handleUpdateTask} className="flex-1">
                 Save task assignment
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={async () => {
+                  await handleUpdateTask();
+                  setIsEditDialogOpen(false);
+                  setSelectedTask(null);
+                  setSelectedDependencies([]);
+                }}
+                className="flex-1"
+              >
+                Save and Exit
               </Button>
             </div>
           </DialogContent>

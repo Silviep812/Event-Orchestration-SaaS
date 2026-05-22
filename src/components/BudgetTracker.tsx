@@ -596,9 +596,18 @@ export function BudgetTracker({ eventId, selectedEventFilter }: BudgetTrackerPro
               </div>
             </div>
             
-            <div className="mt-6">
-              <Button onClick={createBudgetItem} className="w-full">
+            <div className="mt-6 flex gap-3">
+              <Button onClick={createBudgetItem} className="flex-1">
                 Add Budget Item
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={async () => {
+                  await createBudgetItem();
+                }}
+                className="flex-1"
+              >
+                Save and Exit
               </Button>
             </div>
           </DialogContent>
