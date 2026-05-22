@@ -570,6 +570,30 @@ export function TaskManager({
     return () => window.removeEventListener("iep-refetch-tasks", onRefetchTasks);
   }, [eventId, selectedEventFilter]);
 
+  // Realtime: keep all mounted TaskManager instances (Task tab + Collaborator tab) in sync.
+  useEffect(() => {
+    const evId =
+      eventId || (selectedEventFilter && selectedEventFilter !== "all" ? selectedEventFilter : null);
+    const channel = supabase
+      .channel(`tasks-rt-${evId ?? "all"}-${Math.random().toString(36).slice(2, 8)}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "tasks",
+          ...(evId ? { filter: `event_id=eq.${evId}` } : {}),
+        },
+        () => {
+          void fetchTasks();
+        },
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [eventId, selectedEventFilter]);
+
   useEffect(() => {
     let isMounted = true;
     
