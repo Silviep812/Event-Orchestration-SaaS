@@ -171,6 +171,15 @@ const Index = () => {
         </div>
       </section>
 
+      <section className="px-4 sm:px-6 lg:px-8 py-12 sm:py-16 bg-gradient-to-br from-rose-50/70 via-amber-50/50 to-orange-50/60 dark:from-muted/30 dark:via-muted/20 dark:to-muted/30 border-y border-amber-100/50">
+        <div className="max-w-3xl mx-auto text-center space-y-4">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-balance">Collaborate & Grow</h2>
+          <p className="text-lg text-muted-foreground leading-relaxed text-pretty">
+            Connect with trusted businesses and service providers to enhance your event and expand your network.
+          </p>
+        </div>
+      </section>
+
       <section
         id="waitlist"
         className="px-4 sm:px-6 lg:px-8 py-12 sm:py-16 border-y border-amber-100/60 bg-white/55 dark:bg-muted/25 backdrop-blur-sm"
