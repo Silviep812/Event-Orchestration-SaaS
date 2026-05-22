@@ -5,7 +5,7 @@ import { Calendar, Users, BarChart3, Bell, FolderOpen } from "lucide-react";
 import { Link } from "react-router-dom";
 import { MarketingTopBar } from "@/components/MarketingTopBar";
 import { MarketingWaitlistForm } from "@/components/marketing/MarketingWaitlistForm";
-import { IEP_LOGO_HERO } from "@/lib/brandAssets";
+import { IEP_LOGO_COLORED } from "@/lib/brandAssets";
 
 const scrollToId = (id: string) => {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
