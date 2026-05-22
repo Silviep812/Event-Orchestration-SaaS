@@ -90,7 +90,7 @@ export function MarketingTopBar({ page = "home" }: MarketingTopBarProps) {
               Pricing
             </Button>
             <span className="inline-flex items-center rounded-md bg-primary/15 px-2.5 py-1 text-xs font-medium text-primary whitespace-nowrap shrink-0">
-              Free trial for planners
+              Free Starter Plan for Event Planners
             </span>
             <div className="flex shrink-0 items-center gap-1.5 pl-3 ml-1 border-l border-amber-200/60 text-muted-foreground tabular-nums">
               <Clock className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
@@ -182,7 +182,7 @@ export function MarketingTopBar({ page = "home" }: MarketingTopBarProps) {
               >
                 Pricing
               </Button>
-              <div className="px-2 py-2 text-sm text-primary font-medium">Free trial for planners</div>
+              <div className="px-2 py-2 text-sm text-primary font-medium">Free Starter Plan for Event Planners</div>
               {showSignInCta && (
                 <>
                   <Button variant="outline" className="w-full" onClick={() => navigate("/auth")}>

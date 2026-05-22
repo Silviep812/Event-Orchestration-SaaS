@@ -5,7 +5,7 @@ import { Calendar, Users, BarChart3, Bell, FolderOpen } from "lucide-react";
 import { Link } from "react-router-dom";
 import { MarketingTopBar } from "@/components/MarketingTopBar";
 import { MarketingWaitlistForm } from "@/components/marketing/MarketingWaitlistForm";
-import { IEP_LOGO_HERO } from "@/lib/brandAssets";
+import { IEP_LOGO_COLORED } from "@/lib/brandAssets";
 
 const scrollToId = (id: string) => {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
@@ -69,7 +69,7 @@ const Index = () => {
         <div className="relative max-w-7xl mx-auto text-center">
           <div className="flex justify-center mb-8">
             <img
-              src={IEP_LOGO_HERO}
+              src={IEP_LOGO_COLORED}
               alt="Ida Event Partners — We Got You"
               className="block w-full max-w-[min(100vw,35rem)] h-auto mx-auto object-contain object-center drop-shadow-md"
               width={640}
