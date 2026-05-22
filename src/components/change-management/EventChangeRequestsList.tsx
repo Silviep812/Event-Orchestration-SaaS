@@ -477,6 +477,18 @@ export function EventChangeRequestsList({ eventId, refreshToken = 0, compact }: 
                         return;
                       }
                       toast({ title: "Rejected", description: "Change request was rejected." });
+                      if (r.requested_by) {
+                        await supabase.from("notifications").insert({
+                          recipient_id: r.requested_by,
+                          sender_id: user?.id ?? null,
+                          title: "Change request declined",
+                          message: `Your change request was declined${r.description ? `: ${r.description}` : ""}.`,
+                          type: "change_request_rejected",
+                          entity_type: "change_request",
+                          entity_id: r.id,
+                          event_id: r.event_id ?? eventId ?? null,
+                        });
+                      }
                       window.dispatchEvent(
                         new CustomEvent("iep-change-requests-updated", {
                           detail: { eventId: r.event_id ?? eventId },
