@@ -21,47 +21,39 @@ const Index = () => {
 
   const features = [
     {
-      icon: Calendar,
-      title: "Event creation",
-      description: "Shape your event with clear steps and flexible details",
+      icon: FolderOpen,
+      title: "Organize every detail",
+      description: "Organize and manage every detail in one place",
       color: "from-rose-400 to-orange-400",
       bgColor: "bg-gradient-to-br from-rose-100/90 to-orange-100/80 dark:from-rose-900/25 dark:to-orange-900/20",
     },
     {
-      icon: FolderOpen,
-      title: "Directories",
-      description: "Venues, hospitality, vendors, and entertainment in one place",
+      icon: Calendar,
+      title: "AI-powered workflows",
+      description: "Use AI-powered workflows to streamline planning",
       color: "from-amber-400 to-yellow-400",
       bgColor: "bg-gradient-to-br from-amber-100/90 to-yellow-100/80 dark:from-amber-900/25 dark:to-yellow-900/20",
     },
     {
-      icon: Calendar,
-      title: "Manage events",
-      description: "Update plans and keep everyone aligned as things change",
+      icon: Bell,
+      title: "Real-time changes",
+      description: "Handle real-time event changes with confidence",
       color: "from-sky-400 to-cyan-400",
       bgColor: "bg-gradient-to-br from-sky-100/90 to-cyan-100/80 dark:from-sky-900/25 dark:to-cyan-900/20",
     },
-
     {
       icon: Users,
-      title: "Team collaboration",
-      description: "Work together with your team in one shared workspace",
+      title: "Reusable templates",
+      description: "Build and reuse templates for faster setup",
       color: "from-emerald-400 to-teal-400",
       bgColor: "bg-gradient-to-br from-emerald-100/90 to-teal-100/80 dark:from-emerald-900/25 dark:to-teal-900/20",
     },
     {
       icon: BarChart3,
-      title: "Analytics & reports",
-      description: "See progress and insights without digging through spreadsheets",
+      title: "Built-in analytics",
+      description: "Track performance with built-in analytics",
       color: "from-orange-400 to-rose-400",
       bgColor: "bg-gradient-to-br from-orange-100/90 to-rose-100/80 dark:from-orange-900/25 dark:to-rose-900/20",
-    },
-    {
-      icon: Bell,
-      title: "Notifications",
-      description: "Stay on top of what matters before the big day",
-      color: "from-violet-400 to-purple-400",
-      bgColor: "bg-gradient-to-br from-violet-100/90 to-purple-100/80 dark:from-violet-900/25 dark:to-purple-900/20",
     },
   ];
 
