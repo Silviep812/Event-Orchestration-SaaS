@@ -1067,7 +1067,7 @@ export function TaskManager({
     });
   };
 
-  const createTask = async () => {
+  const createTask = async (options?: { skipDependencyDialog?: boolean }) => {
     if (isCreatingTaskRef.current) return;
 
     const validationResult = createTaskSchema.safeParse(createTaskValidationPayload);
