@@ -1223,16 +1223,23 @@ export function TaskManager({
       await fetchTasks();
       await fetchAvailableTasks();
       
-      // Open dependency dialog with the new task
-      setTaskForDependencies({ id: createdTask.id, title: titleToSave });
-      setShouldPreserveForm(true);
-      setShowDependencyDialog(true);
-      
-      toast({
-        title: "Task created",
-        description:
-          "Prerequisites for this assignment type are saved. Use the next dialog to link task-to-task dependencies (order of work) for this event.",
-      });
+      if (options?.skipDependencyDialog) {
+        toast({
+          title: "Saved",
+          description: "Task assignment saved.",
+        });
+      } else {
+        // Open dependency dialog with the new task
+        setTaskForDependencies({ id: createdTask.id, title: titleToSave });
+        setShouldPreserveForm(true);
+        setShowDependencyDialog(true);
+
+        toast({
+          title: "Task created",
+          description:
+            "Prerequisites for this assignment type are saved. Use the next dialog to link task-to-task dependencies (order of work) for this event.",
+        });
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to create task. Please try again.";
       const isCircularDependency = errorMessage.includes("Circular dependency detected");
