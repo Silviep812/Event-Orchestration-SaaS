@@ -1395,7 +1395,7 @@ const ManageEvent = () => {
 
   useEffect(() => {
     const onScroll = () => {
-      setShowBackToTop(window.scrollY > 420);
+      setShowBackToTop(window.scrollY > 300);
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     onScroll();
