@@ -32,7 +32,7 @@ export type TaskAssignmentCategory = (typeof TASK_ASSIGNMENT_CATEGORIES)[number]
  */
 export const DEPENDENCY_OPTIONS_BY_CATEGORY: Record<string, readonly string[]> = {
   Bookings: ["Event scope finalized", "Budget approval"],
-  Venue: ["Booking confirmed", "Plan and budget approved", "Contract signed/Deposit made"],
+  Venue: ["Booking confirmed", "Plan and budget approved", "Contract signed"],
   Hospitality: ["Amenities confirmed", "Final agenda approved"],
   /** Rent Service Vendor — tables, chairs, rental equipment */
   "Vendor Service Rental/Buy": ["Budget approval", "Rental availability"],
@@ -40,11 +40,11 @@ export const DEPENDENCY_OPTIONS_BY_CATEGORY: Record<string, readonly string[]> =
   "Service Vendor": ["Budget approval", "Scope of services confirmed", "Venue compatibility confirmed"],
   /** External Vendor (Procurement) */
   Suppliers: ["Procurement approved", "Availability confirmed", "Contract signed"],
-  Vendors: ["Venue Confirmed", "Vendors Decision/Approved", "Contract signed"],
-  Transportation: ["Venue access rules", "Finalize schedule", "Contract signed"],
+  Vendors: ["Venue confirmed", "Decision approved", "Contract signed"],
+  Transportation: ["Venue access rules", "Schedule finalized", "Contract signed"],
   Entertainment: [
     "Booking confirmed",
-    "Entertainment requirements approved",
+    "Requirements approved",
     "Budget approved",
     "Contract signed",
   ],
