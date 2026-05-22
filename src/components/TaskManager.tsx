@@ -2274,11 +2274,20 @@ export function TaskManager({
               </Button>
               <Button
                 type="button"
-                onClick={createTask}
+                onClick={() => createTask()}
                 className="flex-1"
                 disabled={!isCreateTaskFormValid || isCreatingTask}
               >
                 {isCreatingTask ? "Saving…" : "Save task assignment"}
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => createTask({ skipDependencyDialog: true })}
+                className="flex-1"
+                disabled={!isCreateTaskFormValid || isCreatingTask}
+              >
+                {isCreatingTask ? "Saving…" : "Save and Exit"}
               </Button>
             </div>
           </DialogContent>
