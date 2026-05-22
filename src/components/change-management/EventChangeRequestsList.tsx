@@ -251,7 +251,11 @@ export function EventChangeRequestsList({ eventId, refreshToken = 0, compact }: 
           <div className="space-y-1 min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant={statusVariant(r.status)} className="capitalize">
-                {r.status?.replace(/_/g, " ") || "unknown"}
+                {(() => {
+                  const s = (r.status || "").toLowerCase();
+                  if (s === "open" || s === "pending") return "Pending";
+                  return (r.status || "unknown").replace(/_/g, " ");
+                })()}
               </Badge>
               <Badge variant={rolloutTimingVariant(r.rollout_timing)} className="capitalize">
                 {rolloutTimingLabel(r.rollout_timing)}
@@ -414,6 +418,18 @@ export function EventChangeRequestsList({ eventId, refreshToken = 0, compact }: 
                             ? "Event details were updated where supported."
                             : "Request approved. Unsupported fields are not auto-applied.";
                       toast({ title: "Approved", description: desc });
+                      if (r.requested_by) {
+                        await supabase.from("notifications").insert({
+                          recipient_id: r.requested_by,
+                          sender_id: user?.id ?? null,
+                          title: "Change request approved",
+                          message: `Your change request was approved${r.description ? `: ${r.description}` : ""}.`,
+                          type: "change_request_approved",
+                          entity_type: "change_request",
+                          entity_id: r.id,
+                          event_id: r.event_id ?? eventId ?? null,
+                        });
+                      }
                       window.dispatchEvent(
                         new CustomEvent("iep-change-requests-updated", {
                           detail: { eventId: r.event_id ?? eventId },
@@ -461,6 +477,18 @@ export function EventChangeRequestsList({ eventId, refreshToken = 0, compact }: 
                         return;
                       }
                       toast({ title: "Rejected", description: "Change request was rejected." });
+                      if (r.requested_by) {
+                        await supabase.from("notifications").insert({
+                          recipient_id: r.requested_by,
+                          sender_id: user?.id ?? null,
+                          title: "Change request declined",
+                          message: `Your change request was declined${r.description ? `: ${r.description}` : ""}.`,
+                          type: "change_request_rejected",
+                          entity_type: "change_request",
+                          entity_id: r.id,
+                          event_id: r.event_id ?? eventId ?? null,
+                        });
+                      }
                       window.dispatchEvent(
                         new CustomEvent("iep-change-requests-updated", {
                           detail: { eventId: r.event_id ?? eventId },

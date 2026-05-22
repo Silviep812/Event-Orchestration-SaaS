@@ -171,6 +171,19 @@ export default function ProjectManagement() {
             <TaskManager selectedEventFilter={selectedEventFilter} suppressPrimaryHeading />
           </div>
 
+          <div className="space-y-4 border-t pt-6">
+            <h3 className="text-lg font-semibold">Create change request</h3>
+            <p className="text-sm text-muted-foreground">
+              Submitting posts a task to PM Task Management and shows up in Manage Event for the owner to approve or
+              decline. You will be notified when the owner acts.
+            </p>
+            <CollaboratorPanel
+              selectedEventFilter={selectedEventFilter}
+              onChangeRequestPosted={() => handleTabChange("tasks")}
+              onGoToTasksTab={() => handleTabChange("tasks")}
+            />
+          </div>
+
           {selectedEventFilter !== "all" ? (
             <div className="space-y-4 border-t pt-6">
               <EventStakeholdersPanel eventId={selectedEventFilter} />

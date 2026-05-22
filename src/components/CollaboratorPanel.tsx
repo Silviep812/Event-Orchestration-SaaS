@@ -184,7 +184,7 @@ export function CollaboratorPanel({
         priority_tag: taskPriority,
         rollout_timing: form.rolloutTiming,
         requested_by: user.id,
-        status: "open",
+        status: "pending",
         task_id: taskId,
       });
       if (crErr) {
