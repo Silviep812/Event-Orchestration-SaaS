@@ -139,7 +139,7 @@ export function CollaboratorPanel({
     }
     setAssignedLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("tasks")
         .select("id, title, status, priority, assigned_to, assigned_to_display_name, category, checklist, archived, event_id")
         .eq("event_id", eventId)
