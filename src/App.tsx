@@ -39,6 +39,7 @@ const ResourceMap = lazy(() => import("./pages/ResourceMap"));
 const MarketingCampaign = lazy(() => import("./pages/MarketingCampaign"));
 const MarketingCreatives = lazy(() => import("./pages/MarketingCreatives"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
+const PreviewEventPlan = lazy(() => import("./pages/PreviewEventPlan"));
 
 function RouteFallback() {
   return (
