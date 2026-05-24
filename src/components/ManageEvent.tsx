@@ -1265,6 +1265,60 @@ const ManageEvent = () => {
     void fetchThemes();
   }, [user]);
 
+  // Load event owner + collaborators for notification routing
+  useEffect(() => {
+    const eid = selectedEvent?.id;
+    if (!eid) {
+      setEventCollaborators([]);
+      setEventOwner(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data: ev } = await supabase
+          .from("events")
+          .select("user_id")
+          .eq("id", eid)
+          .maybeSingle();
+        const ownerId = (ev as any)?.user_id as string | undefined;
+
+        const { data: mems } = await supabase
+          .from("cm_event_members")
+          .select("user_id")
+          .eq("event_id", eid);
+        const memberIds = (mems || []).map((m: any) => m.user_id).filter(Boolean) as string[];
+
+        const allIds = Array.from(new Set([...(ownerId ? [ownerId] : []), ...memberIds]));
+        let profileMap = new Map<string, string>();
+        if (allIds.length) {
+          const { data: profs } = await supabase
+            .from("profiles")
+            .select("user_id, display_name")
+            .in("user_id", allIds);
+          (profs || []).forEach((p: any) => {
+            profileMap.set(p.user_id, p.display_name || "Unnamed");
+          });
+        }
+        if (cancelled) return;
+        setEventOwner(ownerId ? { user_id: ownerId, display_name: profileMap.get(ownerId) || "Event owner" } : null);
+        setEventCollaborators(
+          memberIds
+            .filter((id) => id !== ownerId)
+            .map((id) => ({ user_id: id, display_name: profileMap.get(id) || "Collaborator" }))
+        );
+      } catch {
+        if (!cancelled) {
+          setEventCollaborators([]);
+          setEventOwner(null);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedEvent?.id]);
+
   useEffect(() => {
     if (!selectedEvent?.theme_id) {
       setEventTypes([]);
