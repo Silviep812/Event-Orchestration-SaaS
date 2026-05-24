@@ -138,6 +138,12 @@ interface NewRequest {
   description: string;
   rolloutTiming: RolloutTiming;
   type: 'change_request' | 'new_requirement' | 'issue';
+  assigneeId?: string;
+}
+
+interface EventCollaborator {
+  user_id: string;
+  display_name: string;
 }
 
 /** Postgres `time` rejects ''; optional columns must be split if migration not applied. */
