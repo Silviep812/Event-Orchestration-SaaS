@@ -1026,6 +1026,10 @@ const ManageEvent = () => {
           ? `URGENT — New ${newRequest.type.replace("_", " ")}: ${newRequest.title.trim()}`
           : `New ${newRequest.type.replace("_", " ")}: ${newRequest.title.trim()}`;
 
+      const assignedCollaborator = newRequest.assigneeId
+        ? eventCollaborators.find((c) => c.user_id === newRequest.assigneeId) || null
+        : null;
+
       const { data: taskRow, error: taskErr } = await supabase
         .from("tasks")
         .insert({
@@ -1037,7 +1041,8 @@ const ManageEvent = () => {
           category: "Change Management",
           created_by: user.id,
           archived: false,
-        })
+          ...(assignedCollaborator ? { assigned_to: assignedCollaborator.user_id } : {}),
+        } as any)
         .select("id")
         .single();
       if (taskErr) throw taskErr;
