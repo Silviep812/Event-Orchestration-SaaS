@@ -1760,25 +1760,34 @@ const ManageEvent = () => {
                 </div>
 
 
-                {newRequest.title.trim().length > 0 && newRequest.description.trim().length > 0 ? (
+                <div className="flex gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="flex-1"
+                    disabled={submittingNewRequest}
+                    onClick={() => setNewRequestDialog(false)}
+                  >
+                    Cancel
+                  </Button>
                   <Button
                     type="button"
                     onClick={() => void submitNewRequest()}
-                    className="w-full bg-gradient-primary hover:opacity-90"
-                    disabled={submittingNewRequest}
+                    className="flex-1 bg-gradient-primary hover:opacity-90"
+                    disabled={
+                      submittingNewRequest ||
+                      !newRequest.title.trim() ||
+                      !newRequest.description.trim()
+                    }
                   >
                     {submittingNewRequest ? (
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     ) : (
                       <Bell className="h-4 w-4 mr-2" />
                     )}
-                    {submittingNewRequest ? "Submitting…" : "Submit & Notify Coordinators"}
+                    {submittingNewRequest ? "Submitting…" : "Submit & Notify"}
                   </Button>
-                ) : (
-                  <p className="text-sm text-muted-foreground text-center">
-                    Enter a title and description to submit.
-                  </p>
-                )}
+                </div>
               </div>
             </DialogContent>
           </Dialog>
