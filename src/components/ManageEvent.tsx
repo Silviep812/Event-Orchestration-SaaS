@@ -212,6 +212,8 @@ const ManageEvent = () => {
   const createEventPath = useCreateEventEntryPath();
   const [searchParams] = useSearchParams();
   const eventIdFromUrl = searchParams.get("eventId");
+  const [eventCollaborators, setEventCollaborators] = useState<EventCollaborator[]>([]);
+  const [eventOwner, setEventOwner] = useState<EventCollaborator | null>(null);
 
   const selectedThemeName = useMemo(
     () => eventThemes.find((t) => t.id === selectedEvent?.theme_id)?.name ?? "",
