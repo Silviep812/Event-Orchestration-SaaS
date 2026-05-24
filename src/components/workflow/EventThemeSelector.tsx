@@ -217,35 +217,44 @@ export const EventThemeSelector = ({ userType, onSelectTheme, selectedTheme, eve
     fetchThemes();
   }, []);
 
-  // Fetch event types when category is selected
+  // Holiday name allow-list — used to split Celebration event_types into Holidays vs Personal,
+  // because the database stores them as flat rows under theme_id with parent_id = null.
+  const HOLIDAY_NAMES = useMemo(
+    () =>
+      new Set([
+        "Christmas",
+        "Easter",
+        "Halloween",
+        "Independence Day",
+        "Labor Day",
+        "Martin Luther King Jr. Day",
+        "Memorial Day",
+        "New Year's Day",
+        "Presidents' Day",
+        "Thanksgiving",
+        "Valentine's Day",
+        "Kwanzaa",
+        "Hanukkah",
+      ]),
+    [],
+  );
+
+  // Fetch ALL Celebration event types once the theme is opened, then partition in-memory.
   useEffect(() => {
     const fetchEventTypes = async () => {
-      if (!selectedCategory || !celebrationThemeId) return;
-
-      // First, fetch the parent category ID (Holidays or Personal)
-      const categoryName = selectedCategory === 'holidays' ? 'Holidays' : 'Personal';
-      const { data: parentData, error: parentError } = await supabase
-        .from('event_types')
-        .select('id')
-        .eq('theme_id', celebrationThemeId)
-        .eq('name', categoryName)
-        .is('parent_id', null)
-        .single();
-
-      if (parentError || !parentData) {
-        console.error('Error fetching parent category:', parentError);
+      if (!celebrationThemeId) {
+        setEventTypes([]);
         return;
       }
 
-      // Then fetch the child event types
       const { data, error } = await supabase
         .from('event_types')
         .select('id, name, theme_id, parent_id')
-        .eq('parent_id', parentData.id)
+        .eq('theme_id', celebrationThemeId)
         .order('name');
 
       if (error) {
-        console.error('Error fetching event types:', error);
+        setEventTypes([]);
         return;
       }
 
@@ -253,7 +262,17 @@ export const EventThemeSelector = ({ userType, onSelectTheme, selectedTheme, eve
     };
 
     fetchEventTypes();
-  }, [selectedCategory, celebrationThemeId]);
+  }, [celebrationThemeId]);
+
+  const celebrationTypesForCategory = useMemo(() => {
+    if (!selectedCategory) return [];
+    return eventTypes.filter((t) =>
+      selectedCategory === 'holidays'
+        ? HOLIDAY_NAMES.has(t.name)
+        : !HOLIDAY_NAMES.has(t.name),
+    );
+  }, [eventTypes, selectedCategory, HOLIDAY_NAMES]);
+
 
   useEffect(() => {
     loadRetreatsEventTypeGroups().then((r) => {
