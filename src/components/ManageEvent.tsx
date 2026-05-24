@@ -2002,7 +2002,7 @@ const ManageEvent = () => {
       
 
                       <div className="md:col-span-2 space-y-2 border rounded-md p-3 bg-muted/30 min-w-0">
-                        <Label>Entertainment Types (optional)</Label>
+                        <Label>Entertainment Types</Label>
                         <p className="text-xs text-muted-foreground">Select one or more.</p>
                         <div className="max-h-36 overflow-y-auto space-y-2">
                           {entertainmentOptions
@@ -2026,7 +2026,7 @@ const ManageEvent = () => {
                       </div>
 
                       <div className="md:col-span-2 space-y-2 border rounded-md p-3 bg-muted/30 min-w-0">
-                        <Label>External vendor (optional)</Label>
+                        <Label>External vendor</Label>
                         <p className="text-xs text-muted-foreground">
                           Procurement vendors from External Vendors in the sidebar (not equipment rentals). Select one or more.
                         </p>
