@@ -1813,17 +1813,15 @@ const ManageEvent = () => {
                             Saving...
                           </div>
                         )}
-                        {!autoSave && (
-                          <Button
-                            onClick={() => selectedEvent && saveEvent(selectedEvent, true)}
-                            size="sm"
-                            disabled={saving}
-                            className="hover:opacity-90"
-                          >
-                            <Save className="h-4 w-4 mr-2" />
-                            Save Changes
-                          </Button>
-                        )}
+                        <Button
+                          onClick={() => selectedEvent && saveEvent(selectedEvent, true)}
+                          size="sm"
+                          disabled={saving || !selectedEvent}
+                          className="hover:opacity-90"
+                        >
+                          <Save className="h-4 w-4 mr-2" />
+                          {saving ? "Saving..." : "Save Changes"}
+                        </Button>
                         {selectedEvent?.status !== "confirmed" && (
                           <Button
                             onClick={reviewAndConfirm}
