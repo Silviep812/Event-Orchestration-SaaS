@@ -39,6 +39,26 @@ import { notifyStakeholdersUrgentChangeRequest } from "@/lib/urgentChangeRequest
 
 type RequestType = "change_request" | "new_requirement" | "issue";
 
+type TaskStatus = "not_started" | "in_progress" | "completed" | "on_hold" | "cancelled";
+
+interface AssignedTaskRow {
+  id: string;
+  title: string;
+  status: TaskStatus | null;
+  priority: string | null;
+  assigned_to: string | null;
+  assigned_to_display_name: string | null;
+  category: string | null;
+}
+
+const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
+  not_started: "Not started",
+  in_progress: "In progress",
+  completed: "Completed",
+  on_hold: "On hold",
+  cancelled: "Cancelled",
+};
+
 interface CollaboratorPanelProps {
   selectedEventFilter: string;
   /** After a change request is posted, parent can switch to the Task tab */
@@ -63,6 +83,8 @@ export function CollaboratorPanel({
     rolloutTiming: "optional" as RolloutTiming,
     type: "change_request" as RequestType,
   });
+  const [assignedTasks, setAssignedTasks] = useState<AssignedTaskRow[]>([]);
+  const [assignedLoading, setAssignedLoading] = useState(false);
 
   const eventId = selectedEventFilter !== "all" ? selectedEventFilter : null;
 
@@ -106,6 +128,98 @@ export function CollaboratorPanel({
       return next;
     });
   };
+
+  // Live assigned-task list pulled from PM/Task (tasks.assigned_to / assigned_to_display_name)
+  const fetchAssignedTasks = useCallback(async () => {
+    if (!eventId) {
+      setAssignedTasks([]);
+      return;
+    }
+    setAssignedLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("tasks")
+        .select("id, title, status, priority, assigned_to, assigned_to_display_name, category, archived, event_id")
+        .eq("event_id", eventId)
+        .neq("archived", true)
+        .order("status", { ascending: true })
+        .order("title", { ascending: true });
+      if (error) throw error;
+      const rows = (data || []).filter(
+        (t: any) => (t.assigned_to && t.assigned_to.length > 0) ||
+                    (t.assigned_to_display_name && t.assigned_to_display_name.trim().length > 0)
+      ) as AssignedTaskRow[];
+      setAssignedTasks(rows);
+    } catch (e) {
+      // swallow - toast in caller paths
+    } finally {
+      setAssignedLoading(false);
+    }
+  }, [eventId]);
+
+  useEffect(() => {
+    void fetchAssignedTasks();
+  }, [fetchAssignedTasks]);
+
+  // Realtime sync from PM/Task changes
+  useEffect(() => {
+    if (!eventId) return;
+    const channel = supabase
+      .channel(`collab-panel-tasks-${eventId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "tasks", filter: `event_id=eq.${eventId}` },
+        () => {
+          void fetchAssignedTasks();
+        }
+      )
+      .subscribe();
+    const onLocal = () => void fetchAssignedTasks();
+    if (typeof window !== "undefined") {
+      window.addEventListener("iep-refetch-tasks", onLocal);
+    }
+    return () => {
+      supabase.removeChannel(channel);
+      if (typeof window !== "undefined") {
+        window.removeEventListener("iep-refetch-tasks", onLocal);
+      }
+    };
+  }, [eventId, fetchAssignedTasks]);
+
+  const updateTaskStatus = async (taskId: string, status: TaskStatus) => {
+    setAssignedTasks((prev) =>
+      prev.map((t) => (t.id === taskId ? { ...t, status } : t))
+    );
+    const { error } = await supabase
+      .from("tasks")
+      .update({ status } as any)
+      .eq("id", taskId);
+    if (error) {
+      toast({
+        title: "Status update failed",
+        description: error.message,
+        variant: "destructive",
+      });
+      void fetchAssignedTasks();
+      return;
+    }
+    toast({ title: "Task updated", description: `Status set to ${TASK_STATUS_LABELS[status]}.` });
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("iep-refetch-tasks"));
+    }
+  };
+
+  const tasksByAssignee = useMemo(() => {
+    const groups = new Map<string, AssignedTaskRow[]>();
+    for (const t of assignedTasks) {
+      const key = (t.assigned_to_display_name?.trim() || t.assigned_to || "Unnamed collaborator");
+      const arr = groups.get(key) ?? [];
+      arr.push(t);
+      groups.set(key, arr);
+    }
+    return Array.from(groups.entries()).sort(([a], [b]) => a.localeCompare(b));
+  }, [assignedTasks]);
+
 
   const totalItems = useMemo(() => {
     let n = 0;
@@ -330,6 +444,90 @@ export function CollaboratorPanel({
       </Card>
 
       <Card>
+        <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <CardTitle>Assigned tasks (from Task tab)</CardTitle>
+            <CardDescription>
+              Auto-synced from PM/Task assignments. Update status here — changes appear instantly in PM/Task.
+            </CardDescription>
+          </div>
+          {onGoToTasksTab && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onGoToTasksTab}
+              className="shrink-0"
+            >
+              Open Task tab to edit checklists
+            </Button>
+          )}
+        </CardHeader>
+        <CardContent>
+          {!eventId ? (
+            <p className="text-sm text-muted-foreground">
+              Choose an event at the top of the page to see assigned tasks.
+            </p>
+          ) : assignedLoading && assignedTasks.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Loading assigned tasks…</p>
+          ) : tasksByAssignee.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No tasks have been assigned yet. Assign a collaborator in the Task tab and they will appear here automatically.
+            </p>
+          ) : (
+            <div className="space-y-4">
+              {tasksByAssignee.map(([assignee, tasks]) => (
+                <div key={assignee} className="rounded-xl border bg-card/40 p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="font-semibold text-sm">{assignee}</p>
+                    <span className="text-xs text-muted-foreground">
+                      {tasks.length} task{tasks.length === 1 ? "" : "s"}
+                    </span>
+                  </div>
+                  <ul className="space-y-2">
+                    {tasks.map((t) => (
+                      <li
+                        key={t.id}
+                        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-lg bg-background/60 p-3"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate" title={t.title}>
+                            {t.title}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {t.category || "Task"}
+                            {t.priority ? ` · ${t.priority}` : ""}
+                          </p>
+                        </div>
+                        <div className="shrink-0">
+                          <Select
+                            value={(t.status as TaskStatus) || "not_started"}
+                            onValueChange={(v) => void updateTaskStatus(t.id, v as TaskStatus)}
+                          >
+                            <SelectTrigger className="h-8 w-[150px] text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {(Object.keys(TASK_STATUS_LABELS) as TaskStatus[]).map((k) => (
+                                <SelectItem key={k} value={k} className="text-xs">
+                                  {TASK_STATUS_LABELS[k]}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+
         <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <CardTitle>Create change request</CardTitle>
