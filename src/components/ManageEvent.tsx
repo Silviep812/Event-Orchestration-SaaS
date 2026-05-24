@@ -138,6 +138,12 @@ interface NewRequest {
   description: string;
   rolloutTiming: RolloutTiming;
   type: 'change_request' | 'new_requirement' | 'issue';
+  assigneeId?: string;
+}
+
+interface EventCollaborator {
+  user_id: string;
+  display_name: string;
 }
 
 /** Postgres `time` rejects ''; optional columns must be split if migration not applied. */
@@ -206,6 +212,8 @@ const ManageEvent = () => {
   const createEventPath = useCreateEventEntryPath();
   const [searchParams] = useSearchParams();
   const eventIdFromUrl = searchParams.get("eventId");
+  const [eventCollaborators, setEventCollaborators] = useState<EventCollaborator[]>([]);
+  const [eventOwner, setEventOwner] = useState<EventCollaborator | null>(null);
 
   const selectedThemeName = useMemo(
     () => eventThemes.find((t) => t.id === selectedEvent?.theme_id)?.name ?? "",
@@ -1018,6 +1026,10 @@ const ManageEvent = () => {
           ? `URGENT — New ${newRequest.type.replace("_", " ")}: ${newRequest.title.trim()}`
           : `New ${newRequest.type.replace("_", " ")}: ${newRequest.title.trim()}`;
 
+      const assignedCollaborator = newRequest.assigneeId
+        ? eventCollaborators.find((c) => c.user_id === newRequest.assigneeId) || null
+        : null;
+
       const { data: taskRow, error: taskErr } = await supabase
         .from("tasks")
         .insert({
@@ -1029,7 +1041,8 @@ const ManageEvent = () => {
           category: "Change Management",
           created_by: user.id,
           archived: false,
-        })
+          ...(assignedCollaborator ? { assigned_to: assignedCollaborator.user_id } : {}),
+        } as any)
         .select("id")
         .single();
       if (taskErr) throw taskErr;
@@ -1074,6 +1087,31 @@ const ManageEvent = () => {
         p_entity_id: selectedEvent.id,
       });
 
+      // Direct in-app notifications to assigned collaborator + event owner
+      const notifyRecipients: { id: string; name: string }[] = [];
+      if (assignedCollaborator && assignedCollaborator.user_id !== user.id) {
+        notifyRecipients.push({ id: assignedCollaborator.user_id, name: assignedCollaborator.display_name });
+      }
+      if (eventOwner && eventOwner.user_id !== user.id &&
+          !notifyRecipients.some((r) => r.id === eventOwner.user_id)) {
+        notifyRecipients.push({ id: eventOwner.user_id, name: eventOwner.display_name });
+      }
+      if (notifyRecipients.length > 0) {
+        const rows = notifyRecipients.map((r) => ({
+          recipient_id: r.id,
+          sender_id: user.id,
+          title: coordTitle.slice(0, 200),
+          message: newRequest.description.trim().slice(0, 4000),
+          type: "new_request",
+          entity_type: "event" as const,
+          entity_id: selectedEvent.id,
+          event_id: selectedEvent.id,
+          is_read: false,
+        }));
+        const { error: notifErr } = await supabase.from("notifications").insert(rows as any);
+        if (notifErr) console.warn("notifications insert:", notifErr);
+      }
+
       if (newRequest.rolloutTiming === "urgent" && user.id) {
         try {
           await notifyStakeholdersUrgentChangeRequest({
@@ -1096,10 +1134,18 @@ const ManageEvent = () => {
         void fetchUnifiedChangelog(selectedEvent.id);
       }
 
+      const recipientLabel =
+        assignedCollaborator && eventOwner
+          ? `${assignedCollaborator.display_name} and event owner (${eventOwner.display_name})`
+          : assignedCollaborator
+            ? `${assignedCollaborator.display_name}`
+            : eventOwner
+              ? `event owner (${eventOwner.display_name})`
+              : "coordinators";
+
       toast({
         title: "Request submitted",
-        description:
-          "A task and change request were added. Review them on this tab below, in Project Management → Task, or under Change Management.",
+        description: `Notification sent to ${recipientLabel}.`,
       });
 
       setNewRequestDialog(false);
@@ -1108,6 +1154,7 @@ const ManageEvent = () => {
         description: "",
         rolloutTiming: "optional",
         type: "change_request",
+        assigneeId: undefined,
       });
     } catch (error) {
       console.error("Error submitting request:", error);
@@ -1256,6 +1303,60 @@ const ManageEvent = () => {
     if (!user) return;
     void fetchThemes();
   }, [user]);
+
+  // Load event owner + collaborators for notification routing
+  useEffect(() => {
+    const eid = selectedEvent?.id;
+    if (!eid) {
+      setEventCollaborators([]);
+      setEventOwner(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data: ev } = await supabase
+          .from("events")
+          .select("user_id")
+          .eq("id", eid)
+          .maybeSingle();
+        const ownerId = (ev as any)?.user_id as string | undefined;
+
+        const { data: mems } = await supabase
+          .from("cm_event_members")
+          .select("user_id")
+          .eq("event_id", eid);
+        const memberIds = (mems || []).map((m: any) => m.user_id).filter(Boolean) as string[];
+
+        const allIds = Array.from(new Set([...(ownerId ? [ownerId] : []), ...memberIds]));
+        let profileMap = new Map<string, string>();
+        if (allIds.length) {
+          const { data: profs } = await supabase
+            .from("profiles")
+            .select("user_id, display_name")
+            .in("user_id", allIds);
+          (profs || []).forEach((p: any) => {
+            profileMap.set(p.user_id, p.display_name || "Unnamed");
+          });
+        }
+        if (cancelled) return;
+        setEventOwner(ownerId ? { user_id: ownerId, display_name: profileMap.get(ownerId) || "Event owner" } : null);
+        setEventCollaborators(
+          memberIds
+            .filter((id) => id !== ownerId)
+            .map((id) => ({ user_id: id, display_name: profileMap.get(id) || "Collaborator" }))
+        );
+      } catch {
+        if (!cancelled) {
+          setEventCollaborators([]);
+          setEventOwner(null);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedEvent?.id]);
 
   useEffect(() => {
     if (!selectedEvent?.theme_id) {
@@ -1631,6 +1732,33 @@ const ManageEvent = () => {
                     rows={4}
                   />
                 </div>
+
+                <div>
+                  <Label htmlFor="request-assignee">Assign to collaborator</Label>
+                  <Select
+                    value={newRequest.assigneeId ?? "__none__"}
+                    onValueChange={(v) =>
+                      setNewRequest((prev) => ({ ...prev, assigneeId: v === "__none__" ? undefined : v }))
+                    }
+                  >
+                    <SelectTrigger id="request-assignee">
+                      <SelectValue placeholder="No specific collaborator" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">No specific collaborator</SelectItem>
+                      {eventCollaborators.map((c) => (
+                        <SelectItem key={c.user_id} value={c.user_id}>
+                          {c.display_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Notification will be sent to the selected collaborator
+                    {eventOwner ? ` and the event owner (${eventOwner.display_name})` : ""}.
+                  </p>
+                </div>
+
 
                 {newRequest.title.trim().length > 0 && newRequest.description.trim().length > 0 ? (
                   <Button
