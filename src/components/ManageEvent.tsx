@@ -2030,24 +2030,6 @@ const ManageEvent = () => {
                         <p className="text-xs text-muted-foreground">
                           Procurement vendors from External Vendors in the sidebar (not equipment rentals). Select one or more.
                         </p>
-                        <Select
-                          value={selectedSupplierCategoryFilter === null ? "__all__" : String(selectedSupplierCategoryFilter)}
-                          onValueChange={(v) =>
-                            setSelectedSupplierCategoryFilter(v === "__all__" ? null : Number(v))
-                          }
-                        >
-                          <SelectTrigger className="w-full min-w-0">
-                            <SelectValue placeholder="All categories" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="__all__">All categories</SelectItem>
-                            {supplierCategories.map((t) => (
-                              <SelectItem key={t.id} value={t.id.toString()}>
-                                {t.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
                         <div className="max-h-36 overflow-y-auto space-y-2">
                           {supplierOptions
                             .filter(
