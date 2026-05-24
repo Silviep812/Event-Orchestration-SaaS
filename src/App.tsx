@@ -39,6 +39,7 @@ const ResourceMap = lazy(() => import("./pages/ResourceMap"));
 const MarketingCampaign = lazy(() => import("./pages/MarketingCampaign"));
 const MarketingCreatives = lazy(() => import("./pages/MarketingCreatives"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
+const PreviewEventPlan = lazy(() => import("./pages/PreviewEventPlan"));
 
 function RouteFallback() {
   return (
@@ -90,6 +91,7 @@ const App = () => (
               <Route path="collaborate" element={<Collaborate />} />
               <Route path="track-progress" element={<TrackProgress />} />
               <Route path="reports" element={<Reports />} />
+              <Route path="preview-event-plan" element={<PreviewEventPlan />} />
               <Route path="marketing-campaign" element={<MarketingCampaign />} />
               <Route path="notification" element={<Notifications />} />
               <Route path="comments" element={<Comments />} />
