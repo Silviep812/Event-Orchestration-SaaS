@@ -514,41 +514,115 @@ export function CollaboratorPanel({
                       {tasks.length} task{tasks.length === 1 ? "" : "s"}
                     </span>
                   </div>
-                  <ul className="space-y-2">
-                    {tasks.map((t) => (
-                      <li
-                        key={t.id}
-                        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-lg bg-background/60 p-3"
-                      >
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium truncate" title={t.title}>
-                            {t.title}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {t.category || "Task"}
-                            {t.priority ? ` · ${t.priority}` : ""}
-                          </p>
-                        </div>
-                        <div className="shrink-0">
-                          <Select
-                            value={(t.status as TaskStatus) || "not_started"}
-                            onValueChange={(v) => void updateTaskStatus(t.id, v as TaskStatus)}
-                          >
-                            <SelectTrigger className="h-8 w-[150px] text-xs">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {(Object.keys(TASK_STATUS_LABELS) as TaskStatus[]).map((k) => (
-                                <SelectItem key={k} value={k} className="text-xs">
-                                  {TASK_STATUS_LABELS[k]}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
+                  <Accordion type="multiple" className="space-y-2">
+                    {tasks.map((t) => {
+                      const templates = getCollaboratorTemplatesForCategories(t.category);
+                      const cc = ((t.checklist as any)?.collaborator_checklist ?? {}) as Record<string, boolean>;
+                      const totalItems = templates.reduce(
+                        (n, tmpl) => n + tmpl.sections.reduce((m, s) => m + s.items.length, 0),
+                        0,
+                      );
+                      const doneItems = templates.reduce(
+                        (n, tmpl) =>
+                          n +
+                          tmpl.sections.reduce(
+                            (m, s) => m + s.items.filter((i) => cc[i.id] === true).length,
+                            0,
+                          ),
+                        0,
+                      );
+                      return (
+                        <AccordionItem
+                          key={t.id}
+                          value={t.id}
+                          className="rounded-lg border bg-background/60"
+                        >
+                          <div className="flex flex-col gap-2 px-3 pt-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium truncate" title={t.title}>
+                                {t.title}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {t.category || "Task"}
+                                {t.priority ? ` · ${t.priority}` : ""}
+                                {totalItems > 0 ? ` · checklist ${doneItems}/${totalItems}` : ""}
+                              </p>
+                            </div>
+                            <div className="shrink-0">
+                              <Select
+                                value={(t.status as TaskStatus) || "not_started"}
+                                onValueChange={(v) => void updateTaskStatus(t.id, v as TaskStatus)}
+                              >
+                                <SelectTrigger className="h-8 w-[150px] text-xs">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {(Object.keys(TASK_STATUS_LABELS) as TaskStatus[]).map((k) => (
+                                    <SelectItem key={k} value={k} className="text-xs">
+                                      {TASK_STATUS_LABELS[k]}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                          <AccordionTrigger className="px-3 py-2 text-xs">
+                            {templates.length === 0
+                              ? "No assignment type set"
+                              : `Open ${templates.map((tmpl) => tmpl.title).join(" + ")}`}
+                          </AccordionTrigger>
+                          <AccordionContent className="px-3 pb-3">
+                            {templates.length === 0 ? (
+                              <p className="text-xs text-muted-foreground">
+                                Set an assignment type on this task in PM/Task to load its Business Rules checklist.
+                              </p>
+                            ) : (
+                              <div className="space-y-3">
+                                {templates.map((tmpl) => (
+                                  <div key={tmpl.id} className="rounded-md border bg-card/40 p-3">
+                                    <p className="text-xs font-semibold">{tmpl.title}</p>
+                                    <p className="text-[11px] text-muted-foreground mb-2">{tmpl.role}</p>
+                                    <div className="space-y-2">
+                                      {tmpl.sections.map((section) => (
+                                        <div key={section.title}>
+                                          <p className="text-[11px] font-medium text-muted-foreground mb-1">
+                                            {section.title}
+                                          </p>
+                                          <ul className="space-y-1">
+                                            {section.items.map((it) => {
+                                              const inputId = `cc-${t.id}-${it.id}`;
+                                              return (
+                                                <li key={it.id} className="flex items-start gap-2">
+                                                  <Checkbox
+                                                    id={inputId}
+                                                    checked={cc[it.id] === true}
+                                                    onCheckedChange={(c) =>
+                                                      void updateTaskChecklistItem(t.id, it.id, c === true)
+                                                    }
+                                                    className="mt-0.5"
+                                                  />
+                                                  <label
+                                                    htmlFor={inputId}
+                                                    className="text-xs leading-snug cursor-pointer"
+                                                  >
+                                                    {it.label}
+                                                  </label>
+                                                </li>
+                                              );
+                                            })}
+                                          </ul>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </AccordionContent>
+                        </AccordionItem>
+                      );
+                    })}
+                  </Accordion>
                 </div>
               ))}
             </div>
