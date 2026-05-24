@@ -40,9 +40,12 @@ export function EventSelector({ onSelectEvent, selectedEvent, refreshKey = 0 }: 
         // Fetch all events
         const { data: eventsData, error: eventsError } = await supabase
           .from("events")
-          .select("id, user_id, title, description")
+          .select("id, user_id, title, description, status, archived")
           .eq("user_id", user.id)
+          .neq("archived", true)
+          .not("status", "in", "(completed,archived,cancelled)")
           .order("start_date", { ascending: true });
+
 
         if (eventsError) throw eventsError;
 
