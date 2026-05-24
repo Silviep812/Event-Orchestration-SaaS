@@ -49,27 +49,50 @@ export function MarketingWaitlistForm({
       user_type: userType,
       signup_source: signupSource,
     });
-    setLoading(false);
     if (error) {
+      setLoading(false);
       const dup = error.message?.toLowerCase().includes("duplicate") || error.code === "23505";
       toast({
-        variant: "destructive",
-        title: dup ? "Already on the list" : "Could not subscribe",
+        variant: dup ? "default" : "destructive",
+        title: dup ? "You're already on our list!" : "Could not subscribe",
         description: dup
-          ? "That email is already registered for updates."
+          ? "We already have your email — we'll be in touch when we launch."
           : error.message || "Please try again in a moment.",
       });
       return;
     }
-    toast({
-      title: "You are on the list",
-      description: "Thanks — we will keep you posted on IEP launch updates.",
-    });
+
+    // Fire-and-acknowledge: don't block UX if email transport fails.
+    try {
+      const { error: fnError } = await supabase.functions.invoke("send-waitlist-confirmation", {
+        body: { email: trimmed },
+      });
+      if (fnError) {
+        toast({
+          variant: "default",
+          title: "Thank you! We'll be in touch.",
+          description: "You're on the list. (We couldn't send the confirmation email right now.)",
+        });
+      } else {
+        toast({
+          title: "Thank you! We'll be in touch.",
+          description: "Check your inbox for a confirmation from Ida Event Partners.",
+        });
+      }
+    } catch {
+      toast({
+        title: "Thank you! We'll be in touch.",
+        description: "You're on the list.",
+      });
+    }
+
+    setLoading(false);
     setEmail("");
     setName("");
     setOrganization("");
     setUserType(USER_TYPES[0]);
   };
+
 
   return (
     <form onSubmit={onSubmit} className={`space-y-4 text-left ${className}`}>
