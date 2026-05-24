@@ -109,8 +109,11 @@ export default function CreateEvent() {
     { id: string; business_name: string; category_id: number | null }[]
   >([]);
   const [selectedSupplierCategoryId, setSelectedSupplierCategoryId] = useState<number | null>(null);
+  const [supplierTypeSelection, setSupplierTypeSelection] = useState<string>("__all__");
+  const [supplierTypeManual, setSupplierTypeManual] = useState<string>("");
   const [selectedEntertainmentIds, setSelectedEntertainmentIds] = useState<string[]>([]);
   const [selectedExternalSupplierIds, setSelectedExternalSupplierIds] = useState<string[]>([]);
+
 
   /** Same directory > category > type hierarchy as Browse Event Themes (Health & Wellness + Retreats). */
   const [hwHierarchy, setHwHierarchy] = useState<Awaited<
@@ -1407,10 +1410,53 @@ export default function CreateEvent() {
                 <p className="text-xs text-muted-foreground">
                   Select one or more procurement vendors (same list as External Vendors in the sidebar). This is separate from equipment rentals.
                 </p>
+                <div>
+                  <Label htmlFor="supplierType" className="text-xs text-muted-foreground">
+                    External vendor type
+                  </Label>
+                  <Select
+                    value={supplierTypeSelection}
+                    onValueChange={(v) => {
+                      setSupplierTypeSelection(v);
+                      if (v !== "__other__") setSupplierTypeManual("");
+                    }}
+                  >
+                    <SelectTrigger id="supplierType">
+                      <SelectValue placeholder="All types" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__all__">All types</SelectItem>
+                      {["Finance", "Legal", "Photography", "Florist", "Signage", "Merchandise", "Specialty Services"].map((t) => (
+                        <SelectItem key={t} value={t}>
+                          {t}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="__other__">Other (manual entry)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {supplierTypeSelection === "__other__" && (
+                    <Input
+                      className="mt-2"
+                      placeholder="Enter vendor type"
+                      value={supplierTypeManual}
+                      onChange={(e) => setSupplierTypeManual(e.target.value)}
+                    />
+                  )}
+                </div>
                 <div className="max-h-40 overflow-y-auto space-y-2 pr-1">
                   {externalSupplierProfiles
+                    .filter((p) => {
+                      if (supplierTypeSelection === "__all__") return true;
+                      const catName =
+                        supplierCategories.find((c) => c.id === p.category_id)?.name ?? "";
+                      const needle =
+                        supplierTypeSelection === "__other__"
+                          ? supplierTypeManual.trim().toLowerCase()
+                          : supplierTypeSelection.toLowerCase();
+                      if (!needle) return true;
+                      return catName.toLowerCase().includes(needle);
+                    })
                     .map((p) => (
-
                       <label key={p.id} className="flex items-center gap-2 text-sm cursor-pointer">
                         <Checkbox
                           checked={selectedExternalSupplierIds.includes(p.id)}
@@ -1426,6 +1472,7 @@ export default function CreateEvent() {
                     ))}
                 </div>
               </div>
+
 
               <div>
                 <Label htmlFor="expectedAttendees" className="flex items-center gap-2">
