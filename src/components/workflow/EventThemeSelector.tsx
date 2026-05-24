@@ -676,6 +676,49 @@ export const EventThemeSelector = ({ userType, onSelectTheme, selectedTheme, eve
     );
   }
 
+  // Show event-type grid once a Celebration sub-category has been picked.
+  if (showCelebrationCategories && selectedCategory) {
+    const categoryLabel = selectedCategory === 'holidays' ? 'Holidays' : 'Personal';
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Button variant="outline" size="sm" onClick={handleBack}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Categories
+          </Button>
+          <div className="text-center flex-1">
+            <h2 className="text-2xl font-bold">Choose a {categoryLabel} Event</h2>
+          </div>
+        </div>
+
+        {celebrationTypesForCategory.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground">
+            No event types found for {categoryLabel}.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
+            {celebrationTypesForCategory.map((t) => (
+              <Card
+                key={t.id}
+                className="cursor-pointer transition-all duration-300 hover:scale-105 border-2 hover:border-primary"
+                onClick={() => handleEventTypeClick({ id: t.id, name: t.name })}
+              >
+                <CardHeader>
+                  <CardTitle className="text-lg text-center">{t.name}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Button className="w-full" variant="outline">
+                    Select & Create Event
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   // Show categories when Celebration theme is selected
   if (showCelebrationCategories) {
     return (
