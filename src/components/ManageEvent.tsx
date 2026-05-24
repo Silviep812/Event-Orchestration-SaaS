@@ -2002,7 +2002,7 @@ const ManageEvent = () => {
       
 
                       <div className="md:col-span-2 space-y-2 border rounded-md p-3 bg-muted/30 min-w-0">
-                        <Label>Entertainment profiles (optional)</Label>
+                        <Label>Entertainment Types (optional)</Label>
                         <p className="text-xs text-muted-foreground">Select one or more. Filter by type to narrow the list.</p>
                         <Select
                           value={selectedEntTypeFilter === null ? "__all__" : String(selectedEntTypeFilter)}
