@@ -1087,6 +1087,31 @@ const ManageEvent = () => {
         p_entity_id: selectedEvent.id,
       });
 
+      // Direct in-app notifications to assigned collaborator + event owner
+      const notifyRecipients: { id: string; name: string }[] = [];
+      if (assignedCollaborator && assignedCollaborator.user_id !== user.id) {
+        notifyRecipients.push({ id: assignedCollaborator.user_id, name: assignedCollaborator.display_name });
+      }
+      if (eventOwner && eventOwner.user_id !== user.id &&
+          !notifyRecipients.some((r) => r.id === eventOwner.user_id)) {
+        notifyRecipients.push({ id: eventOwner.user_id, name: eventOwner.display_name });
+      }
+      if (notifyRecipients.length > 0) {
+        const rows = notifyRecipients.map((r) => ({
+          recipient_id: r.id,
+          sender_id: user.id,
+          title: coordTitle.slice(0, 200),
+          message: newRequest.description.trim().slice(0, 4000),
+          type: "new_request",
+          entity_type: "event" as const,
+          entity_id: selectedEvent.id,
+          event_id: selectedEvent.id,
+          is_read: false,
+        }));
+        const { error: notifErr } = await supabase.from("notifications").insert(rows as any);
+        if (notifErr) console.warn("notifications insert:", notifErr);
+      }
+
       if (newRequest.rolloutTiming === "urgent" && user.id) {
         try {
           await notifyStakeholdersUrgentChangeRequest({
@@ -1109,10 +1134,18 @@ const ManageEvent = () => {
         void fetchUnifiedChangelog(selectedEvent.id);
       }
 
+      const recipientLabel =
+        assignedCollaborator && eventOwner
+          ? `${assignedCollaborator.display_name} and event owner (${eventOwner.display_name})`
+          : assignedCollaborator
+            ? `${assignedCollaborator.display_name}`
+            : eventOwner
+              ? `event owner (${eventOwner.display_name})`
+              : "coordinators";
+
       toast({
         title: "Request submitted",
-        description:
-          "A task and change request were added. Review them on this tab below, in Project Management → Task, or under Change Management.",
+        description: `Notification sent to ${recipientLabel}.`,
       });
 
       setNewRequestDialog(false);
@@ -1121,6 +1154,7 @@ const ManageEvent = () => {
         description: "",
         rolloutTiming: "optional",
         type: "change_request",
+        assigneeId: undefined,
       });
     } catch (error) {
       console.error("Error submitting request:", error);
