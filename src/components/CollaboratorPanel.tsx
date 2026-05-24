@@ -446,6 +446,90 @@ export function CollaboratorPanel({
       <Card>
         <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
+            <CardTitle>Assigned tasks (from Task tab)</CardTitle>
+            <CardDescription>
+              Auto-synced from PM/Task assignments. Update status here — changes appear instantly in PM/Task.
+            </CardDescription>
+          </div>
+          {onGoToTasksTab && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onGoToTasksTab}
+              className="shrink-0"
+            >
+              Open Task tab to edit checklists
+            </Button>
+          )}
+        </CardHeader>
+        <CardContent>
+          {!eventId ? (
+            <p className="text-sm text-muted-foreground">
+              Choose an event at the top of the page to see assigned tasks.
+            </p>
+          ) : assignedLoading && assignedTasks.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Loading assigned tasks…</p>
+          ) : tasksByAssignee.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No tasks have been assigned yet. Assign a collaborator in the Task tab and they will appear here automatically.
+            </p>
+          ) : (
+            <div className="space-y-4">
+              {tasksByAssignee.map(([assignee, tasks]) => (
+                <div key={assignee} className="rounded-xl border bg-card/40 p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="font-semibold text-sm">{assignee}</p>
+                    <span className="text-xs text-muted-foreground">
+                      {tasks.length} task{tasks.length === 1 ? "" : "s"}
+                    </span>
+                  </div>
+                  <ul className="space-y-2">
+                    {tasks.map((t) => (
+                      <li
+                        key={t.id}
+                        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-lg bg-background/60 p-3"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate" title={t.title}>
+                            {t.title}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {t.category || "Task"}
+                            {t.priority ? ` · ${t.priority}` : ""}
+                          </p>
+                        </div>
+                        <div className="shrink-0">
+                          <Select
+                            value={(t.status as TaskStatus) || "not_started"}
+                            onValueChange={(v) => void updateTaskStatus(t.id, v as TaskStatus)}
+                          >
+                            <SelectTrigger className="h-8 w-[150px] text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {(Object.keys(TASK_STATUS_LABELS) as TaskStatus[]).map((k) => (
+                                <SelectItem key={k} value={k} className="text-xs">
+                                  {TASK_STATUS_LABELS[k]}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+
+        <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
             <CardTitle>Create change request</CardTitle>
             <CardDescription>
               Creates a coordinator task and change-management record. Coordinators review it in Task
