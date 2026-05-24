@@ -46,11 +46,12 @@ const DashboardHome = () => {
 
         const userId = user.id as string;
 
-        // Fetch events data for current user only
+        // Fetch events data for current user only (exclude archived from the main list)
         const { data: events, error: eventsError } = await supabase
           .from('events')
           .select('id, user_id, title, description, start_date, end_date, created_at, venue, status, archived')
           .eq('user_id', userId)
+          .neq('archived', true)
           .order('created_at', { ascending: false })
           .limit(10);
         if (eventsError) throw eventsError;
