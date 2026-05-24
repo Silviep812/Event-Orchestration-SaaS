@@ -1382,31 +1382,10 @@ export default function CreateEvent() {
               <div className="space-y-2 border rounded-md p-3 bg-muted/30">
                 <Label className="text-sm font-medium">Entertainment (optional)</Label>
                 <p className="text-xs text-muted-foreground">Select one or more entertainment profiles.</p>
-                <div>
-                  <Label htmlFor="entType" className="text-xs text-muted-foreground">Filter by entertainment type</Label>
-                  <Select
-                    value={selectedEntTypeId === null ? "__all__" : String(selectedEntTypeId)}
-                    onValueChange={(v) => {
-                      setSelectedEntTypeId(v === "__all__" ? null : Number(v));
-                    }}
-                  >
-                    <SelectTrigger id="entType">
-                      <SelectValue placeholder="All types" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__all__">All types</SelectItem>
-                      {entertainmentTypes.map((t) => (
-                        <SelectItem key={t.id} value={t.id.toString()}>
-                          {t.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
                 <div className="max-h-40 overflow-y-auto space-y-2 pr-1">
                   {entertainmentProfiles
-                    .filter((p) => selectedEntTypeId == null || p.ent_type_id === selectedEntTypeId)
                     .map((p) => (
+
                       <label key={p.id} className="flex items-center gap-2 text-sm cursor-pointer">
                         <Checkbox
                           checked={selectedEntertainmentIds.includes(p.id)}
