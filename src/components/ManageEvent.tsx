@@ -2003,25 +2003,7 @@ const ManageEvent = () => {
 
                       <div className="md:col-span-2 space-y-2 border rounded-md p-3 bg-muted/30 min-w-0">
                         <Label>Entertainment Types (optional)</Label>
-                        <p className="text-xs text-muted-foreground">Select one or more. Filter by type to narrow the list.</p>
-                        <Select
-                          value={selectedEntTypeFilter === null ? "__all__" : String(selectedEntTypeFilter)}
-                          onValueChange={(v) =>
-                            setSelectedEntTypeFilter(v === "__all__" ? null : Number(v))
-                          }
-                        >
-                          <SelectTrigger className="w-full min-w-0">
-                            <SelectValue placeholder="All entertainment types" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="__all__">All types</SelectItem>
-                            {entertainmentTypes.map((t) => (
-                              <SelectItem key={t.id} value={t.id.toString()}>
-                                {t.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <p className="text-xs text-muted-foreground">Select one or more.</p>
                         <div className="max-h-36 overflow-y-auto space-y-2">
                           {entertainmentOptions
                             .filter(
@@ -2048,24 +2030,6 @@ const ManageEvent = () => {
                         <p className="text-xs text-muted-foreground">
                           Procurement vendors from External Vendors in the sidebar (not equipment rentals). Select one or more.
                         </p>
-                        <Select
-                          value={selectedSupplierCategoryFilter === null ? "__all__" : String(selectedSupplierCategoryFilter)}
-                          onValueChange={(v) =>
-                            setSelectedSupplierCategoryFilter(v === "__all__" ? null : Number(v))
-                          }
-                        >
-                          <SelectTrigger className="w-full min-w-0">
-                            <SelectValue placeholder="All categories" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="__all__">All categories</SelectItem>
-                            {supplierCategories.map((t) => (
-                              <SelectItem key={t.id} value={t.id.toString()}>
-                                {t.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
                         <div className="max-h-36 overflow-y-auto space-y-2">
                           {supplierOptions
                             .filter(
