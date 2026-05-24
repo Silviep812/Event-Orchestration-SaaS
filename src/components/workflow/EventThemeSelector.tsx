@@ -217,35 +217,44 @@ export const EventThemeSelector = ({ userType, onSelectTheme, selectedTheme, eve
     fetchThemes();
   }, []);
 
-  // Fetch event types when category is selected
+  // Holiday name allow-list — used to split Celebration event_types into Holidays vs Personal,
+  // because the database stores them as flat rows under theme_id with parent_id = null.
+  const HOLIDAY_NAMES = useMemo(
+    () =>
+      new Set([
+        "Christmas",
+        "Easter",
+        "Halloween",
+        "Independence Day",
+        "Labor Day",
+        "Martin Luther King Jr. Day",
+        "Memorial Day",
+        "New Year's Day",
+        "Presidents' Day",
+        "Thanksgiving",
+        "Valentine's Day",
+        "Kwanzaa",
+        "Hanukkah",
+      ]),
+    [],
+  );
+
+  // Fetch ALL Celebration event types once the theme is opened, then partition in-memory.
   useEffect(() => {
     const fetchEventTypes = async () => {
-      if (!selectedCategory || !celebrationThemeId) return;
-
-      // First, fetch the parent category ID (Holidays or Personal)
-      const categoryName = selectedCategory === 'holidays' ? 'Holidays' : 'Personal';
-      const { data: parentData, error: parentError } = await supabase
-        .from('event_types')
-        .select('id')
-        .eq('theme_id', celebrationThemeId)
-        .eq('name', categoryName)
-        .is('parent_id', null)
-        .single();
-
-      if (parentError || !parentData) {
-        console.error('Error fetching parent category:', parentError);
+      if (!celebrationThemeId) {
+        setEventTypes([]);
         return;
       }
 
-      // Then fetch the child event types
       const { data, error } = await supabase
         .from('event_types')
         .select('id, name, theme_id, parent_id')
-        .eq('parent_id', parentData.id)
+        .eq('theme_id', celebrationThemeId)
         .order('name');
 
       if (error) {
-        console.error('Error fetching event types:', error);
+        setEventTypes([]);
         return;
       }
 
@@ -253,7 +262,17 @@ export const EventThemeSelector = ({ userType, onSelectTheme, selectedTheme, eve
     };
 
     fetchEventTypes();
-  }, [selectedCategory, celebrationThemeId]);
+  }, [celebrationThemeId]);
+
+  const celebrationTypesForCategory = useMemo(() => {
+    if (!selectedCategory) return [];
+    return eventTypes.filter((t) =>
+      selectedCategory === 'holidays'
+        ? HOLIDAY_NAMES.has(t.name)
+        : !HOLIDAY_NAMES.has(t.name),
+    );
+  }, [eventTypes, selectedCategory, HOLIDAY_NAMES]);
+
 
   useEffect(() => {
     loadRetreatsEventTypeGroups().then((r) => {
@@ -653,6 +672,49 @@ export const EventThemeSelector = ({ userType, onSelectTheme, selectedTheme, eve
             </Card>
           ))}
         </div>
+      </div>
+    );
+  }
+
+  // Show event-type grid once a Celebration sub-category has been picked.
+  if (showCelebrationCategories && selectedCategory) {
+    const categoryLabel = selectedCategory === 'holidays' ? 'Holidays' : 'Personal';
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Button variant="outline" size="sm" onClick={handleBack}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Categories
+          </Button>
+          <div className="text-center flex-1">
+            <h2 className="text-2xl font-bold">Choose a {categoryLabel} Event</h2>
+          </div>
+        </div>
+
+        {celebrationTypesForCategory.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground">
+            No event types found for {categoryLabel}.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
+            {celebrationTypesForCategory.map((t) => (
+              <Card
+                key={t.id}
+                className="cursor-pointer transition-all duration-300 hover:scale-105 border-2 hover:border-primary"
+                onClick={() => handleEventTypeClick({ id: t.id, name: t.name })}
+              >
+                <CardHeader>
+                  <CardTitle className="text-lg text-center">{t.name}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Button className="w-full" variant="outline">
+                    Select & Create Event
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
     );
   }
