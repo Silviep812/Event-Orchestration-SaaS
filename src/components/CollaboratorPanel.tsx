@@ -129,6 +129,98 @@ export function CollaboratorPanel({
     });
   };
 
+  // Live assigned-task list pulled from PM/Task (tasks.assigned_to / assigned_to_display_name)
+  const fetchAssignedTasks = useCallback(async () => {
+    if (!eventId) {
+      setAssignedTasks([]);
+      return;
+    }
+    setAssignedLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("tasks")
+        .select("id, title, status, priority, assigned_to, assigned_to_display_name, category, archived, event_id")
+        .eq("event_id", eventId)
+        .neq("archived", true)
+        .order("status", { ascending: true })
+        .order("title", { ascending: true });
+      if (error) throw error;
+      const rows = (data || []).filter(
+        (t: any) => (t.assigned_to && t.assigned_to.length > 0) ||
+                    (t.assigned_to_display_name && t.assigned_to_display_name.trim().length > 0)
+      ) as AssignedTaskRow[];
+      setAssignedTasks(rows);
+    } catch (e) {
+      // swallow - toast in caller paths
+    } finally {
+      setAssignedLoading(false);
+    }
+  }, [eventId]);
+
+  useEffect(() => {
+    void fetchAssignedTasks();
+  }, [fetchAssignedTasks]);
+
+  // Realtime sync from PM/Task changes
+  useEffect(() => {
+    if (!eventId) return;
+    const channel = supabase
+      .channel(`collab-panel-tasks-${eventId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "tasks", filter: `event_id=eq.${eventId}` },
+        () => {
+          void fetchAssignedTasks();
+        }
+      )
+      .subscribe();
+    const onLocal = () => void fetchAssignedTasks();
+    if (typeof window !== "undefined") {
+      window.addEventListener("iep-refetch-tasks", onLocal);
+    }
+    return () => {
+      supabase.removeChannel(channel);
+      if (typeof window !== "undefined") {
+        window.removeEventListener("iep-refetch-tasks", onLocal);
+      }
+    };
+  }, [eventId, fetchAssignedTasks]);
+
+  const updateTaskStatus = async (taskId: string, status: TaskStatus) => {
+    setAssignedTasks((prev) =>
+      prev.map((t) => (t.id === taskId ? { ...t, status } : t))
+    );
+    const { error } = await supabase
+      .from("tasks")
+      .update({ status } as any)
+      .eq("id", taskId);
+    if (error) {
+      toast({
+        title: "Status update failed",
+        description: error.message,
+        variant: "destructive",
+      });
+      void fetchAssignedTasks();
+      return;
+    }
+    toast({ title: "Task updated", description: `Status set to ${TASK_STATUS_LABELS[status]}.` });
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("iep-refetch-tasks"));
+    }
+  };
+
+  const tasksByAssignee = useMemo(() => {
+    const groups = new Map<string, AssignedTaskRow[]>();
+    for (const t of assignedTasks) {
+      const key = (t.assigned_to_display_name?.trim() || t.assigned_to || "Unnamed collaborator");
+      const arr = groups.get(key) ?? [];
+      arr.push(t);
+      groups.set(key, arr);
+    }
+    return Array.from(groups.entries()).sort(([a], [b]) => a.localeCompare(b));
+  }, [assignedTasks]);
+
+
   const totalItems = useMemo(() => {
     let n = 0;
     for (const c of COLLABORATOR_CHECKLISTS) {
