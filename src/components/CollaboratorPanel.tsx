@@ -24,6 +24,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import {
   COLLABORATOR_CHECKLISTS,
+  getCollaboratorTemplatesForCategories,
   storageKeyForCollaboratorChecklists,
 } from "@/lib/collaboratorChecklists";
 import { Bell, Plus } from "lucide-react";
@@ -49,6 +50,7 @@ interface AssignedTaskRow {
   assigned_to: string | null;
   assigned_to_display_name: string | null;
   category: string | null;
+  checklist: Record<string, unknown> | null;
 }
 
 const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
@@ -139,7 +141,7 @@ export function CollaboratorPanel({
     try {
       const { data, error } = await supabase
         .from("tasks")
-        .select("id, title, status, priority, assigned_to, assigned_to_display_name, category, archived, event_id")
+        .select("id, title, status, priority, assigned_to, assigned_to_display_name, category, checklist, archived, event_id")
         .eq("event_id", eventId)
         .neq("archived", true)
         .order("status", { ascending: true })
