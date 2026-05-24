@@ -240,7 +240,7 @@ const menuGroups = [
         hoverColor: "hover:bg-orange-50"
       },
       {
-        title: "Supplier Directory",
+        title: "External Vendor Directory",
         url: "/dashboard/supplier",
         icon: Package,
         color: "text-orange-600",
