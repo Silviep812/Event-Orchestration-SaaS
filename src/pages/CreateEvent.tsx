@@ -109,8 +109,11 @@ export default function CreateEvent() {
     { id: string; business_name: string; category_id: number | null }[]
   >([]);
   const [selectedSupplierCategoryId, setSelectedSupplierCategoryId] = useState<number | null>(null);
+  const [supplierTypeSelection, setSupplierTypeSelection] = useState<string>("__all__");
+  const [supplierTypeManual, setSupplierTypeManual] = useState<string>("");
   const [selectedEntertainmentIds, setSelectedEntertainmentIds] = useState<string[]>([]);
   const [selectedExternalSupplierIds, setSelectedExternalSupplierIds] = useState<string[]>([]);
+
 
   /** Same directory > category > type hierarchy as Browse Event Themes (Health & Wellness + Retreats). */
   const [hwHierarchy, setHwHierarchy] = useState<Awaited<
