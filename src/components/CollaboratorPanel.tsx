@@ -39,6 +39,26 @@ import { notifyStakeholdersUrgentChangeRequest } from "@/lib/urgentChangeRequest
 
 type RequestType = "change_request" | "new_requirement" | "issue";
 
+type TaskStatus = "not_started" | "in_progress" | "completed" | "on_hold" | "cancelled";
+
+interface AssignedTaskRow {
+  id: string;
+  title: string;
+  status: TaskStatus | null;
+  priority: string | null;
+  assigned_to: string | null;
+  assigned_to_display_name: string | null;
+  category: string | null;
+}
+
+const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
+  not_started: "Not started",
+  in_progress: "In progress",
+  completed: "Completed",
+  on_hold: "On hold",
+  cancelled: "Cancelled",
+};
+
 interface CollaboratorPanelProps {
   selectedEventFilter: string;
   /** After a change request is posted, parent can switch to the Task tab */
@@ -63,6 +83,8 @@ export function CollaboratorPanel({
     rolloutTiming: "optional" as RolloutTiming,
     type: "change_request" as RequestType,
   });
+  const [assignedTasks, setAssignedTasks] = useState<AssignedTaskRow[]>([]);
+  const [assignedLoading, setAssignedLoading] = useState(false);
 
   const eventId = selectedEventFilter !== "all" ? selectedEventFilter : null;
 
