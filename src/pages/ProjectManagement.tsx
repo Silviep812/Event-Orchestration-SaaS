@@ -15,10 +15,14 @@ import { format } from "date-fns";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { eventSelectLifecycleLabel } from "@/lib/eventStatus";
+import { computeEventLifecycle } from "@/lib/eventStatus";
 import { useToast } from "@/hooks/use-toast";
 
 export default function ProjectManagement() {
-  const { selectedEventFilter, setSelectedEventFilter, events, eventsLoading } = useEventFilter();
+  const { selectedEventFilter, setSelectedEventFilter, events: allEvents, eventsLoading } = useEventFilter();
+  // Project Management only operates on Active events: not archived, not cancelled, not past,
+  // and with a workflow status of pending / in_progress / confirmed.
+  const events = allEvents.filter((e) => computeEventLifecycle(e)?.isActiveEvent);
   const navigate = useNavigate();
   const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
