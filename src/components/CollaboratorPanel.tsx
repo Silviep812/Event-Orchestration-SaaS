@@ -211,6 +211,34 @@ export function CollaboratorPanel({
     }
   };
 
+  const updateTaskChecklistItem = async (taskId: string, itemId: string, value: boolean) => {
+    const task = assignedTasks.find((t) => t.id === taskId);
+    const existing = (task?.checklist ?? {}) as Record<string, unknown>;
+    const existingCC = (existing.collaborator_checklist ?? {}) as Record<string, boolean>;
+    const nextCC = { ...existingCC, [itemId]: value };
+    const nextChecklist = { ...existing, collaborator_checklist: nextCC };
+
+    setAssignedTasks((prev) =>
+      prev.map((t) => (t.id === taskId ? { ...t, checklist: nextChecklist } : t))
+    );
+    const { error } = await (supabase as any)
+      .from("tasks")
+      .update({ checklist: nextChecklist })
+      .eq("id", taskId);
+    if (error) {
+      toast({
+        title: "Checklist update failed",
+        description: error.message,
+        variant: "destructive",
+      });
+      void fetchAssignedTasks();
+      return;
+    }
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("iep-refetch-tasks"));
+    }
+  };
+
   const tasksByAssignee = useMemo(() => {
     const groups = new Map<string, AssignedTaskRow[]>();
     for (const t of assignedTasks) {
