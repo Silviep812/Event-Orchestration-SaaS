@@ -148,6 +148,14 @@ const menuGroups = [
     bgColor: "bg-teal-50",
     items: [
       {
+        title: "Preview Event Plan",
+        url: "/dashboard/preview-event-plan",
+        icon: FileText,
+        color: "text-teal-600",
+        hoverColor: "hover:bg-teal-50",
+        ownerOnly: true,
+      },
+      {
         title: "Event Plan Report",
         url: "/dashboard/reports?tab=event-plan",
         icon: FileText,
