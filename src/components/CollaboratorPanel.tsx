@@ -622,23 +622,22 @@ export function CollaboratorPanel({
             </div>
             <div className="flex gap-3">
               <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                disabled={submitting}
+                onClick={() => setDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
                 className="flex-1"
                 disabled={submitting || !form.title.trim() || !form.description.trim()}
                 onClick={() => void submitChangeRequest()}
               >
                 <Bell className="h-4 w-4 mr-2" />
                 {submitting ? "Submitting…" : "Submit & notify"}
-              </Button>
-              <Button
-                variant="secondary"
-                className="flex-1"
-                disabled={submitting || !form.title.trim() || !form.description.trim()}
-                onClick={async () => {
-                  await submitChangeRequest();
-                  setDialogOpen(false);
-                }}
-              >
-                {submitting ? "Saving…" : "Save and Exit"}
               </Button>
             </div>
           </div>
