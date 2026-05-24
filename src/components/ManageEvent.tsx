@@ -1733,6 +1733,33 @@ const ManageEvent = () => {
                   />
                 </div>
 
+                <div>
+                  <Label htmlFor="request-assignee">Assign to collaborator</Label>
+                  <Select
+                    value={newRequest.assigneeId ?? "__none__"}
+                    onValueChange={(v) =>
+                      setNewRequest((prev) => ({ ...prev, assigneeId: v === "__none__" ? undefined : v }))
+                    }
+                  >
+                    <SelectTrigger id="request-assignee">
+                      <SelectValue placeholder="No specific collaborator" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">No specific collaborator</SelectItem>
+                      {eventCollaborators.map((c) => (
+                        <SelectItem key={c.user_id} value={c.user_id}>
+                          {c.display_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Notification will be sent to the selected collaborator
+                    {eventOwner ? ` and the event owner (${eventOwner.display_name})` : ""}.
+                  </p>
+                </div>
+
+
                 {newRequest.title.trim().length > 0 && newRequest.description.trim().length > 0 ? (
                   <Button
                     type="button"
