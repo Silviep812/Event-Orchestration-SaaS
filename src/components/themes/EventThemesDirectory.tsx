@@ -629,6 +629,11 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
                   <div>
                     <h3 className="text-lg font-semibold flex items-center gap-2">
                       {theme.name}
+                      {themeIsPremium(theme) && (
+                        <Badge className="text-[10px] uppercase tracking-wide bg-amber-100 text-amber-900 border border-amber-300 hover:bg-amber-100">
+                          Premium
+                        </Badge>
+                      )}
                     </h3>
                     <p className="text-sm text-muted-foreground">{theme.description}</p>
                   </div>
