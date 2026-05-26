@@ -1290,6 +1290,7 @@ export type Database = {
           city: string | null
           contact_name: string | null
           created_at: string
+          custom_type: string | null
           description: string | null
           email: string | null
           ent_type_id: number | null
@@ -1311,6 +1312,7 @@ export type Database = {
           city?: string | null
           contact_name?: string | null
           created_at?: string
+          custom_type?: string | null
           description?: string | null
           email?: string | null
           ent_type_id?: number | null
@@ -1332,6 +1334,7 @@ export type Database = {
           city?: string | null
           contact_name?: string | null
           created_at?: string
+          custom_type?: string | null
           description?: string | null
           email?: string | null
           ent_type_id?: number | null
@@ -3891,6 +3894,7 @@ export type Database = {
           city: string | null
           contact_name: string | null
           created_at: string
+          custom_category: string | null
           description: string | null
           email: string | null
           id: string
@@ -3914,6 +3918,7 @@ export type Database = {
           city?: string | null
           contact_name?: string | null
           created_at?: string
+          custom_category?: string | null
           description?: string | null
           email?: string | null
           id?: string
@@ -3937,6 +3942,7 @@ export type Database = {
           city?: string | null
           contact_name?: string | null
           created_at?: string
+          custom_category?: string | null
           description?: string | null
           email?: string | null
           id?: string
@@ -4865,6 +4871,7 @@ export type Database = {
           city: string | null
           contact_name: string | null
           created_at: string
+          custom_type: string | null
           description: string | null
           email: string | null
           id: string
@@ -4884,6 +4891,7 @@ export type Database = {
           city?: string | null
           contact_name?: string | null
           created_at?: string
+          custom_type?: string | null
           description?: string | null
           email?: string | null
           id?: string
@@ -4903,6 +4911,7 @@ export type Database = {
           city?: string | null
           contact_name?: string | null
           created_at?: string
+          custom_type?: string | null
           description?: string | null
           email?: string | null
           id?: string
@@ -5101,6 +5110,7 @@ export type Database = {
           city: string | null
           contact_name: string | null
           created_at: string
+          custom_type: string | null
           description: string | null
           email: string | null
           id: string
@@ -5121,6 +5131,7 @@ export type Database = {
           city?: string | null
           contact_name?: string | null
           created_at?: string
+          custom_type?: string | null
           description?: string | null
           email?: string | null
           id?: string
@@ -5141,6 +5152,7 @@ export type Database = {
           city?: string | null
           contact_name?: string | null
           created_at?: string
+          custom_type?: string | null
           description?: string | null
           email?: string | null
           id?: string
@@ -5477,6 +5489,7 @@ export type Database = {
           contact_name: string | null
           cost: number | null
           created_at: string
+          custom_type: string | null
           email: string | null
           has_accessibility: boolean | null
           has_av_equipment: boolean | null
@@ -5510,6 +5523,7 @@ export type Database = {
           contact_name?: string | null
           cost?: number | null
           created_at?: string
+          custom_type?: string | null
           email?: string | null
           has_accessibility?: boolean | null
           has_av_equipment?: boolean | null
@@ -5543,6 +5557,7 @@ export type Database = {
           contact_name?: string | null
           cost?: number | null
           created_at?: string
+          custom_type?: string | null
           email?: string | null
           has_accessibility?: boolean | null
           has_av_equipment?: boolean | null
