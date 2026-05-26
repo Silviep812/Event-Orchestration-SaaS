@@ -1244,14 +1244,20 @@ export default function CreateEvent() {
                   </div>
 
                   {subEventTypes.length > 0 && (
-                    <div>
+                    <div className="space-y-2">
                       <Label htmlFor="subType">Event Type *</Label>
                       <Controller
                         name="subType"
                         control={control}
                         rules={{ required: "Event type is required" }}
                         render={({ field }) => (
-                          <Select value={field.value} onValueChange={field.onChange}>
+                          <Select
+                            value={field.value}
+                            onValueChange={(val) => {
+                              field.onChange(val);
+                              if (val !== "__other__") setCustomSubTypeName("");
+                            }}
+                          >
                             <SelectTrigger>
                               <SelectValue placeholder="Select specific event type" />
                             </SelectTrigger>
@@ -1261,12 +1267,22 @@ export default function CreateEvent() {
                                   {type.name}
                                 </SelectItem>
                               ))}
+                              <SelectItem value="__other__">Other (specify)…</SelectItem>
                             </SelectContent>
                           </Select>
                         )}
                       />
+                      {selectedSubType === "__other__" && (
+                        <Input
+                          placeholder="Enter your event type"
+                          value={customSubTypeName}
+                          onChange={(e) => setCustomSubTypeName(e.target.value)}
+                          maxLength={100}
+                        />
+                      )}
                     </div>
                   )}
+
                 </>
               )}
 
