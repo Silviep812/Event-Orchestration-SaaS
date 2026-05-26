@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { getAuthErrorDescription } from '@/lib/authErrors';
-import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Check, X } from 'lucide-react';
 import { MarketingTopBar } from '@/components/MarketingTopBar';
 import { supabase } from '@/integrations/supabase/client';
 import { getPostSignInNavigationPath } from '@/lib/profileOnboardingGate';
