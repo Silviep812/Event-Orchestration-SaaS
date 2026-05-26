@@ -108,6 +108,17 @@ export default function SupplierDirectory() {
       <DirectoryPageHeader
         title="External Vendor Directory"
         subtitle="Filter by category, then browse vendor profiles"
+        action={
+          <AddDirectoryEntryDialog
+            title="Add External Vendor"
+            table="suppliers"
+            typeColumn="category_id"
+            customColumn="custom_category"
+            typeLabel="Category"
+            typeOptions={supplierCategories.map((c) => ({ id: c.id, name: c.name }))}
+            onCreated={fetchSuppliers}
+          />
+        }
       />
 
       <Card>
