@@ -656,6 +656,8 @@ export default function TrackProgress() {
           </div>
         </TabsContent>
       </Tabs>
+        </>
+      )}
     </div>
   );
 }
