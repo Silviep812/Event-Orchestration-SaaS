@@ -66,7 +66,8 @@ export const VenueSelector = ({ onSelectVenue, selectedVenue }: VenueSelectorPro
     state: '',
     zip: '',
     capacity: '',
-    venue_type_id: ''
+    venue_type_id: '',
+    custom_type: ''
   });
   const { toast } = useToast();
   const { user } = useAuth();
