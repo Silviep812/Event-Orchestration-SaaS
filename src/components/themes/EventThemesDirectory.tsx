@@ -629,6 +629,11 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
                   <div>
                     <h3 className="text-lg font-semibold flex items-center gap-2">
                       {theme.name}
+                      {themeIsPremium(theme) && (
+                        <Badge className="text-[10px] uppercase tracking-wide bg-amber-100 text-amber-900 border border-amber-300 hover:bg-amber-100">
+                          Premium
+                        </Badge>
+                      )}
                     </h3>
                     <p className="text-sm text-muted-foreground">{theme.description}</p>
                   </div>
@@ -685,6 +690,11 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
             <div className="space-y-2 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <CardTitle className="text-lg leading-none">{theme.name}</CardTitle>
+                {themeIsPremium(theme) && (
+                  <Badge className="text-[10px] uppercase tracking-wide bg-amber-100 text-amber-900 border border-amber-300 hover:bg-amber-100">
+                    Premium
+                  </Badge>
+                )}
               </div>
               <CardDescription className="text-sm">{theme.description}</CardDescription>
             </div>
