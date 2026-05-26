@@ -105,6 +105,17 @@ function EntertainmentDirectory() {
       <DirectoryPageHeader
         title="Entertainment Directory"
         subtitle="Select entertainment type, then browse profiles"
+        action={
+          <AddDirectoryEntryDialog
+            title="Add Entertainment"
+            table="entertainments"
+            typeColumn="ent_type_id"
+            customColumn="custom_type"
+            typeLabel="Entertainment Type"
+            typeOptions={entertainmentTypes.map((t) => ({ id: t.id, name: t.name }))}
+            onCreated={fetchData}
+          />
+        }
       />
 
       <Card>
