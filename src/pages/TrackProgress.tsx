@@ -61,8 +61,26 @@ interface ProjectStats {
 
 export default function TrackProgress() {
   const { toast } = useToast();
-  const { selectedEventFilter, events, eventsLoading } = useEventFilter();
-  
+  const { selectedEventFilter, setSelectedEventFilter, events: allEvents, eventsLoading } = useEventFilter();
+  const activeEvents = allEvents.filter((e) => computeEventLifecycle(e)?.isActiveEvent);
+
+  // Default to most recent active event once events load.
+  useEffect(() => {
+    if (eventsLoading) return;
+    if (activeEvents.length === 0) return;
+    const stillValid =
+      selectedEventFilter !== "all" && activeEvents.some((e) => e.id === selectedEventFilter);
+    if (!stillValid) {
+      setSelectedEventFilter(activeEvents[0].id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eventsLoading, activeEvents.length]);
+
+  const selectValue =
+    selectedEventFilter !== "all" && activeEvents.some((e) => e.id === selectedEventFilter)
+      ? selectedEventFilter
+      : "";
+
   const [selectedFilter, setSelectedFilter] = useState("all");
   const [tasks, setTasks] = useState<Task[]>([]);
   
