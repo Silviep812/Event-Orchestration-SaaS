@@ -14,6 +14,7 @@ import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Bus, Car, Truck, Crown, Package, ExternalLink, RefreshCw } from "lucide-react";
 import { DirectoryPageHeader } from "@/components/resource-directory/DirectoryPageHeader";
+import { AddDirectoryEntryDialog } from "@/components/resource-directory/AddDirectoryEntryDialog";
 import { toast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
