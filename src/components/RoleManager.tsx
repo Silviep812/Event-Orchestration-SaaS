@@ -6,8 +6,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Shield, Users, UserCheck, Crown, ClipboardList, Eye } from "lucide-react";
-import { PermissionLevel } from "@/lib/permissions";
+import { PermissionLevel, usePermissions } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
+import { InviteTesterDialog } from "@/components/InviteTesterDialog";
+
 
 interface UserRole {
   id: string;
