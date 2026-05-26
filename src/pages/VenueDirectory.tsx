@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { formatDirectoryPrice } from "@/lib/formatDirectoryPrice";
 import { DirectoryProfileLink } from "@/components/resource-directory/DirectoryProfileLink";
+import { AddDirectoryEntryDialog } from "@/components/resource-directory/AddDirectoryEntryDialog";
 import { directoryProfileElementId } from "@/lib/directoryProfileLinks";
 import { useDirectoryProfileHighlight } from "@/hooks/useDirectoryProfileHighlight";
 
