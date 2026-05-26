@@ -6,9 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Package, Truck, ShoppingCart, Store, Building, MapPin, Mail } from "lucide-react";
+import { Package, MapPin, Mail } from "lucide-react";
 import { DirectoryPageHeader } from "@/components/resource-directory/DirectoryPageHeader";
-import { AddDirectoryEntryDialog } from "@/components/resource-directory/AddDirectoryEntryDialog";
+import { AddSupplierEntryDialog } from "@/components/resource-directory/AddSupplierEntryDialog";
+import { SUPPLIER_BUSINESS_CATEGORIES } from "@/lib/supplierBusinessCategories";
 import { formatDirectoryPrice } from "@/lib/formatDirectoryPrice";
 import { DirectoryProfileLink } from "@/components/resource-directory/DirectoryProfileLink";
 import { directoryProfileElementId } from "@/lib/directoryProfileLinks";
@@ -26,6 +27,8 @@ interface Supplier {
   /** PDF / schema: distinct from list or quote `price` when both are tracked */
   supplier_cost?: number | null;
   description?: string;
+  custom_category?: string | null;
+  custom_type?: string | null;
   supplier_types?: { name: string };
   supplier_categories?: { name: string };
 }
@@ -65,27 +68,24 @@ export default function SupplierDirectory() {
     }
   };
 
-  const supplierCategoryOptions = [
-    { value: "distributor", label: "Distributor", icon: Truck },
-    { value: "wholesaler", label: "Wholesaler", icon: Package },
-    { value: "food_wholesaler", label: "Food Wholesaler", icon: Package },
-    { value: "online", label: "Online Market", icon: ShoppingCart },
-    { value: "merchandizer", label: "Merchandizer", icon: Store },
-    { value: "other", label: "Other", icon: Building },
-  ];
+  const supplierCategoryOptions = SUPPLIER_BUSINESS_CATEGORIES.map((c) => ({
+    value: c.name,
+    label: c.name,
+    icon: c.icon,
+  }));
 
-  const uniqueCategories = [...new Set(suppliers.map(s => s.supplier_categories?.name).filter(Boolean))];
+  const effectiveCategoryName = (s: Supplier): string | null =>
+    s.custom_category?.trim() || s.supplier_categories?.name || null;
 
-  const normCat = (s: string) => s.toLowerCase().replace(/[\s_-]+/g, "");
-  const filteredSuppliers = suppliers.filter(supplier => {
-    const dbName = supplier.supplier_categories?.name;
+  const filteredSuppliers = suppliers.filter((supplier) => {
+    const dbName = effectiveCategoryName(supplier);
     const matchesCategory =
       selectedCategories.length === 0 ||
-      (dbName != null &&
-        selectedCategories.some((sel) => normCat(sel) === normCat(dbName)));
-    const matchesLocation = !locationFilter || 
-      [supplier.city, supplier.state, supplier.zip].some(field => 
-        field?.toLowerCase().includes(locationFilter.toLowerCase())
+      (dbName != null && selectedCategories.includes(dbName));
+    const matchesLocation =
+      !locationFilter ||
+      [supplier.city, supplier.state, supplier.zip].some((field) =>
+        field?.toLowerCase().includes(locationFilter.toLowerCase()),
       );
     return matchesCategory && matchesLocation;
   });
@@ -108,17 +108,7 @@ export default function SupplierDirectory() {
       <DirectoryPageHeader
         title="External Vendor Directory"
         subtitle="Filter by category, then browse vendor profiles"
-        action={
-          <AddDirectoryEntryDialog
-            title="Add External Vendor"
-            table="suppliers"
-            typeColumn="category_id"
-            customColumn="custom_category"
-            typeLabel="Category"
-            typeOptions={supplierCategories.map((c) => ({ id: c.id, name: c.name }))}
-            onCreated={fetchSuppliers}
-          />
-        }
+        action={<AddSupplierEntryDialog onCreated={fetchSuppliers} />}
       />
 
       <Card>
@@ -213,9 +203,10 @@ export default function SupplierDirectory() {
                       <div className="space-y-3">
                         <div className="space-y-1">
                           <h4 className="font-semibold text-sm">{supplier.business_name}</h4>
-                          {supplier.supplier_categories?.name && (
+                          {(supplier.custom_category || supplier.supplier_categories?.name) && (
                             <p className="text-sm text-primary font-medium">
-                              {supplier.supplier_categories.name}
+                              {supplier.custom_category || supplier.supplier_categories?.name}
+                              {supplier.custom_type ? ` · ${supplier.custom_type}` : ""}
                             </p>
                           )}
                           {supplier.description && (
