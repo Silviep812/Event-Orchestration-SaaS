@@ -91,6 +91,8 @@ export default function CreateEvent() {
   >([]);
   const [venueTypes, setVenueTypes] = useState<{ id: number; name: string }[]>([]);
   const [selectedVenueType, setSelectedVenueType] = useState<number | null>(null);
+  const [customSubTypeName, setCustomSubTypeName] = useState("");
+
   const selectedThemeId = watch("theme_id");
   const selectedEventType = watch("type");
   const selectedSubType = watch("subType");
@@ -769,8 +771,44 @@ export default function CreateEvent() {
         return;
       }
 
+      // Resolve manual entry: insert a new event_type under the selected category
+      let resolvedSubType = data.subType?.trim() || "";
+      if (resolvedSubType === "__other__") {
+        const customName = customSubTypeName.trim();
+        if (!customName) {
+          toast({
+            title: "Event type required",
+            description: "Enter your custom event type or pick one from the list.",
+            variant: "destructive",
+          });
+          setIsSubmitting(false);
+          return;
+        }
+        const parentCategoryId = parseInt(data.type?.trim() || "", 10);
+        const parentRow = subEventTypes[0];
+        const themeIdForInsert = parentRow?.theme_id ?? Number(data.theme_id);
+        const parentIdForInsert = Number.isFinite(parentCategoryId) && parentCategoryId > 0
+          ? parentCategoryId
+          : parentRow?.parent_id ?? null;
+        const { data: inserted, error: insertErr } = await supabase
+          .from("event_types")
+          .insert({ name: customName, parent_id: parentIdForInsert, theme_id: themeIdForInsert } as any)
+          .select("id")
+          .single();
+        if (insertErr || !inserted?.id) {
+          toast({
+            title: "Could not save custom type",
+            description: insertErr?.message || "Please try again.",
+            variant: "destructive",
+          });
+          setIsSubmitting(false);
+          return;
+        }
+        resolvedSubType = String(inserted.id);
+      }
+
       // Prepare event data for the new events table — subType (leaf) when set, else type
-      const typeStr = (data.subType?.trim() || data.type?.trim() || "").trim();
+      const typeStr = (resolvedSubType || data.type?.trim() || "").trim();
       const typeId = parseInt(typeStr, 10);
       if (!Number.isFinite(typeId) || typeId < 1) {
         toast({
@@ -781,6 +819,7 @@ export default function CreateEvent() {
         setIsSubmitting(false);
         return;
       }
+
       
       const entIds = selectedEntertainmentIds;
       const extSupplierIds = selectedExternalSupplierIds;
@@ -1242,14 +1281,20 @@ export default function CreateEvent() {
                   </div>
 
                   {subEventTypes.length > 0 && (
-                    <div>
+                    <div className="space-y-2">
                       <Label htmlFor="subType">Event Type *</Label>
                       <Controller
                         name="subType"
                         control={control}
                         rules={{ required: "Event type is required" }}
                         render={({ field }) => (
-                          <Select value={field.value} onValueChange={field.onChange}>
+                          <Select
+                            value={field.value}
+                            onValueChange={(val) => {
+                              field.onChange(val);
+                              if (val !== "__other__") setCustomSubTypeName("");
+                            }}
+                          >
                             <SelectTrigger>
                               <SelectValue placeholder="Select specific event type" />
                             </SelectTrigger>
@@ -1259,12 +1304,22 @@ export default function CreateEvent() {
                                   {type.name}
                                 </SelectItem>
                               ))}
+                              <SelectItem value="__other__">Other (specify)…</SelectItem>
                             </SelectContent>
                           </Select>
                         )}
                       />
+                      {selectedSubType === "__other__" && (
+                        <Input
+                          placeholder="Enter your event type"
+                          value={customSubTypeName}
+                          onChange={(e) => setCustomSubTypeName(e.target.value)}
+                          maxLength={100}
+                        />
+                      )}
                     </div>
                   )}
+
                 </>
               )}
 
