@@ -86,7 +86,7 @@ async function sendWithResend(
 
   for (const recipient of input.to) {
     const { data, error } = await resend.emails.send({
-      from: defaultFrom(),
+      from: input.from?.trim() || defaultFrom(),
       to: [recipient],
       subject: input.subject,
       html: input.html,
