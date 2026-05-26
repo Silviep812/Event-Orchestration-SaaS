@@ -68,27 +68,24 @@ export default function SupplierDirectory() {
     }
   };
 
-  const supplierCategoryOptions = [
-    { value: "distributor", label: "Distributor", icon: Truck },
-    { value: "wholesaler", label: "Wholesaler", icon: Package },
-    { value: "food_wholesaler", label: "Food Wholesaler", icon: Package },
-    { value: "online", label: "Online Market", icon: ShoppingCart },
-    { value: "merchandizer", label: "Merchandizer", icon: Store },
-    { value: "other", label: "Other", icon: Building },
-  ];
+  const supplierCategoryOptions = SUPPLIER_BUSINESS_CATEGORIES.map((c) => ({
+    value: c.name,
+    label: c.name,
+    icon: c.icon,
+  }));
 
-  const uniqueCategories = [...new Set(suppliers.map(s => s.supplier_categories?.name).filter(Boolean))];
+  const effectiveCategoryName = (s: Supplier): string | null =>
+    s.custom_category?.trim() || s.supplier_categories?.name || null;
 
-  const normCat = (s: string) => s.toLowerCase().replace(/[\s_-]+/g, "");
-  const filteredSuppliers = suppliers.filter(supplier => {
-    const dbName = supplier.supplier_categories?.name;
+  const filteredSuppliers = suppliers.filter((supplier) => {
+    const dbName = effectiveCategoryName(supplier);
     const matchesCategory =
       selectedCategories.length === 0 ||
-      (dbName != null &&
-        selectedCategories.some((sel) => normCat(sel) === normCat(dbName)));
-    const matchesLocation = !locationFilter || 
-      [supplier.city, supplier.state, supplier.zip].some(field => 
-        field?.toLowerCase().includes(locationFilter.toLowerCase())
+      (dbName != null && selectedCategories.includes(dbName));
+    const matchesLocation =
+      !locationFilter ||
+      [supplier.city, supplier.state, supplier.zip].some((field) =>
+        field?.toLowerCase().includes(locationFilter.toLowerCase()),
       );
     return matchesCategory && matchesLocation;
   });
