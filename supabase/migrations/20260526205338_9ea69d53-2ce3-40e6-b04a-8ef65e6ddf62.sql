@@ -1,0 +1,1 @@
+GRANT INSERT ON public.marketing_subscribers TO anon, authenticated; GRANT ALL ON public.marketing_subscribers TO service_role;
