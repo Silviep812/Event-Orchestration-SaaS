@@ -32,6 +32,7 @@ interface Supplier {
 
 export default function SupplierDirectory() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [supplierCategories, setSupplierCategories] = useState<{ id: number; name: string }[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [locationFilter, setLocationFilter] = useState("");
   const [loading, setLoading] = useState(true);
@@ -44,17 +45,18 @@ export default function SupplierDirectory() {
   const fetchSuppliers = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('suppliers')
-        .select(`
-          *,
-          supplier_categories(name)
-        `);
+      const [suppliersRes, categoriesRes] = await Promise.all([
+        supabase.from('suppliers').select(`*, supplier_categories(name)`),
+        supabase.from('supplier_categories').select('id, name'),
+      ]);
 
-      if (error) {
-        console.error('Error fetching external vendors:', error);
+      if (suppliersRes.error) {
+        console.error('Error fetching external vendors:', suppliersRes.error);
       } else {
-        setSuppliers(data || []);
+        setSuppliers(suppliersRes.data || []);
+      }
+      if (!categoriesRes.error && categoriesRes.data) {
+        setSupplierCategories(categoriesRes.data as { id: number; name: string }[]);
       }
     } catch (error) {
       console.error('Error:', error);
