@@ -6,8 +6,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Shield, Users, UserCheck, Crown, ClipboardList, Eye } from "lucide-react";
-import { PermissionLevel } from "@/lib/permissions";
+import { PermissionLevel, usePermissions } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
+import { InviteTesterDialog } from "@/components/InviteTesterDialog";
+
 
 interface UserRole {
   id: string;
@@ -58,6 +60,8 @@ export function RoleManager({
   const [dataTimestamp, setDataTimestamp] = useState(Date.now());
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { isAdmin } = usePermissions();
+
 
   const roles = [
     { value: 'manager', label: 'Manager', description: 'Full access to manage events, users, and system settings' },
@@ -389,10 +393,18 @@ export function RoleManager({
   return (
     <div className="space-y-6">
       {!suppressPrimaryHeading ? (
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
           <h2 className="text-2xl font-bold">Role Management</h2>
+          {isAdmin() && <InviteTesterDialog />}
         </div>
-      ) : null}
+      ) : (
+        isAdmin() && (
+          <div className="flex justify-end">
+            <InviteTesterDialog />
+          </div>
+        )
+      )}
+
 
       {/* Permission Level Legend */}
       <Card className="bg-muted/50">
