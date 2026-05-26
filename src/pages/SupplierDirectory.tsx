@@ -27,6 +27,8 @@ interface Supplier {
   /** PDF / schema: distinct from list or quote `price` when both are tracked */
   supplier_cost?: number | null;
   description?: string;
+  custom_category?: string | null;
+  custom_type?: string | null;
   supplier_types?: { name: string };
   supplier_categories?: { name: string };
 }
