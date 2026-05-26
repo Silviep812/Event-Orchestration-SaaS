@@ -105,6 +105,17 @@ const ServiceVendorDirectory = () => {
       <DirectoryPageHeader
         title="Service Vendor Directory"
         subtitle="Select vendor type, then profile (category and location filters)"
+        action={
+          <AddDirectoryEntryDialog
+            title="Add Service Vendor"
+            table="vendor"
+            typeColumn="vendor_sup_type_id"
+            customColumn="custom_type"
+            typeLabel="Vendor Type"
+            typeOptions={vendorTypes.map((t) => ({ id: t.id, name: t.name }))}
+            onCreated={fetchData}
+          />
+        }
       />
 
       <Card>
