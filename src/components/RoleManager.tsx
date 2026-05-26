@@ -60,6 +60,8 @@ export function RoleManager({
   const [dataTimestamp, setDataTimestamp] = useState(Date.now());
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { isAdmin } = usePermissions();
+
 
   const roles = [
     { value: 'manager', label: 'Manager', description: 'Full access to manage events, users, and system settings' },
