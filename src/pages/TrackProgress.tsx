@@ -11,6 +11,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useEventFilter } from "@/hooks/useEventFilter";
+import { computeEventLifecycle } from "@/lib/eventStatus";
+import { format } from "date-fns";
+import { Label } from "@/components/ui/label";
 import { plannerToolsCopy } from "@/lib/nudges";
 import { 
   TrendingUp, 
