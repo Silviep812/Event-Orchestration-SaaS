@@ -144,6 +144,17 @@ const VendorServiceDirectory = () => {
       <DirectoryPageHeader
         title="Vendor Service Rental/Buy Directory"
         subtitle="Select rental/service type, then vendor profile"
+        action={
+          <AddDirectoryEntryDialog
+            title="Add Vendor (Rental / Buy)"
+            table="vendor"
+            typeColumn="vendor_sup_type_id"
+            customColumn="custom_type"
+            typeLabel="Service / Rental Type"
+            typeOptions={serviceTypes.map((t) => ({ id: t.id, name: t.name }))}
+            onCreated={fetchData}
+          />
+        }
       />
 
       <Card>
