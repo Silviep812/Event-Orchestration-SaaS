@@ -203,9 +203,10 @@ export default function SupplierDirectory() {
                       <div className="space-y-3">
                         <div className="space-y-1">
                           <h4 className="font-semibold text-sm">{supplier.business_name}</h4>
-                          {supplier.supplier_categories?.name && (
+                          {(supplier.custom_category || supplier.supplier_categories?.name) && (
                             <p className="text-sm text-primary font-medium">
-                              {supplier.supplier_categories.name}
+                              {supplier.custom_category || supplier.supplier_categories?.name}
+                              {supplier.custom_type ? ` · ${supplier.custom_type}` : ""}
                             </p>
                           )}
                           {supplier.description && (
