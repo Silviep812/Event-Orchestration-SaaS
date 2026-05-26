@@ -1080,9 +1080,31 @@ export function TaskManager({
         }
       });
       setValidationErrors(errors);
+      const firstMsg = validationResult.error.issues[0]?.message ?? "Please complete the required fields.";
       toast({
-        title: "Validation Error",
-        description: "Please fix the errors in the form before submitting.",
+        title: "Cannot save task",
+        description: firstMsg,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!hasAtLeastOneCategory(newTask.taskCategory)) {
+      toast({
+        title: "Cannot save task",
+        description: "Please select a task category.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (
+      iepCreateOptions.length > 0 &&
+      !iepCreateOptions.every((label) => iepPrerequisitesConfirmed[label])
+    ) {
+      toast({
+        title: "Cannot save task",
+        description: "Please confirm all prerequisites before saving.",
         variant: "destructive",
       });
       return;
@@ -1098,6 +1120,7 @@ export function TaskManager({
       setIsCreatingTask(false);
     }
   };
+
 
   const executeCreateTask = async (overrideDueDate?: string, options?: { skipDependencyDialog?: boolean }) => {
     try {
