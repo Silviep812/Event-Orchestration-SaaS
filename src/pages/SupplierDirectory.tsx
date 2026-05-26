@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Package, Truck, ShoppingCart, Store, Building, MapPin, Mail } from "lucide-react";
 import { DirectoryPageHeader } from "@/components/resource-directory/DirectoryPageHeader";
+import { AddDirectoryEntryDialog } from "@/components/resource-directory/AddDirectoryEntryDialog";
 import { formatDirectoryPrice } from "@/lib/formatDirectoryPrice";
 import { DirectoryProfileLink } from "@/components/resource-directory/DirectoryProfileLink";
 import { directoryProfileElementId } from "@/lib/directoryProfileLinks";
@@ -31,6 +32,7 @@ interface Supplier {
 
 export default function SupplierDirectory() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [supplierCategories, setSupplierCategories] = useState<{ id: number; name: string }[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [locationFilter, setLocationFilter] = useState("");
   const [loading, setLoading] = useState(true);
@@ -43,17 +45,18 @@ export default function SupplierDirectory() {
   const fetchSuppliers = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('suppliers')
-        .select(`
-          *,
-          supplier_categories(name)
-        `);
+      const [suppliersRes, categoriesRes] = await Promise.all([
+        supabase.from('suppliers').select(`*, supplier_categories(name)`),
+        supabase.from('supplier_categories').select('id, name'),
+      ]);
 
-      if (error) {
-        console.error('Error fetching external vendors:', error);
+      if (suppliersRes.error) {
+        console.error('Error fetching external vendors:', suppliersRes.error);
       } else {
-        setSuppliers(data || []);
+        setSuppliers(suppliersRes.data || []);
+      }
+      if (!categoriesRes.error && categoriesRes.data) {
+        setSupplierCategories(categoriesRes.data as { id: number; name: string }[]);
       }
     } catch (error) {
       console.error('Error:', error);
@@ -105,6 +108,17 @@ export default function SupplierDirectory() {
       <DirectoryPageHeader
         title="External Vendor Directory"
         subtitle="Filter by category, then browse vendor profiles"
+        action={
+          <AddDirectoryEntryDialog
+            title="Add External Vendor"
+            table="suppliers"
+            typeColumn="category_id"
+            customColumn="custom_category"
+            typeLabel="Category"
+            typeOptions={supplierCategories.map((c) => ({ id: c.id, name: c.name }))}
+            onCreated={fetchSuppliers}
+          />
+        }
       />
 
       <Card>

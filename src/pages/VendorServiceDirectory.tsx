@@ -2,11 +2,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useEffect, useState, useMemo } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Truck, Camera, Lightbulb, Music, Gamepad2, Flower, Home, Table, Mail } from "lucide-react";
 import { DirectoryPageHeader } from "@/components/resource-directory/DirectoryPageHeader";
+import { AddDirectoryEntryDialog } from "@/components/resource-directory/AddDirectoryEntryDialog";
 import { useToast } from "@/hooks/use-toast";
 import { commentsPlannerCopy } from "@/lib/nudges";
 import { formatDirectoryPrice } from "@/lib/formatDirectoryPrice";
@@ -44,38 +45,38 @@ const VendorServiceDirectory = () => {
     };
   }, [rentalIdParam]);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
 
-        const { data: typesData, error: typesError } = await supabase
-          .from('vendor_supplier_types')
-          .select('*');
-        if (typesError) console.error('vendor_supplier_types:', typesError);
-        setServiceTypes(typesData || []);
+      const { data: typesData, error: typesError } = await supabase
+        .from('vendor_supplier_types')
+        .select('*');
+      if (typesError) console.error('vendor_supplier_types:', typesError);
+      setServiceTypes(typesData || []);
 
-        const { data: profilesData, error: profilesError } = await supabase
-          .from('vendor')
-          .select(`
-            *,
-            vendor_supplier_types ( id, name )
-          `);
-        if (profilesError) {
-          console.error('vendor:', profilesError);
-          toast({ title: "Vendor profiles", description: commentsPlannerCopy.toastGeneric, variant: "destructive" });
-        }
-        setServiceProfiles(profilesData || []);
-      } catch (err: any) {
-        console.error('Error fetching vendor service data:', err);
-        toast({ title: "Error", description: "Failed to load vendor service directory.", variant: "destructive" });
-      } finally {
-        setLoading(false);
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('vendor')
+        .select(`
+          *,
+          vendor_supplier_types ( id, name )
+        `);
+      if (profilesError) {
+        console.error('vendor:', profilesError);
+        toast({ title: "Vendor profiles", description: commentsPlannerCopy.toastGeneric, variant: "destructive" });
       }
-    };
+      setServiceProfiles(profilesData || []);
+    } catch (err: any) {
+      console.error('Error fetching vendor service data:', err);
+      toast({ title: "Error", description: "Failed to load vendor service directory.", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  }, [toast]);
 
+  useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   /** When `vendor_supplier_types` has no rows, derive labels from the join on each profile (or numeric fallback). */
   const displayServiceTypes = useMemo(() => {
@@ -143,6 +144,17 @@ const VendorServiceDirectory = () => {
       <DirectoryPageHeader
         title="Vendor Service Rental/Buy Directory"
         subtitle="Select rental/service type, then vendor profile"
+        action={
+          <AddDirectoryEntryDialog
+            title="Add Vendor (Rental / Buy)"
+            table="vendor"
+            typeColumn="vendor_sup_type_id"
+            customColumn="custom_type"
+            typeLabel="Service / Rental Type"
+            typeOptions={serviceTypes.map((t) => ({ id: t.id, name: t.name }))}
+            onCreated={fetchData}
+          />
+        }
       />
 
       <Card>

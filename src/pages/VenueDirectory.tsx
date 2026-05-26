@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { formatDirectoryPrice } from "@/lib/formatDirectoryPrice";
 import { DirectoryProfileLink } from "@/components/resource-directory/DirectoryProfileLink";
+import { AddDirectoryEntryDialog } from "@/components/resource-directory/AddDirectoryEntryDialog";
 import { directoryProfileElementId } from "@/lib/directoryProfileLinks";
 import { useDirectoryProfileHighlight } from "@/hooks/useDirectoryProfileHighlight";
 
@@ -140,15 +141,28 @@ const VenueDirectory = () => {
             Browse and manage event venues
           </p>
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          className="w-fit shrink-0"
-          onClick={() => navigate("/dashboard")}
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Dashboard
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <AddDirectoryEntryDialog
+            title="Add Venue"
+            table="venues"
+            typeColumn="venue_type_id"
+            customColumn="custom_type"
+            typeLabel="Venue Type"
+            showCapacity
+            setUserId
+            typeOptions={venueTypes.map((t) => ({ id: t.id, name: t.name }))}
+            onCreated={fetchData}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            className="w-fit shrink-0"
+            onClick={() => navigate("/dashboard")}
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Dashboard
+          </Button>
+        </div>
       </div>
 
       <Card>

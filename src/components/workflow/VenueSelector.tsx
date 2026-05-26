@@ -66,7 +66,8 @@ export const VenueSelector = ({ onSelectVenue, selectedVenue }: VenueSelectorPro
     state: '',
     zip: '',
     capacity: '',
-    venue_type_id: ''
+    venue_type_id: '',
+    custom_type: ''
   });
   const { toast } = useToast();
   const { user } = useAuth();
@@ -407,9 +408,18 @@ export const VenueSelector = ({ onSelectVenue, selectedVenue }: VenueSelectorPro
                 <Input type="number" value={newVenue.capacity} onChange={e => setNewVenue({ ...newVenue, capacity: e.target.value })} />
               </div>
             </div>
-            <div>
+            <div className="space-y-2">
               <Label>Venue Type</Label>
-              <Select value={newVenue.venue_type_id} onValueChange={value => setNewVenue({ ...newVenue, venue_type_id: value })}>
+              <Select
+                value={newVenue.venue_type_id || undefined}
+                onValueChange={value =>
+                  setNewVenue({
+                    ...newVenue,
+                    venue_type_id: value,
+                    custom_type: value === '__other__' ? newVenue.custom_type : '',
+                  })
+                }
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
@@ -417,18 +427,33 @@ export const VenueSelector = ({ onSelectVenue, selectedVenue }: VenueSelectorPro
                   {venueTypes.map(type => (
                     <SelectItem key={type.id} value={type.id.toString()}>{type.name}</SelectItem>
                   ))}
+                  <SelectItem value="__other__">Other…</SelectItem>
                 </SelectContent>
               </Select>
+              {newVenue.venue_type_id === '__other__' ? (
+                <Input
+                  autoFocus
+                  placeholder="Enter custom venue type"
+                  maxLength={100}
+                  value={newVenue.custom_type}
+                  onChange={e => setNewVenue({ ...newVenue, custom_type: e.target.value })}
+                />
+              ) : null}
             </div>
             <Button className="w-full" onClick={async () => {
               // Get the current user
               const { data: { user } } = await supabase.auth.getUser();
-              
+
               if (!user) {
                 toast({ title: 'Error', description: 'You must be logged in to add a venue', variant: 'destructive' });
                 return;
               }
-              
+
+              if (newVenue.venue_type_id === '__other__' && !newVenue.custom_type.trim()) {
+                toast({ title: 'Custom type required', description: 'Please enter a custom venue type.', variant: 'destructive' });
+                return;
+              }
+
               // Prepare venue data, only include numeric fields if valid
               const venueData: any = {
                 business_name: newVenue.business_name,
@@ -443,7 +468,10 @@ export const VenueSelector = ({ onSelectVenue, selectedVenue }: VenueSelectorPro
               if (newVenue.capacity && !isNaN(Number(newVenue.capacity))) {
                 venueData.capacity = Number(newVenue.capacity);
               }
-              if (newVenue.venue_type_id && !isNaN(Number(newVenue.venue_type_id))) {
+              if (newVenue.venue_type_id === '__other__') {
+                venueData.venue_type_id = null;
+                venueData.custom_type = newVenue.custom_type.trim();
+              } else if (newVenue.venue_type_id && !isNaN(Number(newVenue.venue_type_id))) {
                 venueData.venue_type_id = Number(newVenue.venue_type_id);
               }
               // Save to DB
@@ -453,7 +481,7 @@ export const VenueSelector = ({ onSelectVenue, selectedVenue }: VenueSelectorPro
               } else {
                 setVenues(prev => [...prev, data]);
                 setIsAddVenueDialogOpen(false);
-                setNewVenue({ business_name: '', contact_name: '', email: '', phone_number: '', city: '', state: '', zip: '', capacity: '', venue_type_id: '' });
+                setNewVenue({ business_name: '', contact_name: '', email: '', phone_number: '', city: '', state: '', zip: '', capacity: '', venue_type_id: '', custom_type: '' });
                 toast({ title: 'Venue Added', description: 'Your venue has been added.' });
               }
             }}>
