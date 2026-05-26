@@ -91,6 +91,8 @@ export default function CreateEvent() {
   >([]);
   const [venueTypes, setVenueTypes] = useState<{ id: number; name: string }[]>([]);
   const [selectedVenueType, setSelectedVenueType] = useState<number | null>(null);
+  const [customSubTypeName, setCustomSubTypeName] = useState("");
+
   const selectedThemeId = watch("theme_id");
   const selectedEventType = watch("type");
   const selectedSubType = watch("subType");
