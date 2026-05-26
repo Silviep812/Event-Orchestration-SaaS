@@ -114,7 +114,7 @@ const menuGroups = [
       },
       {
         title: "Change Request",
-        url: "/dashboard/project-management?tab=collaborator",
+        url: "/dashboard/project-management?tab=change-request",
         icon: FileText,
         color: "text-green-600",
         hoverColor: "hover:bg-green-50",
