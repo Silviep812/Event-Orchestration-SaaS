@@ -19,10 +19,12 @@ export type SendEmailInput = {
   subject: string;
   html: string;
   template: string;
+  from?: string;
   userId?: string | null;
   eventId?: string | null;
   metadata?: Record<string, unknown>;
 };
+
 
 const defaultFrom = () =>
   (Deno.env.get("EMAIL_FROM")?.trim() || undefined) ??
@@ -84,7 +86,7 @@ async function sendWithResend(
 
   for (const recipient of input.to) {
     const { data, error } = await resend.emails.send({
-      from: defaultFrom(),
+      from: input.from?.trim() || defaultFrom(),
       to: [recipient],
       subject: input.subject,
       html: input.html,
