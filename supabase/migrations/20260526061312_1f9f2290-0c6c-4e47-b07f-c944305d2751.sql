@@ -1,0 +1,1 @@
+DELETE FROM public.event_types WHERE parent_id = 9 AND id BETWEEN 407 AND 423;
