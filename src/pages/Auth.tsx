@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { getAuthErrorDescription } from '@/lib/authErrors';
-import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Check, X } from 'lucide-react';
 import { MarketingTopBar } from '@/components/MarketingTopBar';
 import { supabase } from '@/integrations/supabase/client';
 import { getPostSignInNavigationPath } from '@/lib/profileOnboardingGate';
@@ -333,10 +333,46 @@ export default function Auth() {
                         )}
                       </Button>
                     </div>
+                    {(() => {
+                      const reqs = [
+                        { label: "At least 8 characters", ok: password.length >= 8 },
+                        { label: "One uppercase letter", ok: /[A-Z]/.test(password) },
+                        { label: "One number", ok: /\d/.test(password) },
+                        { label: "One special character", ok: /[^A-Za-z0-9]/.test(password) },
+                      ];
+                      return (
+                        <ul className="mt-2 space-y-1 text-xs" aria-live="polite">
+                          {reqs.map((r) => (
+                            <li
+                              key={r.label}
+                              className={`flex items-center gap-2 ${r.ok ? "text-green-600" : "text-muted-foreground"}`}
+                            >
+                              {r.ok ? (
+                                <Check className="h-3.5 w-3.5" />
+                              ) : (
+                                <X className="h-3.5 w-3.5" />
+                              )}
+                              <span>{r.label}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      );
+                    })()}
                   </div>
-                  <Button type="submit" className="w-full" disabled={loading}>
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={
+                      loading ||
+                      password.length < 8 ||
+                      !/[A-Z]/.test(password) ||
+                      !/\d/.test(password) ||
+                      !/[^A-Za-z0-9]/.test(password)
+                    }
+                  >
                     {loading ? "Creating account..." : "Create Account"}
                   </Button>
+
                 </form>
               </TabsContent>
               
