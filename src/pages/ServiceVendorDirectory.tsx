@@ -23,35 +23,35 @@ const ServiceVendorDirectory = () => {
   const { toast } = useToast();
   const { highlightClass } = useDirectoryProfileHighlight(loading);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
 
-        const { data: typesData, error: typesError } = await supabase
-          .from('vendor_supplier_types')
-          .select('*');
-        if (typesError) console.error('vendor_supplier_types:', typesError);
-        setVendorTypes(typesData || []);
+      const { data: typesData, error: typesError } = await supabase
+        .from('vendor_supplier_types')
+        .select('*');
+      if (typesError) console.error('vendor_supplier_types:', typesError);
+      setVendorTypes(typesData || []);
 
-        const { data: profilesData, error: profilesError } = await supabase
-          .from('vendor')
-          .select('*, vendor_supplier_types(*)');
-        if (profilesError) {
-          console.error('vendor:', profilesError);
-          toast({ title: "Service vendor profiles", description: commentsPlannerCopy.toastGeneric, variant: "destructive" });
-        }
-        setVendorProfiles(profilesData || []);
-      } catch (err: any) {
-        console.error('Error fetching service vendor data:', err);
-        toast({ title: "Error", description: "Failed to load service vendor directory.", variant: "destructive" });
-      } finally {
-        setLoading(false);
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('vendor')
+        .select('*, vendor_supplier_types(*)');
+      if (profilesError) {
+        console.error('vendor:', profilesError);
+        toast({ title: "Service vendor profiles", description: commentsPlannerCopy.toastGeneric, variant: "destructive" });
       }
-    };
+      setVendorProfiles(profilesData || []);
+    } catch (err: any) {
+      console.error('Error fetching service vendor data:', err);
+      toast({ title: "Error", description: "Failed to load service vendor directory.", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  }, [toast]);
 
+  useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   // Filter profiles based on selected vendor types and location
   const filteredProfiles = vendorProfiles.filter(profile => {
