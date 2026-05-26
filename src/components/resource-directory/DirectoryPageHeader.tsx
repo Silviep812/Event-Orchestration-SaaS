@@ -1,14 +1,17 @@
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import type { ReactNode } from "react";
 
 /** Consistent header for resource sidebar directories (Deliverable 1 pattern). */
 export function DirectoryPageHeader({
   title,
   subtitle,
+  action,
 }: {
   title: string;
   subtitle?: string;
+  action?: ReactNode;
 }) {
   const navigate = useNavigate();
   return (
@@ -27,6 +30,7 @@ export function DirectoryPageHeader({
         <h1 className="text-3xl font-bold tracking-tight">{title}</h1>
         {subtitle ? <p className="text-muted-foreground mt-1">{subtitle}</p> : null}
       </div>
+      {action ? <div className="shrink-0">{action}</div> : null}
     </div>
   );
 }
