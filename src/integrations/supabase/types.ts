@@ -3895,6 +3895,7 @@ export type Database = {
           contact_name: string | null
           created_at: string
           custom_category: string | null
+          custom_type: string | null
           description: string | null
           email: string | null
           id: string
@@ -3919,6 +3920,7 @@ export type Database = {
           contact_name?: string | null
           created_at?: string
           custom_category?: string | null
+          custom_type?: string | null
           description?: string | null
           email?: string | null
           id?: string
@@ -3943,6 +3945,7 @@ export type Database = {
           contact_name?: string | null
           created_at?: string
           custom_category?: string | null
+          custom_type?: string | null
           description?: string | null
           email?: string | null
           id?: string
