@@ -370,7 +370,50 @@ export default function TrackProgress() {
         </div>
       </div>
 
-      {/* Overview Stats */}
+      {/* Event selector */}
+      <Card>
+        <CardContent className="p-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <Label htmlFor="track-event" className="text-sm font-medium whitespace-nowrap">
+              Track event:
+            </Label>
+            <Select
+              value={selectValue}
+              onValueChange={(v) => setSelectedEventFilter(v)}
+              disabled={eventsLoading || activeEvents.length === 0}
+            >
+              <SelectTrigger id="track-event" className="w-full sm:w-80">
+                <SelectValue
+                  placeholder={
+                    eventsLoading
+                      ? "Loading events…"
+                      : activeEvents.length === 0
+                        ? "No active events"
+                        : "Select an active event"
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {activeEvents.map((event) => (
+                  <SelectItem key={event.id} value={event.id}>
+                    {event.title}
+                    {event.start_date && ` (${format(new Date(event.start_date), "MMM d, yyyy")})`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {!eventsLoading && activeEvents.length === 0 && (
+            <p className="text-sm text-muted-foreground">
+              No active events to track. Create or activate an event to see progress metrics.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {!eventsLoading && activeEvents.length === 0 ? null : (
+        <>
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
