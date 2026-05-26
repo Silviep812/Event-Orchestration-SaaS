@@ -393,10 +393,18 @@ export function RoleManager({
   return (
     <div className="space-y-6">
       {!suppressPrimaryHeading ? (
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
           <h2 className="text-2xl font-bold">Role Management</h2>
+          {isAdmin() && <InviteTesterDialog />}
         </div>
-      ) : null}
+      ) : (
+        isAdmin() && (
+          <div className="flex justify-end">
+            <InviteTesterDialog />
+          </div>
+        )
+      )}
+
 
       {/* Permission Level Legend */}
       <Card className="bg-muted/50">
