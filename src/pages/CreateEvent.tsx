@@ -771,8 +771,44 @@ export default function CreateEvent() {
         return;
       }
 
+      // Resolve manual entry: insert a new event_type under the selected category
+      let resolvedSubType = data.subType?.trim() || "";
+      if (resolvedSubType === "__other__") {
+        const customName = customSubTypeName.trim();
+        if (!customName) {
+          toast({
+            title: "Event type required",
+            description: "Enter your custom event type or pick one from the list.",
+            variant: "destructive",
+          });
+          setIsSubmitting(false);
+          return;
+        }
+        const parentCategoryId = parseInt(data.type?.trim() || "", 10);
+        const parentRow = subEventTypes[0];
+        const themeIdForInsert = parentRow?.theme_id ?? Number(data.theme_id);
+        const parentIdForInsert = Number.isFinite(parentCategoryId) && parentCategoryId > 0
+          ? parentCategoryId
+          : parentRow?.parent_id ?? null;
+        const { data: inserted, error: insertErr } = await supabase
+          .from("event_types")
+          .insert({ name: customName, parent_id: parentIdForInsert, theme_id: themeIdForInsert } as any)
+          .select("id")
+          .single();
+        if (insertErr || !inserted?.id) {
+          toast({
+            title: "Could not save custom type",
+            description: insertErr?.message || "Please try again.",
+            variant: "destructive",
+          });
+          setIsSubmitting(false);
+          return;
+        }
+        resolvedSubType = String(inserted.id);
+      }
+
       // Prepare event data for the new events table — subType (leaf) when set, else type
-      const typeStr = (data.subType?.trim() || data.type?.trim() || "").trim();
+      const typeStr = (resolvedSubType || data.type?.trim() || "").trim();
       const typeId = parseInt(typeStr, 10);
       if (!Number.isFinite(typeId) || typeId < 1) {
         toast({
@@ -783,6 +819,7 @@ export default function CreateEvent() {
         setIsSubmitting(false);
         return;
       }
+
       
       const entIds = selectedEntertainmentIds;
       const extSupplierIds = selectedExternalSupplierIds;
