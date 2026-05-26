@@ -274,6 +274,20 @@ const TransportationDirectory = () => {
       <DirectoryPageHeader
         title="Transportation Directory"
         subtitle="Filter by type and location, then open profile details"
+        action={
+          <AddDirectoryEntryDialog
+            title="Add Transportation"
+            table="transportations"
+            typeColumn="transp_type_id"
+            customColumn="custom_type"
+            typeLabel="Transportation Type"
+            showCapacity
+            typeOptions={transportationTypes
+              .filter((t) => typeof t.id === "number")
+              .map((t) => ({ id: t.id, name: t.name }))}
+            onCreated={() => setRefreshKey((k) => k + 1)}
+          />
+        }
       />
 
       {setupError && (
