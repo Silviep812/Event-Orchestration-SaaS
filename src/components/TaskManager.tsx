@@ -2276,7 +2276,7 @@ export function TaskManager({
                 type="button"
                 onClick={() => createTask()}
                 className="flex-1"
-                disabled={!isCreateTaskFormValid || isCreatingTask}
+                disabled={isCreatingTask}
               >
                 {isCreatingTask ? "Saving…" : "Save task assignment"}
               </Button>
@@ -2285,10 +2285,11 @@ export function TaskManager({
                 variant="secondary"
                 onClick={() => createTask({ skipDependencyDialog: true })}
                 className="flex-1"
-                disabled={!isCreateTaskFormValid || isCreatingTask}
+                disabled={isCreatingTask}
               >
                 {isCreatingTask ? "Saving…" : "Save and Exit"}
               </Button>
+
             </div>
           </DialogContent>
         </Dialog>
