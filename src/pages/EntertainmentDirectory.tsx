@@ -29,35 +29,35 @@ function EntertainmentDirectory() {
   const { toast } = useToast();
   const { highlightClass } = useDirectoryProfileHighlight(loading);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
 
-        const { data: typesData, error: typesError } = await supabase
-          .from('entertainment_types')
-          .select('*');
-        if (typesError) console.error('entertainment_types:', typesError);
-        setEntertainmentTypes(typesData || []);
+      const { data: typesData, error: typesError } = await supabase
+        .from('entertainment_types')
+        .select('*');
+      if (typesError) console.error('entertainment_types:', typesError);
+      setEntertainmentTypes(typesData || []);
 
-        const { data: profilesData, error: profilesError } = await supabase
-          .from('entertainments')
-          .select('*, entertainment_types(*)');
-        if (profilesError) {
-          console.error('entertainments:', profilesError);
-          toast({ title: "Entertainment profiles", description: commentsPlannerCopy.toastGeneric, variant: "destructive" });
-        }
-        setEntertainmentProfiles(profilesData || []);
-      } catch (err: any) {
-        console.error('Error fetching entertainment data:', err);
-        toast({ title: "Error", description: "Failed to load entertainment directory.", variant: "destructive" });
-      } finally {
-        setLoading(false);
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('entertainments')
+        .select('*, entertainment_types(*)');
+      if (profilesError) {
+        console.error('entertainments:', profilesError);
+        toast({ title: "Entertainment profiles", description: commentsPlannerCopy.toastGeneric, variant: "destructive" });
       }
-    };
-
-    fetchData();
+      setEntertainmentProfiles(profilesData || []);
+    } catch (err: any) {
+      console.error('Error fetching entertainment data:', err);
+      toast({ title: "Error", description: "Failed to load entertainment directory.", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
   }, [toast]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   // Filter profiles based on selected entertainment types and location
   const filteredProfiles = entertainmentProfiles.filter(profile => {
