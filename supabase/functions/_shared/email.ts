@@ -19,10 +19,12 @@ export type SendEmailInput = {
   subject: string;
   html: string;
   template: string;
+  from?: string;
   userId?: string | null;
   eventId?: string | null;
   metadata?: Record<string, unknown>;
 };
+
 
 const defaultFrom = () =>
   (Deno.env.get("EMAIL_FROM")?.trim() || undefined) ??
