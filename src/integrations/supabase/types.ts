@@ -44,30 +44,21 @@ export type Database = {
       Authorization: {
         Row: {
           created_at: string
-          pass_word: string | null
-          reset_pw: string | null
           sign_in: string
           sign_out: string | null
           userid: string | null
-          userid_password: string | null
         }
         Insert: {
           created_at?: string
-          pass_word?: string | null
-          reset_pw?: string | null
           sign_in: string
           sign_out?: string | null
           userid?: string | null
-          userid_password?: string | null
         }
         Update: {
           created_at?: string
-          pass_word?: string | null
-          reset_pw?: string | null
           sign_in?: string
           sign_out?: string | null
           userid?: string | null
-          userid_password?: string | null
         }
         Relationships: []
       }
