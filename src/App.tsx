@@ -40,6 +40,7 @@ const MarketingCampaign = lazy(() => import("./pages/MarketingCampaign"));
 const MarketingCreatives = lazy(() => import("./pages/MarketingCreatives"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const PreviewEventPlan = lazy(() => import("./pages/PreviewEventPlan"));
+const Invoices = lazy(() => import("./pages/Invoices"));
 
 function RouteFallback() {
   return (
@@ -104,6 +105,7 @@ const App = () => (
               <Route path="entertainment" element={<EntertainmentDirectory />} />
               <Route path="supplier" element={<SupplierDirectory />} />
               <Route path="profile" element={<Profile />} />
+              <Route path="invoices" element={<Invoices />} />
             </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

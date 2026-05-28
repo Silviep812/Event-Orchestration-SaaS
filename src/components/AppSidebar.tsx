@@ -22,6 +22,7 @@ import {
   MapPin,
   Megaphone,
   MessageSquare,
+  Receipt,
 } from "lucide-react";
 
 import { useAuth } from "@/hooks/useAuth";
@@ -286,6 +287,13 @@ const menuGroups = [
         title: "Notification",
         url: "/dashboard/notification",
         icon: Bell,
+        color: "text-pink-600",
+        hoverColor: "hover:bg-pink-50"
+      },
+      {
+        title: "Billing & Invoices",
+        url: "/dashboard/invoices",
+        icon: Receipt,
         color: "text-pink-600",
         hoverColor: "hover:bg-pink-50"
       }

@@ -42,6 +42,7 @@ import {
 import Analytics from "@/components/Analytics";
 import { TaskManager } from "@/components/TaskManager";
 import { EventChangeRequestsList } from "@/components/change-management/EventChangeRequestsList";
+import { EventLocationManager } from "@/components/change-management/EventLocationManager";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   dedupeSportThemesForPicker,
@@ -2286,6 +2287,8 @@ const ManageEvent = () => {
                     </div>
                   </CardContent>
                 </Card>
+
+                <EventLocationManager eventId={selectedEvent.id} />
 
                 <Card className="shadow-elegant border-0 bg-gradient-subtle">
                   <CardHeader className="border-b border-border/50">

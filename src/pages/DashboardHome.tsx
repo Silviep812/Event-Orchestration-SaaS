@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Users, BarChart3, Plus, Settings, Palette, CheckSquare, Activity, Eye } from "lucide-react";
+import { Calendar, Users, BarChart3, Plus, Settings, Palette, CheckSquare, Activity, Eye, LayoutDashboard, ClipboardList } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -303,7 +303,27 @@ const DashboardHome = () => {
           </p>
         </div>
       </div>
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-card p-1">
+          <Button
+            variant="default"
+            size="sm"
+            className="flex items-center gap-2"
+            onClick={() => navigate("/dashboard")}
+          >
+            <LayoutDashboard className="h-4 w-4" />
+            All Events (Portfolio)
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-2"
+            onClick={() => navigate("/dashboard/manage-event")}
+          >
+            <ClipboardList className="h-4 w-4" />
+            My Event (Workspace)
+          </Button>
+        </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => window.location.href = '/dashboard/workflow-dashboard'}>
             <Settings className="h-4 w-4 mr-2" />

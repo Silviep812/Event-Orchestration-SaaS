@@ -84,11 +84,25 @@ export function CollaboratorPanel({
     description: "",
     rolloutTiming: "optional" as RolloutTiming,
     type: "change_request" as RequestType,
+    locationId: "" as string,
   });
   const [assignedTasks, setAssignedTasks] = useState<AssignedTaskRow[]>([]);
   const [assignedLoading, setAssignedLoading] = useState(false);
+  const [eventLocations, setEventLocations] = useState<{ id: string; name: string | null; address: string | null }[]>([]);
 
   const eventId = selectedEventFilter !== "all" ? selectedEventFilter : null;
+
+  useEffect(() => {
+    if (!eventId) { setEventLocations([]); return; }
+    (async () => {
+      const { data } = await supabase
+        .from("cm_locations")
+        .select("id, name, address")
+        .eq("event_id", eventId)
+        .order("name");
+      setEventLocations((data as typeof eventLocations) || []);
+    })();
+  }, [eventId]);
 
   const loadFromStorage = useCallback(() => {
     if (!eventId) {
@@ -321,6 +335,11 @@ export function CollaboratorPanel({
         throw new Error("Task was not created; cannot attach a change request.");
       }
 
+      const deviceInfo = {
+        platform: /Mobi|Android/i.test(navigator.userAgent) ? "mobile" : "desktop",
+        ua: navigator.userAgent,
+      };
+
       const { error: crErr } = await supabase.from("cm_change_requests").insert({
         event_id: eventId,
         description: form.description.trim(),
@@ -330,7 +349,9 @@ export function CollaboratorPanel({
         requested_by: user.id,
         status: "pending",
         task_id: taskId,
-      });
+        ...(form.locationId ? { location_id: form.locationId } : {}),
+        device_info: deviceInfo,
+      } as any);
       if (crErr) {
         await supabase.from("tasks").delete().eq("id", taskId);
         throw crErr;
@@ -370,6 +391,7 @@ export function CollaboratorPanel({
         description: "",
         rolloutTiming: "optional",
         type: "change_request",
+        locationId: "",
       });
       onChangeRequestPosted?.();
     } catch (e) {
@@ -714,6 +736,27 @@ export function CollaboratorPanel({
                 Urgent timing also sends in-app alerts to people following this event.
               </p>
             </div>
+            {eventLocations.length > 0 && (
+              <div>
+                <Label>Location</Label>
+                <Select
+                  value={form.locationId || "__none__"}
+                  onValueChange={(v) => setForm((f) => ({ ...f, locationId: v === "__none__" ? "" : v }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="All locations" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">All locations</SelectItem>
+                    {eventLocations.map((loc) => (
+                      <SelectItem key={loc.id} value={loc.id}>
+                        {loc.name || loc.address || loc.id}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div>
               <Label htmlFor="cr-desc">Description</Label>
               <Textarea

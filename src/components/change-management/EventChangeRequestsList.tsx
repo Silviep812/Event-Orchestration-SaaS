@@ -34,6 +34,8 @@ type ChangeRequestRow = {
   requested_by: string | null;
   resolved_by: string | null;
   resolved_at: string | null;
+  location_id: string | null;
+  device_info: { platform?: string } | null;
 };
 
 function rolloutTimingVariant(
@@ -109,6 +111,7 @@ export function EventChangeRequestsList({ eventId, refreshToken = 0, compact }: 
   const [actingId, setActingId] = useState<string | null>(null);
   const [taskTitles, setTaskTitles] = useState<Record<string, string>>({});
   const [userDisplayNames, setUserDisplayNames] = useState<Record<string, string>>({});
+  const [locationNames, setLocationNames] = useState<Record<string, string>>({});
   const [interpretCtx, setInterpretCtx] = useState<EventContextForInterpretation>({
     eventTitle: null,
     eventDate: null,
@@ -152,7 +155,7 @@ export function EventChangeRequestsList({ eventId, refreshToken = 0, compact }: 
       const { data, error } = await supabase
         .from("cm_change_requests")
         .select(
-          "id, created_at, description, field_changed, status, priority_tag, rollout_timing, task_id, event_id, new_value, old_value, requested_by, resolved_by, resolved_at",
+          "id, created_at, description, field_changed, status, priority_tag, rollout_timing, task_id, event_id, new_value, old_value, requested_by, resolved_by, resolved_at, location_id, device_info",
         )
         .eq("event_id", eventId)
         .order("created_at", { ascending: false })
@@ -195,8 +198,17 @@ export function EventChangeRequestsList({ eventId, refreshToken = 0, compact }: 
             names[p.user_id] = p.display_name?.trim() || "Member";
           });
         }
+        const locIds = [...new Set(rowsData.map((r) => (r as any).location_id).filter(Boolean))] as string[];
+        const locs: Record<string, string> = {};
+        if (locIds.length) {
+          const { data: ld } = await supabase.from("cm_locations").select("id,name").in("id", locIds);
+          (ld || []).forEach((l: { id: string; name: string | null }) => {
+            locs[l.id] = l.name || "Location";
+          });
+        }
         setTaskTitles(titles);
         setUserDisplayNames(names);
+        setLocationNames(locs);
         setRows(sortChangeRequestsForCoordinatorQueue(rowsData));
       }
     } finally {
@@ -275,6 +287,12 @@ export function EventChangeRequestsList({ eventId, refreshToken = 0, compact }: 
                 <span className="text-foreground font-medium">
                   {userDisplayNames[r.requested_by]?.trim() || "Member"}
                 </span>
+                {r.location_id && locationNames[r.location_id] ? (
+                  <> at <span className="text-foreground font-medium">{locationNames[r.location_id]}</span></>
+                ) : null}
+                {(r.device_info as any)?.platform ? (
+                  <> via <span className="capitalize">{(r.device_info as any).platform}</span></>
+                ) : null}
               </p>
             ) : null}
             {r.resolved_at || r.resolved_by ? (
