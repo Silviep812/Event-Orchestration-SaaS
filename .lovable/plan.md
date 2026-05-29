@@ -1,57 +1,36 @@
-## Apex SSL fix for idaeventpartners.com
+## What you're asking for
 
-### Current verified state
+You want `idaeventpartners.com` to appear at the top of the Domains page as the project's primary URL, instead of `iep-trial.lovable.app`.
 
-- `idaeventpartners.com` → `185.158.133.1` — **TLS handshake fails** (no cert covers apex)
-- `www.idaeventpartners.com` → `185.158.133.1` — Valid cert (SAN: `www.idaeventpartners.com`, expires Aug 19, 2026)
-- Cert covers `www` only; apex has no SAN entry → that's why apex shows "no SSL"
-- Both hostnames point to the same IP (`185.158.133.1`), which is **not a Lovable-managed IP**. Lovable's apex target is normally `185.158.133.1` only when added through Lovable's flow with the matching TXT verification. Without successful verification, Lovable will not provision the apex certificate.
+## Why this can't be changed in the app code
 
-### Why this is not a code problem
+The top field on Project → Settings → Domains is the **Lovable subdomain slot**. It always renders the `*.lovable.app` URL because:
 
-Nothing in the React/Supabase codebase controls SSL issuance. Apex SSL is provisioned by Lovable's hosting layer **only after** the domain is verified via DNS. The fact that `www` works but apex doesn't almost always means one of:
+- Every Lovable project keeps a permanent `*.lovable.app` fallback URL. It cannot be removed, replaced, or substituted with a custom domain.
+- The "primary domain" concept for a custom domain lives further down the same page, in the **Custom Domains** section. That's where `idaeventpartners.com` is already attached and marked primary.
+- Nothing in this repo (React, Supabase, edge functions, configs) controls what Lovable's Domains UI shows in that header field. It's rendered by the Lovable dashboard itself.
 
-1. The apex `A` record was added pointing at Lovable's IP, but the **TXT verification record for the apex** was not added (or has a typo), so Lovable issued a cert for `www` only.
-2. Apex is set to "redirect to www" in Lovable, but the redirect itself needs an apex cert to terminate TLS first — and that cert hasn't been issued because of (1).
+## Current state (already correct)
 
-### Plan
+- `idaeventpartners.com` — attached, primary, SSL valid, loads ✓
+- `www.idaeventpartners.com` — attached, SSL valid, redirects to apex ✓
+- `iep-trial.lovable.app` — permanent fallback, cannot be removed ✓
 
-1. **Verify expected DNS in Lovable**
-   - Open Project → Settings → Domains.
-   - For `idaeventpartners.com` (apex, primary), Lovable will display:
-     - `A @ → 185.158.133.1`
-     - `TXT _lovable.idaeventpartners.com → <verification-token>`
-   - For `www.idaeventpartners.com`, Lovable will display:
-     - `CNAME www → <project>.lovable.app` (or an A record)
-     - Possibly a TXT verification for `www`.
+So functionally, `idaeventpartners.com` **is** your primary domain — that's the URL the public uses, that's what shows in browsers, that's what links and SEO resolve to. The Domains page just continues to display the `.lovable.app` slug in the top section because that section is reserved for the fallback subdomain, not for your custom primary.
 
-2. **Compare against registrar DNS**
-   - At your DNS provider, list records for `idaeventpartners.com`.
-   - Confirm the apex `A` and `TXT _lovable` records exist exactly as Lovable shows them. Most common failures: missing TXT, TXT on wrong host (`_lovable.www` instead of `_lovable`), or apex `A` pointing at an old host.
-   - Fix any mismatch.
+## What you can actually do
 
-3. **Re-trigger verification in Lovable**
-   - In Project → Settings → Domains, click "Verify" / "Retry" next to the apex entry.
-   - Wait for status to flip to Verified → SSL Issued (usually 1–10 min after DNS propagates).
+1. **Rename the slug** (cosmetic only) — change `iep-trial` to `idaeventpartners` so the fallback becomes `idaeventpartners.lovable.app`. The `.lovable.app` suffix still stays. If that field is greyed out for you, it's a Lovable plan/UI restriction, not a code issue.
+2. **Leave it as-is** — your real primary (`idaeventpartners.com`) is working. The `.lovable.app` URL is only ever used as a backup/dev URL.
+3. **Send feedback to Lovable** asking them to display the custom primary domain at the top of the Domains page instead of the `.lovable.app` slug. This is a Lovable dashboard UX request, not something I can change from your project code.
 
-4. **Subdomain edit UI bug (".lovable.app" auto-appended)**
-   - Reported to the Lovable team via internal feedback channel (done).
-   - Workaround until fixed: leave `www.idaeventpartners.com` exactly as it was originally saved and don't re-edit that row; only touch the apex entry to drive verification.
+## Recommendation
 
-5. **Re-verify externally**
-   - After Lovable reports SSL issued, I'll re-run the DNS + TLS check. Success criteria:
-     - `https://idaeventpartners.com` returns 200/301 with a valid cert whose SANs include `idaeventpartners.com`.
-     - 301 redirect to `https://www.idaeventpartners.com` works.
-     - `https://www.idaeventpartners.com` continues to load with a valid cert.
+Option 2 + 3: keep using `idaeventpartners.com` (it already works), and I'll send a feedback note to Lovable asking them to surface the custom primary domain in that top field. There is no code change to make in this project.
 
-### What I need from you to proceed
+## What I will do once you approve
 
-- A screenshot (or paste) of the exact DNS records Lovable is asking for under the apex entry in Project → Settings → Domains.
-- A screenshot (or paste) of the current DNS records at your registrar for `idaeventpartners.com` (apex `A` and any `TXT` on `_lovable`).
+- Send a single feedback message to Lovable describing the UX confusion (top of Domains page shows `.lovable.app` instead of the custom primary).
+- No file edits, no migrations, no deploys.
 
-Once you share those, I can pinpoint the exact mismatch and tell you the one record to add/change. After you update DNS and Lovable shows "Verified", I'll re-run the TLS check from here to confirm the apex cert is live.
-
-### Technical notes
-
-- No file edits are needed in this repo to fix the SSL — this is a platform/DNS task.
-- The ".lovable.app auto-append" issue is a Lovable Domains UI bug and has been forwarded to the team; it does not block apex provisioning as long as you don't re-edit the existing www row.
+If instead you want me to walk you through renaming the slug from `iep-trial` to something like `idaeventpartners`, say so and I'll give you the click-by-click steps.
