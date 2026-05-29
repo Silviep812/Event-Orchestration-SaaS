@@ -1,36 +1,27 @@
-## What you're asking for
+## Goal
 
-You want `idaeventpartners.com` to appear at the top of the Domains page as the project's primary URL, instead of `iep-trial.lovable.app`.
+Stop hiding the real error behind the generic "Failed to create task" toast in Project Management → Add task assignment, so we (and you) can see exactly why Supabase is rejecting the insert.
 
-## Why this can't be changed in the app code
+## Change
 
-The top field on Project → Settings → Domains is the **Lovable subdomain slot**. It always renders the `*.lovable.app` URL because:
+In `src/components/TaskManager.tsx`, `executeCreateTask` catch block (lines 1266–1275):
 
-- Every Lovable project keeps a permanent `*.lovable.app` fallback URL. It cannot be removed, replaced, or substituted with a custom domain.
-- The "primary domain" concept for a custom domain lives further down the same page, in the **Custom Domains** section. That's where `idaeventpartners.com` is already attached and marked primary.
-- Nothing in this repo (React, Supabase, edge functions, configs) controls what Lovable's Domains UI shows in that header field. It's rendered by the Lovable dashboard itself.
+1. Show the actual error message in the toast description (Supabase `PostgrestError` has `message`, `details`, `hint`, `code` — surface `message` + `details/hint` when present) instead of the hard-coded "Failed to create task. Please try again.".
+2. Keep the special-case for circular dependencies.
+3. Also log the full error object via a Sonner toast-friendly path (still no `console.error`, per the project's clean-console rule — we'll expand the toast `description` instead).
 
-## Current state (already correct)
+No schema changes, no RLS changes, no behavior changes to the happy path.
 
-- `idaeventpartners.com` — attached, primary, SSL valid, loads ✓
-- `www.idaeventpartners.com` — attached, SSL valid, redirects to apex ✓
-- `iep-trial.lovable.app` — permanent fallback, cannot be removed ✓
+## After you re-try
 
-So functionally, `idaeventpartners.com` **is** your primary domain — that's the URL the public uses, that's what shows in browsers, that's what links and SEO resolve to. The Domains page just continues to display the `.lovable.app` slug in the top section because that section is reserved for the fallback subdomain, not for your custom primary.
+Click Save again — the toast will now read the actual reason, e.g.:
+- `new row violates row-level security policy for table "tasks"` → RLS
+- `null value in column "event_id" violates not-null constraint` → no event picked
+- `duplicate key value violates unique constraint ...` → assignee/event clash
+- a custom trigger message
 
-## What you can actually do
+Send that exact text back and the next step is a targeted fix (RLS policy, required-field guard, or trigger change).
 
-1. **Rename the slug** (cosmetic only) — change `iep-trial` to `idaeventpartners` so the fallback becomes `idaeventpartners.lovable.app`. The `.lovable.app` suffix still stays. If that field is greyed out for you, it's a Lovable plan/UI restriction, not a code issue.
-2. **Leave it as-is** — your real primary (`idaeventpartners.com`) is working. The `.lovable.app` URL is only ever used as a backup/dev URL.
-3. **Send feedback to Lovable** asking them to display the custom primary domain at the top of the Domains page instead of the `.lovable.app` slug. This is a Lovable dashboard UX request, not something I can change from your project code.
+## Files touched
 
-## Recommendation
-
-Option 2 + 3: keep using `idaeventpartners.com` (it already works), and I'll send a feedback note to Lovable asking them to surface the custom primary domain in that top field. There is no code change to make in this project.
-
-## What I will do once you approve
-
-- Send a single feedback message to Lovable describing the UX confusion (top of Domains page shows `.lovable.app` instead of the custom primary).
-- No file edits, no migrations, no deploys.
-
-If instead you want me to walk you through renaming the slug from `iep-trial` to something like `idaeventpartners`, say so and I'll give you the click-by-click steps.
+- `src/components/TaskManager.tsx` — ~8 lines in the catch block only.
