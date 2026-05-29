@@ -1,67 +1,46 @@
-# Add-Entry Forms for Resource Directories ("Other" custom type)
+## Re-scan results
 
-## Goal
-Every listed resource directory gets an "+ Add Entry" button that opens a dialog with a type/category dropdown. The dropdown ends in "Other", which reveals a free-text input for a custom value saved to the entry.
+122 findings total: 6 new contextual (supabase_lov) + 116 platform-linter (supabase).
 
-## Scope (in)
-Directory pages that get a new add dialog:
-1. **Venue** (`VenueDirectory.tsx` → table `venues`) — already has form in `VenueSelector`; mirror it on the directory page too
-2. **Entertainment** (`EntertainmentDirectory.tsx` → `entertainments`)
-3. **Transportation** (`TransportationDirectory.tsx` → `transportations`)
-4. **Vendor / Service Rental** (`VendorServiceDirectory.tsx` → `vendor`, type from `vendor_rental_types`)
-5. **Supplier / External Vendor** (`SupplierDirectory.tsx` → `suppliers`, category from `supplier_categories`)
-6. **Service Vendor** (`ServiceVendorDirectory.tsx` → `service_vendor_profiles` or `suppliers` — confirm at impl time)
-7. **Marketing Campaigns** (`MarketingCampaign.tsx` → `marketing_campaigns`)
-8. **Marketing Creatives** (`MarketingCreatives.tsx` → `marketing_creatives` or `marketing_emails`)
+### Contextual findings to fix (warn-level, no critical/error)
 
-Out of scope: Planning Assets, Hospitality, Themes, Bookings (per request).
+1. **`cm_change_requests` requester self-update can mutate `event_id`** — `cm_cr_update_requester_open` has no constraint preventing the requester from changing `event_id` on their own pending request.
+2. **`discussion_comments` SELECT is open to all authenticated users** — should be scoped to event members/owners via `entity_id`.
+3. **`teams` UPDATE/DELETE** use `auth.role()='authenticated'` with no ownership check — any signed-in user can rename/delete any team. Restrict to team admins (`is_team_admin`).
+4. **`Collaborators` SELECT** has a public/anon `USING: true` policy — restrict to `authenticated`.
+5. **`Event Resources` SELECT** is open to all authenticated users — scope to event owner/members.
+6. **`transportations` SELECT** has an anon `USING: true` policy — restrict to `authenticated`.
 
-## UX pattern (identical on every directory)
-- Header gets an **"+ Add Entry"** button (admin-visible only; hidden for Read-Only users).
-- Clicking opens a Dialog with:
-  - Standard fields for that entity (name, contact, email, phone, city/state/zip, etc.)
-  - **Type/Category** `<Select>` populated from the existing type table, with an extra `<SelectItem value="__other__">Other…</SelectItem>` pinned at the bottom.
-  - When `__other__` is chosen, a `<Input placeholder="Enter custom type">` appears below.
-- On Save: `type_id = null`, `custom_type = <typed text>` (otherwise `type_id = <id>`, `custom_type = null`).
-- Sonner toast on success; list auto-refreshes (refetch).
+### Platform-linter findings (116)
 
-## Database changes (one migration)
-Add nullable `custom_type TEXT` column to each entry table that doesn't already have one:
-- `venues.custom_type`
-- `entertainments.custom_type`
-- `transportations.custom_type`
-- `vendor.custom_type`
-- `suppliers.custom_category`
-- `service_vendor_profiles.custom_type` (if table exists)
-- `marketing_campaigns.custom_type`
-- `marketing_creatives.custom_type` (or equivalent table)
+- **~96 `SECURITY DEFINER` functions executable by `anon`/`authenticated`** — many are internal helpers (e.g. `apply_change_request`, `recalculate_*`, `cm_activity_log_event`, role/team helpers) that should not be callable directly over PostgREST. Plan: `REVOKE EXECUTE ... FROM anon, authenticated` on the internal ones; keep execute granted on the small set that the app actually RPCs from the client (e.g. `has_role`, `has_permission_level`, `approve_change_request_wr`, `get_my_events_safe`, `get_user_directory_safe`, `update_resource_utilization`). I'll audit `supabase.rpc(...)` call sites in `src/` to build the keep-list before drafting the migration.
+- **~12 functions with mutable `search_path`** — add `SET search_path = public` to each (matches project core rule).
+- **4 `RLS Policy Always True`** — find and tighten the remaining permissive INSERT/UPDATE/DELETE policies surfaced by the lov findings above (likely the same ones).
+- **1 `Materialized View in API`** — revoke API role grants on the materialized view (probably `event_kpi_view`-adjacent); confirm with `pg_matviews` first.
+- **1 `Public Bucket Allows Listing`** — narrow the bucket's SELECT policy from "list all" to a per-folder/per-owner check; confirm which bucket is flagged first.
+- **1 `RLS Enabled No Policy`** (info) — identify the table; either add a policy or document as intentionally locked.
+- **`Auth OTP long expiry`** (config) — flagged previously; requires Supabase Auth dashboard change (not a SQL migration). Will note for manual action.
 
-No RLS changes needed if INSERT policies already allow `user_id = auth.uid()`. Audit during implementation; add policies only where missing.
+### Out of scope / will keep as-is
 
-## Display
-Directory cards already render the type's name from the joined type table. Update each card to fall back to `custom_type` text when `type_id` is null.
+- `realtime.messages` RLS, `marketing_subscribers` anon insert, and `Bookings Profile` ownership — already documented in `@security-memory` as intentional / requires product decision.
+- `Pay_Method` move off `User Profile` to `private_profiles` — still pending; not part of this round (data migration, separate confirmation).
 
-## Reusable component
-Create `src/components/resource-directory/TypeSelectWithOther.tsx`:
-- Props: `value`, `onValueChange`, `customValue`, `onCustomChange`, `options: {id, name}[]`, `label`, `placeholder`
-- Renders Select + conditional Input. Used by all 8 new dialogs.
+### Execution plan (one migration in build mode)
 
-## Implementation order
-1. Migration adding `custom_type` columns (single call, requires approval).
-2. `TypeSelectWithOther` component.
-3. Eight `<Entity>AddDialog.tsx` components in `src/components/resource-directory/`.
-4. Mount each in its directory page header.
-5. Update each directory card's type-label rendering to use `custom_type` fallback.
-6. Smoke test by opening each dialog in preview.
+1. Audit `src/` for every `supabase.rpc('<fn>', ...)` call → keep-list for grants.
+2. Single migration that:
+   - Tightens the 6 contextual policies above.
+   - Adds `SET search_path = public` to each function missing it.
+   - `REVOKE EXECUTE ... FROM anon, authenticated` on internal SECURITY DEFINER functions not in the keep-list; explicit `GRANT EXECUTE` to the keep-list.
+   - Restricts API role grants on the flagged materialized view.
+   - Narrows the public bucket SELECT policy.
+3. Re-run scanner, then `manage_security_finding` to mark resolved and update `@security-memory` with the new keep-list and the OTP-expiry follow-up.
 
-## Technical notes
-- Use `as any` casts where Supabase generated types lag the new column (per project convention).
-- Hide the "+ Add Entry" button for Read-Only role (per memory rule).
-- All Supabase queries stay scoped to `user_id`/`event_id` per project memory.
-- No `console.*`; use Sonner toasts only.
+### Risks to flag before applying
 
-## Open question
-Service Vendor vs Supplier: confirm whether `ServiceVendorDirectory.tsx` writes to `service_vendor_profiles` (separate table) or to `suppliers`. I'll inspect during step 3 and adjust; flagging here so the migration covers the right table.
+- Tightening SECURITY DEFINER execute grants could break any client-side `supabase.rpc(...)` call I miss in the audit. Mitigation: build the keep-list from a code search before writing the migration; users will see clear errors in dev if anything is missed and we can re-grant quickly.
+- Scoping `Event Resources` and `discussion_comments` to event members assumes `cm_event_members` (or the equivalent) is populated for all current users in active events. I'll spot-check membership coverage first.
+- `Auth OTP long expiry` cannot be fixed via migration — needs a manual change in Supabase Auth settings.
 
-## Estimate
-Roughly 1 migration + 1 shared component + 8 dialogs + 8 page edits + 8 card-label tweaks. Expect a sizable diff (~15 files).
+Approve to switch to build mode and apply.
