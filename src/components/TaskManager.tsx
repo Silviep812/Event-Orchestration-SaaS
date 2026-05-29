@@ -1264,12 +1264,16 @@ export function TaskManager({
         });
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to create task. Please try again.";
-      const isCircularDependency = errorMessage.includes("Circular dependency detected");
-      
+      const err = error as { message?: string; details?: string; hint?: string; code?: string } | null;
+      const baseMsg = err?.message || (error instanceof Error ? error.message : "Failed to create task. Please try again.");
+      const extras = [err?.details, err?.hint, err?.code ? `code ${err.code}` : null]
+        .filter(Boolean)
+        .join(" · ");
+      const fullMsg = extras ? `${baseMsg} — ${extras}` : baseMsg;
+
       toast({
         title: "Error creating task",
-        description: isCircularDependency ? errorMessage : "Failed to create task. Please try again.",
+        description: fullMsg,
         variant: "destructive",
       });
     }
