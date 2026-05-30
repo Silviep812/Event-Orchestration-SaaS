@@ -79,21 +79,26 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // If an event is referenced, ensure the caller is a member of it
-    if (eventId) {
-      const { data: isMember } = await supabase.rpc("user_is_member_of_event", {
-        p_event_id: eventId,
-      });
-      const { data: isAdmin } = await supabase.rpc("policy_has_permission_level", {
-        _user_id: userData.user.id,
-        _level: "admin",
-      });
-      if (!isMember && !isAdmin) {
-        return new Response(
-          JSON.stringify({ error: "Forbidden" }),
-          { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } },
-        );
-      }
+    // Require eventId so we can enforce event-membership scoping
+    if (!eventId) {
+      return new Response(
+        JSON.stringify({ error: "eventId is required" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } },
+      );
+    }
+
+    const { data: isMember } = await supabase.rpc("user_is_member_of_event", {
+      p_event_id: eventId,
+    });
+    const { data: isAdmin } = await supabase.rpc("policy_has_permission_level", {
+      _user_id: userData.user.id,
+      _level: "admin",
+    });
+    if (!isMember && !isAdmin) {
+      return new Response(
+        JSON.stringify({ error: "Forbidden" }),
+        { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } },
+      );
     }
 
     const safeTitle = escapeHtml(taskTitle ?? "");

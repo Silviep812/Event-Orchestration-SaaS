@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.53.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -29,6 +30,44 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ ok: false, error: "Invalid email address" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    // Anti-relay: only send confirmations to addresses that just subscribed via the waitlist.
+    // The client inserts into marketing_subscribers BEFORE invoking this function, so a matching
+    // row must exist. This prevents using this endpoint as an arbitrary email relay.
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!supabaseUrl || !serviceKey) {
+      return new Response(
+        JSON.stringify({ ok: false, error: "Server not configured" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    const admin = createClient(supabaseUrl, serviceKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+    const normalizedEmail = email.trim().toLowerCase();
+    const { data: subscriber, error: lookupErr } = await admin
+      .from("marketing_subscribers")
+      .select("id, created_at")
+      .ilike("email", normalizedEmail)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (lookupErr || !subscriber) {
+      return new Response(
+        JSON.stringify({ ok: false, error: "Email not on waitlist" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    // Only honor confirmations for very recently created subscribers (5 min window),
+    // so attackers can't replay this endpoint repeatedly against historical addresses.
+    const createdAt = subscriber.created_at ? new Date(subscriber.created_at as string).getTime() : 0;
+    if (!createdAt || Date.now() - createdAt > 5 * 60 * 1000) {
+      return new Response(
+        JSON.stringify({ ok: true, skipped: true }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
