@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import { trackEvent } from "@/lib/analytics";
 
 const USER_TYPES = [
   "Event Organizer",
@@ -61,6 +62,8 @@ export function MarketingWaitlistForm({
       });
       return;
     }
+
+    trackEvent("waitlist_signup", { signup_source: signupSource, user_type: userType });
 
     // Fire-and-acknowledge: don't block UX if email transport fails.
     try {
