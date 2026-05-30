@@ -14,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { DateRange } from "react-day-picker";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { trackEvent } from "@/lib/analytics";
 import {
   dedupeSportThemesForPicker,
   isHealthWellnessThemeName,
@@ -868,6 +869,8 @@ export default function CreateEvent() {
         title: "Event Created Successfully!",
         description: `Your event "${data.title}" has been created and saved.`,
       });
+
+      trackEvent("event_created", { event_id: insertedRow?.id, theme_id: data.theme_id });
 
       if (insertedRow?.id && user.email) {
         void supabase.functions.invoke("send-event-notification", {
