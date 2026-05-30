@@ -40,7 +40,8 @@ type Payload =
 
 function cronAuthorized(req: Request): boolean {
   const secret = Deno.env.get("CRON_SECRET");
-  if (!secret) return true;
+  // Fail closed: require the secret to be set AND matched
+  if (!secret) return false;
   return req.headers.get("x-cron-secret") === secret;
 }
 
