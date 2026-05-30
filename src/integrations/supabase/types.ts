@@ -4293,6 +4293,7 @@ export type Database = {
           assigned_venue_role: string | null
           assined_vendor_role: string | null
           category: string | null
+          checklist: Json
           created_at: string
           created_by: string
           description: string | null
@@ -4328,6 +4329,7 @@ export type Database = {
           assigned_venue_role?: string | null
           assined_vendor_role?: string | null
           category?: string | null
+          checklist?: Json
           created_at?: string
           created_by: string
           description?: string | null
@@ -4363,6 +4365,7 @@ export type Database = {
           assigned_venue_role?: string | null
           assined_vendor_role?: string | null
           category?: string | null
+          checklist?: Json
           created_at?: string
           created_by?: string
           description?: string | null
