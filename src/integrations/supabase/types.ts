@@ -4306,6 +4306,7 @@ export type Database = {
           location_id: string | null
           organization_id: string | null
           priority: Database["public"]["Enums"]["task_priority"]
+          resource_assignments: Json | null
           start_date: string | null
           start_time: string | null
           status: Database["public"]["Enums"]["task_status"] | null
@@ -4342,6 +4343,7 @@ export type Database = {
           location_id?: string | null
           organization_id?: string | null
           priority?: Database["public"]["Enums"]["task_priority"]
+          resource_assignments?: Json | null
           start_date?: string | null
           start_time?: string | null
           status?: Database["public"]["Enums"]["task_status"] | null
@@ -4378,6 +4380,7 @@ export type Database = {
           location_id?: string | null
           organization_id?: string | null
           priority?: Database["public"]["Enums"]["task_priority"]
+          resource_assignments?: Json | null
           start_date?: string | null
           start_time?: string | null
           status?: Database["public"]["Enums"]["task_status"] | null
