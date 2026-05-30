@@ -106,7 +106,7 @@ const handler = async (req: Request): Promise<Response> => {
         </h2>
         
         <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <h3 style="color: #1e293b; margin-top: 0;">Task: ${taskTitle}</h3>
+          <h3 style="color: #1e293b; margin-top: 0;">Task: ${safeTitle}</h3>
           
           <div style="margin: 15px 0;">
             <strong>Estimate Change:</strong>
