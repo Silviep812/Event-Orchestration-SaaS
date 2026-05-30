@@ -272,7 +272,80 @@ serve(async (req: Request): Promise<Response> => {
       return await handleDailySummaryBatch(req);
     }
 
+    // All non-cron paths require an authenticated caller; recipient must match the caller's email
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+    const supabaseAuth = serviceClient();
+    const token = authHeader.replace("Bearer ", "");
+    const { data: userData, error: userErr } = await supabaseAuth.auth.getUser(token);
+    if (userErr || !userData?.user?.email) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+    const callerEmail = userData.user.email.toLowerCase();
+    const callerId = userData.user.id;
+
+    // Always send to the authenticated user's own email; ignore client-provided userEmail
+    const recipientEmail = callerEmail;
+
+    // Escape any caller-controlled strings used in HTML output
+    const safeTitle = escapeHtml((body as any).eventTitle ?? "");
+
     if (body.kind === "event_created") {
+      const input: SendEmailInput = {
+        to: [recipientEmail],
+        subject: `Event created: ${safeTitle}`,
+        template: "event_created",
+        eventId: body.eventId,
+        userId: callerId,
+        html: `<p>Your event <strong>${safeTitle}</strong> was created.</p>`,
+      };
+      const r = await sendEmail(input);
+      return new Response(JSON.stringify(r), {
+        status: r.ok ? 200 : 500,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    if (body.kind === "event_updated") {
+      const input: SendEmailInput = {
+        to: [recipientEmail],
+        subject: `Event updated: ${safeTitle}`,
+        template: "event_updated",
+        eventId: body.eventId,
+        userId: callerId,
+        html: `<p>Your event <strong>${safeTitle}</strong> was updated.</p>`,
+      };
+      const r = await sendEmail(input);
+      return new Response(JSON.stringify(r), {
+        status: r.ok ? 200 : 500,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    if (body.kind === "change_request_status") {
+      const safeStatus = escapeHtml(body.status ?? "");
+      const input: SendEmailInput = {
+        to: [recipientEmail],
+        subject: `Change request ${safeStatus}: ${safeTitle}`,
+        template: "change_request_status",
+        eventId: body.eventId,
+        userId: callerId,
+        html: `<p>Change request for <strong>${safeTitle}</strong> is now <strong>${safeStatus}</strong>.</p>`,
+      };
+      const r = await sendEmail(input);
+      return new Response(JSON.stringify(r), {
+        status: r.ok ? 200 : 500,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
       const input: SendEmailInput = {
         to: [body.userEmail],
         subject: `Event created: ${body.eventTitle}`,
