@@ -346,56 +346,6 @@ serve(async (req: Request): Promise<Response> => {
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
-      const input: SendEmailInput = {
-        to: [body.userEmail],
-        subject: `Event created: ${body.eventTitle}`,
-        template: "event_created",
-        eventId: body.eventId,
-        userId: body.userId,
-        html:
-          body.summaryHtml ??
-          `<p>Your event <strong>${body.eventTitle}</strong> was created.</p>`,
-      };
-      const r = await sendEmail(input);
-      return new Response(JSON.stringify(r), {
-        status: r.ok ? 200 : 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      });
-    }
-
-    if (body.kind === "event_updated") {
-      const input: SendEmailInput = {
-        to: [body.userEmail],
-        subject: `Event updated: ${body.eventTitle}`,
-        template: "event_updated",
-        eventId: body.eventId,
-        userId: body.userId,
-        html:
-          body.summaryHtml ??
-          `<p>Your event <strong>${body.eventTitle}</strong> was updated.</p>`,
-      };
-      const r = await sendEmail(input);
-      return new Response(JSON.stringify(r), {
-        status: r.ok ? 200 : 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      });
-    }
-
-    if (body.kind === "change_request_status") {
-      const input: SendEmailInput = {
-        to: [body.userEmail],
-        subject: `Change request ${body.status}: ${body.eventTitle}`,
-        template: "change_request_status",
-        eventId: body.eventId,
-        userId: body.userId,
-        html: `<p>Change request for <strong>${body.eventTitle}</strong> is now <strong>${body.status}</strong>.</p>`,
-      };
-      const r = await sendEmail(input);
-      return new Response(JSON.stringify(r), {
-        status: r.ok ? 200 : 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      });
-    }
 
     return new Response(JSON.stringify({ error: "Unknown kind" }), {
       status: 400,
