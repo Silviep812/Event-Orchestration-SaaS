@@ -120,7 +120,7 @@ const handler = async (req: Request): Promise<Response> => {
           
           <div style="margin: 15px 0;">
             <strong>Description:</strong>
-            <p style="margin: 5px 0; color: #64748b;">${changeDescription}</p>
+            <p style="margin: 5px 0; color: #64748b;">${safeDescription}</p>
           </div>
         </div>
         
@@ -138,7 +138,7 @@ const handler = async (req: Request): Promise<Response> => {
     `;
 
     const results: { email: string; ok: boolean; error?: string }[] = [];
-    for (const email of coordinatorEmails) {
+    for (const email of recipients) {
       const r = await sendEmail({
         to: [email],
         subject,
