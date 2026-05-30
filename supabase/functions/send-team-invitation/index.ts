@@ -28,14 +28,30 @@ interface TeamInvitationRequest {
 }
 
 const handler = async (req: Request): Promise<Response> => {
-  console.log("Team invitation function called");
-
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    // Require authenticated caller
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Unauthorized" }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } },
+      );
+    }
+    const token = authHeader.replace("Bearer ", "");
+    const { data: callerData, error: callerErr } = await supabase.auth.getUser(token);
+    if (callerErr || !callerData?.user) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Unauthorized" }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } },
+      );
+    }
+    const callerId = callerData.user.id;
+
     const {
       email,
       role,
@@ -45,6 +61,49 @@ const handler = async (req: Request): Promise<Response> => {
       isCoordinator,
       isViewer,
     }: TeamInvitationRequest = await req.json();
+
+    // Validate role against an allowlist; admins may grant any of these
+    const ALLOWED_ROLES = new Set([
+      "admin",
+      "event_manager",
+      "task_coordinator",
+      "team_member",
+      "viewer",
+    ]);
+    if (!ALLOWED_ROLES.has(role)) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Invalid role" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } },
+      );
+    }
+
+    // Authorize caller: must be team_admin of the target team OR an admin
+    const { data: isAdmin } = await supabase.rpc("policy_has_permission_level", {
+      _user_id: callerId,
+      _level: "admin",
+    });
+    let isTeamAdmin = false;
+    if (teamId) {
+      const { data: ta } = await supabase.rpc("is_team_admin", {
+        _user_id: callerId,
+        _team_id: teamId,
+      });
+      isTeamAdmin = !!ta;
+    }
+    if (!isAdmin && !isTeamAdmin) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Forbidden" }),
+        { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } },
+      );
+    }
+
+    // Only admins can grant the admin role
+    if (role === "admin" && !isAdmin) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Only admins can assign the admin role" }),
+        { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } },
+      );
+    }
 
     console.log("Sending team invitation to:", email);
     console.log("Role:", role);
