@@ -47,11 +47,7 @@ export function MarketingTopBar({ page = "home" }: MarketingTopBarProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-nowrap items-center justify-between gap-4 min-h-[4.5rem] py-3">
           <div className="flex items-center gap-3 min-w-0 shrink-0">
-            <Link
-              to="/"
-              className="flex items-center gap-3 min-w-0"
-              aria-label="Ida Event Partners — We Got You"
-            >
+            <Link to="/" className="flex items-center gap-3 min-w-0" aria-label="Ida Event Partners — We Got You">
               <img
                 src={IEP_LOGO_COLORED}
                 alt="Ida Event Partners — We Got You"
@@ -65,9 +61,7 @@ export function MarketingTopBar({ page = "home" }: MarketingTopBarProps) {
                 <span className="text-sm font-semibold text-foreground tracking-tight truncate">
                   Ida Event Partners
                 </span>
-                <span className="text-xs text-muted-foreground truncate">
-                  Plan events with calm confidence
-                </span>
+                <span className="text-xs text-muted-foreground truncate">Plan events with calm confidence</span>
               </div>
             </Link>
           </div>
@@ -90,7 +84,7 @@ export function MarketingTopBar({ page = "home" }: MarketingTopBarProps) {
               Pricing
             </Button>
             <span className="inline-flex items-center rounded-md bg-primary/15 px-2.5 py-1 text-xs font-medium text-primary whitespace-nowrap shrink-0">
-              Free Starter Plan for Event Planners
+              Free Starter Plan Available
             </span>
             <div className="flex shrink-0 items-center gap-1.5 pl-3 ml-1 border-l border-amber-200/60 text-muted-foreground tabular-nums">
               <Clock className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
@@ -127,7 +121,12 @@ export function MarketingTopBar({ page = "home" }: MarketingTopBarProps) {
               <span>{timeLabel}</span>
             </div>
             {showSignInCta && (
-              <Button variant="ghost" size="sm" className="shrink-0 whitespace-nowrap" onClick={() => navigate("/auth")}>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="shrink-0 whitespace-nowrap"
+                onClick={() => navigate("/auth")}
+              >
                 Sign In
               </Button>
             )}
