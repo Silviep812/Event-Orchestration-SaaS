@@ -79,10 +79,11 @@ const Index = () => {
             />
           </div>
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4 text-balance text-foreground tracking-tight">
-            Plan Memorable Events—Without the Chaos
+            Plan Memorable Events - Without the Chaos
           </h1>
           <p className="text-lg sm:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed text-pretty">
-            Bring your vision to life with ease. With IDA Event Partners, you can create unforgettable events while we handle the complexity behind the scenes.
+            Bring your vision to life with ease. With IDA Event Partners, you can create unforgettable events while we
+            handle the complexity behind the scenes.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center flex-wrap">
             <Link to="/auth">
@@ -97,7 +98,7 @@ const Index = () => {
               className="text-lg px-8 py-3 w-full sm:w-auto border-amber-200/80 bg-white/60 backdrop-blur-sm"
               onClick={() => scrollToId("demo")}
             >
-              See how it works
+              Start your free account
             </Button>
           </div>
         </div>
@@ -110,14 +111,15 @@ const Index = () => {
         <div className="max-w-3xl mx-auto text-center space-y-4">
           <h2 className="text-2xl sm:text-3xl font-bold text-balance">Simple pricing — tailored to how you work</h2>
           <p className="text-muted-foreground text-sm sm:text-base leading-relaxed text-pretty">
-            Pricing is personalized: it can depend on your planner profile, event scope (for example theme, role, attendee
-            count, or timeline), and current offers. Typical shapes include a{" "}
+            Pricing is personalized: it can depend on your planner profile, event scope (for example theme, role,
+            attendee count, or timeline), and current offers. Typical shapes include a{" "}
             <span className="font-medium text-foreground">free trial</span>,{" "}
             <span className="font-medium text-foreground">subscription</span> (monthly or annual),{" "}
             <span className="font-medium text-foreground">one-time</span> packages for defined event sizes, and{" "}
-            <span className="font-medium text-foreground">limited-time promotions</span>. Exact amounts are confirmed at signup
-            or checkout and may change. After a trial ends, we may retain your account identifier and related details and archive
-            them for operational, compliance, and promotional purposes as described in our terms and privacy policy.
+            <span className="font-medium text-foreground">limited-time promotions</span>. Exact amounts are confirmed at
+            signup or checkout and may change. After a trial ends, we may retain your account identifier and related
+            details and archive them for operational, compliance, and promotional purposes as described in our terms and
+            privacy policy.
           </p>
           <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => scrollToId("features")}>
             Explore features
@@ -125,12 +127,15 @@ const Index = () => {
         </div>
       </section>
 
-      <section id="demo" className="px-4 sm:px-6 lg:px-8 py-12 sm:py-14 border-y border-amber-100/50 bg-white/40 dark:bg-muted/20 backdrop-blur-sm">
+      <section
+        id="demo"
+        className="px-4 sm:px-6 lg:px-8 py-12 sm:py-14 border-y border-amber-100/50 bg-white/40 dark:bg-muted/20 backdrop-blur-sm"
+      >
         <div className="max-w-3xl mx-auto text-center space-y-4">
           <h2 className="text-2xl sm:text-3xl font-bold">See it in action</h2>
           <p className="text-muted-foreground">
-            Start your trial to explore directories, project tools, workflows, and team features — no payment required during
-            the trial.
+            Start your trial to explore directories, project tools, workflows, and team features — no payment required
+            during the trial.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
             <Link to="/auth">
@@ -155,9 +160,7 @@ const Index = () => {
                 className={`text-center h-full border border-amber-100/60 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-[1.02] ${feature.bgColor}`}
               >
                 <CardHeader>
-                  <div
-                    className={`mx-auto mb-4 p-4 bg-gradient-to-br ${feature.color} rounded-full w-fit shadow-md`}
-                  >
+                  <div className={`mx-auto mb-4 p-4 bg-gradient-to-br ${feature.color} rounded-full w-fit shadow-md`}>
                     <feature.icon className="h-8 w-8 text-white" />
                   </div>
                   <CardTitle className="text-xl font-bold text-foreground">{feature.title}</CardTitle>
@@ -182,10 +185,8 @@ const Index = () => {
 
       <section id="pricing" className="px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
         <div className="max-w-7xl mx-auto">
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-center mb-12 text-balance">
-            Pricing plans
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-center mb-12 text-balance">Pricing plans</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6">
             {[
               {
                 name: "Starter Plan",
@@ -193,12 +194,10 @@ const Index = () => {
                 features: ["Basic event creation", "Limited templates", "Core planning tools"],
                 cta: "Get started free",
                 href: "/auth",
-                disabled: false,
-                highlight: false,
               },
               {
                 name: "Pro Plan",
-                price: "",
+                price: "$49/month",
                 features: [
                   "Unlimited events",
                   "Advanced AI workflows",
@@ -207,22 +206,43 @@ const Index = () => {
                 ],
                 cta: "Upgrade to Pro",
                 href: "/auth",
-                disabled: false,
                 highlight: true,
               },
               {
                 name: "Business Plan",
-                price: "",
+                price: "$79/month + seat",
                 features: [
                   "Multi-user collaboration",
                   "Vendor and partner integrations",
                   "Priority support",
                   "Custom workflow automation",
                 ],
-                cta: "Coming Soon",
-                href: "",
-                disabled: true,
-                highlight: false,
+                cta: "Contact for Business",
+                href: "/auth",
+              },
+              {
+                name: "Enterprise",
+                price: "Fixed contract",
+                features: [
+                  "Custom contract scope",
+                  "Dedicated onboarding",
+                  "Advanced admin support",
+                  "Enterprise workflow support",
+                ],
+                cta: "Contact sales",
+                href: "/auth",
+              },
+              {
+                name: "One Usage",
+                price: "$59",
+                features: [
+                  "One-time event access",
+                  "Single event planning scope",
+                  "No monthly subscription",
+                  "Useful for one-off events",
+                ],
+                cta: "Start one-time access",
+                href: "/auth",
               },
             ].map((tier) => (
               <Card
@@ -236,9 +256,7 @@ const Index = () => {
                 <CardHeader>
                   <CardTitle className="text-xl font-bold text-foreground">{tier.name}</CardTitle>
                   {tier.price && (
-                    <CardDescription className="text-2xl font-semibold text-foreground">
-                      {tier.price}
-                    </CardDescription>
+                    <CardDescription className="text-2xl font-semibold text-foreground">{tier.price}</CardDescription>
                   )}
                 </CardHeader>
                 <CardContent className="flex flex-col flex-1 gap-6">
@@ -267,7 +285,6 @@ const Index = () => {
           </div>
         </div>
       </section>
-
 
       <section
         id="waitlist"
