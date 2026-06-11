@@ -5,6 +5,11 @@
 // change file
 const SMTP_GUIDE = "https://supabase.com/docs/guides/auth/auth-smtp";
 
+/**
+ * Keep auth errors user-friendly.
+ * Do not expose internal Supabase setup/debug instructions to end users.
+ */
+
 function looksLikeEmailDeliveryFailure(msg: string): boolean {
   const m = msg.toLowerCase();
 
