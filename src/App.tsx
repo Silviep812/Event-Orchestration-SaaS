@@ -44,11 +44,7 @@ const PreviewEventPlan = lazy(() => import("./pages/PreviewEventPlan"));
 const Invoices = lazy(() => import("./pages/Invoices"));
 
 function RouteFallback() {
-  return (
-    <div className="flex min-h-[40vh] items-center justify-center text-sm text-muted-foreground">
-      Loading…
-    </div>
-  );
+  return <div className="flex min-h-[40vh] items-center justify-center text-sm text-muted-foreground">Loading…</div>;
 }
 
 function AnalyticsTracker() {
@@ -79,6 +75,7 @@ const App = () => (
             <Route path="/marketing-creatives" element={<MarketingCreatives />} />
             <Route path="/dashboard" element={<Dashboard />}>
               <Route index element={<DashboardHome />} />
+              <Route path="/dashboard/marketing-campaign" element={<MarketingCampaign />} />
               <Route path="workflow-dashboard" element={<WorkflowDashboard />} />
               <Route path="themes" element={<ThemesDirectory />} />
               <Route path="project-management" element={<ProjectManagement />} />
@@ -101,6 +98,7 @@ const App = () => (
               <Route path="reports" element={<Reports />} />
               <Route path="preview-event-plan" element={<PreviewEventPlan />} />
               <Route path="marketing-campaign" element={<MarketingCampaign />} />
+              <Route path="marketing-creatives" element={<MarketingCreatives />} />
               <Route path="notification" element={<Notifications />} />
               <Route path="comments" element={<Comments />} />
               <Route path="bookings" element={<BookingsDirectory />} />
