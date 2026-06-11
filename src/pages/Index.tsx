@@ -183,14 +183,152 @@ const Index = () => {
         </div>
       </section>
 
+      {/* ── MISSING SECTIONS: added before pricing ── */}
+
+      <section className="px-4 sm:px-6 lg:px-8 py-14 sm:py-16 bg-white/60 dark:bg-muted/20">
+        <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card className="border-amber-100/70 bg-card/90 backdrop-blur-sm shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-2xl">Designed for Everyone</CardTitle>
+              <CardDescription className="text-base leading-relaxed">
+                Whether you're hosting your own event or working as a professional planner, IDA Event Partners gives you
+                the tools to succeed.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card className="border-amber-100/70 bg-card/90 backdrop-blur-sm shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-2xl">Create Smarter. Plan Better. Execute Flawlessly.</CardTitle>
+              <CardDescription className="text-base leading-relaxed">
+                Get started today and turn your ideas into unforgettable experiences.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </div>
+      </section>
+
+      <section className="px-4 sm:px-6 lg:px-8 py-14 sm:py-16 bg-gradient-to-br from-rose-50/80 via-amber-50/60 to-orange-50/70 dark:from-muted/40 dark:via-muted/30 dark:to-muted/40">
+        <div className="max-w-4xl mx-auto text-center space-y-5">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-balance">
+            Plan Unforgettable Events - Without the Stress
+          </h2>
+          <p className="text-lg text-muted-foreground leading-relaxed text-pretty">
+            From idea to execution, IDA Event Partners gives you everything you need to plan, manage, and scale
+            exceptional events, all in one place.
+          </p>
+          <Link to="/auth">
+            <Button size="lg" className="text-lg px-8 py-3 shadow-md">
+              Create your free account
+            </Button>
+          </Link>
+        </div>
+      </section>
+
+      <section id="experience" className="px-4 sm:px-6 lg:px-8 py-14 sm:py-16 bg-background">
+        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
+          <div className="space-y-4">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-balance">
+              Turn Your Vision Into a Seamless Experience
+            </h2>
+            <p className="text-lg text-muted-foreground leading-relaxed">
+              Stop juggling spreadsheets, messages, and last-minute chaos.
+            </p>
+          </div>
+
+          <div className="grid gap-3">
+            {[
+              "Select your event theme and launch instantly",
+              "Automate planning with AI-powered workflows",
+              "Adapt to real-time changes without disruption",
+              "Track performance with built-in analytics",
+              "Connect with trusted vendors and partners",
+            ].map((item) => (
+              <div key={item} className="rounded-xl border border-amber-100/70 bg-card/90 px-4 py-3 shadow-sm">
+                <p className="text-sm sm:text-base text-foreground">{item}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="px-4 sm:px-6 lg:px-8 py-14 sm:py-16 bg-white/50 dark:bg-muted/20">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center max-w-3xl mx-auto mb-10">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-balance">
+              Built for Hosts & Professional Event Planners
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              {
+                title: "Hosts",
+                copy: "Create stunning, organized events with zero overwhelm.",
+              },
+              {
+                title: "Event Planners",
+                copy: "Scale operations, manage teams, and deliver flawlessly.",
+              },
+              {
+                title: "Businesses",
+                copy: "Connect, collaborate, and grow your network.",
+              },
+            ].map((audience) => (
+              <Card key={audience.title} className="border-amber-100/70 bg-card/90 shadow-sm">
+                <CardHeader>
+                  <CardTitle>{audience.title}</CardTitle>
+                  <CardDescription>{audience.copy}</CardDescription>
+                </CardHeader>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="why-choose" className="px-4 sm:px-6 lg:px-8 py-14 sm:py-16 bg-background">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center max-w-3xl mx-auto mb-10">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-balance">Why Choose IDA Event Partners?</h2>
+            <p className="text-lg text-muted-foreground mt-4">
+              Most tools help you plan. We help you execute - flawlessly.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            {[
+              "Centralized event command center",
+              "Reusable templates to save hours",
+              "Real-time collaboration across teams",
+              "Smart automation to reduce manual work",
+              "Save up to 70% of your planning time",
+            ].map((item) => (
+              <Card key={item} className="border-amber-100/70 bg-card/90 shadow-sm">
+                <CardContent className="p-5">
+                  <p className="text-sm font-medium text-foreground">{item}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── END MISSING SECTIONS ── */}
+
       <section id="pricing" className="px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
         <div className="max-w-7xl mx-auto">
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-center mb-12 text-balance">Pricing plans</h2>
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-center mb-4 text-balance">
+            Simple, Transparent Pricing
+          </h2>
+
+          <p className="text-center text-muted-foreground mb-10">Start free. Upgrade when you’re ready.</p>
+
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6">
             {[
               {
                 name: "Starter Plan",
                 price: "Free",
+                targetUser: "Hosts and individuals",
                 features: ["Basic event creation", "Limited templates", "Core planning tools"],
                 cta: "Get started free",
                 href: "/auth",
@@ -198,6 +336,7 @@ const Index = () => {
               {
                 name: "Pro Plan",
                 price: "$49/month",
+                targetUser: "Professional Event Planners",
                 features: [
                   "Unlimited events",
                   "Advanced AI workflows",
@@ -211,6 +350,7 @@ const Index = () => {
               {
                 name: "Business Plan",
                 price: "$79/month + seat",
+                targetUser: "Venues, hospitality providers, organizations",
                 features: [
                   "Multi-user collaboration",
                   "Vendor and partner integrations",
@@ -223,6 +363,8 @@ const Index = () => {
               {
                 name: "Enterprise",
                 price: "Fixed contract",
+                targetUser:
+                  "Multi-location organizations, franchises, universities, municipalities, large event companies",
                 features: [
                   "Custom contract scope",
                   "Dedicated onboarding",
@@ -235,6 +377,7 @@ const Index = () => {
               {
                 name: "One Usage",
                 price: "$59",
+                targetUser: "One-time / single event users",
                 features: [
                   "One-time event access",
                   "Single event planning scope",
@@ -258,6 +401,7 @@ const Index = () => {
                   {tier.price && (
                     <CardDescription className="text-2xl font-semibold text-foreground">{tier.price}</CardDescription>
                   )}
+                  <p className="text-sm text-muted-foreground mt-2 min-h-[40px]">{tier.targetUser}</p>
                 </CardHeader>
                 <CardContent className="flex flex-col flex-1 gap-6">
                   <ul className="space-y-2 text-base text-muted-foreground flex-1">
@@ -268,20 +412,37 @@ const Index = () => {
                       </li>
                     ))}
                   </ul>
-                  {tier.disabled ? (
-                    <Button size="lg" disabled className="w-full">
+                  <Link to={tier.href} className="w-full">
+                    <Button size="lg" className="w-full">
                       {tier.cta}
                     </Button>
-                  ) : (
-                    <Link to={tier.href} className="w-full">
-                      <Button size="lg" className="w-full">
-                        {tier.cta}
-                      </Button>
-                    </Link>
-                  )}
+                  </Link>
                 </CardContent>
               </Card>
             ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="px-4 sm:px-6 lg:px-8 py-14 sm:py-16 bg-gradient-to-br from-amber-50/80 via-orange-50/70 to-rose-50/80 dark:from-muted/40 dark:via-muted/30 dark:to-muted/40">
+        <div className="max-w-4xl mx-auto text-center space-y-5">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-balance">
+            Don’t Let Event Chaos Cost You Time & Money
+          </h2>
+          <p className="text-lg text-muted-foreground leading-relaxed text-pretty">
+            Join planners and hosts who are creating better events, faster and smarter.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Link to="/auth">
+              <Button size="lg" className="w-full sm:w-auto text-lg px-8 py-3 shadow-md">
+                Create Your Free Account Now
+              </Button>
+            </Link>
+            <Link to="/auth">
+              <Button variant="outline" size="lg" className="w-full sm:w-auto text-lg px-8 py-3">
+                Upgrade Anytime - No Risk
+              </Button>
+            </Link>
           </div>
         </div>
       </section>
