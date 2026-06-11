@@ -1,16 +1,51 @@
+// import { describe, expect, it } from "vitest";
+// import { getAuthErrorDescription } from "./authErrors";
+
+// describe("getAuthErrorDescription", () => {
+//   it("maps confirmation email errors to dashboard guidance", () => {
+//     const d = getAuthErrorDescription({ message: "Error sending confirmation email" });
+//     expect(d).toContain("Confirm email");
+//     expect(d).toContain("supabase.com/docs");
+//   });
+
+//   it("passes through unrelated messages", () => {
+//     expect(getAuthErrorDescription({ message: "Invalid login credentials" })).toBe(
+//       "Invalid login credentials",
+//     );
+//   });
+// });
+
 import { describe, expect, it } from "vitest";
 import { getAuthErrorDescription } from "./authErrors";
 
 describe("getAuthErrorDescription", () => {
-  it("maps confirmation email errors to dashboard guidance", () => {
-    const d = getAuthErrorDescription({ message: "Error sending confirmation email" });
-    expect(d).toContain("Confirm email");
-    expect(d).toContain("supabase.com/docs");
+  it("maps signup confirmation email errors to a user-friendly signup message", () => {
+    const d = getAuthErrorDescription({ message: "Error sending confirmation email" }, "signup");
+
+    expect(d).toBe(
+      "We could not send the signup confirmation email right now. Please contact support or try again later.",
+    );
+  });
+
+  it("maps password reset email errors to a user-friendly reset message", () => {
+    const d = getAuthErrorDescription({ message: "Supabase could not send email" }, "password_reset");
+
+    expect(d).toBe("Password reset email could not be sent right now. Please contact support or try again later.");
+  });
+
+  it("maps magic link email errors to a user-friendly magic link message", () => {
+    const d = getAuthErrorDescription({ message: "Error sending magic link" }, "magic_link");
+
+    expect(d).toBe("Magic link email could not be sent right now. Please contact support or try again later.");
   });
 
   it("passes through unrelated messages", () => {
-    expect(getAuthErrorDescription({ message: "Invalid login credentials" })).toBe(
+    expect(getAuthErrorDescription({ message: "Invalid login credentials" }, "signin")).toBe(
       "Invalid login credentials",
     );
+  });
+
+  it("returns a generic fallback message for empty errors", () => {
+    expect(getAuthErrorDescription(null)).toBe("Something went wrong. Please try again.");
   });
 });
