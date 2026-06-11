@@ -23,7 +23,7 @@ const Profile = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
-  
+
   // Profile data state
   const [profile, setProfile] = useState({
     username: "",
@@ -68,17 +68,17 @@ const Profile = () => {
 
     try {
       const { data, error } = await supabase
-        .from('profiles')
-        .select('username, display_name, bio, avatar_url, subscription_level')
-        .eq('user_id', user.id)
+        .from("profiles")
+        .select("username, display_name, bio, avatar_url, subscription_level")
+        .eq("user_id", user.id)
         .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error loading profile:', error);
+      if (error && error.code !== "PGRST116") {
+        console.error("Error loading profile:", error);
         toast({
           title: "Error loading profile",
           description: error.message,
-          variant: "destructive"
+          variant: "destructive",
         });
         return;
       }
@@ -96,7 +96,7 @@ const Profile = () => {
         await createUserProfile();
       }
     } catch (err: any) {
-      console.error('Error in loadUserProfile:', err);
+      console.error("Error in loadUserProfile:", err);
     }
   };
 
@@ -106,7 +106,7 @@ const Profile = () => {
     try {
       const { username, display_name } = defaultProfileFromAuthUser(user);
       const { data, error } = await supabase
-        .from('profiles')
+        .from("profiles")
         .insert({
           user_id: user.id,
           username,
@@ -116,11 +116,11 @@ const Profile = () => {
         .single();
 
       if (error) {
-        console.error('Error creating profile:', error);
+        console.error("Error creating profile:", error);
         toast({
           title: "Error creating profile",
           description: error.message,
-          variant: "destructive"
+          variant: "destructive",
         });
         return;
       }
@@ -133,7 +133,7 @@ const Profile = () => {
         subscription_level: "",
       });
     } catch (err: any) {
-      console.error('Error in createUserProfile:', err);
+      console.error("Error in createUserProfile:", err);
     }
   };
 
@@ -149,7 +149,7 @@ const Profile = () => {
     setProfileLoading(true);
     try {
       const { error } = await supabase
-        .from('profiles')
+        .from("profiles")
         .update({
           username: profile.username,
           display_name: profile.display_name,
@@ -157,20 +157,20 @@ const Profile = () => {
           avatar_url: profile.avatar_url,
           subscription_level: profile.subscription_level.trim() || null,
         })
-        .eq('user_id', user.id);
+        .eq("user_id", user.id);
 
       if (error) {
         toast({
           title: "Update failed",
           description: error.message,
-          variant: "destructive"
+          variant: "destructive",
         });
         return;
       }
 
       toast({
         title: "Profile updated",
-        description: "Your profile has been updated successfully."
+        description: "Your profile has been updated successfully.",
       });
 
       window.dispatchEvent(new Event("profileUpdated"));
@@ -178,7 +178,7 @@ const Profile = () => {
       toast({
         title: "Error",
         description: err.message || "Something went wrong.",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setProfileLoading(false);
@@ -190,11 +190,11 @@ const Profile = () => {
     if (!file || !user?.id) return;
 
     // Validate file type
-    if (!file.type.startsWith('image/')) {
+    if (!file.type.startsWith("image/")) {
       toast({
         title: "Invalid file type",
         description: "Please select an image file.",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -204,73 +204,66 @@ const Profile = () => {
       toast({
         title: "File too large",
         description: "Please select an image smaller than 5MB.",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
 
     setAvatarUploading(true);
     try {
-      const fileExt = file.name.split('.').pop();
+      const fileExt = file.name.split(".").pop();
       const fileName = `${user.id}/avatar.${fileExt}`;
 
       // Delete existing avatar if any
       if (profile.avatar_url) {
-        const oldPath = profile.avatar_url.split('/').pop();
+        const oldPath = profile.avatar_url.split("/").pop();
         if (oldPath) {
-          await supabase.storage
-            .from('avatars')
-            .remove([`${user.id}/${oldPath}`]);
+          await supabase.storage.from("avatars").remove([`${user.id}/${oldPath}`]);
         }
       }
 
       // Upload new avatar
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(fileName, file, { upsert: true });
+      const { error: uploadError } = await supabase.storage.from("avatars").upload(fileName, file, { upsert: true });
 
       if (uploadError) {
         throw uploadError;
       }
 
       // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(fileName);
+      const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(fileName);
 
       // Add cache-busting query param
       const avatarUrl = urlData.publicUrl + `?t=${Date.now()}`;
 
       // Update profile with new avatar URL
       const { error: updateError } = await supabase
-        .from('profiles')
+        .from("profiles")
         .update({ avatar_url: avatarUrl })
-        .eq('user_id', user.id);
+        .eq("user_id", user.id);
 
       if (updateError) {
         throw updateError;
       }
 
       // Update local state
-      setProfile(prev => ({ ...prev, avatar_url: avatarUrl }));
+      setProfile((prev) => ({ ...prev, avatar_url: avatarUrl }));
 
       // Reload profile from database to ensure latest avatar_url
       await loadUserProfile();
 
       // Dispatch custom event to update header avatar
-      window.dispatchEvent(new Event('profileUpdated'));
+      window.dispatchEvent(new Event("profileUpdated"));
 
       toast({
         title: "Avatar updated",
-        description: "Your profile picture has been updated successfully."
+        description: "Your profile picture has been updated successfully.",
       });
-
     } catch (error: any) {
-      console.error('Avatar upload error:', error);
+      console.error("Avatar upload error:", error);
       toast({
         title: "Upload failed",
         description: error.message || "Failed to upload avatar.",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setAvatarUploading(false);
@@ -279,40 +272,42 @@ const Profile = () => {
 
   const handleSendResetEmail = async () => {
     if (!user?.email) {
-      toast({ 
-        title: "No email found", 
+      toast({
+        title: "No email found",
         description: "Your account email could not be determined.",
-        variant: "destructive" 
+        variant: "destructive",
       });
       return;
     }
-    
-    console.log('Sending reset email to:', user.email);
-    
+
+    console.log("Sending reset email to:", user.email);
+
     try {
       const { error } = await resetPassword(user.email);
-      
+
       if (error) {
-        console.error('Reset email error:', error);
-        toast({ 
-          title: "Reset failed", 
-          description: getAuthErrorDescription(error), 
-          variant: "destructive" 
+        console.error("Reset email error:", error);
+        toast({
+          title: "Reset failed",
+          description: getAuthErrorDescription(error, "password_reset"),
+          variant: "destructive",
         });
         return;
       }
-      
-      toast({ 
-        title: "Reset email sent", 
-        description: "Check your inbox for the password reset link. You will be redirected back to this page." 
+
+      toast({
+        title: "Reset email sent",
+        description: "Check your inbox for the password reset link. You will be redirected back to this page.",
       });
     } catch (err: unknown) {
-      console.error('Reset email exception:', err);
-      const msg = err instanceof Error ? err.message : '';
-      toast({ 
-        title: "Error", 
-        description: msg ? getAuthErrorDescription({ message: msg }) : getAuthErrorDescription({ message: 'Could not send reset email.' }), 
-        variant: "destructive" 
+      console.error("Reset email exception:", err);
+      const msg = err instanceof Error ? err.message : "";
+      toast({
+        title: "Error",
+        description: msg
+          ? getAuthErrorDescription({ message: msg }, "password_reset")
+          : getAuthErrorDescription({ message: "Could not send reset email." }, "password_reset"),
+        variant: "destructive",
       });
     }
   };
@@ -331,7 +326,7 @@ const Profile = () => {
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!user?.email) {
       toast({ title: "Not signed in", description: "Please sign in again.", variant: "destructive" });
       return;
@@ -341,29 +336,33 @@ const Profile = () => {
       toast({ title: "Weak password", description: "Use at least 8 characters.", variant: "destructive" });
       return;
     }
-    
+
     if (newPassword !== confirmPassword) {
-      toast({ title: "Passwords do not match", description: "Make sure both passwords match.", variant: "destructive" });
+      toast({
+        title: "Passwords do not match",
+        description: "Make sure both passwords match.",
+        variant: "destructive",
+      });
       return;
     }
 
     setPasswordLoading(true);
-    
+
     try {
-      console.log('Attempting to update password for user:', user.id);
-      
-      const { data, error } = await supabase.auth.updateUser({ 
-        password: newPassword 
+      console.log("Attempting to update password for user:", user.id);
+
+      const { data, error } = await supabase.auth.updateUser({
+        password: newPassword,
       });
-      
-      console.log('Password update result:', { data, error });
-      
+
+      console.log("Password update result:", { data, error });
+
       if (error) {
-        console.error('Password update error:', error);
-        toast({ 
-          title: "Update failed", 
-          description: error.message, 
-          variant: "destructive" 
+        console.error("Password update error:", error);
+        toast({
+          title: "Update failed",
+          description: error.message,
+          variant: "destructive",
         });
         return;
       }
@@ -372,18 +371,17 @@ const Profile = () => {
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-      
-      toast({ 
-        title: "Password updated successfully", 
-        description: "Your password has been changed." 
+
+      toast({
+        title: "Password updated successfully",
+        description: "Your password has been changed.",
       });
-      
     } catch (err: any) {
-      console.error('Password update exception:', err);
-      toast({ 
-        title: "Unexpected error", 
-        description: "Something went wrong. Please try again.", 
-        variant: "destructive" 
+      console.error("Password update exception:", err);
+      toast({
+        title: "Unexpected error",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive",
       });
     } finally {
       setPasswordLoading(false);
@@ -409,12 +407,7 @@ const Profile = () => {
                 className="h-20 w-20"
                 src={profile.avatar_url}
                 alt="Profile picture"
-                displayName={
-                  profile.display_name ||
-                  profile.username ||
-                  user?.email?.split("@")[0] ||
-                  "User"
-                }
+                displayName={profile.display_name || profile.username || user?.email?.split("@")[0] || "User"}
                 fallbackClassName="text-2xl"
               />
               <div className="grid gap-2">
@@ -432,15 +425,13 @@ const Profile = () => {
                     variant="outline"
                     size="sm"
                     disabled={avatarUploading}
-                    onClick={() => document.getElementById('avatar')?.click()}
+                    onClick={() => document.getElementById("avatar")?.click()}
                   >
                     <Upload className="h-4 w-4 mr-2" />
-                    {avatarUploading ? 'Uploading...' : 'Upload'}
+                    {avatarUploading ? "Uploading..." : "Upload"}
                   </Button>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  PNG, JPG up to 5MB. Avatar will be displayed publicly.
-                </p>
+                <p className="text-sm text-muted-foreground">PNG, JPG up to 5MB. Avatar will be displayed publicly.</p>
               </div>
             </div>
             <div className="grid gap-2">
@@ -448,7 +439,7 @@ const Profile = () => {
               <Input
                 id="username"
                 value={profile.username}
-                onChange={(e) => setProfile(prev => ({ ...prev, username: e.target.value }))}
+                onChange={(e) => setProfile((prev) => ({ ...prev, username: e.target.value }))}
                 placeholder="Enter your username"
               />
             </div>
@@ -457,7 +448,7 @@ const Profile = () => {
               <Input
                 id="display_name"
                 value={profile.display_name}
-                onChange={(e) => setProfile(prev => ({ ...prev, display_name: e.target.value }))}
+                onChange={(e) => setProfile((prev) => ({ ...prev, display_name: e.target.value }))}
                 placeholder="Enter your display name"
               />
             </div>
@@ -466,7 +457,7 @@ const Profile = () => {
               <Input
                 id="bio"
                 value={profile.bio}
-                onChange={(e) => setProfile(prev => ({ ...prev, bio: e.target.value }))}
+                onChange={(e) => setProfile((prev) => ({ ...prev, bio: e.target.value }))}
                 placeholder="Tell us about yourself"
               />
             </div>
@@ -530,9 +521,7 @@ const Profile = () => {
         <Card>
           <CardHeader>
             <CardTitle>Change Password</CardTitle>
-            <CardDescription>
-              Update your account password. Use at least 8 characters.
-            </CardDescription>
+            <CardDescription>Update your account password. Use at least 8 characters.</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleUpdatePassword} className="space-y-4">

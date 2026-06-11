@@ -10,6 +10,13 @@ const SMTP_GUIDE = "https://supabase.com/docs/guides/auth/auth-smtp";
  * Do not expose internal Supabase setup/debug instructions to end users.
  */
 
+/**
+ * Keep auth errors user-friendly.
+ * Do not expose internal Supabase setup/debug instructions to end users.
+ */
+
+type AuthErrorContext = "signup" | "password_reset" | "magic_link" | "signin" | "generic";
+
 function looksLikeEmailDeliveryFailure(msg: string): boolean {
   const m = msg.toLowerCase();
 
@@ -20,11 +27,30 @@ function looksLikeEmailDeliveryFailure(msg: string): boolean {
   );
 }
 
-export function getAuthErrorDescription(error: { message?: string } | null): string {
+function getEmailDeliveryMessage(context: AuthErrorContext): string {
+  switch (context) {
+    case "signup":
+      return "We could not send the signup confirmation email right now. Please contact support or try again later.";
+
+    case "password_reset":
+      return "Password reset email could not be sent right now. Please contact support or try again later.";
+
+    case "magic_link":
+      return "Magic link email could not be sent right now. Please contact support or try again later.";
+
+    default:
+      return "Email could not be sent right now. Please contact support or try again later.";
+  }
+}
+
+export function getAuthErrorDescription(
+  error: { message?: string } | null,
+  context: AuthErrorContext = "generic",
+): string {
   const msg = error?.message ?? "";
 
   if (looksLikeEmailDeliveryFailure(msg)) {
-    return "Password reset email could not be sent right now. Please contact support or try again later.";
+    return getEmailDeliveryMessage(context);
   }
 
   return msg || "Something went wrong. Please try again.";
