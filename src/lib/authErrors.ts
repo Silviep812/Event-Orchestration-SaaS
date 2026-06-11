@@ -2,7 +2,7 @@
  * Supabase returns generic messages for email delivery failures.
  * Map them to actionable dashboard steps (SMTP, confirm email, redirect URLs).
  */
-
+// change file
 const SMTP_GUIDE = "https://supabase.com/docs/guides/auth/auth-smtp";
 
 function looksLikeEmailDeliveryFailure(msg: string): boolean {
