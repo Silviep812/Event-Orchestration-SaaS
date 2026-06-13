@@ -139,7 +139,7 @@ const Index = () => {
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
             <Link to="/auth">
-              <Button size="lg">Start demo / trial</Button>
+              <Button size="lg">Try Starter Plan - Free</Button>
             </Link>
             <Button type="button" variant="outline" size="lg" onClick={() => scrollToId("features")}>
               Browse features
