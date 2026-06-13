@@ -109,7 +109,7 @@ const Index = () => {
         className="px-4 sm:px-6 lg:px-8 py-12 sm:py-14 border-y border-amber-200/40 bg-gradient-to-br from-rose-50/80 via-amber-50/60 to-orange-50/70 dark:from-muted/40 dark:via-muted/30 dark:to-muted/40"
       >
         <div className="max-w-3xl mx-auto text-center space-y-4">
-          <h2 className="text-2xl sm:text-3xl font-bold text-balance">Simple pricing — tailored to how you work</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-balance">See our full transparent pricing below.</h2>
           <p className="text-muted-foreground text-sm sm:text-base leading-relaxed text-pretty">
             Pricing is personalized: it can depend on your planner profile, event scope (for example theme, role,
             attendee count, or timeline), and current offers. Typical shapes include a{" "}
