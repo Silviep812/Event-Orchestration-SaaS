@@ -108,10 +108,11 @@ const Index = () => {
         id="payment-plan"
         className="px-4 sm:px-6 lg:px-8 py-12 sm:py-14 border-y border-amber-200/40 bg-gradient-to-br from-rose-50/80 via-amber-50/60 to-orange-50/70 dark:from-muted/40 dark:via-muted/30 dark:to-muted/40"
       >
-        <div className="max-w-3xl mx-auto text-center space-y-4">
-          <h2 className="text-2xl sm:text-3xl font-bold text-balance">See our full transparent pricing below.</h2>
-
-          <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => scrollToId("features")}>
+        <div className="flex flex-col sm:flex-row gap-2 justify-center mt-2">
+          <Button type="button" variant="default" size="sm" onClick={() => scrollToId("pricing")}>
+            See full pricing
+          </Button>
+          <Button type="button" variant="outline" size="sm" onClick={() => scrollToId("features")}>
             Explore features
           </Button>
         </div>
