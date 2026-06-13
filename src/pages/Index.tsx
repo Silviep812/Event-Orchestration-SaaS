@@ -110,7 +110,7 @@ const Index = () => {
       >
         <div className="max-w-3xl mx-auto text-center space-y-4">
           <h2 className="text-2xl sm:text-3xl font-bold text-balance">See our full transparent pricing below.</h2>
-          <p className="text-muted-foreground text-sm sm:text-base leading-relaxed text-pretty">
+          {/* <p className="text-muted-foreground text-sm sm:text-base leading-relaxed text-pretty">
             Pricing is personalized: it can depend on your planner profile, event scope (for example theme, role,
             attendee count, or timeline), and current offers. Typical shapes include a{" "}
             <span className="font-medium text-foreground">free trial</span>,{" "}
@@ -120,7 +120,7 @@ const Index = () => {
             signup or checkout and may change. After a trial ends, we may retain your account identifier and related
             details and archive them for operational, compliance, and promotional purposes as described in our terms and
             privacy policy.
-          </p>
+          </p> */}
           <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => scrollToId("features")}>
             Explore features
           </Button>
