@@ -98,7 +98,7 @@ const Index = () => {
               className="text-lg px-8 py-3 w-full sm:w-auto border-amber-200/80 bg-white/60 backdrop-blur-sm"
               onClick={() => scrollToId("demo")}
             >
-              Start your free account
+              Try Starter Plan - Free
             </Button>
           </div>
         </div>
