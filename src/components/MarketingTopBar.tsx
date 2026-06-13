@@ -104,7 +104,7 @@ export function MarketingTopBar({ page = "home" }: MarketingTopBarProps) {
                   Sign In
                 </Button>
                 <Button size="sm" className="shrink-0 whitespace-nowrap" onClick={() => navigate("/auth")}>
-                  Start free trial
+                  Try Starter Plan - Free
                 </Button>
               </>
             )}
