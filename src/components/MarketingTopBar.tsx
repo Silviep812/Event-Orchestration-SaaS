@@ -87,13 +87,13 @@ export function MarketingTopBar({ page = "home" }: MarketingTopBarProps) {
             <span className="inline-flex items-center rounded-md bg-primary/15 px-2.5 py-1 text-xs font-medium text-primary whitespace-nowrap shrink-0">
               Free Starter Plan Available
             </span>
-            <div className="flex shrink-0 items-center gap-1.5 pl-3 ml-1 border-l border-amber-200/60 text-muted-foreground tabular-nums">
+            {/* <div className="flex shrink-0 items-center gap-1.5 pl-3 ml-1 border-l border-amber-200/60 text-muted-foreground tabular-nums">
               <Clock className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
               <div className="flex flex-col items-end text-[11px] leading-tight whitespace-nowrap">
                 <span className="text-foreground font-medium">{timeLabel}</span>
                 <span>{dateLabel}</span>
               </div>
-            </div>
+            </div> */}
             {showSignInCta && (
               <>
                 <Button
@@ -117,10 +117,10 @@ export function MarketingTopBar({ page = "home" }: MarketingTopBarProps) {
           </div>
 
           <div className="flex lg:hidden items-center gap-2 shrink-0">
-            <div className="flex items-center gap-1 text-muted-foreground tabular-nums text-xs whitespace-nowrap">
+            {/* <div className="flex items-center gap-1 text-muted-foreground tabular-nums text-xs whitespace-nowrap">
               <Clock className="h-3.5 w-3.5 shrink-0" aria-hidden />
               <span>{timeLabel}</span>
-            </div>
+            </div> */}
             {showSignInCta && (
               <Button
                 variant="ghost"
