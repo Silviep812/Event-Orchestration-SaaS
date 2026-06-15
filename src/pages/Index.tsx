@@ -98,7 +98,7 @@ const Index = () => {
               className="text-lg px-8 py-3 w-full sm:w-auto border-amber-200/80 bg-white/60 backdrop-blur-sm"
               onClick={() => scrollToId("demo")}
             >
-              Try Starter Plan - Free
+              Start your free account
             </Button>
           </div>
         </div>
@@ -109,15 +109,21 @@ const Index = () => {
         className="px-4 sm:px-6 lg:px-8 py-12 sm:py-14 border-y border-amber-200/40 bg-gradient-to-br from-rose-50/80 via-amber-50/60 to-orange-50/70 dark:from-muted/40 dark:via-muted/30 dark:to-muted/40"
       >
         <div className="max-w-3xl mx-auto text-center space-y-4">
-          <h2 className="text-2xl sm:text-3xl font-bold text-balance">Simple, Transparent Pricing</h2>
-          <div className="flex flex-col sm:flex-row gap-2 justify-center mt-2">
-            <Button type="button" variant="default" size="sm" onClick={() => scrollToId("pricing")}>
-              See full pricing
-            </Button>
-            <Button type="button" variant="outline" size="sm" onClick={() => scrollToId("features")}>
-              Explore features
-            </Button>
-          </div>
+          <h2 className="text-2xl sm:text-3xl font-bold text-balance">Simple pricing — tailored to how you work</h2>
+          <p className="text-muted-foreground text-sm sm:text-base leading-relaxed text-pretty">
+            Pricing is personalized: it can depend on your planner profile, event scope (for example theme, role,
+            attendee count, or timeline), and current offers. Typical shapes include a{" "}
+            <span className="font-medium text-foreground">free trial</span>,{" "}
+            <span className="font-medium text-foreground">subscription</span> (monthly or annual),{" "}
+            <span className="font-medium text-foreground">one-time</span> packages for defined event sizes, and{" "}
+            <span className="font-medium text-foreground">limited-time promotions</span>. Exact amounts are confirmed at
+            signup or checkout and may change. After a trial ends, we may retain your account identifier and related
+            details and archive them for operational, compliance, and promotional purposes as described in our terms and
+            privacy policy.
+          </p>
+          <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => scrollToId("features")}>
+            Explore features
+          </Button>
         </div>
       </section>
 
@@ -133,7 +139,7 @@ const Index = () => {
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
             <Link to="/auth">
-              <Button size="lg">Try Starter Plan - Free</Button>
+              <Button size="lg">Start demo / trial</Button>
             </Link>
             <Button type="button" variant="outline" size="lg" onClick={() => scrollToId("features")}>
               Browse features
