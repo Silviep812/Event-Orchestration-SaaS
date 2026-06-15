@@ -21,25 +21,25 @@ const scrollToHash = (id: string) => {
 };
 
 export function MarketingTopBar({ page = "home" }: MarketingTopBarProps) {
-  const [now, setNow] = useState(() => new Date());
+  // const [now, setNow] = useState(() => new Date());
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(t);
-  }, []);
+  // useEffect(() => {
+  //   const t = setInterval(() => setNow(new Date()), 1000);
+  //   return () => clearInterval(t);
+  // }, []);
 
-  const timeLabel = now.toLocaleTimeString("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
-  const dateLabel = now.toLocaleDateString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-  });
+  // const timeLabel = now.toLocaleTimeString("en-US", {
+  //   hour: "2-digit",
+  //   minute: "2-digit",
+  //   second: "2-digit",
+  // });
+  // const dateLabel = now.toLocaleDateString("en-US", {
+  //   weekday: "short",
+  //   month: "short",
+  //   day: "numeric",
+  // });
 
   const showSignInCta = page !== "auth";
 
