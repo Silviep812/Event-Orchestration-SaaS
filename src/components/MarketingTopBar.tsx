@@ -79,7 +79,7 @@ export function MarketingTopBar({ page = "home" }: MarketingTopBarProps) {
               variant="ghost"
               size="sm"
               className="text-foreground/90 shrink-0 whitespace-nowrap"
-              onClick={() => scrollToHash("payment-plan")}
+              onClick={() => scrollToHash("pricing")}
             >
               Pricing
             </Button>
