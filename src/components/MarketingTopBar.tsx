@@ -175,7 +175,7 @@ export function MarketingTopBar({ page = "home" }: MarketingTopBarProps) {
                 variant="ghost"
                 className="w-full justify-start"
                 onClick={() => {
-                  scrollToHash("payment-plan");
+                  scrollToHash("pricing");
                   setOpen(false);
                 }}
               >
