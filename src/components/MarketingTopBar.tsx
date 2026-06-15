@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Clock, Menu, X } from "lucide-react";
+// import { Clock, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { IEP_LOGO_COLORED } from "@/lib/brandAssets";
 
