@@ -357,7 +357,7 @@ const Index = () => {
                   "Priority support",
                   "Custom workflow automation",
                 ],
-                cta: "Contact for Business",
+                cta: "TBA",
                 href: "/auth",
               },
               {
