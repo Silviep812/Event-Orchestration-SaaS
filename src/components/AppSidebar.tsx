@@ -62,9 +62,9 @@ const menuGroups = [
         icon: Megaphone,
         color: "text-blue-600",
         hoverColor: "hover:bg-blue-50",
-        adminOnly: true,
+        // adminOnly: false,
       },
-    ]
+    ],
   },
   {
     title: "Event Planning",
@@ -76,23 +76,23 @@ const menuGroups = [
         url: "/dashboard/create-event",
         icon: Plus,
         color: "text-purple-600",
-        hoverColor: "hover:bg-purple-50"
+        hoverColor: "hover:bg-purple-50",
       },
       {
         title: "Manage Event",
         url: "/dashboard/manage-event",
         icon: Calendar,
         color: "text-purple-600",
-        hoverColor: "hover:bg-purple-50"
+        hoverColor: "hover:bg-purple-50",
       },
       {
         title: "Calendar",
         url: "/dashboard/calendar",
         icon: CalendarDays,
         color: "text-purple-600",
-        hoverColor: "hover:bg-purple-50"
-      }
-    ]
+        hoverColor: "hover:bg-purple-50",
+      },
+    ],
   },
   {
     title: "Project Tools",
@@ -104,14 +104,14 @@ const menuGroups = [
         url: "/dashboard/analytics",
         icon: BarChart3,
         color: "text-green-600",
-        hoverColor: "hover:bg-green-50"
+        hoverColor: "hover:bg-green-50",
       },
       {
         title: "Workflow",
         url: "/dashboard/workflow-dashboard",
         icon: Workflow,
         color: "text-green-600",
-        hoverColor: "hover:bg-green-50"
+        hoverColor: "hover:bg-green-50",
       },
       {
         title: "Change Request",
@@ -125,23 +125,23 @@ const menuGroups = [
         url: "/dashboard/project-management",
         icon: CheckSquare,
         color: "text-green-600",
-        hoverColor: "hover:bg-green-50"
+        hoverColor: "hover:bg-green-50",
       },
       {
         title: "Track Progress",
         url: "/dashboard/track-progress",
         icon: TrendingUp,
         color: "text-green-600",
-        hoverColor: "hover:bg-green-50"
+        hoverColor: "hover:bg-green-50",
       },
       {
         title: "Event Timeline",
         url: "/dashboard/task-timeline",
         icon: BarChart3,
         color: "text-green-600",
-        hoverColor: "hover:bg-green-50"
-      }
-    ]
+        hoverColor: "hover:bg-green-50",
+      },
+    ],
   },
   {
     title: "Analytics & Reports",
@@ -169,16 +169,16 @@ const menuGroups = [
         url: "/dashboard/reports?tab=insights",
         icon: BarChart3,
         color: "text-teal-600",
-        hoverColor: "hover:bg-teal-50"
+        hoverColor: "hover:bg-teal-50",
       },
       {
         title: "Change Request Report",
         url: "/dashboard/reports?tab=change-requests",
         icon: FileText,
         color: "text-teal-600",
-        hoverColor: "hover:bg-teal-50"
-      }
-    ]
+        hoverColor: "hover:bg-teal-50",
+      },
+    ],
   },
   {
     title: "Resources",
@@ -190,79 +190,79 @@ const menuGroups = [
         url: "/dashboard/planning-assets",
         icon: Package,
         color: "text-orange-600",
-        hoverColor: "hover:bg-orange-50"
+        hoverColor: "hover:bg-orange-50",
       },
       {
         title: "Themes",
         url: "/dashboard/themes",
         icon: Palette,
         color: "text-orange-600",
-        hoverColor: "hover:bg-orange-50"
+        hoverColor: "hover:bg-orange-50",
       },
       {
         title: "Bookings",
         url: "/dashboard/bookings",
         icon: Calendar,
         color: "text-orange-600",
-        hoverColor: "hover:bg-orange-50"
+        hoverColor: "hover:bg-orange-50",
       },
       {
         title: "Venue Directory",
         url: "/dashboard/venue",
         icon: Building2,
         color: "text-orange-600",
-        hoverColor: "hover:bg-orange-50"
+        hoverColor: "hover:bg-orange-50",
       },
       {
         title: "Hospitality Directory",
         url: "/dashboard/hospitality",
         icon: Coffee,
         color: "text-orange-600",
-        hoverColor: "hover:bg-orange-50"
+        hoverColor: "hover:bg-orange-50",
       },
       {
         title: "Service Rental Directory",
         url: "/dashboard/vendor-service",
         icon: ShoppingCart,
         color: "text-orange-600",
-        hoverColor: "hover:bg-orange-50"
+        hoverColor: "hover:bg-orange-50",
       },
       {
         title: "Service Vendor Directory",
         url: "/dashboard/service-vendor",
         icon: Truck,
         color: "text-orange-600",
-        hoverColor: "hover:bg-orange-50"
+        hoverColor: "hover:bg-orange-50",
       },
       {
         title: "Transportation Directory",
         url: "/dashboard/transportation",
         icon: Car,
         color: "text-orange-600",
-        hoverColor: "hover:bg-orange-50"
+        hoverColor: "hover:bg-orange-50",
       },
       {
         title: "Entertainment Directory",
         url: "/dashboard/entertainment",
         icon: Users,
         color: "text-orange-600",
-        hoverColor: "hover:bg-orange-50"
+        hoverColor: "hover:bg-orange-50",
       },
       {
         title: "External Vendor Directory",
         url: "/dashboard/supplier",
         icon: Package,
         color: "text-orange-600",
-        hoverColor: "hover:bg-orange-50"
+        hoverColor: "hover:bg-orange-50",
       },
       {
         title: "Resource map",
         url: "/dashboard/resource-map",
         icon: MapPin,
         color: "text-orange-600",
-        hoverColor: "hover:bg-orange-50"
-      }
-    ]
+        hoverColor: "hover:bg-orange-50",
+      },
+    ],
   },
   {
     title: "Communication",
@@ -274,31 +274,31 @@ const menuGroups = [
         url: "/dashboard/collaborate",
         icon: Users,
         color: "text-pink-600",
-        hoverColor: "hover:bg-pink-50"
+        hoverColor: "hover:bg-pink-50",
       },
       {
         title: "Communication Hub",
         url: "/dashboard/comments",
         icon: MessageSquare,
         color: "text-pink-600",
-        hoverColor: "hover:bg-pink-50"
+        hoverColor: "hover:bg-pink-50",
       },
       {
         title: "Notification",
         url: "/dashboard/notification",
         icon: Bell,
         color: "text-pink-600",
-        hoverColor: "hover:bg-pink-50"
+        hoverColor: "hover:bg-pink-50",
       },
       {
         title: "Billing & Invoices",
         url: "/dashboard/invoices",
         icon: Receipt,
         color: "text-pink-600",
-        hoverColor: "hover:bg-pink-50"
-      }
-    ]
-  }
+        hoverColor: "hover:bg-pink-50",
+      },
+    ],
+  },
 ];
 
 export function AppSidebar() {
@@ -381,8 +381,7 @@ export function AppSidebar() {
   };
 
   const getNavClass = (item: { color: string; hoverColor: string }, active: boolean) => {
-    const base =
-      "transition-all duration-200 rounded-md mx-1 my-0.5 px-2 py-2 w-[calc(100%-0.25rem)] min-w-0";
+    const base = "transition-all duration-200 rounded-md mx-1 my-0.5 px-2 py-2 w-[calc(100%-0.25rem)] min-w-0";
     if (active) {
       return `${base} bg-primary text-primary-foreground font-semibold shadow-md border-l-4 border-primary ring-1 ring-primary/20 [&_svg]:text-primary-foreground`;
     }
@@ -400,16 +399,16 @@ export function AppSidebar() {
             <h2 className="text-lg font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
               Event Management
             </h2>
-            <p className="text-xs text-muted-foreground mt-1">
-              Professional event planning platform
-            </p>
+            <p className="text-xs text-muted-foreground mt-1">Professional event planning platform</p>
           </div>
         )}
-        
+
         {resolvedMenuGroups.map((group) => (
           <SidebarGroup key={group.title} className="mb-4">
             {!collapsed && (
-              <SidebarGroupLabel className={`text-xs font-semibold ${group.color} uppercase tracking-wider px-4 py-2 ${group.bgColor} rounded-lg mx-2 mb-2`}>
+              <SidebarGroupLabel
+                className={`text-xs font-semibold ${group.color} uppercase tracking-wider px-4 py-2 ${group.bgColor} rounded-lg mx-2 mb-2`}
+              >
                 {group.title}
               </SidebarGroupLabel>
             )}
@@ -418,47 +417,37 @@ export function AppSidebar() {
                 {group.items
                   .filter((item) => !(item as { adminOnly?: boolean }).adminOnly || isAdmin)
                   .map((item) => {
-                  const active = (item as { isCreateEventEntry?: boolean }).isCreateEventEntry
-                    ? createEventUrl === CREATE_EVENT_PATH_NEW_PLANNER
-                      ? currentPath === "/dashboard/themes" ||
-                        currentPath.startsWith("/dashboard/create-event")
-                      : pathIsActive(item.url)
-                    : pathIsActive(item.url);
-                  const createEntry = (item as { isCreateEventEntry?: boolean }).isCreateEventEntry;
-                  const navTitle =
-                    createEntry && createEventUrl === CREATE_EVENT_PATH_NEW_PLANNER
-                      ? "Pick a theme first, then continue to Create event."
-                      : undefined;
-                  return (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton asChild isActive={active}>
-                        <NavLink
-                          to={item.url}
-                          end
-                          title={navTitle}
-                          className={() => getNavClass(item, active)}
-                        >
-                          <item.icon
-                            className={`h-5 w-5 shrink-0 ${collapsed ? "mx-auto" : "mr-2"} transition-colors duration-200`}
-                          />
-                          {!collapsed && (
-                            <span className="truncate text-sm font-medium">{item.title}</span>
-                          )}
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  );
-                })}
+                    const active = (item as { isCreateEventEntry?: boolean }).isCreateEventEntry
+                      ? createEventUrl === CREATE_EVENT_PATH_NEW_PLANNER
+                        ? currentPath === "/dashboard/themes" || currentPath.startsWith("/dashboard/create-event")
+                        : pathIsActive(item.url)
+                      : pathIsActive(item.url);
+                    const createEntry = (item as { isCreateEventEntry?: boolean }).isCreateEventEntry;
+                    const navTitle =
+                      createEntry && createEventUrl === CREATE_EVENT_PATH_NEW_PLANNER
+                        ? "Pick a theme first, then continue to Create event."
+                        : undefined;
+                    return (
+                      <SidebarMenuItem key={item.title}>
+                        <SidebarMenuButton asChild isActive={active}>
+                          <NavLink to={item.url} end title={navTitle} className={() => getNavClass(item, active)}>
+                            <item.icon
+                              className={`h-5 w-5 shrink-0 ${collapsed ? "mx-auto" : "mr-2"} transition-colors duration-200`}
+                            />
+                            {!collapsed && <span className="truncate text-sm font-medium">{item.title}</span>}
+                          </NavLink>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
         ))}
-        
+
         {!collapsed && cmFooter && (
           <div className="mt-6 px-4 pt-4 border-t border-border/60">
-            <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">
-              {cmFooter}
-            </p>
+            <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">{cmFooter}</p>
           </div>
         )}
         {collapsed && (
