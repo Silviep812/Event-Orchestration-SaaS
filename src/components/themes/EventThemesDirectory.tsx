@@ -3,11 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import {
   dedupeSportThemesForPicker,
@@ -26,13 +22,13 @@ import {
   sportingUiName,
 } from "@/lib/themeEventTypeHierarchy";
 import { plannerToolsCopy } from "@/lib/nudges";
-import { 
-  Heart, 
-  Building, 
-  Cake, 
-  Users, 
-  Music, 
-  Coffee, 
+import {
+  Heart,
+  Building,
+  Cake,
+  Users,
+  Music,
+  Coffee,
   Network,
   Search,
   Palette,
@@ -45,7 +41,7 @@ import {
   Utensils,
   Store,
   Calendar1,
-  ChevronDown
+  ChevronDown,
 } from "lucide-react";
 
 interface ThemeDetails {
@@ -79,7 +75,7 @@ function themeIsPremium(theme: ThemeDetails): boolean {
 const getThemeIcon = (themeName: string) => {
   const iconMap: { [key: string]: any } = {
     wedding: Heart,
-    'bridal shower': Heart,
+    "bridal shower": Heart,
     corporate: Building,
     business: Building,
     birthday: Cake,
@@ -100,13 +96,11 @@ const getThemeIcon = (themeName: string) => {
     dining: Utensils,
     retreat: Heart,
     marketplace: Store,
-    'special event': Calendar1,
-    'health and wellness': Heart,
+    "special event": Calendar1,
+    "health and wellness": Heart,
   };
-  
-  const key = Object.keys(iconMap).find(k => 
-    themeName.toLowerCase().includes(k)
-  );
+
+  const key = Object.keys(iconMap).find((k) => themeName.toLowerCase().includes(k));
   return iconMap[key] || Palette;
 };
 
@@ -121,7 +115,7 @@ const getThemeStyles = (category: string) => {
     health: { color: "text-emerald-600", bgColor: "bg-emerald-50" },
     retreat: { color: "text-teal-700", bgColor: "bg-teal-50" },
   };
-  
+
   return styleMap[category] || { color: "text-gray-600", bgColor: "bg-gray-50" };
 };
 
@@ -129,26 +123,48 @@ const getThemeStyles = (category: string) => {
 const getCategoryFromName = (themeName: string): string => {
   const name = themeName.toLowerCase();
 
-  if (name.includes("wedding") || name.includes("bridal") || name.includes("baby shower") ||
-      name.includes("birthday") || name.includes("party") || name.includes("celebration")) {
+  if (
+    name.includes("wedding") ||
+    name.includes("bridal") ||
+    name.includes("baby shower") ||
+    name.includes("birthday") ||
+    name.includes("party") ||
+    name.includes("celebration")
+  ) {
     return "celebration";
   }
   if (name.includes("market") || name.includes("marketplace") || name.includes("vendor fair")) {
     return "business";
   }
-  if (name.includes("business") || name.includes("corporate") || name.includes("conference") ||
-      name.includes("seminar") || name.includes("networking")) {
+  if (
+    name.includes("business") ||
+    name.includes("corporate") ||
+    name.includes("conference") ||
+    name.includes("seminar") ||
+    name.includes("networking")
+  ) {
     return "business";
   }
   if (isSportThemeName(themeName)) {
     return "entertainment";
   }
-  if (name.includes("festival") || name.includes("music") || name.includes("entertainment") ||
-      name.includes("concert") || name.includes("show") || name.includes("sporting")) {
+  if (
+    name.includes("festival") ||
+    name.includes("music") ||
+    name.includes("entertainment") ||
+    name.includes("concert") ||
+    name.includes("show") ||
+    name.includes("sporting")
+  ) {
     return "entertainment";
   }
-  if (name.includes("health") || name.includes("wellness") || name.includes("fitness") ||
-      name.includes("yoga") || name.includes("spa")) {
+  if (
+    name.includes("health") ||
+    name.includes("wellness") ||
+    name.includes("fitness") ||
+    name.includes("yoga") ||
+    name.includes("spa")
+  ) {
     return "health";
   }
   if (name.includes("retreat")) {
@@ -178,19 +194,19 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
   const [loading, setLoading] = useState(true);
   const [selectedSubTypes, setSelectedSubTypes] = useState<Record<number, string>>({});
   const [selectedSubTypeIds, setSelectedSubTypeIds] = useState<Record<number, number>>({});
-  const [holidayEventTypes, setHolidayEventTypes] = useState<{id: number; name: string}[]>([]);
-  const [personalEventTypes, setPersonalEventTypes] = useState<{id: number; name: string}[]>([]);
-  const [culturalEventTypes, setCulturalEventTypes] = useState<{id: number; name: string}[]>([]);
-  const [communityEventTypes, setCommunityEventTypes] = useState<{id: number; name: string}[]>([]);
-  const [artisanEventTypes, setArtisanEventTypes] = useState<{id: number; name: string}[]>([]);
-  const [foodEventTypes, setFoodEventTypes] = useState<{id: number; name: string}[]>([]);
-  const [vendorEventTypes, setVendorEventTypes] = useState<{id: number; name: string}[]>([]);
-  const [vintageEventTypes, setVintageEventTypes] = useState<{id: number; name: string}[]>([]);
-  const [contemporaryEventTypes, setContemporaryEventTypes] = useState<{id: number; name: string}[]>([]);
-  const [buffetEventTypes, setBuffetEventTypes] = useState<{id: number; name: string}[]>([]);
-  const [fineDiningEventTypes, setFineDiningEventTypes] = useState<{id: number; name: string}[]>([]);
-  const [meetupCommunityEventTypes, setMeetupCommunityEventTypes] = useState<{id: number; name: string}[]>([]);
-  const [meetupInclusiveEventTypes, setMeetupInclusiveEventTypes] = useState<{id: number; name: string}[]>([]);
+  const [holidayEventTypes, setHolidayEventTypes] = useState<{ id: number; name: string }[]>([]);
+  const [personalEventTypes, setPersonalEventTypes] = useState<{ id: number; name: string }[]>([]);
+  const [culturalEventTypes, setCulturalEventTypes] = useState<{ id: number; name: string }[]>([]);
+  const [communityEventTypes, setCommunityEventTypes] = useState<{ id: number; name: string }[]>([]);
+  const [artisanEventTypes, setArtisanEventTypes] = useState<{ id: number; name: string }[]>([]);
+  const [foodEventTypes, setFoodEventTypes] = useState<{ id: number; name: string }[]>([]);
+  const [vendorEventTypes, setVendorEventTypes] = useState<{ id: number; name: string }[]>([]);
+  const [vintageEventTypes, setVintageEventTypes] = useState<{ id: number; name: string }[]>([]);
+  const [contemporaryEventTypes, setContemporaryEventTypes] = useState<{ id: number; name: string }[]>([]);
+  const [buffetEventTypes, setBuffetEventTypes] = useState<{ id: number; name: string }[]>([]);
+  const [fineDiningEventTypes, setFineDiningEventTypes] = useState<{ id: number; name: string }[]>([]);
+  const [meetupCommunityEventTypes, setMeetupCommunityEventTypes] = useState<{ id: number; name: string }[]>([]);
+  const [meetupInclusiveEventTypes, setMeetupInclusiveEventTypes] = useState<{ id: number; name: string }[]>([]);
   const [retreatBranchTypes, setRetreatBranchTypes] = useState<Record<string, { id: number; name: string }[]>>({});
   const [browseHwHierarchy, setBrowseHwHierarchy] = useState<Awaited<
     ReturnType<typeof loadHealthWellnessEventTypeGroups>
@@ -219,12 +235,12 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
       try {
         setLoading(true);
         const { data, error } = await supabase
-          .from('Themes Directory Catalog')
-          .select('id, name, description, tags, premium, created_at')
-          .order('name');
+          .from("Themes Directory Catalog")
+          .select("id, name, description, tags, premium, created_at")
+          .order("name");
 
         if (error) {
-          console.error('Error fetching themes:', error);
+          console.error("Error fetching themes:", error);
           setThemes([]);
           setLoading(false);
           return;
@@ -237,32 +253,39 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
         }
 
         const keptIds = new Set(
-          dedupeSportThemesForPicker(
-            data.map((t) => ({ id: t.id, name: t.name ?? "", premium: t.premium })),
-          ).map((t) => t.id),
+          dedupeSportThemesForPicker(data.map((t) => ({ id: t.id, name: t.name ?? "", premium: t.premium }))).map(
+            (t) => t.id,
+          ),
         );
-        const uniqueData = data.filter((t) => keptIds.has(t.id));
+        const sportAndKept = data.filter((t) => keptIds.has(t.id));
 
-        const transformedThemes: ThemeDetails[] = uniqueData
-          .map((theme) => {
-            const category = getCategoryFromName(theme.name);
-            const styles = getThemeStyles(category);
-            return {
-              id: theme.id,
-              name: theme.name,
-              description: theme.description || getThemeDescription(category),
-              category,
-              tags: theme?.tags || [],
-              icon: getThemeIcon(theme.name),
-              color: styles.color,
-              bgColor: styles.bgColor,
-              premium: normalizePremium(theme.premium),
-            };
-          });
+        const nameSeen = new Set<string>();
+        const uniqueData = sportAndKept.filter((t) => {
+          const key = (t.name ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+          if (nameSeen.has(key)) return false;
+          nameSeen.add(key);
+          return true;
+        });
+
+        const transformedThemes: ThemeDetails[] = uniqueData.map((theme) => {
+          const category = getCategoryFromName(theme.name);
+          const styles = getThemeStyles(category);
+          return {
+            id: theme.id,
+            name: theme.name,
+            description: theme.description || getThemeDescription(category),
+            category,
+            tags: theme?.tags || [],
+            icon: getThemeIcon(theme.name),
+            color: styles.color,
+            bgColor: styles.bgColor,
+            premium: normalizePremium(theme.premium),
+          };
+        });
 
         setThemes(transformedThemes);
       } catch (error) {
-        console.error('Error in fetchThemes:', error);
+        console.error("Error in fetchThemes:", error);
         setThemes([]);
       } finally {
         setLoading(false);
@@ -279,10 +302,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
         (n: string) => /festival/i.test(n),
         (n: string) => /celebration|party|special/i.test(n),
       ];
-      const marketplaceMatchers = [
-        (n: string) => /market/i.test(n),
-        (n: string) => /marketplace|vendor fair/i.test(n),
-      ];
+      const marketplaceMatchers = [(n: string) => /market/i.test(n), (n: string) => /marketplace|vendor fair/i.test(n)];
       const diningMatchers = [
         (n: string) => /dining/i.test(n),
         (n: string) => /culinary|banquet|gala|food service/i.test(n),
@@ -391,14 +411,27 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
   };
 
   const getThemeName = (theme: any): string => {
-    const fields = ['wedding', 'parties', 'special_event', 'bridal_shower', 'baby_shower', 
-                   'reunion', 'meet_up', 'sporting', 'Festival', 'market_place', 'Dining', 'retreats'];
-    
+    const fields = [
+      "wedding",
+      "parties",
+      "special_event",
+      "bridal_shower",
+      "baby_shower",
+      "reunion",
+      "meet_up",
+      "sporting",
+      "Festival",
+      "market_place",
+      "Dining",
+      "retreats",
+    ];
+
     for (const field of fields) {
-      if (theme[field] && theme[field] !== '') {
-        return field.split('_').map((word: string) => 
-          word.charAt(0).toUpperCase() + word.slice(1)
-        ).join(' ');
+      if (theme[field] && theme[field] !== "") {
+        return field
+          .split("_")
+          .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(" ");
       }
     }
     return "Custom Theme";
@@ -432,8 +465,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
         description = "Perfect to meet like minded people for a community experience";
       }
       if (/^retreats?$/i.test(trimmed) || /^retreat\b/i.test(trimmed)) {
-        description =
-          "Perfect for building and strengthening personal, workplace and community relationships.";
+        description = "Perfect for building and strengthening personal, workplace and community relationships.";
       }
       if (/health/i.test(lower) && /wellness/i.test(lower)) {
         description = "Practice holistic health and exercises with like minded people";
@@ -505,32 +537,29 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
 
   // Helper function to render dropdown for specific tags
   const renderTagDropdown = (theme: ThemeDetails, tag: string, index: number) => {
-    const dropdownConfig: Record<string, { types: {id: number; name: string}[]; themeName: string; tagName: string }> = {
-      'Celebration-Holidays': { types: holidayEventTypes, themeName: 'Celebration', tagName: 'Holidays' },
-      'Celebration-Personal': { types: personalEventTypes, themeName: 'Celebration', tagName: 'Personal' },
-      'Festival-Cultural': { types: culturalEventTypes, themeName: 'Festival', tagName: 'Cultural' },
-      'Festival-Community': { types: communityEventTypes, themeName: 'Festival', tagName: 'Community' },
-      'Marketplace-Artisans': { types: artisanEventTypes, themeName: 'Marketplace', tagName: 'Artisans' },
-      'Marketplace-Food': { types: foodEventTypes, themeName: 'Marketplace', tagName: 'Food' },
-      'Marketplace-Vendors': { types: vendorEventTypes, themeName: 'Marketplace', tagName: 'Vendors' },
-      'Marketplace-Vintage': { types: vintageEventTypes, themeName: 'Marketplace', tagName: 'Vintage' },
-      'Dining-Contemporary': { types: contemporaryEventTypes, themeName: 'Dining', tagName: 'Contemporary' },
-      'Dining-Buffet': { types: buffetEventTypes, themeName: 'Dining', tagName: 'Buffet' },
-      'Dining-Fine Dining': { types: fineDiningEventTypes, themeName: 'Dining', tagName: 'Fine Dining' },
-      'Meetup-Community': { types: meetupCommunityEventTypes, themeName: 'Meetup', tagName: 'Community' },
-      'Meetup-Inclusive': { types: meetupInclusiveEventTypes, themeName: 'Meetup', tagName: 'Inclusive' },
+    const dropdownConfig: Record<
+      string,
+      { types: { id: number; name: string }[]; themeName: string; tagName: string }
+    > = {
+      "Celebration-Holidays": { types: holidayEventTypes, themeName: "Celebration", tagName: "Holidays" },
+      "Celebration-Personal": { types: personalEventTypes, themeName: "Celebration", tagName: "Personal" },
+      "Festival-Cultural": { types: culturalEventTypes, themeName: "Festival", tagName: "Cultural" },
+      "Festival-Community": { types: communityEventTypes, themeName: "Festival", tagName: "Community" },
+      "Marketplace-Artisans": { types: artisanEventTypes, themeName: "Marketplace", tagName: "Artisans" },
+      "Marketplace-Food": { types: foodEventTypes, themeName: "Marketplace", tagName: "Food" },
+      "Marketplace-Vendors": { types: vendorEventTypes, themeName: "Marketplace", tagName: "Vendors" },
+      "Marketplace-Vintage": { types: vintageEventTypes, themeName: "Marketplace", tagName: "Vintage" },
+      "Dining-Contemporary": { types: contemporaryEventTypes, themeName: "Dining", tagName: "Contemporary" },
+      "Dining-Buffet": { types: buffetEventTypes, themeName: "Dining", tagName: "Buffet" },
+      "Dining-Fine Dining": { types: fineDiningEventTypes, themeName: "Dining", tagName: "Fine Dining" },
+      "Meetup-Community": { types: meetupCommunityEventTypes, themeName: "Meetup", tagName: "Community" },
+      "Meetup-Inclusive": { types: meetupInclusiveEventTypes, themeName: "Meetup", tagName: "Inclusive" },
     };
 
     let config: { types: { id: number; name: string }[]; themeName: string; tagName: string } | undefined;
 
-    if (
-      browseHwHierarchy &&
-      /health/i.test(theme.name) &&
-      /wellness/i.test(theme.name)
-    ) {
-      const slug = browseHwHierarchy.orderedCategoryKeys.find(
-        (k) => (browseHwHierarchy.keyLabel[k] ?? k) === tag,
-      );
+    if (browseHwHierarchy && /health/i.test(theme.name) && /wellness/i.test(theme.name)) {
+      const slug = browseHwHierarchy.orderedCategoryKeys.find((k) => (browseHwHierarchy.keyLabel[k] ?? k) === tag);
       if (slug && (browseHwHierarchy.groups[slug] ?? []).length > 0) {
         config = { types: browseHwHierarchy.groups[slug] ?? [], themeName: theme.name, tagName: tag };
       }
@@ -551,16 +580,21 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
       config = dropdownConfig[configKey];
     }
 
-    const tagBadgeLabel =
-      isSportThemeName(theme.name) ? sportingTypeUiLabel(tag) || tag : tag;
+    // Fallback: match dining themes by category regardless of exact name
+    if (!config && /dining/i.test(theme.name)) {
+      const diningKey = `Dining-${tag}`;
+      config = dropdownConfig[diningKey];
+    }
+
+    const tagBadgeLabel = isSportThemeName(theme.name) ? sportingTypeUiLabel(tag) || tag : tag;
 
     if (config) {
       return (
         <Popover key={index}>
           <PopoverTrigger asChild>
             <button className="inline-flex items-center gap-1">
-              <Badge 
-                variant="outline" 
+              <Badge
+                variant="outline"
                 className="text-xs cursor-pointer hover:bg-primary/10 transition-colors inline-flex items-center gap-1"
               >
                 {tagBadgeLabel}
@@ -568,7 +602,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
               </Badge>
             </button>
           </PopoverTrigger>
-          <PopoverContent 
+          <PopoverContent
             className="w-56 p-2 bg-popover border shadow-lg max-h-96 overflow-y-auto"
             style={{ zIndex: 9999 }}
             sideOffset={5}
@@ -579,15 +613,13 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
                   <button
                     key={item.id}
                     className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
-                      onClick={() => {
+                    onClick={() => {
                       setSelectedSubTypes((prev) => ({ ...prev, [theme.id]: item.name }));
                       setSelectedSubTypeIds((prev) => ({ ...prev, [theme.id]: item.id }));
                       onSelectTheme(theme.id, theme.name, item.name, item.id);
                     }}
                   >
-                    {isSportThemeName(theme.name)
-                      ? sportingTypeUiLabel(item.name) || item.name
-                      : item.name}
+                    {isSportThemeName(theme.name) ? sportingTypeUiLabel(item.name) || item.name : item.name}
                   </button>
                 ))
               ) : (
@@ -615,15 +647,17 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
 
     if (viewMode === "list") {
       return (
-        <Card className={`cursor-pointer transition-all duration-300 hover:shadow-md border-2 ${
-          isSelected ? 'border-primary shadow-lg' : 'border-border'
-        }`}>
+        <Card
+          className={`cursor-pointer transition-all duration-300 hover:shadow-md border-2 overflow-visible ${
+            isSelected ? "border-primary shadow-lg" : "border-border"
+          }`}
+        >
           <CardContent className="p-4">
             <div className="flex items-center gap-4">
               <div className={`p-3 rounded-lg ${theme.bgColor}/10 border border-current/20`}>
                 <IconComponent className={`h-8 w-8 ${theme.color}`} />
               </div>
-              
+
               <div className="flex-1 space-y-2">
                 <div className="flex items-start justify-between">
                   <div>
@@ -638,20 +672,18 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
                     <p className="text-sm text-muted-foreground">{theme.description}</p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center justify-between">
                   <div className="flex flex-wrap gap-1">
                     {theme.tags.map((tag, index) => renderTagDropdown(theme, tag, index))}
                   </div>
-                  
+
                   <div className="flex flex-wrap gap-2 justify-end">
                     <Button
                       type="button"
                       size="sm"
                       variant={isSelected ? "default" : "outline"}
-                      onClick={() =>
-                        onSelectTheme(theme.id, theme.name, currentSubType, selectedSubTypeIds[theme.id])
-                      }
+                      onClick={() => onSelectTheme(theme.id, theme.name, currentSubType, selectedSubTypeIds[theme.id])}
                     >
                       {isSelected ? (
                         <>
@@ -678,15 +710,17 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
 
     // Grid view
     return (
-      <Card className={`cursor-pointer transition-all duration-300 hover:shadow-md border-2 ${
-        isSelected ? 'border-primary shadow-lg' : 'border-border'
-      }`}>
+      <Card
+        className={`cursor-pointer transition-all duration-300 hover:shadow-md border-2 overflow-visible ${
+          isSelected ? "border-primary shadow-lg" : "border-border"
+        }`}
+      >
         <CardHeader className="pb-3">
           <div className="flex items-center gap-3">
             <div className={`p-2 rounded-lg ${theme.bgColor} border border-current/20`}>
               <IconComponent className={`h-6 w-6 ${theme.color}`} />
             </div>
-            
+
             <div className="space-y-2 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <CardTitle className="text-lg leading-none">{theme.name}</CardTitle>
@@ -700,7 +734,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
             </div>
           </div>
         </CardHeader>
-        
+
         <CardContent className="pt-0 space-y-3">
           <div className="flex flex-wrap gap-1">
             {theme.tags.map((tag, index) => renderTagDropdown(theme, tag, index))}
@@ -710,20 +744,12 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
               type="button"
               className="w-full"
               variant={isSelected ? "default" : "outline"}
-              onClick={() =>
-                onSelectTheme(theme.id, theme.name, currentSubType, selectedSubTypeIds[theme.id])
-              }
+              onClick={() => onSelectTheme(theme.id, theme.name, currentSubType, selectedSubTypeIds[theme.id])}
             >
               {isSelected ? "Selected" : "Select Theme"}
             </Button>
             {isSelected && onClearSelection ? (
-              <Button
-                type="button"
-                className="w-full"
-                variant="outline"
-                size="sm"
-                onClick={() => onClearSelection()}
-              >
+              <Button type="button" className="w-full" variant="outline" size="sm" onClick={() => onClearSelection()}>
                 Clear selection
               </Button>
             ) : null}
@@ -747,9 +773,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
       <Card>
         <CardHeader>
           <CardTitle>Browse Event Themes</CardTitle>
-          <CardDescription>
-            Select from our curated collection of event themes
-          </CardDescription>
+          <CardDescription>Select from our curated collection of event themes</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
@@ -799,9 +823,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
             <CardContent className="text-center py-8">
               <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-semibold mb-2">No themes found</h3>
-              <p className="text-muted-foreground">
-                Try adjusting your search criteria or browse all themes.
-              </p>
+              <p className="text-muted-foreground">Try adjusting your search criteria or browse all themes.</p>
             </CardContent>
           </Card>
         )}
