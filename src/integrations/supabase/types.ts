@@ -62,6 +62,204 @@ export type Database = {
         }
         Relationships: []
       }
+      backup_cm_change_requests_columns_20260608: {
+        Row: {
+          backed_up_at: string | null
+          column_default: string | null
+          column_name: unknown
+          data_type: string | null
+          is_nullable: string | null
+          ordinal_position: number | null
+          table_name: unknown
+          table_schema: unknown
+          udt_name: unknown
+        }
+        Insert: {
+          backed_up_at?: string | null
+          column_default?: string | null
+          column_name?: unknown
+          data_type?: string | null
+          is_nullable?: string | null
+          ordinal_position?: number | null
+          table_name?: unknown
+          table_schema?: unknown
+          udt_name?: unknown
+        }
+        Update: {
+          backed_up_at?: string | null
+          column_default?: string | null
+          column_name?: unknown
+          data_type?: string | null
+          is_nullable?: string | null
+          ordinal_position?: number | null
+          table_name?: unknown
+          table_schema?: unknown
+          udt_name?: unknown
+        }
+        Relationships: []
+      }
+      backup_cm_change_requests_data_20260608: {
+        Row: {
+          change_type: string | null
+          created_at: string | null
+          description: string | null
+          device_info: Json | null
+          event_id: string | null
+          field_changed: string | null
+          id: string | null
+          location_id: string | null
+          new_value: string | null
+          old_value: string | null
+          priority_tag: string | null
+          requested_by: string | null
+          requested_estimate_minutes: number | null
+          resolved_at: string | null
+          resolved_by: string | null
+          rollout_timing: string | null
+          status: string | null
+          task_id: string | null
+        }
+        Insert: {
+          change_type?: string | null
+          created_at?: string | null
+          description?: string | null
+          device_info?: Json | null
+          event_id?: string | null
+          field_changed?: string | null
+          id?: string | null
+          location_id?: string | null
+          new_value?: string | null
+          old_value?: string | null
+          priority_tag?: string | null
+          requested_by?: string | null
+          requested_estimate_minutes?: number | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          rollout_timing?: string | null
+          status?: string | null
+          task_id?: string | null
+        }
+        Update: {
+          change_type?: string | null
+          created_at?: string | null
+          description?: string | null
+          device_info?: Json | null
+          event_id?: string | null
+          field_changed?: string | null
+          id?: string | null
+          location_id?: string | null
+          new_value?: string | null
+          old_value?: string | null
+          priority_tag?: string | null
+          requested_by?: string | null
+          requested_estimate_minutes?: number | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          rollout_timing?: string | null
+          status?: string | null
+          task_id?: string | null
+        }
+        Relationships: []
+      }
+      backup_cm_change_requests_policies_20260608: {
+        Row: {
+          backed_up_at: string | null
+          cmd: string | null
+          permissive: string | null
+          policyname: unknown
+          qual: string | null
+          roles: unknown[] | null
+          schemaname: unknown
+          tablename: unknown
+          with_check: string | null
+        }
+        Insert: {
+          backed_up_at?: string | null
+          cmd?: string | null
+          permissive?: string | null
+          policyname?: unknown
+          qual?: string | null
+          roles?: unknown[] | null
+          schemaname?: unknown
+          tablename?: unknown
+          with_check?: string | null
+        }
+        Update: {
+          backed_up_at?: string | null
+          cmd?: string | null
+          permissive?: string | null
+          policyname?: unknown
+          qual?: string | null
+          roles?: unknown[] | null
+          schemaname?: unknown
+          tablename?: unknown
+          with_check?: string | null
+        }
+        Relationships: []
+      }
+      backup_cm_change_requests_test_event_20260608: {
+        Row: {
+          change_type: string | null
+          created_at: string | null
+          description: string | null
+          device_info: Json | null
+          event_id: string | null
+          field_changed: string | null
+          id: string | null
+          location_id: string | null
+          new_value: string | null
+          old_value: string | null
+          priority_tag: string | null
+          requested_by: string | null
+          requested_estimate_minutes: number | null
+          resolved_at: string | null
+          resolved_by: string | null
+          rollout_timing: string | null
+          status: string | null
+          task_id: string | null
+        }
+        Insert: {
+          change_type?: string | null
+          created_at?: string | null
+          description?: string | null
+          device_info?: Json | null
+          event_id?: string | null
+          field_changed?: string | null
+          id?: string | null
+          location_id?: string | null
+          new_value?: string | null
+          old_value?: string | null
+          priority_tag?: string | null
+          requested_by?: string | null
+          requested_estimate_minutes?: number | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          rollout_timing?: string | null
+          status?: string | null
+          task_id?: string | null
+        }
+        Update: {
+          change_type?: string | null
+          created_at?: string | null
+          description?: string | null
+          device_info?: Json | null
+          event_id?: string | null
+          field_changed?: string | null
+          id?: string | null
+          location_id?: string | null
+          new_value?: string | null
+          old_value?: string | null
+          priority_tag?: string | null
+          requested_by?: string | null
+          requested_estimate_minutes?: number | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          rollout_timing?: string | null
+          status?: string | null
+          task_id?: string | null
+        }
+        Relationships: []
+      }
       barcode_submissions: {
         Row: {
           book_id: string
