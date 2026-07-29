@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,8 @@ import { getPostSignInNavigationPath } from "@/lib/profileOnboardingGate";
 import { PRICING_TIERS_SUMMARY } from "@/lib/pricingSummaryCopy";
 import { recordMarketingTrialConversion } from "@/lib/recordMarketingTrialConversion";
 
+const AUTH_TABS = new Set(["signin", "signup", "magic", "reset"]);
+
 export default function Auth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -25,12 +27,30 @@ export default function Auth() {
   const [magicLinkEmail, setMagicLinkEmail] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState("signin");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabFromUrl = searchParams.get("tab");
+  const [activeTab, setActiveTab] = useState(() =>
+    tabFromUrl && AUTH_TABS.has(tabFromUrl) ? tabFromUrl : "signin",
+  );
 
   const { signIn, signUp, resetPassword, signInWithMagicLink, signInWithOAuth, user } = useAuth();
   const oauthEnabled = import.meta.env.VITE_ENABLE_OAUTH === "true";
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab && AUTH_TABS.has(tab)) {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    const next = new URLSearchParams(searchParams);
+    next.set("tab", value);
+    setSearchParams(next, { replace: true });
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -180,7 +200,7 @@ export default function Auth() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <Tabs value={activeTab} onValueChange={handleTabChange}>
                 <TabsList className="grid w-full grid-cols-4">
                   <TabsTrigger value="signin">Sign In</TabsTrigger>
                   <TabsTrigger value="signup">Sign Up</TabsTrigger>
@@ -220,8 +240,9 @@ export default function Auth() {
                           size="icon"
                           className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                           onClick={() => setShowPassword(!showPassword)}
+                          aria-label={showPassword ? "Hide password" : "Show password"}
                         >
-                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          {showPassword ? <EyeOff className="h-4 w-4" aria-hidden /> : <Eye className="h-4 w-4" aria-hidden />}
                         </Button>
                       </div>
                     </div>
@@ -319,8 +340,9 @@ export default function Auth() {
                           size="icon"
                           className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                           onClick={() => setShowPassword(!showPassword)}
+                          aria-label={showPassword ? "Hide password" : "Show password"}
                         >
-                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          {showPassword ? <EyeOff className="h-4 w-4" aria-hidden /> : <Eye className="h-4 w-4" aria-hidden />}
                         </Button>
                       </div>
                       {(() => {

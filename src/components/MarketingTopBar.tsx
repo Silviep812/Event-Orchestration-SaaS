@@ -1,15 +1,17 @@
-import { useState, useEffect } from "react";
+import { useId, useState } from "react";
 import { Button } from "@/components/ui/button";
-// import { Clock, Menu, X } from "lucide-react";
 import { Menu, X } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { IEP_LOGO_COLORED } from "@/lib/brandAssets";
+import { AUTH_SIGN_IN_PATH, AUTH_STARTER_PLAN_PATH } from "@/lib/authRoutes";
 
 type Page = "home" | "auth";
 
 type MarketingTopBarProps = {
   /** Current public page — hides redundant nav actions */
   page?: Page;
+  /** Optional: open the landing demo modal from header Demo control */
+  onWatchDemo?: () => void;
 };
 
 const scrollToHash = (id: string) => {
@@ -20,32 +22,34 @@ const scrollToHash = (id: string) => {
   }
 };
 
-export function MarketingTopBar({ page = "home" }: MarketingTopBarProps) {
-  // const [now, setNow] = useState(() => new Date());
+export function MarketingTopBar({ page = "home", onWatchDemo }: MarketingTopBarProps) {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
-
-  // useEffect(() => {
-  //   const t = setInterval(() => setNow(new Date()), 1000);
-  //   return () => clearInterval(t);
-  // }, []);
-
-  // const timeLabel = now.toLocaleTimeString("en-US", {
-  //   hour: "2-digit",
-  //   minute: "2-digit",
-  //   second: "2-digit",
-  // });
-  // const dateLabel = now.toLocaleDateString("en-US", {
-  //   weekday: "short",
-  //   month: "short",
-  //   day: "numeric",
-  // });
-
+  const menuId = useId();
   const showSignInCta = page !== "auth";
 
+  const goFeatures = () => {
+    scrollToHash("features");
+    setOpen(false);
+  };
+
+  const goPricing = () => {
+    scrollToHash("pricing");
+    setOpen(false);
+  };
+
+  const goDemo = () => {
+    if (onWatchDemo) {
+      onWatchDemo();
+    } else {
+      scrollToHash("demo");
+    }
+    setOpen(false);
+  };
+
   return (
-    <nav className="border-b border-amber-200/50 bg-gradient-to-r from-amber-50/95 via-orange-50/90 to-rose-50/85 backdrop-blur-md supports-[backdrop-filter]:from-amber-50/90">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-40 border-b border-amber-200/50 bg-gradient-to-r from-amber-50/95 via-orange-50/90 to-rose-50/85 backdrop-blur-md supports-[backdrop-filter]:from-amber-50/90">
+      <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" aria-label="Marketing">
         <div className="flex flex-nowrap items-center justify-between gap-4 min-h-[4.5rem] py-3">
           <div className="flex items-center gap-3 min-w-0 shrink-0">
             <Link to="/" className="flex items-center gap-3 min-w-0" aria-label="Ida Event Partners — We Got You">
@@ -69,139 +73,151 @@ export function MarketingTopBar({ page = "home" }: MarketingTopBarProps) {
 
           <div className="hidden lg:flex flex-nowrap items-center justify-end gap-2 min-w-0">
             <Button
+              type="button"
               variant="ghost"
               size="sm"
               className="text-foreground/90 shrink-0 whitespace-nowrap"
-              onClick={() => scrollToHash("features")}
+              onClick={goFeatures}
             >
               Features
             </Button>
             <Button
+              type="button"
               variant="ghost"
               size="sm"
               className="text-foreground/90 shrink-0 whitespace-nowrap"
-              onClick={() => scrollToHash("pricing")}
+              onClick={goDemo}
+            >
+              Demo
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="text-foreground/90 shrink-0 whitespace-nowrap"
+              onClick={goPricing}
             >
               Pricing
             </Button>
             <span className="inline-flex items-center rounded-md bg-primary/15 px-2.5 py-1 text-xs font-medium text-primary whitespace-nowrap shrink-0">
-              Free Starter Plan Available
+              Free Starter Plan for Event Planners
             </span>
-            {/* <div className="flex shrink-0 items-center gap-1.5 pl-3 ml-1 border-l border-amber-200/60 text-muted-foreground tabular-nums">
-              <Clock className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
-              <div className="flex flex-col items-end text-[11px] leading-tight whitespace-nowrap">
-                <span className="text-foreground font-medium">{timeLabel}</span>
-                <span>{dateLabel}</span>
-              </div>
-            </div> */}
             {showSignInCta && (
               <>
                 <Button
+                  type="button"
                   variant="outline"
                   size="sm"
                   className="shrink-0 whitespace-nowrap"
-                  onClick={() => navigate("/auth")}
+                  onClick={() => navigate(AUTH_SIGN_IN_PATH)}
                 >
                   Sign In
                 </Button>
-                <Button size="sm" className="shrink-0 whitespace-nowrap" onClick={() => navigate("/auth")}>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="shrink-0 whitespace-nowrap"
+                  onClick={() => navigate(AUTH_STARTER_PLAN_PATH)}
+                >
                   Try Starter Plan - Free
                 </Button>
               </>
             )}
             {page === "auth" && (
-              <Button variant="secondary" size="sm" className="shrink-0" onClick={() => navigate("/")}>
+              <Button type="button" variant="secondary" size="sm" className="shrink-0" onClick={() => navigate("/")}>
                 Home
               </Button>
             )}
           </div>
 
           <div className="flex lg:hidden items-center gap-2 shrink-0">
-            {/* <div className="flex items-center gap-1 text-muted-foreground tabular-nums text-xs whitespace-nowrap">
-              <Clock className="h-3.5 w-3.5 shrink-0" aria-hidden />
-              <span>{timeLabel}</span>
-            </div> */}
             {showSignInCta && (
               <Button
+                type="button"
                 variant="ghost"
                 size="sm"
                 className="shrink-0 whitespace-nowrap"
-                onClick={() => navigate("/auth")}
+                onClick={() => navigate(AUTH_SIGN_IN_PATH)}
               >
                 Sign In
               </Button>
             )}
             {page === "auth" && (
-              <Button variant="ghost" size="sm" className="shrink-0" onClick={() => navigate("/")}>
+              <Button type="button" variant="ghost" size="sm" className="shrink-0" onClick={() => navigate("/")}>
                 Home
               </Button>
             )}
             <Button
+              type="button"
               variant="ghost"
               size="icon"
               className="shrink-0"
-              onClick={() => setOpen(!open)}
+              onClick={() => setOpen((prev) => !prev)}
               aria-label={open ? "Close menu" : "Open menu"}
+              aria-expanded={open}
+              aria-controls={menuId}
             >
-              {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+              {open ? <X className="h-6 w-6" aria-hidden /> : <Menu className="h-6 w-6" aria-hidden />}
             </Button>
           </div>
         </div>
 
         {open && (
-          <div className="lg:hidden border-t border-amber-200/50 pb-3">
+          <div id={menuId} className="lg:hidden border-t border-amber-200/50 pb-3">
             <div className="px-2 pt-3 space-y-1">
               <p className="px-2 text-xs text-muted-foreground">Plan events with calm confidence</p>
-              <Button
-                variant="ghost"
-                className="w-full justify-start"
-                onClick={() => {
-                  scrollToHash("features");
-                  setOpen(false);
-                }}
-              >
+              <Button type="button" variant="ghost" className="w-full justify-start" onClick={goFeatures}>
                 Features
               </Button>
-              <Button
-                variant="ghost"
-                className="w-full justify-start"
-                onClick={() => {
-                  scrollToHash("demo");
-                  setOpen(false);
-                }}
-              >
+              <Button type="button" variant="ghost" className="w-full justify-start" onClick={goDemo}>
                 Demo
               </Button>
-              <Button
-                variant="ghost"
-                className="w-full justify-start"
-                onClick={() => {
-                  scrollToHash("pricing");
-                  setOpen(false);
-                }}
-              >
+              <Button type="button" variant="ghost" className="w-full justify-start" onClick={goPricing}>
                 Pricing
               </Button>
               <div className="px-2 py-2 text-sm text-primary font-medium">Free Starter Plan for Event Planners</div>
               {showSignInCta && (
                 <>
-                  <Button variant="outline" className="w-full" onClick={() => navigate("/auth")}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
+                      setOpen(false);
+                      navigate(AUTH_SIGN_IN_PATH);
+                    }}
+                  >
                     Sign In
                   </Button>
-                  <Button className="w-full" onClick={() => navigate("/auth")}>
-                    Start free trial
+                  <Button
+                    type="button"
+                    className="w-full"
+                    onClick={() => {
+                      setOpen(false);
+                      navigate(AUTH_STARTER_PLAN_PATH);
+                    }}
+                  >
+                    Try Starter Plan - Free
                   </Button>
                 </>
               )}
               {page === "auth" && (
-                <Button variant="secondary" className="w-full" onClick={() => navigate("/")}>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="w-full"
+                  onClick={() => {
+                    setOpen(false);
+                    navigate("/");
+                  }}
+                >
                   Home
                 </Button>
               )}
             </div>
           </div>
         )}
-      </div>
-    </nav>
+      </nav>
+    </header>
   );
 }
