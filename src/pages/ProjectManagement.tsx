@@ -1,6 +1,5 @@
 import { TaskManager } from "@/components/TaskManager";
 import { BudgetTracker } from "@/components/BudgetTracker";
-import { RoleManager } from "@/components/RoleManager";
 import { CollaboratorPanel } from "@/components/CollaboratorPanel";
 import { ChangeManagementPanel } from "@/components/ChangeManagementPanel";
 import { EventStakeholdersPanel } from "@/components/EventStakeholdersPanel";
@@ -12,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { useEventFilter } from "@/hooks/useEventFilter";
 import { CheckCircle2, DollarSign, Users, GitPullRequest } from "lucide-react";
 import { format } from "date-fns";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { eventSelectLifecycleLabel } from "@/lib/eventStatus";
 import { computeEventLifecycle } from "@/lib/eventStatus";
@@ -20,15 +19,12 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function ProjectManagement() {
   const { selectedEventFilter, setSelectedEventFilter, events: allEvents, eventsLoading } = useEventFilter();
-  // Project Management only operates on Active events: not archived, not cancelled, not past,
-  // and with a workflow status of pending / in_progress / confirmed.
   const events = allEvents.filter((e) => computeEventLifecycle(e)?.isActiveEvent);
   const navigate = useNavigate();
   const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState("tasks");
 
-  // Only apply ?eventId= once events are loaded. Radix Select throws if `value` has no matching SelectItem.
   useEffect(() => {
     const eid = searchParams.get("eventId");
     if (!eid || eventsLoading) return;
@@ -60,7 +56,7 @@ export default function ProjectManagement() {
         }
         return next;
       },
-      { replace: true }
+      { replace: true },
     );
   };
 
@@ -151,42 +147,21 @@ export default function ProjectManagement() {
 
         <TabsContent value="collaborator" className="space-y-8">
           <p className="text-sm text-muted-foreground max-w-3xl border-b pb-6">
-            Roles and permissions, task assignments, and collaborator checklists share the event filter above. The{" "}
-            <strong className="text-foreground">Task</strong> tab shows the same assignment list when you need it
-            without this workspace layout.
+            Assigned tasks sync automatically from the <strong className="text-foreground">Task</strong> tab. Role
+            management and permission levels live under{" "}
+            <Link to="/dashboard/collaborate" className="text-primary underline-offset-4 hover:underline">
+              Communication / Team
+            </Link>
+            .
           </p>
 
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Role management</h3>
-            <RoleManager
-              selectedEventFilter={selectedEventFilter}
-              showAddTaskShortcut={false}
-              suppressPrimaryHeading
-            />
-          </div>
-
-          <div className="space-y-4 border-t pt-6">
-            <h3 className="text-lg font-semibold">Task assignment</h3>
-            <p className="text-sm text-muted-foreground">
-            Same list and forms as the <strong className="text-foreground">Task</strong> tab: one assignment type per
-            task, IEP prerequisite gates, task-to-task dependencies, assignee name, and the matching collaborator
-            checklist.
-            </p>
-            <TaskManager selectedEventFilter={selectedEventFilter} suppressPrimaryHeading />
-          </div>
-
-          <div className="space-y-4 border-t pt-6">
-            <h3 className="text-lg font-semibold">Create change request</h3>
-            <p className="text-sm text-muted-foreground">
-              Submitting posts a task to PM Task Management and shows up in Manage Event for the owner to approve or
-              decline. You will be notified when the owner acts.
-            </p>
-            <CollaboratorPanel
-              selectedEventFilter={selectedEventFilter}
-              onChangeRequestPosted={() => handleTabChange("tasks")}
-              onGoToTasksTab={() => handleTabChange("tasks")}
-            />
-          </div>
+          {/* M5: Assigned Tasks first, then Create change request. No Role Manager / duplicate Assign Task here. */}
+          <CollaboratorPanel
+            selectedEventFilter={selectedEventFilter}
+            onChangeRequestPosted={() => handleTabChange("tasks")}
+            onGoToTasksTab={() => handleTabChange("tasks")}
+            hideGeneralChecklists
+          />
 
           {selectedEventFilter !== "all" ? (
             <div className="space-y-4 border-t pt-6">
@@ -197,11 +172,12 @@ export default function ProjectManagement() {
 
         <TabsContent value="change-request" className="space-y-8">
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Create change request &amp; collaborator checklists</h3>
+            <h3 className="text-lg font-semibold">Create change request</h3>
             <CollaboratorPanel
               selectedEventFilter={selectedEventFilter}
               onChangeRequestPosted={() => handleTabChange("tasks")}
               onGoToTasksTab={() => handleTabChange("tasks")}
+              hideGeneralChecklists
             />
           </div>
 

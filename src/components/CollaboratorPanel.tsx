@@ -67,12 +67,15 @@ interface CollaboratorPanelProps {
   onChangeRequestPosted?: () => void;
   /** Switch PM to the Task tab (parent-controlled tabs) */
   onGoToTasksTab?: () => void;
+  /** M5: hide local general collaborator checklist block (assignments live in PM/Task). */
+  hideGeneralChecklists?: boolean;
 }
 
 export function CollaboratorPanel({
   selectedEventFilter,
   onChangeRequestPosted,
   onGoToTasksTab,
+  hideGeneralChecklists = false,
 }: CollaboratorPanelProps) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -423,13 +426,14 @@ export function CollaboratorPanel({
         </CardContent>
       </Card>
 
+      {!hideGeneralChecklists ? (
       <Card>
         <CardHeader>
           <CardTitle>Task assignment collaborator checklists</CardTitle>
           <CardDescription>
             General readiness items for collaborators (saved on this device for this event:{" "}
             {completedCount}/{totalItems} done). Per-task checklists tied to assignment type appear on each
-            task in Task Management and in the Task assignment section above.
+            task in Task Management.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -494,6 +498,7 @@ export function CollaboratorPanel({
           )}
         </CardContent>
       </Card>
+      ) : null}
 
       <Card>
         <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">

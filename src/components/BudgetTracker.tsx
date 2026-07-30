@@ -39,6 +39,7 @@ interface BudgetTrackerProps {
 const categoryColors = {
   venue: "bg-blue-100 text-blue-800",
   catering: "bg-green-100 text-green-800",
+  hospitality: "bg-emerald-100 text-emerald-800",
   entertainment: "bg-purple-100 text-purple-800",
   decorations: "bg-pink-100 text-pink-800",
   transportation: "bg-yellow-100 text-yellow-800",
@@ -47,7 +48,7 @@ const categoryColors = {
   services: "bg-cyan-100 text-cyan-800",
   vendors: "bg-teal-100 text-teal-800",
   misc: "bg-gray-100 text-gray-800",
-  other: "bg-gray-100 text-gray-800"
+  other: "bg-gray-100 text-gray-800",
 };
 
 const paymentStatusColors = {
@@ -512,6 +513,7 @@ export function BudgetTracker({ eventId, selectedEventFilter }: BudgetTrackerPro
                   <SelectContent>
                     <SelectItem value="venue">Venue</SelectItem>
                     <SelectItem value="catering">Catering</SelectItem>
+                    <SelectItem value="hospitality">Hospitality</SelectItem>
                     <SelectItem value="entertainment">Entertainment</SelectItem>
                     <SelectItem value="decorations">Decorations</SelectItem>
                     <SelectItem value="transportation">Transportation</SelectItem>

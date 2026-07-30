@@ -14,6 +14,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { Users, UserPlus, Clock, AlertCircle, FileIcon, Upload, CheckCircle, MessageSquare } from "lucide-react";
 import { TeamMemberCard } from "@/components/TeamMemberCard";
 import { NoTeamMembersCard } from "@/components/NoTeamMembersCard";
+import { RoleManager } from "@/components/RoleManager";
+import { useEventFilter } from "@/hooks/useEventFilter";
 
 export interface TeamMember {
   id: string;
@@ -785,18 +787,23 @@ export default function Collaborate() {
     }
   };
 
+  const { selectedEventFilter } = useEventFilter();
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-            Team Members
+            Communication / Team
           </h1>
           <p className="text-muted-foreground">
-            Invite team members, assign roles, and coordinate on events
+            Invite team members, manage permission levels, assign roles, and navigate to Themes to create an event
           </p>
         </div>
         <div className="flex flex-wrap gap-2 shrink-0">
+          <Button type="button" variant="outline" asChild>
+            <Link to="/dashboard/themes">Browse Themes / Create Event</Link>
+          </Button>
           <Button type="button" variant="outline" asChild>
             <Link to="/dashboard/manage-event">Manage Event</Link>
           </Button>
@@ -997,6 +1004,19 @@ export default function Collaborate() {
           </DialogContent>
         </Dialog>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Invite, permission levels &amp; task assignment (role)</CardTitle>
+          <CardDescription>
+            Role management and permission levels for the selected event. Task assignments are created in Project
+            Management → Task and appear for collaborators automatically.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <RoleManager selectedEventFilter={selectedEventFilter} />
+        </CardContent>
+      </Card>
 
       <Tabs value={activeTab} onValueChange={handleCollaborateTabChange} className="space-y-6">
         <TabsList className="grid w-full grid-cols-2">

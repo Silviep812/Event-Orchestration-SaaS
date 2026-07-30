@@ -4944,6 +4944,7 @@ export type Database = {
           description: string | null
           id: string
           name: string
+          template_kind: string
           updated_at: string
           user_id: string
         }
@@ -4952,6 +4953,7 @@ export type Database = {
           description?: string | null
           id?: string
           name: string
+          template_kind?: string
           updated_at?: string
           user_id: string
         }
@@ -4960,8 +4962,42 @@ export type Database = {
           description?: string | null
           id?: string
           name?: string
+          template_kind?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      template_budget_items: {
+        Row: {
+          id: string
+          template_id: string
+          user_id: string
+          category: string
+          item_name: string
+          estimated_cost: number | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          template_id: string
+          user_id: string
+          category?: string
+          item_name: string
+          estimated_cost?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          template_id?: string
+          user_id?: string
+          category?: string
+          item_name?: string
+          estimated_cost?: number | null
+          created_at?: string
+          updated_at?: string
         }
         Relationships: []
       }

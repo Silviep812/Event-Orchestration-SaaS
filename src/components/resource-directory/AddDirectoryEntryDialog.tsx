@@ -38,6 +38,13 @@ interface AddDirectoryEntryDialogProps {
   showCapacity?: boolean;
   /** Pass true if the table has a user_id column to scope ownership. */
   setUserId?: boolean;
+  /**
+   * When true, do not write typeColumn/customColumn on the profile row
+   * (e.g. service_rental_buy uses junction assignments for types).
+   */
+  skipTypeFk?: boolean;
+  /** Optional hook after insert (e.g. write junction assignment). Receives new row id when available. */
+  onInserted?: (rowId: string | null, selectedTypeId: string | null) => Promise<void>;
   /** Called after a successful insert so the parent page can refetch. */
   onCreated: () => void;
 }
@@ -52,6 +59,8 @@ export function AddDirectoryEntryDialog({
   numericTypeId = true,
   showCapacity = false,
   setUserId = false,
+  skipTypeFk = false,
+  onInserted,
   onCreated,
 }: AddDirectoryEntryDialogProps) {
   const { toast } = useToast();
@@ -118,12 +127,16 @@ export function AddDirectoryEntryDialog({
         payload.capacity = Number(form.capacity);
       }
 
-      if (form.type === OTHER_VALUE) {
-        payload[typeColumn] = null;
+      if (!skipTypeFk) {
+        if (form.type === OTHER_VALUE) {
+          payload[typeColumn] = null;
+          payload[customColumn] = form.custom.trim();
+        } else if (form.type) {
+          payload[typeColumn] = numericTypeId ? Number(form.type) : form.type;
+          payload[customColumn] = null;
+        }
+      } else if (form.type === OTHER_VALUE && form.custom.trim()) {
         payload[customColumn] = form.custom.trim();
-      } else if (form.type) {
-        payload[typeColumn] = numericTypeId ? Number(form.type) : form.type;
-        payload[customColumn] = null;
       }
 
       if (setUserId) {
@@ -142,7 +155,10 @@ export function AddDirectoryEntryDialog({
         payload.user_id = user.id;
       }
 
-      const { error } = await (supabase.from(table as any) as any).insert(payload);
+      const { data: inserted, error } = await (supabase.from(table as any) as any)
+        .insert(payload)
+        .select("id")
+        .maybeSingle();
 
       if (error) {
         toast({
@@ -151,6 +167,11 @@ export function AddDirectoryEntryDialog({
           variant: "destructive",
         });
       } else {
+        const rowId = inserted?.id != null ? String(inserted.id) : null;
+        const selectedType = form.type && form.type !== OTHER_VALUE ? form.type : null;
+        if (onInserted) {
+          await onInserted(rowId, selectedType);
+        }
         toast({ title: "Entry added", description: `${form.business_name} has been added.` });
         reset();
         setOpen(false);

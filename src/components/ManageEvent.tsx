@@ -2107,25 +2107,7 @@ const ManageEvent = () => {
                         </Alert>
                       ) : null}
 
-                      <div className="flex items-start gap-3 rounded-lg border p-4 md:col-span-2">
-                        <Checkbox
-                          id="venue-booking-completed"
-                          checked={selectedEvent.venue_booking_completed === true}
-                          onCheckedChange={(c) => void handleFieldChange("venue_booking_completed", c === true)}
-                        />
-                        <div className="space-y-1">
-                          <label htmlFor="venue-booking-completed" className="text-sm font-medium leading-none cursor-pointer">
-                            Venue booking transaction completed
-                          </label>
-                          <p className="text-xs text-muted-foreground">
-                            When saved, this locks event start/end date and start/end time. Uncheck to allow edits again
-                            if your team approves an exception.
-                          </p>
-                        </div>
-                      </div>
-
-
-
+                      {/* M5: Venue booking transaction completed control removed from Manage Event. */}
 
                       <div className="space-y-1.5">
                         <Label htmlFor="venue">Venue</Label>
@@ -2139,57 +2121,9 @@ const ManageEvent = () => {
                       </div>
       
 
-                      <div className="md:col-span-2 space-y-2 border rounded-md p-3 bg-muted/30 min-w-0">
-                        <Label>Entertainment Types</Label>
-                        <p className="text-xs text-muted-foreground">Select one or more.</p>
-                        <div className="max-h-36 overflow-y-auto space-y-2">
-                          {entertainmentOptions
-                            .filter(
-                              (o) =>
-                                selectedEntTypeFilter == null || o.ent_type_id === selectedEntTypeFilter
-                            )
-                            .map((o) => (
-                              <label key={o.id} className="flex items-start gap-2 text-sm cursor-pointer min-w-0">
-                                <Checkbox
-                                  className="mt-0.5 shrink-0"
-                                  checked={selectedEntIds.includes(o.id)}
-                                  onCheckedChange={(c) =>
-                                    toggleEntertainmentId(o.id, c === true)
-                                  }
-                                />
-                                <span className="min-w-0 break-words">{o.business_name}</span>
-                              </label>
-                            ))}
-                        </div>
-                      </div>
+                      {/* M5: Entertainment types menu and External Vendor type selection removed from Manage Event.
+                          Use Entertainment / External Vendor directories (or Create Event / Workflow) instead. */}
 
-                      <div className="md:col-span-2 space-y-2 border rounded-md p-3 bg-muted/30 min-w-0">
-                        <Label>External vendor</Label>
-                        <p className="text-xs text-muted-foreground">
-                          Procurement vendors from External Vendors in the sidebar (not equipment rentals). Select one or more.
-                        </p>
-                        <div className="max-h-36 overflow-y-auto space-y-2">
-                          {supplierOptions
-                            .filter(
-                              (o) =>
-                                selectedSupplierCategoryFilter == null ||
-                                o.category_id === selectedSupplierCategoryFilter
-                            )
-                            .map((o) => (
-                              <label key={o.id} className="flex items-start gap-2 text-sm cursor-pointer min-w-0">
-                                <Checkbox
-                                  className="mt-0.5 shrink-0"
-                                  checked={selectedSvcIds.includes(o.id)}
-                                  onCheckedChange={(c) =>
-                                    toggleServiceVendorId(o.id, c === true)
-                                  }
-                                />
-                                <span className="min-w-0 break-words">{o.business_name}</span>
-                              </label>
-                            ))}
-                        </div>
-                      </div>
-                      
                       <div className="space-y-1.5">
                         <Label htmlFor="budget">Budget</Label>
                         <Input

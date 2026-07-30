@@ -205,6 +205,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
   const [contemporaryEventTypes, setContemporaryEventTypes] = useState<{ id: number; name: string }[]>([]);
   const [buffetEventTypes, setBuffetEventTypes] = useState<{ id: number; name: string }[]>([]);
   const [fineDiningEventTypes, setFineDiningEventTypes] = useState<{ id: number; name: string }[]>([]);
+  const [heritageEventTypes, setHeritageEventTypes] = useState<{ id: number; name: string }[]>([]);
   const [meetupCommunityEventTypes, setMeetupCommunityEventTypes] = useState<{ id: number; name: string }[]>([]);
   const [meetupInclusiveEventTypes, setMeetupInclusiveEventTypes] = useState<{ id: number; name: string }[]>([]);
   const [retreatBranchTypes, setRetreatBranchTypes] = useState<Record<string, { id: number; name: string }[]>>({});
@@ -317,6 +318,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
         personalRes,
         culturalData,
         communityData,
+        heritageData,
         artisansData,
         foodData,
         vendorsData,
@@ -333,10 +335,12 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
         supabase.from("event_types").select("id, name").eq("parent_id", 3).order("name"),
         fetchThemedChildren(festivalMatchers, 4, "Cultural"),
         fetchThemedChildren(festivalMatchers, 4, "Community"),
+        fetchThemedChildren(festivalMatchers, 4, "Heritage"),
         fetchThemedChildren(marketplaceMatchers, 11, "Artisans"),
         fetchThemedChildren(marketplaceMatchers, 11, "Food"),
         fetchThemedChildren(marketplaceMatchers, 11, "Vendors"),
         fetchThemedChildren(marketplaceMatchers, 11, "Vintage"),
+        // legacyThemeId 7 is fallback only — resolveThemeId prefers Catalog name "Dining"
         fetchThemedChildren(diningMatchers, 7, "Contemporary"),
         fetchThemedChildren(diningMatchers, 7, "Buffet"),
         fetchThemedChildren(diningMatchers, 7, "Fine Dining"),
@@ -350,6 +354,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
       setPersonalEventTypes(personalRes.data || []);
       setCulturalEventTypes(culturalData);
       setCommunityEventTypes(communityData);
+      setHeritageEventTypes(heritageData);
       setArtisanEventTypes(artisansData);
       setFoodEventTypes(foodData);
       setVendorEventTypes(vendorsData);
@@ -545,6 +550,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
       "Celebration-Personal": { types: personalEventTypes, themeName: "Celebration", tagName: "Personal" },
       "Festival-Cultural": { types: culturalEventTypes, themeName: "Festival", tagName: "Cultural" },
       "Festival-Community": { types: communityEventTypes, themeName: "Festival", tagName: "Community" },
+      "Festival-Heritage": { types: heritageEventTypes, themeName: "Festival", tagName: "Heritage" },
       "Marketplace-Artisans": { types: artisanEventTypes, themeName: "Marketplace", tagName: "Artisans" },
       "Marketplace-Food": { types: foodEventTypes, themeName: "Marketplace", tagName: "Food" },
       "Marketplace-Vendors": { types: vendorEventTypes, themeName: "Marketplace", tagName: "Vendors" },

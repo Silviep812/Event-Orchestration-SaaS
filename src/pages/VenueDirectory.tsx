@@ -308,6 +308,12 @@ const VenueDirectory = () => {
                           <p><strong>Capacity:</strong> {profile.capacity} guests</p>
                         )}
                         <p><strong>Location:</strong> {[profile.city, profile.state, profile.zip].filter(Boolean).join(', ') || 'Location not specified'}</p>
+                        {Array.isArray(profile.amenities) && profile.amenities.length > 0 ? (
+                          <p>
+                            <strong>Amenities:</strong>{" "}
+                            {(profile.amenities as string[]).filter(Boolean).join(", ")}
+                          </p>
+                        ) : null}
                       </div>
                       
                       <div className="pt-3 border-t mt-3 space-y-2">

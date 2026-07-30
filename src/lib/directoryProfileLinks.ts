@@ -6,11 +6,11 @@
 export type DirectoryProfileKind =
   | "venue"
   | "hospitality"
-  /** Equipment / vendor-service directory (`vendor` table) */
+  /** Personnel / service-vendor directory (`vendor` table) */
   | "vendor"
   | "supplier"
   | "service_vendor"
-  /** `service_rental_buy` — deep-links via `rentalId` on vendor-service page */
+  /** Equipment / `service_rental_buy` — deep-links via `rentalId` on vendor-service page */
   | "service_rental_buy"
   | "transportation"
   | "marketing_subscriber"
@@ -19,7 +19,7 @@ export type DirectoryProfileKind =
 const BASE: Record<DirectoryProfileKind, string> = {
   venue: "/dashboard/venue",
   hospitality: "/dashboard/hospitality",
-  vendor: "/dashboard/vendor-service",
+  vendor: "/dashboard/service-vendor",
   supplier: "/dashboard/supplier",
   service_vendor: "/dashboard/service-vendor",
   service_rental_buy: "/dashboard/vendor-service",
