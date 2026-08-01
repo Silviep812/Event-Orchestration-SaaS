@@ -26,7 +26,7 @@ export async function profileNeedsOnboarding(client: SupabaseClient): Promise<bo
   return data.onboarding_completed_at == null;
 }
 
-/** Post-auth destination: onboarding first when required, else themes / manage-event / dashboard logic. */
+/** Post-auth destination: onboarding first when required, else Communication/Team or Manage Event. */
 export async function getPostSignInNavigationPath(client: SupabaseClient): Promise<string> {
   if (await profileNeedsOnboarding(client)) return "/onboarding";
   return getPostSignInDashboardPath(client);

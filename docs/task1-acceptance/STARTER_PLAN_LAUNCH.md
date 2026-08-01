@@ -7,8 +7,9 @@
 
 1. Marketing site CTAs use **Try free Starter Plan** language.
 2. Sign-up is available at `/auth?tab=signup`.
-3. New users complete onboarding, then enter via Themes (no events) or Manage Event (returning).
+3. New users complete onboarding, then enter via **Communication/Team** (no events) or Manage Event (returning).
 4. Starter users can:
+   - From Communication/Team, use **Browse Themes / Create Event** to start
    - Create events
    - Use Planning Assets (including two seeded workflow templates)
    - Track budget in Project Management → Budget
@@ -22,8 +23,8 @@ Landing copy mentions limited templates/themes for Starter. Full commercial enfo
 
 1. Open `/` → Try free Starter Plan  
 2. Sign up → confirm email if required  
-3. Complete onboarding  
-4. Browse Themes → Create Event  
+3. Complete onboarding → land on Communication / Team  
+4. Browse Themes / Create Event → Create Event  
 5. Open Planning Assets → apply a starter template  
 6. Open Project Management → Budget → add a hospitality line  
 7. Open Communication / Team → invite or view roles  

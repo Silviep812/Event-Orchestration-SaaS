@@ -20,6 +20,7 @@ import {
   SPORTING_THEME_V4_DESCRIPTION,
   sportingTypeUiLabel,
   sportingUiName,
+  isRecommendedBrowseTheme,
 } from "@/lib/themeEventTypeHierarchy";
 import { plannerToolsCopy } from "@/lib/nudges";
 import {
@@ -669,6 +670,11 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
                   <div>
                     <h3 className="text-lg font-semibold flex items-center gap-2">
                       {theme.name}
+                      {isRecommendedBrowseTheme(theme.name) && (
+                        <Badge variant="secondary" className="text-[10px] uppercase tracking-wide">
+                          Recommend
+                        </Badge>
+                      )}
                       {themeIsPremium(theme) && (
                         <Badge className="text-[10px] uppercase tracking-wide bg-amber-100 text-amber-900 border border-amber-300 hover:bg-amber-100">
                           Premium
@@ -730,6 +736,11 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
             <div className="space-y-2 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <CardTitle className="text-lg leading-none">{theme.name}</CardTitle>
+                {isRecommendedBrowseTheme(theme.name) && (
+                  <Badge variant="secondary" className="text-[10px] uppercase tracking-wide">
+                    Recommend
+                  </Badge>
+                )}
                 {themeIsPremium(theme) && (
                   <Badge className="text-[10px] uppercase tracking-wide bg-amber-100 text-amber-900 border border-amber-300 hover:bg-amber-100">
                     Premium

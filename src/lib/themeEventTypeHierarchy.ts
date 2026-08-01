@@ -476,3 +476,9 @@ export async function loadSportingLeafEventTypes(): Promise<{ id: number; name: 
 }
 
 export { sportingSelectionTrailLabel, sportingTypeUiLabel };
+
+/** Themes the client labels as Recommend in Browse Event Themes (M5). */
+export function isRecommendedBrowseTheme(name: string | null | undefined): boolean {
+  const n = (name ?? "").trim().toLowerCase();
+  return n === "celebration" || n === "dining" || n === "festival" || n.startsWith("festival ");
+}

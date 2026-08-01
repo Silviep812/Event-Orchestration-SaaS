@@ -3,18 +3,24 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 /** Users who already have at least one event — full create flow. */
 export const CREATE_EVENT_PATH_RETURNING = "/dashboard/create-event";
 
-/** First-time users with no events yet — start from Browse Event Themes, then Create Event with theme context. */
+/** First-time users with no events yet — Create Event entry goes via Browse Event Themes. */
 export const CREATE_EVENT_PATH_NEW_PLANNER = "/dashboard/themes";
 
 /** Default dashboard index when no special post-sign-in redirect applies. */
 export const POST_SIGN_IN_HOME_PATH = "/dashboard";
+
+/**
+ * New users (no events yet) after sign-in/onboarding:
+ * Communication/Team → Create Event/Theme connection (M5 PDF).
+ */
+export const POST_SIGN_IN_NEW_USER_PATH = "/dashboard/collaborate";
 
 /** Users who already have events: land on Manage Event. */
 export const POST_SIGN_IN_MANAGE_EVENT_PATH = "/dashboard/manage-event";
 
 /**
  * Email confirmations, magic links, and OAuth should use this route so post-sign-in routing runs in `Auth`
- * (first-time users with no events go to themes; others go to Manage Event).
+ * (first-time users with no events go to Communication/Team; others go to Manage Event).
  */
 export const AUTH_EMAIL_OAUTH_CALLBACK_PATH = "/auth";
 
@@ -46,7 +52,8 @@ export async function getCreateEventEntryPath(client: SupabaseClient): Promise<s
  * Do not call this from the Dashboard index route — users who click “Dashboard” in the sidebar
  * should stay on `/dashboard` and see the home dashboard.
  *
- * Users with no events yet → Browse Themes; users with events → Manage Event.
+ * Users with no events yet → Communication/Team (Create Event/Theme link);
+ * users with events → Manage Event.
  */
 export async function getPostSignInDashboardPath(client: SupabaseClient): Promise<string> {
   const {
@@ -64,5 +71,5 @@ export async function getPostSignInDashboardPath(client: SupabaseClient): Promis
     return POST_SIGN_IN_HOME_PATH;
   }
 
-  return (count ?? 0) === 0 ? CREATE_EVENT_PATH_NEW_PLANNER : POST_SIGN_IN_MANAGE_EVENT_PATH;
+  return (count ?? 0) === 0 ? POST_SIGN_IN_NEW_USER_PATH : POST_SIGN_IN_MANAGE_EVENT_PATH;
 }

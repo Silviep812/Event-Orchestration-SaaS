@@ -3,6 +3,7 @@
 **Project:** Interactive Event Planner (IEP)  
 **Tester:** Sylvia H.  
 **Prepared:** July 30, 2026  
+**Updated:** August 1, 2026 (M5 PDF follow-up)  
 **Status:** Ready for client acceptance testing  
 
 Import tip: Upload this file to Google Drive and open with Google Docs, or copy into a Doc.
@@ -51,7 +52,7 @@ Import tip: Upload this file to Google Drive and open with Google Docs, or copy 
 
 | # | Test | Pass? | Notes |
 | --- | --- | --- | --- |
-| C1 | New user with no events lands on Themes (Create Event path) after onboarding | | |
+| C1 | New user with no events lands on **Communication/Team** after onboarding (Create Event/Theme link available) | | |
 | C2 | Returning user with events lands on Manage Event | | |
 | C3 | Starter signup creates usable free account (no Stripe required) | | |
 
@@ -65,6 +66,9 @@ Import tip: Upload this file to Google Drive and open with Google Docs, or copy 
 | D2 | Special Event: Convention present (Charity renamed) | | |
 | D3 | Social Meetup not offered | | |
 | D4 | Festival Heritage category + child types available | | |
+| D5 | Sporting includes **5K race** and **Game Night** categories | | |
+| D6 | Celebration, Dining, Festival show **Recommend** label | | |
+| D7 | Special Event does **not** offer Heritage (Festival Heritage remains) | | |
 
 ---
 
@@ -105,6 +109,7 @@ Import tip: Upload this file to Google Drive and open with Google Docs, or copy 
 | G7 | PM Collaborator: no Role Management block (moved to Communication/Team) | | |
 | G8 | PM Collaborator: Assigned Tasks appear before Create change request | | |
 | G9 | Task dependencies usable from PM/Task (Business Rules order) | | |
+| G10 | Manage Event: no Venue field / theme-category-type create controls; schedule dates editable | | |
 
 ---
 
@@ -124,3 +129,4 @@ Apply (or confirm applied):
 
 1. `20260730150000_task1_theme_directory_alignment.sql`
 2. `20260730151000_task1_templates_budget_kind.sql`
+3. `20260801120000_task1_m5_sporting_special_event.sql`

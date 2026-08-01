@@ -26,11 +26,9 @@ import {
   Calendar as CalendarIcon,
   BarChart3,
   ClipboardList,
-  Lock,
   Loader2,
   ChevronUp,
 } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { format } from "date-fns";
 import TimelineView from "@/components/timeline/TimelineView";
 import { getLifecycleTableBadge, isEventPastBySchedule } from "@/lib/eventStatus";
@@ -732,19 +730,6 @@ const ManageEvent = () => {
 
   const handleFieldChange = async (field: string, value: any) => {
     if (!selectedEvent) return;
-
-    if (
-      selectedEvent.venue_booking_completed &&
-      (field === "start_date" || field === "end_date" || field === "start_time" || field === "end_time")
-    ) {
-      toast({
-        title: "Schedule locked",
-        description:
-          "Start and end dates and times are locked after the venue booking is marked complete. Create a new event if you need a different schedule.",
-        variant: "destructive",
-      });
-      return;
-    }
 
     // Capture old value for logging
     const oldValue = selectedEvent[field as keyof ManageEventData];
@@ -1942,7 +1927,9 @@ const ManageEvent = () => {
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                       <div>
                         <CardTitle>Manage Event</CardTitle>
-                        <p className="text-sm text-muted-foreground font-normal mt-1">Event details &amp; theme</p>
+                        <p className="text-sm text-muted-foreground font-normal mt-1">
+                          Schedule, budget, and event status
+                        </p>
                       </div>
                       <div className="flex items-center gap-2 flex-wrap">
                         {saving && (
@@ -2055,7 +2042,6 @@ const ManageEvent = () => {
                           type="date"
                           value={selectedEvent.start_date || ''}
                           onChange={(e) => handleFieldChange('start_date', e.target.value)}
-                          disabled={selectedEvent.venue_booking_completed === true}
                         />
                       </div>
                       
@@ -2067,7 +2053,6 @@ const ManageEvent = () => {
                           type="date"
                           value={selectedEvent.end_date || ''}
                           onChange={(e) => handleFieldChange('end_date', e.target.value)}
-                          disabled={selectedEvent.venue_booking_completed === true}
                         />
                       </div>
                       
@@ -2079,7 +2064,6 @@ const ManageEvent = () => {
                           type="time"
                           value={selectedEvent.start_time ? selectedEvent.start_time.slice(0, 5) : ''}
                           onChange={(e) => handleFieldChange('start_time', e.target.value)}
-                          disabled={selectedEvent.venue_booking_completed === true}
                         />
                       </div>
                       
@@ -2091,38 +2075,12 @@ const ManageEvent = () => {
                           type="time"
                           value={selectedEvent.end_time ? selectedEvent.end_time.slice(0, 5) : ''}
                           onChange={(e) => handleFieldChange('end_time', e.target.value)}
-                          disabled={selectedEvent.venue_booking_completed === true}
                         />
                       </div>
 
-                      {selectedEvent.venue_booking_completed ? (
-                        <Alert className="md:col-span-2 border-amber-200 bg-amber-50/50 dark:bg-amber-950/20">
-                          <Lock className="h-4 w-4" />
-                          <AlertTitle>Schedule locked</AlertTitle>
-                          <AlertDescription>
-                            Venue booking is marked complete. Start/end dates and times cannot be edited until you
-                            clear the confirmation below. For a different schedule after a completed booking, create a
-                            new event if required by your process.
-                          </AlertDescription>
-                        </Alert>
-                      ) : null}
-
-                      {/* M5: Venue booking transaction completed control removed from Manage Event. */}
-
-                      <div className="space-y-1.5">
-                        <Label htmlFor="venue">Venue</Label>
-                        <Input
-                          id="venue"
-                          className="w-full min-w-0"
-                          value={selectedEvent.venue || ''}
-                          onChange={(e) => handleFieldChange('venue', e.target.value)}
-                          placeholder="Enter venue name"
-                        />
-                      </div>
-      
-
-                      {/* M5: Entertainment types menu and External Vendor type selection removed from Manage Event.
-                          Use Entertainment / External Vendor directories (or Create Event / Workflow) instead. */}
+                      {/* M5: Venue booking completed control, venue field, theme/category/type, and
+                          Entertainment / External Vendor menus removed from Manage Event.
+                          Use Create Event / Themes / directories instead. */}
 
                       <div className="space-y-1.5">
                         <Label htmlFor="budget">Budget</Label>
