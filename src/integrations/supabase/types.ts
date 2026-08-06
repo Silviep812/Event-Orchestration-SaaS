@@ -4900,6 +4900,47 @@ export type Database = {
         }
         Relationships: []
       }
+      template_budget_items: {
+        Row: {
+          category: string
+          created_at: string
+          estimated_cost: number | null
+          id: string
+          item_name: string
+          template_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          estimated_cost?: number | null
+          id?: string
+          item_name: string
+          template_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          estimated_cost?: number | null
+          id?: string
+          item_name?: string
+          template_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_budget_items_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       template_tasks: {
         Row: {
           created_at: string
@@ -4965,39 +5006,6 @@ export type Database = {
           template_kind?: string
           updated_at?: string
           user_id?: string
-        }
-        Relationships: []
-      }
-      template_budget_items: {
-        Row: {
-          id: string
-          template_id: string
-          user_id: string
-          category: string
-          item_name: string
-          estimated_cost: number | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          template_id: string
-          user_id: string
-          category?: string
-          item_name: string
-          estimated_cost?: number | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          template_id?: string
-          user_id?: string
-          category?: string
-          item_name?: string
-          estimated_cost?: number | null
-          created_at?: string
-          updated_at?: string
         }
         Relationships: []
       }
