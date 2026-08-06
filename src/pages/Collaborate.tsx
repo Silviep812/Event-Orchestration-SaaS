@@ -485,22 +485,20 @@ export default function Collaborate() {
 
     // If no email provided, save as a collaborator configuration
     if (!inviteEmail || !inviteEmail.trim()) {
-      if (!activeTeamId) {
+      if (!inviteTeamId) {
         toast({
-          title: "Error",
-          description: "No team selected. Please try again.",
+          title: "No team yet",
+          description: "Create a team first, or enter an email address to send an invitation.",
           variant: "destructive"
         });
         return;
       }
-      
+
       try {
-        console.log('Creating config for team:', activeTeamId, 'role:', inviteRole);
-        
         const { data, error } = await supabase
           .from('collaborator_configurations')
           .insert({
-            team_id: activeTeamId,
+            team_id: inviteTeamId,
             role: inviteRole,
             collaborator_types: selectedCollaboratorTypes,
             is_collaborator: inviteAttributes.coordinator,
@@ -556,7 +554,7 @@ export default function Collaborate() {
           role: inviteRole,
           inviterName: user?.email?.split('@')[0] || 'Team Admin',
           inviterEmail: user?.email || 'admin@example.com',
-          teamId: userTeam?.id,
+          teamId: inviteTeamId ?? undefined,
           isCoordinator: inviteAttributes.coordinator,
           isViewer: inviteAttributes.viewer,
           collaboratorTypes: selectedCollaboratorTypes,
@@ -787,7 +785,9 @@ export default function Collaborate() {
     }
   };
 
-  const { selectedEventFilter } = useEventFilter();
+  // RoleManager gates "Add task assignment" on a concrete event. Without a picker here the button
+  // stayed permanently disabled, which acceptance testing reported as missing task assignment (role).
+  const { selectedEventFilter, setSelectedEventFilter, events, eventsLoading } = useEventFilter();
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -801,6 +801,10 @@ export default function Collaborate() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2 shrink-0">
+          <Button type="button" onClick={() => openInviteDialog()}>
+            <UserPlus className="w-4 h-4 mr-2" />
+            Invite &amp; permission levels
+          </Button>
           <Button type="button" variant="outline" asChild>
             <Link to="/dashboard/themes">Browse Themes / Create Event</Link>
           </Button>
@@ -946,6 +950,24 @@ export default function Collaborate() {
               <DialogTitle>Invite Team Member</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
+              {!inviteTeamId && (
+                <div className="rounded-md border border-amber-300/70 bg-amber-50 p-3 text-sm dark:bg-amber-950/20">
+                  <p className="mb-2">
+                    You need a team before you can save a permission level without an email address.
+                  </p>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setIsInviteDialogOpen(false);
+                      setIsCreateTeamDialogOpen(true);
+                    }}
+                  >
+                    Create a team first
+                  </Button>
+                </div>
+              )}
               <div>
                 <label className="text-sm font-medium">Email Address (Optional)</label>
                 <Input
@@ -1013,7 +1035,30 @@ export default function Collaborate() {
             Management → Task and appear for collaborators automatically.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          <div className="max-w-md space-y-2">
+            <label className="text-sm font-medium" htmlFor="collaborate-event">
+              Event for task assignment
+            </label>
+            <Select value={selectedEventFilter} onValueChange={setSelectedEventFilter}>
+              <SelectTrigger id="collaborate-event">
+                <SelectValue placeholder={eventsLoading ? "Loading events…" : "All events"} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All events</SelectItem>
+                {events.map((e) => (
+                  <SelectItem key={e.id} value={e.id}>
+                    {e.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              {events.length === 0 && !eventsLoading
+                ? "No events yet — create one from Browse Themes / Create Event, then assign tasks by role."
+                : "Pick a single event to enable “Add task assignment” below."}
+            </p>
+          </div>
           <RoleManager selectedEventFilter={selectedEventFilter} />
         </CardContent>
       </Card>

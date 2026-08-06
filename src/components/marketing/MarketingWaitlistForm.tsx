@@ -154,7 +154,7 @@ export function MarketingWaitlistForm({
             Joining…
           </>
         ) : (
-          "Get launch updates"
+          "Get Software Updates"
         )}
       </Button>
       <p className="text-xs text-muted-foreground leading-snug">

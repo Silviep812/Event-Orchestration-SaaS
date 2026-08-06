@@ -5,6 +5,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -107,6 +116,7 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
   const [events, setEvents] = useState<Event[]>([]);
   const [locations, setLocations] = useState<string[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<string>('all');
+  const [locationPickerOpen, setLocationPickerOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -203,8 +213,22 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
         event_id: resource.event_id,
       }));
       setResources(mappedResources);
-      const uniqueLocations = [...new Set(mappedResources.map(r => r.location).filter(Boolean))];
-      setLocations(uniqueLocations);
+
+      // Offer every location recorded in `resources`, not just the ones on this event's rows —
+      // acceptance test 3: "Enable filter searches for all Locations in resources".
+      const { data: allLocationRows } = await supabase.from('resources').select('location');
+      const locationPool = [
+        ...(allLocationRows ?? []).map((r: { location: string | null }) => r.location),
+        ...mappedResources.map((r) => r.location),
+      ];
+      const byKey = new Map<string, string>();
+      for (const raw of locationPool) {
+        const value = (raw ?? '').trim();
+        if (!value) continue;
+        const key = value.toLowerCase();
+        if (!byKey.has(key)) byKey.set(key, value);
+      }
+      setLocations([...byKey.values()].sort((a, b) => a.localeCompare(b)));
     } catch (error) {
       console.error('Error fetching resources:', error);
       toast({
@@ -255,8 +279,13 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
     let filtered = resources;
 
     if (searchQuery) {
-      filtered = filtered.filter(resource =>
-        resource.name.toLowerCase().includes(searchQuery.toLowerCase())
+      // Acceptance test 3: "Enable filter searches for all Locations in resources" — the free-text
+      // box now matches location and category as well as the resource name.
+      const q = searchQuery.trim().toLowerCase();
+      filtered = filtered.filter((resource) =>
+        [resource.name, resource.location, resource.category_name, resource.status_name].some((field) =>
+          (field ?? "").toLowerCase().includes(q),
+        ),
       );
     }
 
@@ -961,19 +990,54 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
             
             <div>
               <Label htmlFor="location">Location</Label>
-              <Select value={selectedLocation} onValueChange={setSelectedLocation}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All Locations" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Locations</SelectItem>
-                  {locations.map((location) => (
-                    <SelectItem key={location} value={location}>
-                      {location}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={locationPickerOpen} onOpenChange={setLocationPickerOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    id="location"
+                    type="button"
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={locationPickerOpen}
+                    className="w-full justify-between font-normal"
+                  >
+                    <span className="truncate">
+                      {selectedLocation === 'all' ? 'All Locations' : selectedLocation}
+                    </span>
+                    <Filter className="h-4 w-4 shrink-0 opacity-60" aria-hidden />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Search locations…" />
+                    <CommandList>
+                      <CommandEmpty>No matching location.</CommandEmpty>
+                      <CommandGroup>
+                        <CommandItem
+                          value="All Locations"
+                          onSelect={() => {
+                            setSelectedLocation('all');
+                            setLocationPickerOpen(false);
+                          }}
+                        >
+                          All Locations
+                        </CommandItem>
+                        {locations.map((location) => (
+                          <CommandItem
+                            key={location}
+                            value={location}
+                            onSelect={() => {
+                              setSelectedLocation(location);
+                              setLocationPickerOpen(false);
+                            }}
+                          >
+                            {location}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
             
             <div>

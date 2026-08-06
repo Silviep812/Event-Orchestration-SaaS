@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Package, MapPin, Mail } from "lucide-react";
 import { DirectoryPageHeader } from "@/components/resource-directory/DirectoryPageHeader";
 import { AddSupplierEntryDialog } from "@/components/resource-directory/AddSupplierEntryDialog";
-import { SUPPLIER_BUSINESS_CATEGORIES } from "@/lib/supplierBusinessCategories";
+import { SUPPLIER_OTHER_CATEGORY, supplierCategoryByName } from "@/lib/supplierBusinessCategories";
+import type { LucideIcon } from "lucide-react";
 import { formatDirectoryPrice } from "@/lib/formatDirectoryPrice";
 import { DirectoryProfileLink } from "@/components/resource-directory/DirectoryProfileLink";
 import { directoryProfileElementId } from "@/lib/directoryProfileLinks";
@@ -68,14 +69,34 @@ export default function SupplierDirectory() {
     }
   };
 
-  const supplierCategoryOptions = SUPPLIER_BUSINESS_CATEGORIES.map((c) => ({
-    value: c.name,
-    label: c.name,
-    icon: c.icon,
-  }));
-
   const effectiveCategoryName = (s: Supplier): string | null =>
     s.custom_category?.trim() || s.supplier_categories?.name || null;
+
+  /**
+   * Acceptance test 3: "Resource > category > type profile doesn't match DB Table entries.
+   * Ex, External Vendor types show other table entries also." The checkbox list used to be a
+   * hard-coded Business Rules array, so it neither matched `supplier_categories` nor covered the
+   * categories actually stored on profiles. Build it from the database instead, and keep the
+   * Business Rules icons where a name lines up.
+   */
+  const supplierCategoryOptions = useMemo(() => {
+    const byKey = new Map<string, { value: string; label: string; icon: LucideIcon }>();
+    const add = (rawName: string | null | undefined) => {
+      const name = rawName?.trim();
+      if (!name) return;
+      const key = name.toLowerCase();
+      if (byKey.has(key)) return;
+      byKey.set(key, {
+        value: name,
+        label: name,
+        icon: supplierCategoryByName(name)?.icon ?? SUPPLIER_OTHER_CATEGORY.icon,
+      });
+    };
+
+    supplierCategories.forEach((c) => add(c.name));
+    suppliers.forEach((s) => add(effectiveCategoryName(s)));
+    return [...byKey.values()].sort((a, b) => a.label.localeCompare(b.label));
+  }, [supplierCategories, suppliers]);
 
   const filteredSuppliers = suppliers.filter((supplier) => {
     const dbName = effectiveCategoryName(supplier);
@@ -119,8 +140,13 @@ export default function SupplierDirectory() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* External vendor categories */}
+          {/* External vendor categories — sourced from supplier_categories + profile categories */}
           <div className="space-y-2">
+            {!loading && supplierCategoryOptions.length === 0 && (
+              <p className="text-sm text-muted-foreground">
+                No external vendor categories are recorded yet. Add a vendor profile to create one.
+              </p>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {supplierCategoryOptions.map((option) => {
                 const Icon = option.icon;

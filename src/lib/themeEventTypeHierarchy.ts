@@ -4,6 +4,11 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { sportingSelectionTrailLabel, sportingTypeUiLabel } from "@/lib/sportingTypeUiLabel";
+import {
+  dedupeEventTypeRowsByName,
+  eventTypeNameKey,
+  mergeThemeCategoryTags,
+} from "@/lib/eventTypeCategories";
 
 export type EventTypeRowLite = { id: number; name: string | null; parent_id: number | null };
 
@@ -54,8 +59,7 @@ async function childrenUnderNamedParent(
     parent = rows.find((r) => (r.name ?? "").toLowerCase() === lower);
   }
   if (!parent) return [];
-  return rows
-    .filter((r) => r.parent_id === parent.id)
+  return dedupeEventTypeRowsByName(rows.filter((r) => r.parent_id === parent.id))
     .sort((a, b) => (a.name ?? "").localeCompare(b.name ?? ""))
     .map((k) => ({ id: k.id, name: k.name ?? "" }));
 }
@@ -334,6 +338,8 @@ export function sportThemeRootCategoryDisplayLabel(
   return raw;
 }
 
+export { dedupeEventTypeRowsByName, eventTypeNameKey, mergeThemeCategoryTags };
+
 /** Reunion-specific loader. Passthrough to the shared loader so Family/School categories are shown. */
 export async function loadReunionEventTypesByParentTag(
   themeId: number
@@ -357,33 +363,31 @@ export async function loadEventTypesByParentTag(themeId: number): Promise<Record
   // which breaks browse / Create Event category → type for Reunion & Special Event.
   if (parents.length === 1) {
     const root = parents[0];
-    const categories = rows
-      .filter((r) => r.parent_id === root.id)
-      .sort((a, b) => (a.name ?? "").localeCompare(b.name ?? ""));
+    const categories = dedupeEventTypeRowsByName(
+      rows.filter((r) => r.parent_id === root.id),
+    ).sort((a, b) => (a.name ?? "").localeCompare(b.name ?? ""));
     if (categories.length > 0) {
       const hierarchical: Record<string, { id: number; name: string }[]> = {};
       let anyLeaves = false;
       for (const cat of categories) {
         const tag = (cat.name ?? "").trim();
         if (!tag) continue;
-        const leaves = rows
-          .filter((r) => r.parent_id === cat.id)
+        const leaves = dedupeEventTypeRowsByName(rows.filter((r) => r.parent_id === cat.id))
           .sort((a, b) => (a.name ?? "").localeCompare(b.name ?? ""))
           .map((k) => ({ id: k.id, name: k.name ?? "" }));
-        if (leaves.length > 0) {
-          hierarchical[tag] = leaves;
-          anyLeaves = true;
-        }
+        if (leaves.length > 0) anyLeaves = true;
+        // Keep childless categories: dropping them is what showed up in acceptance testing as
+        // "Theme > create event > category > Has Missing Entries".
+        hierarchical[tag] = leaves.length > 0 ? leaves : [{ id: cat.id, name: tag }];
       }
       if (anyLeaves) return hierarchical;
     }
   }
 
-  for (const p of parents) {
+  for (const p of dedupeEventTypeRowsByName(parents)) {
     const tag = (p.name ?? "").trim();
     if (!tag) continue;
-    const kids = rows
-      .filter((r) => r.parent_id === p.id)
+    const kids = dedupeEventTypeRowsByName(rows.filter((r) => r.parent_id === p.id))
       .sort((a, b) => (a.name ?? "").localeCompare(b.name ?? ""))
       .map((k) => ({ id: k.id, name: k.name ?? "" }));
     out[tag] = kids.length > 0 ? kids : [{ id: p.id, name: tag }];
@@ -436,16 +440,16 @@ export async function loadSportingDirectoryCategoryTypes(
       return n > bn ? r : best;
     });
 
-  const categories = rows
-    .filter((r) => r.parent_id === root.id)
-    .sort((a, b) => (a.name ?? "").localeCompare(b.name ?? ""));
+  const categories = dedupeEventTypeRowsByName(
+    rows.filter((r) => r.parent_id === root.id),
+    (id) => rows.filter((x) => x.parent_id === id).length,
+  ).sort((a, b) => (a.name ?? "").localeCompare(b.name ?? ""));
   const out: Record<string, SportingCategoryGroup> = {};
 
   for (const c of categories) {
     const key = (c.name ?? "").trim();
     if (!key) continue;
-    const kids = rows
-      .filter((r) => r.parent_id === c.id)
+    const kids = dedupeEventTypeRowsByName(rows.filter((r) => r.parent_id === c.id))
       .sort((a, b) => (a.name ?? "").localeCompare(b.name ?? ""))
       .map((k) => ({
         id: k.id,

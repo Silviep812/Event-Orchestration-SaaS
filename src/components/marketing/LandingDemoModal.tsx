@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -6,6 +6,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Volume2 } from "lucide-react";
 import { LANDING_DEMO_VIDEO_LABEL, LANDING_DEMO_VIDEO_SRC } from "@/lib/landingDemo";
 
 type LandingDemoModalProps = {
@@ -13,16 +15,67 @@ type LandingDemoModalProps = {
   onOpenChange: (open: boolean) => void;
 };
 
+/**
+ * Acceptance test 3: the demo must start playing on its own, then hand over to the native controls.
+ * Browsers only allow unattended playback when the video is muted, so we try with sound first
+ * (the modal is opened by a click, which usually satisfies autoplay policies) and fall back to a
+ * muted start plus an explicit "Unmute" affordance rather than leaving a silent, paused player.
+ */
 export function LandingDemoModal({ open, onOpenChange }: LandingDemoModalProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [startedMuted, setStartedMuted] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
 
   useEffect(() => {
-    if (open) return;
+    const video = videoRef.current;
+    if (!open) {
+      if (video) {
+        video.pause();
+        video.currentTime = 0;
+      }
+      setStartedMuted(false);
+      setLoadFailed(false);
+      return;
+    }
+    if (!video) return;
+
+    let cancelled = false;
+    video.muted = false;
+    video.currentTime = 0;
+
+    const autoplay = async () => {
+      try {
+        await video.play();
+        if (!cancelled) setStartedMuted(false);
+        return;
+      } catch {
+        // Autoplay with sound was blocked — retry muted so the demo still plays.
+      }
+      if (cancelled) return;
+      video.muted = true;
+      setStartedMuted(true);
+      try {
+        await video.play();
+      } catch {
+        // Still blocked: the native controls remain available.
+      }
+    };
+
+    const timer = window.setTimeout(autoplay, 0);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [open]);
+
+  const unmute = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
-    video.pause();
-    video.currentTime = 0;
-  }, [open]);
+    video.muted = false;
+    video.volume = 1;
+    setStartedMuted(false);
+    void video.play().catch(() => undefined);
+  }, []);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -33,19 +86,21 @@ export function LandingDemoModal({ open, onOpenChange }: LandingDemoModalProps) 
         <DialogHeader className="pr-8 text-left">
           <DialogTitle>Watch Demo</DialogTitle>
           <DialogDescription id="landing-demo-description">
-            IEP presentation overview. Use the video controls to play, pause, or adjust volume. Press Escape or the
-            close button to dismiss.
+            The IEP presentation starts automatically. Use the video controls to pause, seek, or adjust volume. Press
+            Escape or the close button to dismiss.
           </DialogDescription>
         </DialogHeader>
-        <div className="overflow-hidden rounded-lg border border-amber-100/70 bg-black">
+        <div className="relative overflow-hidden rounded-lg border border-amber-100/70 bg-black">
           <video
             ref={videoRef}
             className="aspect-video w-full max-h-[70vh] bg-black"
             controls
+            autoPlay
             playsInline
-            preload="metadata"
+            preload="auto"
             controlsList="nodownload"
             aria-label={LANDING_DEMO_VIDEO_LABEL}
+            onError={() => setLoadFailed(true)}
           >
             <source src={LANDING_DEMO_VIDEO_SRC} type="video/mp4" />
             Your browser does not support embedded video. You can{" "}
@@ -54,7 +109,29 @@ export function LandingDemoModal({ open, onOpenChange }: LandingDemoModalProps) 
             </a>
             .
           </video>
+
+          {startedMuted && !loadFailed ? (
+            <Button
+              type="button"
+              size="sm"
+              onClick={unmute}
+              className="absolute left-3 top-3 shadow-md"
+            >
+              <Volume2 className="h-4 w-4" aria-hidden />
+              Unmute
+            </Button>
+          ) : null}
         </div>
+
+        {loadFailed ? (
+          <p className="text-sm text-destructive">
+            The demo video could not be loaded.{" "}
+            <a href={LANDING_DEMO_VIDEO_SRC} className="underline" download>
+              Download the presentation
+            </a>{" "}
+            instead.
+          </p>
+        ) : null}
       </DialogContent>
     </Dialog>
   );

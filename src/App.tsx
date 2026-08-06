@@ -9,6 +9,7 @@ import { useGAPageViews } from "@/hooks/useGAPageViews";
 
 const Index = lazy(() => import("./pages/Index"));
 const Auth = lazy(() => import("./pages/Auth"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const DashboardHome = lazy(() => import("./pages/DashboardHome"));
 const WorkflowDashboard = lazy(() => import("./pages/WorkflowDashboard"));
@@ -64,6 +65,8 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/contact" element={<Navigate to="/" replace />} />
             <Route path="/auth" element={<Auth />} />
+            {/* Supabase recovery links land here (public — the user has no password yet). */}
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route
               path="/onboarding"
               element={

@@ -75,7 +75,7 @@ export default function Auth() {
       toast({
         variant: "destructive",
         title: "Sign in failed",
-        description: error.message,
+        description: getAuthErrorDescription(error, "signin"),
       });
     } else {
       toast({
@@ -425,6 +425,10 @@ export default function Auth() {
                     <Button type="submit" className="w-full" disabled={loading}>
                       {loading ? "Sending..." : "Send Reset Link"}
                     </Button>
+                    <p className="text-xs text-muted-foreground leading-snug">
+                      Open the link in this same browser — it expires after a short time and can only be used once. If
+                      it stops working, request a new one here.
+                    </p>
                   </form>
                 </TabsContent>
               </Tabs>

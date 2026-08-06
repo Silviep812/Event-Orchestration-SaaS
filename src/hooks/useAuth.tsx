@@ -2,6 +2,7 @@ import { useState, useEffect, createContext, useContext } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from "@supabase/supabase-js";
 import { AUTH_EMAIL_OAUTH_CALLBACK_PATH } from '@/lib/createEventEntryPath';
+import { AUTH_RESET_PASSWORD_PATH } from '@/lib/authRoutes';
 
 export type SignUpProfileFields = {
   user_category?: string;
@@ -130,8 +131,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const resetPassword = async (email: string) => {
-    const redirectUrl = `${window.location.origin}/dashboard/profile`;
-    
+    // Public "set a new password" screen. Pointing recovery at a protected page left users with no
+    // password field after following the email link.
+    const redirectUrl = `${window.location.origin}${AUTH_RESET_PASSWORD_PATH}`;
+
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: redirectUrl,
     });

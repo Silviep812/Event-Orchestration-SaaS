@@ -93,6 +93,22 @@ BEGIN
     RETURN;
   END IF;
 
+  -- Clear FK refs first (events.type_id → event_types)
+  UPDATE events
+  SET type_id = NULL
+  WHERE type_id IN (
+    SELECT id FROM event_types
+    WHERE theme_id = special_theme_id
+      AND (
+        lower(trim(name)) = 'heritage'
+        OR parent_id IN (
+          SELECT id FROM event_types
+          WHERE theme_id = special_theme_id
+            AND lower(trim(name)) = 'heritage'
+        )
+      )
+  );
+
   -- Children under Special Event Heritage categories first
   DELETE FROM event_types
   WHERE theme_id = special_theme_id

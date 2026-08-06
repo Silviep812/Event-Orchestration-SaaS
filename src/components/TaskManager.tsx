@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { createTaskSchema } from "@/lib/validation/taskValidation";
+import { notifyTaskAssignee } from "@/lib/taskAssignmentNotifications";
 import {
   TASK_ASSIGNMENT_CATEGORIES,
   getDependencyOptionsForCategories,
@@ -1239,6 +1240,14 @@ export function TaskManager({
           p_new_value: assignedUser?.user_name || newTask.assigned_user_id,
           p_description: `Task assigned to ${assignedUser?.user_name || 'user'}`
         });
+        await notifyTaskAssignee({
+          recipientId: newTask.assigned_user_id,
+          senderId: user.id,
+          taskId: createdTask.id,
+          taskTitle: titleToSave,
+          eventId: taskData.event_id,
+          dueDate: taskData.due_date,
+        });
       }
 
       // Close dialog and refetch tasks
@@ -1297,6 +1306,18 @@ export function TaskManager({
         .eq('id', taskId);
 
       if (error) throw error;
+
+      if (assignedUserId && oldAssignedUserId !== assignedUserId) {
+        const assignedTask = tasks.find((t) => t.id === taskId);
+        await notifyTaskAssignee({
+          recipientId: assignedUserId,
+          senderId: user.id,
+          taskId,
+          taskTitle: assignedTask?.title ?? "a task",
+          eventId: assignedTask?.event_id ?? null,
+          dueDate: assignedTask?.due_date ?? null,
+        });
+      }
 
       // Log assignment change
       if (oldAssignedUserId !== assignedUserId) {
@@ -1982,10 +2003,13 @@ export function TaskManager({
                     the right — nothing duplicated here.
                   </p>
                 </div>
-                {!eventId && events.length > 0 && (
+                {/* Always rendered when no event is pinned by the route: hiding it when the list was
+                    empty left "Save task assignment" failing validation with no way to fix it. */}
+                {!eventId && (
                   <div className="space-y-2">
                     <Label htmlFor="event">Select Project/Event *</Label>
                     <Select
+                      disabled={events.length === 0}
                       value={
                         events.some((e) => e.id === newTask.selected_event_id)
                           ? newTask.selected_event_id
@@ -2012,6 +2036,12 @@ export function TaskManager({
                         ))}
                       </SelectContent>
                     </Select>
+                    {events.length === 0 && (
+                      <p className="text-sm text-muted-foreground">
+                        No events are available to you yet. Create an event first (Create event → Browse event themes),
+                        then come back to add task assignments.
+                      </p>
+                    )}
                     {validationErrors.selected_event_id && (
                       <p className="text-sm text-destructive">{validationErrors.selected_event_id}</p>
                     )}

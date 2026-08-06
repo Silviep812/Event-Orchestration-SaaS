@@ -10,11 +10,13 @@ import {
   fetchMeetupTopLevelBranch,
   fetchThemedChildren,
   filterSportishTags,
+  isHealthWellnessThemeName,
+  isRetreatsThemeName,
   isSportThemeName,
+  mergeThemeCategoryTags,
   loadHealthWellnessEventTypeGroups,
   loadRetreatsEventTypeGroups,
   loadEventTypesByParentTag,
-  loadReunionEventTypesByParentTag,
   loadSportingDirectoryCategoryTypes,
   type SportingCategoryGroup,
   SPORTING_THEME_V4_DESCRIPTION,
@@ -372,24 +374,27 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
     fetchEventTypes();
   }, []);
 
+  /**
+   * Directory → category → type for **every** theme comes from `event_types`, not from the legacy
+   * `Themes Directory Catalog.tags` column. Acceptance test 3 reported Dining categories missing,
+   * Festival "Heritage" missing, and profiles linked to the wrong directory — all symptoms of
+   * badges being driven by a stale tag list while the real hierarchy lives in `event_types`.
+   */
   useEffect(() => {
     if (themes.length === 0) return;
     let cancelled = false;
     void (async () => {
       const next: Record<number, Record<string, any>> = {};
       for (const t of themes) {
-        const n = t.name.toLowerCase();
-        if (/reunion/i.test(n)) {
-          next[t.id] = await loadReunionEventTypesByParentTag(t.id);
-        } else if (/special event/i.test(n)) {
-          next[t.id] = await loadEventTypesByParentTag(t.id);
-        } else if (isSportThemeName(t.name)) {
-          try {
-            next[t.id] = await loadSportingDirectoryCategoryTypes(t.id);
-          } catch (e) {
-            console.warn("loadSportingDirectoryCategoryTypes (browse):", t.id, e);
-            next[t.id] = {};
-          }
+        // Health & Wellness and Retreats have dedicated loaders wired up further down.
+        if (isHealthWellnessThemeName(t.name) || isRetreatsThemeName(t.name)) continue;
+        try {
+          next[t.id] = isSportThemeName(t.name)
+            ? await loadSportingDirectoryCategoryTypes(t.id)
+            : await loadEventTypesByParentTag(t.id);
+        } catch (e) {
+          console.warn("Browse themes: could not load categories for theme", t.id, e);
+          next[t.id] = {};
         }
       }
       if (!cancelled) setDynamicHierarchyByThemeId(next);
@@ -483,31 +488,22 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
         description = "Tailored gatherings that need a clear category and type";
       }
 
-      let tags = [...(t.tags ?? [])];
-      if (/health/i.test(name) && /wellness/i.test(name) && browseHwHierarchy) {
-        const hwTags = browseHwHierarchy.orderedCategoryKeys.map((k) => browseHwHierarchy.keyLabel[k] ?? k);
-        tags = [...new Set([...tags, ...hwTags])];
+      // `event_types` categories win; legacy `tags` values only fill gaps and never duplicate a badge.
+      const dynamicTags = Object.keys(dynamicHierarchyByThemeId[t.id] ?? {});
+      let categoryNames = dynamicTags;
+      if (isHealthWellnessThemeName(name) && browseHwHierarchy) {
+        categoryNames = browseHwHierarchy.orderedCategoryKeys.map((k) => browseHwHierarchy.keyLabel[k] ?? k);
+      } else if (isRetreatsThemeName(trimmed)) {
+        categoryNames = Object.keys(retreatBranchTypes);
       }
-      if (/^retreats?$/i.test(trimmed) || /^retreat\b/i.test(trimmed)) {
-        const keys = Object.keys(retreatBranchTypes);
-        if (keys.length) {
-          tags = [...new Set([...tags, ...keys])];
-        }
-      }
-      // Sporting: same category → type chip pattern as other themes (data from `dynamicHierarchyByThemeId`).
+
+      let tags = mergeThemeCategoryTags(t.tags ?? [], categoryNames);
+      // Sporting: the theme label itself is not a category (data from `dynamicHierarchyByThemeId`).
       if (sportTheme) {
         tags = filterSportishTags(tags);
       }
 
       const displayName = sportingUiName(t.name);
-
-      const dynamicTags = Object.keys(dynamicHierarchyByThemeId[t.id] ?? {});
-      if (/reunion|special event/i.test(lower) && dynamicTags.length > 0) {
-        tags = [...new Set([...tags, ...dynamicTags])];
-      }
-      if (sportTheme && dynamicTags.length > 0) {
-        tags = [...new Set([...tags, ...dynamicTags])];
-      }
 
       return {
         ...t,

@@ -48,6 +48,23 @@ export function getAuthErrorDescription(
   context: AuthErrorContext = "generic",
 ): string {
   const msg = error?.message ?? "";
+  const m = msg.toLowerCase();
+
+  if (context === "signin") {
+    if (m.includes("email not confirmed") || m.includes("not confirmed")) {
+      return "Your email address hasn't been confirmed yet. Open the confirmation link we emailed you, or use the Magic Link tab to sign in without a password.";
+    }
+    if (m.includes("invalid login credentials") || m.includes("invalid_credentials")) {
+      return "That email and password combination doesn't match an account. Check for typos, or use Reset to set a new password.";
+    }
+    if (m.includes("too many requests") || m.includes("rate limit")) {
+      return "Too many sign-in attempts. Please wait a minute and try again.";
+    }
+  }
+
+  if (context === "password_reset" && (m.includes("expired") || m.includes("invalid"))) {
+    return "That reset link has expired or was already used. Request a new one — links must be opened in the same browser that requested them.";
+  }
 
   if (looksLikeEmailDeliveryFailure(msg)) {
     return getEmailDeliveryMessage(context);

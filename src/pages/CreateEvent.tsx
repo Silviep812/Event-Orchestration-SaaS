@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { trackEvent } from "@/lib/analytics";
 import {
+  dedupeEventTypeRowsByName,
   dedupeSportThemesForPicker,
   isHealthWellnessThemeName,
   isRetreatsThemeName,
@@ -455,7 +456,7 @@ export default function CreateEvent() {
           .eq("parent_id", leaf.parent_id)
           .order("name");
         if (cancelled) return;
-        setSubEventTypes(siblings ?? []);
+        setSubEventTypes(dedupeEventTypeRowsByName(siblings ?? []));
         setValue("type", String(leaf.parent_id), { shouldValidate: true });
         setValue("subType", String(leaf.id), { shouldValidate: true });
       }
@@ -581,7 +582,9 @@ export default function CreateEvent() {
         }
       }
 
-      setEventTypes(categories);
+      // Legacy seeds left duplicate rows with the same label under one theme, which showed up in
+      // acceptance testing as "Create event > category > Has Double Entries".
+      setEventTypes(dedupeEventTypeRowsByName(categories));
 
       if (searchParams.get("subTypeId")) {
         return;
@@ -607,7 +610,7 @@ export default function CreateEvent() {
               .eq('parent_id', parentType.id)
               .order('name');
             
-            setSubEventTypes(allSubTypes || []);
+            setSubEventTypes(dedupeEventTypeRowsByName(allSubTypes || []));
             
             // Then set both values
             setValue("type", parentType.id.toString(), { shouldValidate: true });
@@ -661,8 +664,8 @@ export default function CreateEvent() {
         setSubEventTypes([]);
         return;
       }
-      
-      setSubEventTypes(data || []);
+
+      setSubEventTypes(dedupeEventTypeRowsByName(data || []));
     };
     
     fetchSubEventTypes();
@@ -791,21 +794,38 @@ export default function CreateEvent() {
         const parentIdForInsert = Number.isFinite(parentCategoryId) && parentCategoryId > 0
           ? parentCategoryId
           : parentRow?.parent_id ?? null;
-        const { data: inserted, error: insertErr } = await supabase
+        // Reuse an existing row with the same label so custom entries never create the duplicate
+        // categories that acceptance testing flagged as "Has Double Entries".
+        let customTypeId: number | null = null;
+        const { data: existingTypes } = await supabase
           .from("event_types")
-          .insert({ name: customName, parent_id: parentIdForInsert, theme_id: themeIdForInsert } as any)
-          .select("id")
-          .single();
-        if (insertErr || !inserted?.id) {
-          toast({
-            title: "Could not save custom type",
-            description: insertErr?.message || "Please try again.",
-            variant: "destructive",
-          });
-          setIsSubmitting(false);
-          return;
+          .select("id, name")
+          .eq("theme_id", themeIdForInsert)
+          .eq("parent_id", parentIdForInsert as number);
+        const match = (existingTypes ?? []).find(
+          (row) => (row.name ?? "").trim().toLowerCase() === customName.toLowerCase(),
+        );
+
+        if (match) {
+          customTypeId = match.id;
+        } else {
+          const { data: inserted, error: insertErr } = await supabase
+            .from("event_types")
+            .insert({ name: customName, parent_id: parentIdForInsert, theme_id: themeIdForInsert } as any)
+            .select("id")
+            .single();
+          if (insertErr || !inserted?.id) {
+            toast({
+              title: "Could not save custom type",
+              description: insertErr?.message || "Please try again.",
+              variant: "destructive",
+            });
+            setIsSubmitting(false);
+            return;
+          }
+          customTypeId = inserted.id;
         }
-        resolvedSubType = String(inserted.id);
+        resolvedSubType = String(customTypeId);
       }
 
       // Prepare event data for the new events table — subType (leaf) when set, else type

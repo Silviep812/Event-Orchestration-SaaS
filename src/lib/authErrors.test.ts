@@ -39,9 +39,28 @@ describe("getAuthErrorDescription", () => {
     expect(d).toBe("Magic link email could not be sent right now. Please contact support or try again later.");
   });
 
+  it("turns the raw invalid-credentials string into an actionable sign-in message", () => {
+    expect(getAuthErrorDescription({ message: "Invalid login credentials" }, "signin")).toContain(
+      "doesn't match an account",
+    );
+  });
+
+  it("tells unconfirmed users how to get in", () => {
+    const d = getAuthErrorDescription({ message: "Email not confirmed" }, "signin");
+
+    expect(d).toContain("hasn't been confirmed");
+    expect(d).toContain("Magic Link");
+  });
+
+  it("explains expired reset links", () => {
+    expect(getAuthErrorDescription({ message: "Token has expired or is invalid" }, "password_reset")).toContain(
+      "same browser",
+    );
+  });
+
   it("passes through unrelated messages", () => {
-    expect(getAuthErrorDescription({ message: "Invalid login credentials" }, "signin")).toBe(
-      "Invalid login credentials",
+    expect(getAuthErrorDescription({ message: "Something odd happened" }, "signin")).toBe(
+      "Something odd happened",
     );
   });
 

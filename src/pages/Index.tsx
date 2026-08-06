@@ -74,6 +74,30 @@ const features = [
   },
 ];
 
+/** “Turn Your Vision Into a Seamless Experience” bullets — “Website landing page” page 2. */
+const VISION_POINTS = [
+  { emoji: "🎯", text: "Select your event theme and launch instantly" },
+  { emoji: "⚙️", text: "Automate planning with AI-powered workflows" },
+  { emoji: "🔄", text: "Adapt to real-time changes without disruption" },
+  { emoji: "📊", text: "Track performance with built-in analytics" },
+  { emoji: "🤝", text: "Connect with trusted vendors and partners" },
+] as const;
+
+/** “Built for Hosts & Professional Event Planners” checklist — “Website landing page” page 2. */
+const AUDIENCE_POINTS = [
+  { who: "Hosts", copy: "Create stunning, organized events with zero overwhelm" },
+  { who: "Event Planners", copy: "Scale operations, manage teams, and deliver flawlessly" },
+  { who: "Businesses", copy: "Connect, collaborate, and grow your network" },
+] as const;
+
+/** “Why Choose IDA Event Partners?” bullets — “Website landing page” page 2. */
+const WHY_CHOOSE_POINTS = [
+  "Centralized event command center",
+  "Reusable templates to save hours",
+  "Real-time collaboration across teams",
+  "Smart automation to reduce manual work",
+] as const;
+
 const pricingTiers = [
   {
     name: "Starter Plan",
@@ -345,120 +369,112 @@ const Index = () => {
             exceptional events—all in one place.
           </p>
           <Button asChild size="lg" className="text-lg px-8 py-3 shadow-md">
-            <Link to={AUTH_STARTER_PLAN_PATH}>Try free Starter Plan</Link>
+            <Link to={AUTH_STARTER_PLAN_PATH}>Start your free starter plan today</Link>
           </Button>
         </div>
       </section>
 
-      {/* Turn Your Vision Into a Seamless Experience */}
+      {/* Turn Your Vision Into a Seamless Experience — “Website landing page” page 2 layout */}
       <section id="experience" className="px-4 sm:px-6 lg:px-8 py-14 sm:py-16 bg-background" aria-labelledby="experience-heading">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
-          <div className="space-y-4">
-            <h2 id="experience-heading" className="text-2xl sm:text-3xl lg:text-4xl font-bold text-balance">
-              Turn Your Vision Into a Seamless Experience
-            </h2>
-            <p className="text-lg text-muted-foreground leading-relaxed">
-              Stop juggling spreadsheets, messages, and last-minute chaos.
-            </p>
-            <p className="text-base text-foreground font-medium">You focus on the experience. We handle the system.</p>
-          </div>
+        <div className="max-w-3xl mx-auto space-y-5">
+          <h2
+            id="experience-heading"
+            className="text-2xl sm:text-3xl lg:text-4xl font-bold text-balance flex items-baseline gap-3"
+          >
+            <span aria-hidden>✨</span>
+            <span>Turn Your Vision Into a Seamless Experience</span>
+          </h2>
+          <p className="text-lg text-muted-foreground leading-relaxed">
+            Stop juggling spreadsheets, messages, and last-minute chaos.
+          </p>
+          <p className="text-base text-foreground">With IDA Event Partners, you can:</p>
 
-          <ul className="grid gap-3 list-none p-0 m-0">
-            {[
-              "Select your event theme and launch instantly",
-              "Automate planning with AI-powered workflows",
-              "Adapt to real-time changes without disruption",
-              "Track performance with built-in analytics",
-              "Connect with trusted vendors and partners",
-            ].map((item) => (
-              <li key={item} className="rounded-xl border border-amber-100/70 bg-card/90 px-4 py-3 shadow-sm">
-                <p className="text-sm sm:text-base text-foreground">{item}</p>
+          <ul className="space-y-3 list-none p-0 m-0">
+            {VISION_POINTS.map(({ emoji, text }) => (
+              <li key={text} className="flex items-start gap-3">
+                <span className="text-lg leading-6 shrink-0" aria-hidden>
+                  {emoji}
+                </span>
+                <span className="text-base text-foreground leading-6">{text}</span>
               </li>
             ))}
           </ul>
+
+          <p className="pt-2 text-base sm:text-lg font-semibold text-foreground">
+            You focus on the experience. We handle the system.
+          </p>
+          <Button asChild size="lg" className="shadow-md">
+            <Link to={AUTH_STARTER_PLAN_PATH}>Start your free starter plan today</Link>
+          </Button>
         </div>
       </section>
 
-      {/* Built for Hosts & Professional Event Planners */}
+      {/* Built for Hosts & Professional Event Planners — “Website landing page” page 2 layout */}
       <section
-        className="px-4 sm:px-6 lg:px-8 py-14 sm:py-16 bg-white/50 dark:bg-muted/20"
+        className="px-4 sm:px-6 lg:px-8 py-14 sm:py-16 bg-white/50 dark:bg-muted/20 border-y border-amber-100/50"
         aria-labelledby="audience-heading"
       >
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center max-w-3xl mx-auto mb-10 space-y-3">
-            <h2 id="audience-heading" className="text-2xl sm:text-3xl lg:text-4xl font-bold text-balance">
-              Built for Hosts & Professional Event Planners
-            </h2>
-            <p className="text-muted-foreground text-pretty">
-              Whether you're planning your own event or managing multiple clients:
-            </p>
-          </div>
+        <div className="max-w-3xl mx-auto space-y-5">
+          <h2
+            id="audience-heading"
+            className="text-2xl sm:text-3xl lg:text-4xl font-bold text-balance flex items-baseline gap-3"
+          >
+            <span aria-hidden>🚀</span>
+            <span>Built for Hosts &amp; Professional Event Planners</span>
+          </h2>
+          <p className="text-lg text-muted-foreground text-pretty">
+            Whether you're planning your own event or managing multiple clients:
+          </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            {[
-              {
-                title: "Hosts",
-                copy: "Create stunning, organized events with zero overwhelm.",
-              },
-              {
-                title: "Event Planners",
-                copy: "Scale operations, manage teams, and deliver flawlessly.",
-              },
-              {
-                title: "Businesses",
-                copy: "Connect, collaborate, and grow your network.",
-              },
-            ].map((audience) => (
-              <Card key={audience.title} className="border-amber-100/70 bg-card/90 shadow-sm h-full">
-                <CardHeader>
-                  <CardTitle>{audience.title}</CardTitle>
-                  <CardDescription className="text-base">{audience.copy}</CardDescription>
-                </CardHeader>
-              </Card>
+          <ul className="space-y-3 list-none p-0 m-0">
+            {AUDIENCE_POINTS.map(({ who, copy }) => (
+              <li key={who} className="flex items-start gap-3">
+                <span className="text-primary text-lg leading-6 shrink-0" aria-hidden>
+                  ✔
+                </span>
+                <span className="text-base leading-6">
+                  <span className="font-semibold text-foreground">{who}</span>
+                  <span className="text-muted-foreground"> — {copy}</span>
+                </span>
+              </li>
             ))}
-          </div>
+          </ul>
 
-          <div className="text-center">
-            <Button asChild size="lg" className="shadow-md">
-              <Link to={AUTH_STARTER_PLAN_PATH}>Create your first event in minutes</Link>
-            </Button>
-          </div>
+          <Button asChild size="lg" className="shadow-md">
+            <Link to={AUTH_STARTER_PLAN_PATH}>Create your first event in minutes</Link>
+          </Button>
         </div>
       </section>
 
-      {/* Why Choose IEP */}
+      {/* Why Choose IDA Event Partners — “Website landing page” page 2 layout */}
       <section id="why-choose" className="px-4 sm:px-6 lg:px-8 py-14 sm:py-16 bg-background" aria-labelledby="why-heading">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center max-w-3xl mx-auto mb-10">
-            <h2 id="why-heading" className="text-2xl sm:text-3xl lg:text-4xl font-bold text-balance">
-              Why Choose IEP?
-            </h2>
-            <p className="text-lg text-muted-foreground mt-4">
-              Most tools help you plan. We help you execute—flawlessly.
-            </p>
+        <div className="max-w-3xl mx-auto space-y-5">
+          <h2 id="why-heading" className="text-2xl sm:text-3xl lg:text-4xl font-bold text-balance flex items-baseline gap-3">
+            <span aria-hidden>💡</span>
+            <span>Why Choose IDA Event Partners?</span>
+          </h2>
+          <div>
+            <p className="text-lg text-muted-foreground">Most tools help you plan.</p>
+            <p className="text-lg font-semibold text-foreground">We help you execute—flawlessly.</p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-            {[
-              "Centralized event command center",
-              "Reusable templates to save hours",
-              "Real-time collaboration across teams",
-              "Smart automation to reduce manual work",
-              "Save up to 70% of your planning time",
-            ].map((item) => (
-              <Card key={item} className="border-amber-100/70 bg-card/90 shadow-sm h-full">
-                <CardContent className="p-5">
-                  <p className="text-sm font-medium text-foreground">{item}</p>
-                </CardContent>
-              </Card>
+          <ul className="space-y-3 list-none p-0 m-0">
+            {WHY_CHOOSE_POINTS.map((item) => (
+              <li key={item} className="flex items-start gap-3">
+                <span className="mt-2.5 inline-block h-1.5 w-1.5 rounded-full bg-primary shrink-0" aria-hidden />
+                <span className="text-base text-foreground leading-6">{item}</span>
+              </li>
             ))}
-          </div>
+          </ul>
 
-          <div className="text-center">
-            <Button asChild size="lg" className="shadow-md">
-              <Link to={AUTH_STARTER_PLAN_PATH}>Try free Starter Plan</Link>
-            </Button>
-          </div>
+          <Button asChild size="lg" className="shadow-md">
+            <Link to={AUTH_STARTER_PLAN_PATH}>
+              <span className="mr-1" aria-hidden>
+                🔥
+              </span>
+              Save up to 70% of your planning time
+            </Link>
+          </Button>
         </div>
       </section>
 
@@ -534,7 +550,7 @@ const Index = () => {
       >
         <div className="max-w-xl mx-auto">
           <h2 id="waitlist-heading" className="text-2xl sm:text-3xl font-bold text-center mb-2 text-balance">
-            Get launch updates
+            Get Software Updates
           </h2>
           <p className="text-center text-muted-foreground text-sm sm:text-base mb-6 text-pretty">
             Join the campaign list for IEP — product news, early access, and event planning tips. Prefer to start

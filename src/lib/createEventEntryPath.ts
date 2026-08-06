@@ -10,10 +10,11 @@ export const CREATE_EVENT_PATH_NEW_PLANNER = "/dashboard/themes";
 export const POST_SIGN_IN_HOME_PATH = "/dashboard";
 
 /**
- * New users (no events yet) after sign-in/onboarding:
- * Communication/Team → Create Event/Theme connection (M5 PDF).
+ * New users (no events yet) after sign-up/sign-in land on Browse Event Themes, which is the
+ * first step of Create Event. Acceptance test 3: "If User new/signup Navigate to Theme
+ * (create event) else Manage Event".
  */
-export const POST_SIGN_IN_NEW_USER_PATH = "/dashboard/collaborate";
+export const POST_SIGN_IN_NEW_USER_PATH = CREATE_EVENT_PATH_NEW_PLANNER;
 
 /** Users who already have events: land on Manage Event. */
 export const POST_SIGN_IN_MANAGE_EVENT_PATH = "/dashboard/manage-event";
@@ -52,7 +53,7 @@ export async function getCreateEventEntryPath(client: SupabaseClient): Promise<s
  * Do not call this from the Dashboard index route — users who click “Dashboard” in the sidebar
  * should stay on `/dashboard` and see the home dashboard.
  *
- * Users with no events yet → Communication/Team (Create Event/Theme link);
+ * Users with no events yet → Browse Event Themes (first step of Create Event);
  * users with events → Manage Event.
  */
 export async function getPostSignInDashboardPath(client: SupabaseClient): Promise<string> {
