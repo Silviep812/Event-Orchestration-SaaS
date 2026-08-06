@@ -25,6 +25,33 @@ export function LandingDemoModal({ open, onOpenChange }: LandingDemoModalProps) 
   const videoRef = useRef<HTMLVideoElement>(null);
   const [startedMuted, setStartedMuted] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
+  const [failureDetail, setFailureDetail] = useState<string | null>(null);
+
+  /**
+   * `<video>` only reports "not supported", which is the same symptom whether the file is missing,
+   * the host returned index.html from an SPA rewrite, or the codec is unusable. Ask the server
+   * directly so the console names the real cause.
+   */
+  const diagnoseFailure = useCallback(async () => {
+    setLoadFailed(true);
+    try {
+      const res = await fetch(LANDING_DEMO_VIDEO_SRC, { method: "GET", headers: { Range: "bytes=0-0" } });
+      const type = res.headers.get("content-type") ?? "unknown";
+      if (!res.ok) {
+        setFailureDetail(`The server returned HTTP ${res.status} for ${LANDING_DEMO_VIDEO_SRC}.`);
+      } else if (type.includes("text/html")) {
+        setFailureDetail(
+          `${LANDING_DEMO_VIDEO_SRC} returned HTML, not video — the file is missing and the host fell back to index.html.`,
+        );
+      } else {
+        setFailureDetail(`The browser could not decode the video (server sent ${type}).`);
+      }
+      console.warn("Landing demo failed:", { url: LANDING_DEMO_VIDEO_SRC, status: res.status, type });
+    } catch (e) {
+      setFailureDetail("The video file could not be reached.");
+      console.warn("Landing demo failed:", e);
+    }
+  }, []);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -35,6 +62,7 @@ export function LandingDemoModal({ open, onOpenChange }: LandingDemoModalProps) 
       }
       setStartedMuted(false);
       setLoadFailed(false);
+      setFailureDetail(null);
       return;
     }
     if (!video) return;
@@ -100,7 +128,7 @@ export function LandingDemoModal({ open, onOpenChange }: LandingDemoModalProps) 
             preload="auto"
             controlsList="nodownload"
             aria-label={LANDING_DEMO_VIDEO_LABEL}
-            onError={() => setLoadFailed(true)}
+            onError={() => void diagnoseFailure()}
           >
             <source src={LANDING_DEMO_VIDEO_SRC} type="video/mp4" />
             Your browser does not support embedded video. You can{" "}
@@ -125,7 +153,7 @@ export function LandingDemoModal({ open, onOpenChange }: LandingDemoModalProps) 
 
         {loadFailed ? (
           <p className="text-sm text-destructive">
-            The demo video could not be loaded.{" "}
+            {failureDetail ?? "The demo video could not be loaded."}{" "}
             <a href={LANDING_DEMO_VIDEO_SRC} className="underline" download>
               Download the presentation
             </a>{" "}
