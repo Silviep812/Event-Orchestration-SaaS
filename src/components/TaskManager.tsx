@@ -462,6 +462,28 @@ export function TaskManager({
     // Only id + dialog: checklist/category objects change identity often and can cause effect churn.
   }, [isEditDialogOpen, selectedTask?.id]);
 
+  /**
+   * Changing the assignment type mid-edit swaps which prerequisites apply. The effect above is
+   * keyed on task id only, so the new labels were absent from `editIepConfirmed` and the save was
+   * refused for boxes that had never been offered. Reconcile on category change, keeping ticks the
+   * user has already made.
+   */
+  useEffect(() => {
+    if (!isEditDialogOpen || !selectedTask) return;
+    const opts = selectedTask.category?.trim()
+      ? getDependencyOptionsForCategories(selectedTask.category)
+      : [];
+    const stored = selectedTask.checklist as { iep_prerequisites?: string[] } | null | undefined;
+    const confirmed = new Set(Array.isArray(stored?.iep_prerequisites) ? stored.iep_prerequisites : []);
+    setEditIepConfirmed((prev) => {
+      const next: Record<string, boolean> = {};
+      for (const label of opts) {
+        next[label] = prev[label] ?? confirmed.has(label);
+      }
+      return next;
+    });
+  }, [isEditDialogOpen, selectedTask?.id, selectedTask?.category]);
+
   useEffect(() => {
     if (!isEditDialogOpen || !selectedTask?.event_id) {
       setEventResourcesForEdit([]);
@@ -1440,12 +1462,26 @@ export function TaskManager({
         }
       }
       
-      const { error } = await supabase
+      // `.select()` matters: an UPDATE filtered out by row-level security succeeds with zero rows
+      // and no error. Without this the dialog closed, the refetch showed the old values, and the
+      // change looked like it silently failed to save.
+      const { data: updatedRows, error } = await supabase
         .from('tasks')
         .update(toSend as any)
-        .eq('id', taskId);
+        .eq('id', taskId)
+        .select('id');
 
       if (error) throw error;
+
+      if (!updatedRows || updatedRows.length === 0) {
+        toast({
+          title: "Task not saved",
+          description:
+            "The task could not be updated — you may not have permission to change it, or it was removed by someone else. Refresh and try again.",
+          variant: "destructive",
+        });
+        return false;
+      }
 
       if (
         originalTask &&
@@ -1580,10 +1616,11 @@ export function TaskManager({
     try {
       const catTrim = taskToUpdate.category?.trim();
       const iepOpts = catTrim ? getDependencyOptionsForCategories(catTrim) : [];
-      if (iepOpts.length > 0 && !iepOpts.every((label) => editIepConfirmed[label])) {
+      const unconfirmed = iepOpts.filter((label) => editIepConfirmed[label] !== true);
+      if (unconfirmed.length > 0) {
         toast({
-          title: "Prerequisites",
-          description: "Check all items",
+          title: "Prerequisites not confirmed",
+          description: `Tick every box under "Prerequisites (required)" before saving. Still unchecked: ${unconfirmed.join(", ")}.`,
           variant: "destructive",
         });
         return;
@@ -1671,10 +1708,11 @@ export function TaskManager({
     try {
       const catTrim = taskToUpdate.category?.trim();
       const iepOpts = catTrim ? getDependencyOptionsForCategories(catTrim) : [];
-      if (iepOpts.length > 0 && !iepOpts.every((label) => editIepConfirmed[label])) {
+      const unconfirmed = iepOpts.filter((label) => editIepConfirmed[label] !== true);
+      if (unconfirmed.length > 0) {
         toast({
-          title: "Prerequisites",
-          description: "Check all items",
+          title: "Prerequisites not confirmed",
+          description: `Tick every box under "Prerequisites (required)" before saving. Still unchecked: ${unconfirmed.join(", ")}.`,
           variant: "destructive",
         });
         return;

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo} from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Hotel, Home, MapPin, Coffee, Mail, Globe, DollarSign, Users, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -13,11 +13,18 @@ import { openReservationUrl } from "@/lib/openExternalOrMailto";
 import { DirectoryProfileLink } from "@/components/resource-directory/DirectoryProfileLink";
 import { directoryProfileElementId } from "@/lib/directoryProfileLinks";
 import { useDirectoryProfileHighlight } from "@/hooks/useDirectoryProfileHighlight";
+import {
+  LocationFilterInput,
+  collectLocationOptions,
+  matchesLocationFilter,
+} from "@/components/resource-directory/LocationFilterInput";
 
 const HospitalityDirectory = () => {
   const [hospitalityProfiles, setHospitalityProfiles] = useState<any[]>([]);
   const [selectedHospitalityTypes, setSelectedHospitalityTypes] = useState<string[]>([]);
   const [locationFilter, setLocationFilter] = useState("");
+  /** Real locations recorded in this directory, offered as searchable filter choices. */
+  const locationOptions = useMemo(() => collectLocationOptions(hospitalityProfiles), [hospitalityProfiles]);
   const [loading, setLoading] = useState(true);
   const [showOtherForm, setShowOtherForm] = useState(false);
   const [otherFormData, setOtherFormData] = useState({
@@ -105,12 +112,7 @@ const HospitalityDirectory = () => {
   const filteredProfiles = hospitalityProfiles.filter(profile => {
     const matchesType = selectedHospitalityTypes.length === 0 ||
       selectedHospitalityTypes.includes(profile.hospitality_type?.toString());
-    const locationString = [profile.city, profile.state, profile.zip]
-      .filter(Boolean)
-      .join(' ')
-      .toLowerCase();
-    const matchesLocation = !locationFilter ||
-      locationString.includes(locationFilter.toLowerCase());
+    const matchesLocation = matchesLocationFilter(profile, locationFilter);
     return matchesType && matchesLocation;
   });
 
@@ -265,12 +267,11 @@ const HospitalityDirectory = () => {
           
           {/* Location Filter */}
           <div className="space-y-2">
-            <Label htmlFor="location">Filter by Location</Label>
-            <Input
-              id="location"
-              placeholder="Enter city, state, or ZIP code"
+            <LocationFilterInput
+              id="hospitality-location"
               value={locationFilter}
-              onChange={(e) => setLocationFilter(e.target.value)}
+              onChange={setLocationFilter}
+              options={locationOptions}
             />
           </div>
 

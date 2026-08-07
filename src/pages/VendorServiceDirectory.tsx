@@ -13,6 +13,11 @@ import { formatDirectoryPrice } from "@/lib/formatDirectoryPrice";
 import { DirectoryProfileLink } from "@/components/resource-directory/DirectoryProfileLink";
 import { directoryProfileElementId } from "@/lib/directoryProfileLinks";
 import { useDirectoryProfileHighlight } from "@/hooks/useDirectoryProfileHighlight";
+import {
+  LocationFilterInput,
+  collectLocationOptions,
+  matchesLocationFilter,
+} from "@/components/resource-directory/LocationFilterInput";
 
 /**
  * Equipment / Vendor Service Rental-Buy directory.
@@ -27,6 +32,8 @@ const VendorServiceDirectory = () => {
   >([]);
   const [selectedRentalTypes, setSelectedRentalTypes] = useState<string[]>([]);
   const [locationFilter, setLocationFilter] = useState("");
+  /** Real locations recorded in this directory, offered as searchable filter choices. */
+  const locationOptions = useMemo(() => collectLocationOptions(rentals), [rentals]);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const { rentalHighlightClass } = useDirectoryProfileHighlight(loading);
@@ -85,11 +92,7 @@ const VendorServiceDirectory = () => {
     const typeIds = typeIdsForRental(profile.id).map(String);
     const matchesType =
       selectedRentalTypes.length === 0 || selectedRentalTypes.some((t) => typeIds.includes(t));
-    const matchesLocation =
-      !locationFilter ||
-      profile.city?.toLowerCase().includes(locationFilter.toLowerCase()) ||
-      profile.state?.toLowerCase().includes(locationFilter.toLowerCase()) ||
-      profile.zip?.toString().includes(locationFilter);
+    const matchesLocation = matchesLocationFilter(profile, locationFilter);
     return matchesType && matchesLocation;
   });
 
@@ -157,16 +160,14 @@ const VendorServiceDirectory = () => {
           ) : (
             <>
               <div className="space-y-3">
-                <label className="text-sm font-medium" htmlFor="rental-location-filter">
-                  Filter by Location
-                </label>
-                <Input
-                  id="rental-location-filter"
-                  placeholder="Enter city, state, or zip code"
-                  value={locationFilter}
-                  onChange={(e) => setLocationFilter(e.target.value)}
-                  className="max-w-md"
-                />
+                <div className="max-w-md">
+                  <LocationFilterInput
+                    id="rental-location-filter"
+                    value={locationFilter}
+                    onChange={setLocationFilter}
+                    options={locationOptions}
+                  />
+                </div>
               </div>
 
               <div className="space-y-3">

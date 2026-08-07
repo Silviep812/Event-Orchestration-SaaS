@@ -3,7 +3,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo} from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Building, Home, Utensils, MapPin, Trees, Dumbbell, Warehouse, Users, Building2, Hotel, ShoppingBag, HelpCircle, Calendar, ArrowLeft } from "lucide-react";
@@ -14,12 +14,19 @@ import { DirectoryProfileLink } from "@/components/resource-directory/DirectoryP
 import { AddDirectoryEntryDialog } from "@/components/resource-directory/AddDirectoryEntryDialog";
 import { directoryProfileElementId } from "@/lib/directoryProfileLinks";
 import { useDirectoryProfileHighlight } from "@/hooks/useDirectoryProfileHighlight";
+import {
+  LocationFilterInput,
+  collectLocationOptions,
+  matchesLocationFilter,
+} from "@/components/resource-directory/LocationFilterInput";
 
 const VenueDirectory = () => {
   const [venueProfiles, setVenueProfiles] = useState<any[]>([]);
   const [venueTypes, setVenueTypes] = useState<any[]>([]);
   const [selectedVenueType, setSelectedVenueType] = useState<string>("");
   const [locationFilter, setLocationFilter] = useState("");
+  /** Real locations recorded in this directory, offered as searchable filter choices. */
+  const locationOptions = useMemo(() => collectLocationOptions(venueProfiles), [venueProfiles]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -87,10 +94,7 @@ const VenueDirectory = () => {
     const matchesType =
       !selectedVenueType || String(profile.venue_type_id ?? "") === selectedVenueType;
     
-    const matchesLocation = !locationFilter || 
-      profile.city?.toLowerCase().includes(locationFilter.toLowerCase()) ||
-      profile.state?.toLowerCase().includes(locationFilter.toLowerCase()) ||
-      profile.zip?.toString().includes(locationFilter);
+    const matchesLocation = matchesLocationFilter(profile, locationFilter);
     
     return matchesUser && matchesType && matchesLocation;
   });
@@ -171,13 +175,14 @@ const VenueDirectory = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-3">
-            <label className="text-sm font-medium">Filter by Location</label>
-            <Input
-              placeholder="Enter city, state, or zip code"
-              value={locationFilter}
-              onChange={(e) => setLocationFilter(e.target.value)}
-              className="max-w-md"
-            />
+            <div className="max-w-md">
+              <LocationFilterInput
+                id="venue-location"
+                value={locationFilter}
+                onChange={setLocationFilter}
+                options={locationOptions}
+              />
+            </div>
           </div>
           
           <div className="space-y-3">

@@ -18,6 +18,7 @@ import { trackEvent } from "@/lib/analytics";
 import {
   dedupeEventTypeRowsByName,
   dedupeSportThemesForPicker,
+  dedupeThemesByName,
   isHealthWellnessThemeName,
   isRetreatsThemeName,
   isSportThemeName,
@@ -239,7 +240,9 @@ export default function CreateEvent() {
         setThemesLoaded(true);
         return;
       }
-      setEventThemes(dedupeSportThemesForPicker(data || []) as any);
+      // Two guards: sport-named variants collapse to one canonical row, and any other repeated
+      // theme label (a duplicate "Dining" catalog row was reported) collapses by name.
+      setEventThemes(dedupeThemesByName(dedupeSportThemesForPicker(data || [])) as any);
       setThemesLoaded(true);
     };
     fetchThemes();

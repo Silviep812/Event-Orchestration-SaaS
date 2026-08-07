@@ -117,3 +117,59 @@ SELECT name FROM "Themes Directory Catalog"
 WHERE lower(btrim(name)) IN ('celebration', 'dining')
    OR lower(btrim(name)) LIKE 'festival%'
 ORDER BY name;
+
+-- ═══ Round 2 — Acceptance Testing 08/06/2026 ════════════════════════════════
+
+-- ─── 10) No duplicate theme rows (Create Event listed "Dining" twice) ───────
+-- Expected: 0 rows.
+SELECT lower(btrim(name)) AS theme, count(*) AS copies
+FROM "Themes Directory Catalog"
+GROUP BY lower(btrim(name))
+HAVING count(*) > 1;
+
+-- ─── 11) Festival > Heritage types are ethnic groups ────────────────────────
+-- Expected: African American, German American, Asian American, … and none of
+-- the old descriptive labels (Cultural Heritage, Family Heritage, …).
+SELECT t.name AS heritage_type
+FROM "Themes Directory Catalog" th
+JOIN event_types cat ON cat.theme_id = th.id AND lower(btrim(cat.name)) = 'heritage'
+JOIN event_types t ON t.parent_id = cat.id
+WHERE lower(th.name) LIKE 'festival%'
+ORDER BY t.name;
+
+-- ─── 12) Every category offers at least one selectable type ─────────────────
+-- Covers "Health and Wellness > type missing dropdown" and the Celebration
+-- Holiday / Personal note. Expected: 0 rows.
+SELECT th.name AS theme, cat.name AS category_with_no_types
+FROM "Themes Directory Catalog" th
+JOIN event_types root ON root.theme_id = th.id AND root.parent_id IS NULL
+JOIN event_types cat ON cat.parent_id = root.id
+WHERE NOT EXISTS (SELECT 1 FROM event_types t WHERE t.parent_id = cat.id)
+  AND EXISTS (
+    SELECT 1 FROM event_types sib
+    JOIN event_types g ON g.parent_id = sib.id
+    WHERE sib.parent_id = root.id
+  )
+ORDER BY th.name, cat.name;
+
+-- ─── 13) Celebration Holidays / Personal both carry types ───────────────────
+-- Expected: two rows, each with types > 0.
+SELECT cat.name AS category, count(t.id) AS types
+FROM "Themes Directory Catalog" th
+JOIN event_types cat ON cat.theme_id = th.id
+LEFT JOIN event_types t ON t.parent_id = cat.id
+WHERE lower(btrim(th.name)) = 'celebration'
+  AND lower(btrim(cat.name)) IN ('holidays', 'holiday', 'personal')
+GROUP BY cat.id, cat.name
+ORDER BY cat.name;
+
+-- ─── 14) Health & Wellness categories carry types ───────────────────────────
+-- Expected: every row has types > 0.
+SELECT cat.name AS category, count(t.id) AS types
+FROM "Themes Directory Catalog" th
+JOIN event_types root ON root.theme_id = th.id AND root.parent_id IS NULL
+JOIN event_types cat ON cat.parent_id = root.id
+LEFT JOIN event_types t ON t.parent_id = cat.id
+WHERE lower(th.name) LIKE '%health%' AND lower(th.name) LIKE '%wellness%'
+GROUP BY cat.id, cat.name
+ORDER BY cat.name;

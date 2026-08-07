@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useMemo} from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ChefHat, Camera, Utensils, Cake, Truck, Flower, Package, Car, PersonStanding, Mail } from "lucide-react";
 import { DirectoryPageHeader } from "@/components/resource-directory/DirectoryPageHeader";
@@ -13,12 +13,19 @@ import { formatDirectoryPrice } from "@/lib/formatDirectoryPrice";
 import { DirectoryProfileLink } from "@/components/resource-directory/DirectoryProfileLink";
 import { directoryProfileElementId } from "@/lib/directoryProfileLinks";
 import { useDirectoryProfileHighlight } from "@/hooks/useDirectoryProfileHighlight";
+import {
+  LocationFilterInput,
+  collectLocationOptions,
+  matchesLocationFilter,
+} from "@/components/resource-directory/LocationFilterInput";
 
 const ServiceVendorDirectory = () => {
   const [vendorTypes, setVendorTypes] = useState<any[]>([]);
   const [vendorProfiles, setVendorProfiles] = useState<any[]>([]);
   const [selectedVendorTypes, setSelectedVendorTypes] = useState<string[]>([]);
   const [locationFilter, setLocationFilter] = useState("");
+  /** Real locations recorded in this directory, offered as searchable filter choices. */
+  const locationOptions = useMemo(() => collectLocationOptions(vendorProfiles), [vendorProfiles]);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const { highlightClass } = useDirectoryProfileHighlight(loading);
@@ -58,10 +65,7 @@ const ServiceVendorDirectory = () => {
     const matchesType = selectedVendorTypes.length === 0 || 
       selectedVendorTypes.includes(profile.vendor_sup_type_id?.toString());
     
-    const matchesLocation = !locationFilter || 
-      profile.city?.toLowerCase().includes(locationFilter.toLowerCase()) ||
-      profile.state?.toLowerCase().includes(locationFilter.toLowerCase()) ||
-      profile.zip?.toString().includes(locationFilter);
+    const matchesLocation = matchesLocationFilter(profile, locationFilter);
     
     return matchesType && matchesLocation;
   });
@@ -128,13 +132,14 @@ const ServiceVendorDirectory = () => {
           ) : (
             <>
               <div className="space-y-3">
-                <label className="text-sm font-medium">Filter by Location</label>
-                <Input
-                  placeholder="Enter city, state, or zip code"
-                  value={locationFilter}
-                  onChange={(e) => setLocationFilter(e.target.value)}
-                  className="max-w-md"
-                />
+                <div className="max-w-md">
+                  <LocationFilterInput
+                    id="service-vendor-location"
+                    value={locationFilter}
+                    onChange={setLocationFilter}
+                    options={locationOptions}
+                  />
+                </div>
               </div>
               
               <div className="space-y-3">

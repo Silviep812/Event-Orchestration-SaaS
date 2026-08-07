@@ -6,7 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import {
+  dedupeEventTypeRowsByName,
   dedupeSportThemesForPicker,
+  dedupeThemesByName,
   fetchMeetupTopLevelBranch,
   fetchThemedChildren,
   filterSportishTags,
@@ -263,13 +265,7 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
         );
         const sportAndKept = data.filter((t) => keptIds.has(t.id));
 
-        const nameSeen = new Set<string>();
-        const uniqueData = sportAndKept.filter((t) => {
-          const key = (t.name ?? "").trim().toLowerCase().replace(/\s+/g, " ");
-          if (nameSeen.has(key)) return false;
-          nameSeen.add(key);
-          return true;
-        });
+        const uniqueData = dedupeThemesByName(sportAndKept);
 
         const transformedThemes: ThemeDetails[] = uniqueData.map((theme) => {
           const category = getCategoryFromName(theme.name);
@@ -386,8 +382,10 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
     void (async () => {
       const next: Record<number, Record<string, any>> = {};
       for (const t of themes) {
-        // Health & Wellness and Retreats have dedicated loaders wired up further down.
-        if (isHealthWellnessThemeName(t.name) || isRetreatsThemeName(t.name)) continue;
+        // Every theme is loaded, including Health & Wellness and Retreats. Their dedicated loaders
+        // still take precedence when they return types, but this guarantees a fallback — a theme
+        // whose specialised loader came back empty previously rendered a badge with no dropdown
+        // ("Health and Wellness > type missing dropdown menu selection").
         try {
           next[t.id] = isSportThemeName(t.name)
             ? await loadSportingDirectoryCategoryTypes(t.id)
@@ -489,13 +487,15 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
       }
 
       // `event_types` categories win; legacy `tags` values only fill gaps and never duplicate a badge.
+      // Specialised loaders are merged with the generic one so a theme always has categories even if
+      // one source comes back empty.
       const dynamicTags = Object.keys(dynamicHierarchyByThemeId[t.id] ?? {});
-      let categoryNames = dynamicTags;
-      if (isHealthWellnessThemeName(name) && browseHwHierarchy) {
-        categoryNames = browseHwHierarchy.orderedCategoryKeys.map((k) => browseHwHierarchy.keyLabel[k] ?? k);
-      } else if (isRetreatsThemeName(trimmed)) {
-        categoryNames = Object.keys(retreatBranchTypes);
-      }
+      const specialisedTags = isHealthWellnessThemeName(name)
+        ? (browseHwHierarchy?.orderedCategoryKeys ?? []).map((k) => browseHwHierarchy?.keyLabel[k] ?? k)
+        : isRetreatsThemeName(trimmed)
+          ? Object.keys(retreatBranchTypes)
+          : [];
+      const categoryNames = specialisedTags.length > 0 ? specialisedTags : dynamicTags;
 
       let tags = mergeThemeCategoryTags(t.tags ?? [], categoryNames);
       // Sporting: the theme label itself is not a category (data from `dynamicHierarchyByThemeId`).
@@ -559,34 +559,39 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
       "Meetup-Inclusive": { types: meetupInclusiveEventTypes, themeName: "Meetup", tagName: "Inclusive" },
     };
 
-    let config: { types: { id: number; name: string }[]; themeName: string; tagName: string } | undefined;
+    /**
+     * Try each source in order and take the first that actually yields types. Previously a
+     * specialised loader that matched the theme but returned nothing won outright, leaving the
+     * badge with no dropdown even though `event_types` had the data.
+     */
+    const candidateTypeSources: (() => { id: number; name: string }[])[] = [];
 
     if (browseHwHierarchy && /health/i.test(theme.name) && /wellness/i.test(theme.name)) {
-      const slug = browseHwHierarchy.orderedCategoryKeys.find((k) => (browseHwHierarchy.keyLabel[k] ?? k) === tag);
-      if (slug && (browseHwHierarchy.groups[slug] ?? []).length > 0) {
-        config = { types: browseHwHierarchy.groups[slug] ?? [], themeName: theme.name, tagName: tag };
-      }
+      candidateTypeSources.push(() => {
+        const slug = browseHwHierarchy.orderedCategoryKeys.find((k) => (browseHwHierarchy.keyLabel[k] ?? k) === tag);
+        return slug ? (browseHwHierarchy.groups[slug] ?? []) : [];
+      });
     }
 
-    if (!config && /retreat/i.test(theme.name) && Object.prototype.hasOwnProperty.call(retreatBranchTypes, tag)) {
-      config = { types: retreatBranchTypes[tag] ?? [], themeName: theme.name, tagName: tag };
+    if (/retreat/i.test(theme.name)) {
+      candidateTypeSources.push(() => retreatBranchTypes[tag] ?? []);
     }
 
     const dyn = dynamicHierarchyByThemeId[theme.id];
-    const dynTypes = dyn ? dynEntryTypes(dyn[tag]) : [];
-    if (!config && dynTypes.length > 0) {
-      config = { types: dynTypes, themeName: theme.name, tagName: tag };
+    candidateTypeSources.push(() => (dyn ? dynEntryTypes(dyn[tag]) : []));
+    candidateTypeSources.push(() => dropdownConfig[`${theme.name}-${tag}`]?.types ?? []);
+    if (/dining/i.test(theme.name)) {
+      candidateTypeSources.push(() => dropdownConfig[`Dining-${tag}`]?.types ?? []);
     }
 
-    if (!config) {
-      const configKey = `${theme.name}-${tag}`;
-      config = dropdownConfig[configKey];
-    }
-
-    // Fallback: match dining themes by category regardless of exact name
-    if (!config && /dining/i.test(theme.name)) {
-      const diningKey = `Dining-${tag}`;
-      config = dropdownConfig[diningKey];
+    let config: { types: { id: number; name: string }[]; themeName: string; tagName: string } | undefined;
+    for (const source of candidateTypeSources) {
+      const types = source();
+      if (types.length > 0) {
+        // A category row that has no children resolves to itself; that is a real, selectable type.
+        config = { types: dedupeEventTypeRowsByName(types), themeName: theme.name, tagName: tag };
+        break;
+      }
     }
 
     const tagBadgeLabel = isSportThemeName(theme.name) ? sportingTypeUiLabel(tag) || tag : tag;

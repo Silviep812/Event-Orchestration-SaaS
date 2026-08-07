@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { sportingSelectionTrailLabel, sportingTypeUiLabel } from "@/lib/sportingTypeUiLabel";
 import {
   dedupeEventTypeRowsByName,
+  dedupeThemesByName,
   eventTypeNameKey,
   mergeThemeCategoryTags,
 } from "@/lib/eventTypeCategories";
@@ -338,7 +339,7 @@ export function sportThemeRootCategoryDisplayLabel(
   return raw;
 }
 
-export { dedupeEventTypeRowsByName, eventTypeNameKey, mergeThemeCategoryTags };
+export { dedupeEventTypeRowsByName, dedupeThemesByName, eventTypeNameKey, mergeThemeCategoryTags };
 
 /** Reunion-specific loader. Passthrough to the shared loader so Family/School categories are shown. */
 export async function loadReunionEventTypesByParentTag(

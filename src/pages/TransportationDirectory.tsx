@@ -24,6 +24,11 @@ import { formatDirectoryPrice } from "@/lib/formatDirectoryPrice";
 import { DirectoryProfileLink } from "@/components/resource-directory/DirectoryProfileLink";
 import { directoryProfileElementId } from "@/lib/directoryProfileLinks";
 import { useDirectoryProfileHighlight } from "@/hooks/useDirectoryProfileHighlight";
+import {
+  LocationFilterInput,
+  collectLocationOptions,
+  matchesLocationFilter,
+} from "@/components/resource-directory/LocationFilterInput";
 
 function isMissingTableOrSchemaCacheError(message: string): boolean {
   const m = message.toLowerCase();
@@ -41,6 +46,8 @@ const TransportationDirectory = () => {
   /** Empty = all types; otherwise match any selected `transp_type_id` (OR). */
   const [selectedTransportationTypes, setSelectedTransportationTypes] = useState<string[]>([]);
   const [locationFilter, setLocationFilter] = useState("");
+  /** Real locations recorded in this directory, offered as searchable filter choices. */
+  const locationOptions = useMemo(() => collectLocationOptions(transportationProfiles), [transportationProfiles]);
   const [loading, setLoading] = useState(false);
   const [profilesLoadError, setProfilesLoadError] = useState<string | null>(null);
   const [typesLoadError, setTypesLoadError] = useState<string | null>(null);
@@ -173,11 +180,7 @@ const TransportationDirectory = () => {
         pid !== "" &&
         selectedTransportationTypes.some((sel) => String(sel) === String(pid)));
 
-    const matchesLocation =
-      !locationFilter ||
-      profile.city?.toLowerCase().includes(locationFilter.toLowerCase()) ||
-      profile.state?.toLowerCase().includes(locationFilter.toLowerCase()) ||
-      profile.zip?.toString().includes(locationFilter);
+    const matchesLocation = matchesLocationFilter(profile, locationFilter);
 
     return matchesType && matchesLocation;
   });
@@ -378,14 +381,14 @@ const TransportationDirectory = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="transportation-location">Filter by location</Label>
-                <Input
-                  id="transportation-location"
-                  placeholder="City, state, or ZIP"
-                  value={locationFilter}
-                  onChange={(e) => setLocationFilter(e.target.value)}
-                  className="max-w-md"
-                />
+                <div className="max-w-md">
+                  <LocationFilterInput
+                    id="transportation-location"
+                    value={locationFilter}
+                    onChange={setLocationFilter}
+                    options={locationOptions}
+                  />
+                </div>
               </div>
             </>
           )}

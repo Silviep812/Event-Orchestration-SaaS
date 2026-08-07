@@ -13,6 +13,11 @@ import { SUPPLIER_OTHER_CATEGORY, supplierCategoryByName } from "@/lib/supplierB
 import type { LucideIcon } from "lucide-react";
 import { formatDirectoryPrice } from "@/lib/formatDirectoryPrice";
 import { DirectoryProfileLink } from "@/components/resource-directory/DirectoryProfileLink";
+import {
+  LocationFilterInput,
+  collectLocationOptions,
+  matchesLocationFilter,
+} from "@/components/resource-directory/LocationFilterInput";
 import { directoryProfileElementId } from "@/lib/directoryProfileLinks";
 import { useDirectoryProfileHighlight } from "@/hooks/useDirectoryProfileHighlight";
 
@@ -38,6 +43,7 @@ export default function SupplierDirectory() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [supplierCategories, setSupplierCategories] = useState<{ id: number; name: string }[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [locationFilter, setLocationFilter] = useState("");
   const [loading, setLoading] = useState(true);
   const { highlightClass } = useDirectoryProfileHighlight(loading);
@@ -98,17 +104,48 @@ export default function SupplierDirectory() {
     return [...byKey.values()].sort((a, b) => a.label.localeCompare(b.label));
   }, [supplierCategories, suppliers]);
 
+  /** Type recorded on the profile itself — never a value borrowed from another directory's table. */
+  const effectiveTypeName = (s: Supplier): string | null =>
+    s.custom_type?.trim() || s.supplier_types?.name || null;
+
+  const locationOptions = useMemo(() => collectLocationOptions(suppliers), [suppliers]);
+
+  /**
+   * Types offered are exactly the types present on External Vendor profiles, narrowed to the
+   * selected categories. Acceptance testing reported "External Vendor types show other table
+   * entries also" — `vendor_supplier_types` is shared across several directories, so listing it
+   * wholesale surfaced types belonging elsewhere.
+   */
+  const supplierTypeOptions = useMemo(() => {
+    const byKey = new Map<string, string>();
+    for (const s of suppliers) {
+      const category = effectiveCategoryName(s);
+      if (selectedCategories.length > 0 && (category == null || !selectedCategories.includes(category))) {
+        continue;
+      }
+      const type = effectiveTypeName(s);
+      if (!type) continue;
+      const key = type.toLowerCase();
+      if (!byKey.has(key)) byKey.set(key, type);
+    }
+    return [...byKey.values()].sort((a, b) => a.localeCompare(b));
+  }, [suppliers, selectedCategories]);
+
+  useEffect(() => {
+    // Drop any selected type that the current category selection no longer offers.
+    setSelectedTypes((prev) => prev.filter((t) => supplierTypeOptions.includes(t)));
+  }, [supplierTypeOptions]);
+
   const filteredSuppliers = suppliers.filter((supplier) => {
     const dbName = effectiveCategoryName(supplier);
     const matchesCategory =
       selectedCategories.length === 0 ||
       (dbName != null && selectedCategories.includes(dbName));
-    const matchesLocation =
-      !locationFilter ||
-      [supplier.city, supplier.state, supplier.zip].some((field) =>
-        field?.toLowerCase().includes(locationFilter.toLowerCase()),
-      );
-    return matchesCategory && matchesLocation;
+    const typeName = effectiveTypeName(supplier);
+    const matchesType =
+      selectedTypes.length === 0 || (typeName != null && selectedTypes.includes(typeName));
+    const matchesLocation = matchesLocationFilter(supplier, locationFilter);
+    return matchesCategory && matchesType && matchesLocation;
   });
 
   const handleCategoryChange = (value: string, checked: boolean) => {
@@ -121,6 +158,7 @@ export default function SupplierDirectory() {
 
   const clearAllSelections = () => {
     setSelectedCategories([]);
+    setSelectedTypes([]);
     setLocationFilter("");
   };
 
@@ -172,18 +210,39 @@ export default function SupplierDirectory() {
             </div>
           </div>
 
-          {/* Location Filter */}
-          <div className="space-y-2">
-            <Label htmlFor="location">Filter by Location</Label>
-            <Input
-              id="location"
-              placeholder="Enter city, state, or ZIP code"
-              value={locationFilter}
-              onChange={(e) => setLocationFilter(e.target.value)}
-            />
-          </div>
+          {/* Type filter — only types recorded on External Vendor profiles */}
+          {supplierTypeOptions.length > 0 && (
+            <div className="space-y-2">
+              <Label>Type</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {supplierTypeOptions.map((type) => (
+                  <div key={type} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`supplier-type-${type}`}
+                      checked={selectedTypes.includes(type)}
+                      onCheckedChange={(checked) =>
+                        setSelectedTypes((prev) =>
+                          checked ? [...prev, type] : prev.filter((t) => t !== type),
+                        )
+                      }
+                    />
+                    <label htmlFor={`supplier-type-${type}`} className="text-sm font-medium cursor-pointer">
+                      {type}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
-          {(selectedCategories.length > 0 || locationFilter) && (
+          <LocationFilterInput
+            id="supplier-location"
+            value={locationFilter}
+            onChange={setLocationFilter}
+            options={locationOptions}
+          />
+
+          {(selectedCategories.length > 0 || selectedTypes.length > 0 || locationFilter) && (
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
                 Showing {filteredSuppliers.length} of {suppliers.length} vendor profiles
