@@ -596,7 +596,11 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
 
     const tagBadgeLabel = isSportThemeName(theme.name) ? sportingTypeUiLabel(tag) || tag : tag;
 
-    if (config) {
+    // A category always opens a menu, even when no types resolve — a bare badge is exactly what
+    // acceptance testing reported as "missing dropdown menu selection". When there is nothing to
+    // list, the menu says so rather than looking like a non-interactive label.
+    {
+      const types = config?.types ?? [];
       return (
         <Popover key={index}>
           <PopoverTrigger asChild>
@@ -616,8 +620,8 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
             sideOffset={5}
           >
             <div className="space-y-1">
-              {config.types.length > 0 ? (
-                config.types.map((item) => (
+              {types.length > 0 ? (
+                types.map((item) => (
                   <button
                     key={item.id}
                     className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
@@ -640,12 +644,6 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
         </Popover>
       );
     }
-
-    return (
-      <Badge key={index} variant="outline" className="text-xs">
-        {tagBadgeLabel}
-      </Badge>
-    );
   };
 
   const ThemeCard = ({ theme }: { theme: ThemeDetails }) => {
