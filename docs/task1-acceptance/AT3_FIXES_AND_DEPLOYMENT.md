@@ -2,12 +2,25 @@
 
 Every item in *M5_Task1 Acceptance Test 3 Results* is addressed below.
 
-> **Read this first.** A large share of the "repeat failures" in tests 1–3 are **database** items
-> (categories, types, directory alignment). Those live in `supabase/migrations/`, and the repo's
-> deploy workflow (`.github/workflows/supabase-ci.yml`) is **manual-only** — the `push:` trigger is
-> commented out. If nobody ran it, the migration files sit in Git while the hosted database still
-> has the old data, so the app keeps showing the old menus no matter how many times the code is
-> fixed. **Step 1 below is not optional.**
+> **Read this first — the deploy credentials are dead.**
+>
+> A large share of the repeat failures across tests 1–4 are **database** items (categories, types,
+> directory alignment). They live in `supabase/migrations/`, and they have never reached the hosted
+> database because **both credentials in `.github/workflows/supabase-ci.yml` are invalid**:
+>
+> | Credential | Verified result |
+> | --- | --- |
+> | `SUPABASE_ACCESS_TOKEN` (`sbp_f85a…`) | Management API returns `401 Unauthorized` |
+> | `SUPABASE_DB_PASSWORD` (`BB-11-pgh`) | Pooler returns `28P01 password authentication failed` |
+>
+> The workflow's first step is `supabase link`, which uses the access token, and `db push` uses the
+> password — so the job cannot authenticate at either step. Combined with the `push:` trigger being
+> commented out (manual-only), the migrations sit in Git while the app keeps serving the old data,
+> no matter how many times the code is fixed.
+>
+> **Get the current database password from Supabase → Settings → Database, and issue a fresh access
+> token at supabase.com/dashboard/account/tokens.** Nothing in the database section below can run
+> until then. Step 1 is not optional.
 
 ---
 
@@ -15,14 +28,24 @@ Every item in *M5_Task1 Acceptance Test 3 Results* is addressed below.
 
 ### Database (required)
 
-Run the manual workflow **Actions → "Supabase deploy" → Run workflow**, or locally:
+Simplest route, and it needs no credentials at all — Supabase Dashboard → **SQL Editor**, paste and
+run these in order. All are idempotent, so re-running a migration that already applied is harmless:
+
+1. `supabase/migrations/20260730150000_task1_theme_directory_alignment.sql`
+2. `supabase/migrations/20260730151000_task1_templates_budget_kind.sql`
+3. `supabase/migrations/20260801120000_task1_m5_sporting_special_event.sql`
+4. `supabase/migrations/20260806120000_task1_at3_directory_integrity.sql`
+5. `supabase/migrations/20260806180000_at3_round2_theme_catalog_and_heritage.sql`
+6. `supabase/migrations/20260807090000_at4_seed_category_types.sql`
+
+Or, once you have a **valid** password (see the warning above):
 
 ```powershell
-$env:SUPABASE_DB_PASSWORD = "<db password>"
+$env:SUPABASE_DB_PASSWORD = "<current db password>"
 npm run db:push:with-password
 ```
 
-Then confirm in the Supabase SQL Editor:
+Then confirm in the SQL Editor:
 
 ```sql
 -- paste scripts/at3-acceptance-verify.sql

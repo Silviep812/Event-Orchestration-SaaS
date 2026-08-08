@@ -173,3 +173,36 @@ LEFT JOIN event_types t ON t.parent_id = cat.id
 WHERE lower(th.name) LIKE '%health%' AND lower(th.name) LIKE '%wellness%'
 GROUP BY cat.id, cat.name
 ORDER BY cat.name;
+
+-- ─── 15) No category is left with only a self-named placeholder type ────────
+-- The seeding migration replaces "Mindful > Mindful" style placeholders with
+-- real type lists. Expected: 0 rows for the seeded themes (Celebration,
+-- Health & Wellness, Dining). Rows elsewhere are categories the client has not
+-- yet supplied type lists for.
+SELECT th.name AS theme, cat.name AS category_with_placeholder_only
+FROM "Themes Directory Catalog" th
+JOIN event_types cat ON cat.theme_id = th.id
+WHERE EXISTS (
+        SELECT 1 FROM event_types g
+        WHERE g.parent_id = cat.id
+          AND lower(btrim(g.name)) = lower(btrim(cat.name))
+      )
+  AND NOT EXISTS (
+        SELECT 1 FROM event_types g
+        WHERE g.parent_id = cat.id
+          AND lower(btrim(g.name)) <> lower(btrim(cat.name))
+      )
+ORDER BY th.name, cat.name;
+
+-- ─── 16) Seeded type lists landed ───────────────────────────────────────────
+-- Expected: Holidays and Personal have ~10-12 types each; Dining categories
+-- have 5-6 each; Health & Wellness categories have 5 each.
+SELECT th.name AS theme, cat.name AS category, count(t.id) AS types
+FROM "Themes Directory Catalog" th
+JOIN event_types cat ON cat.theme_id = th.id
+JOIN event_types t ON t.parent_id = cat.id
+WHERE (lower(btrim(th.name)) LIKE '%celebration%' AND lower(btrim(cat.name)) IN ('holiday', 'holidays', 'personal'))
+   OR (lower(btrim(th.name)) LIKE '%dining%' AND lower(btrim(cat.name)) IN ('contemporary', 'buffet', 'fine dining'))
+   OR (lower(btrim(th.name)) LIKE '%health%')
+GROUP BY th.name, cat.id, cat.name
+ORDER BY th.name, cat.name;
