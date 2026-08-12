@@ -23,6 +23,16 @@
     <meta name="robots" content="index, follow, max-image-preview:large" />
     <link rel="canonical" href="https://idaeventpartners.com/" />
 
+    <!--
+      08/12/2026: "Google search website > displays Lovable Logo". The previous pass corrected the
+      title and description but left public/favicon.ico as the generator's default and declared no
+      icon at all, so browsers and Google fell back to it. These now point at the IEP mark.
+    -->
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/iep-icon-192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/iep-icon-512.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
     <meta property="og:site_name" content="IDA Event Partners" />
     <meta property="og:title" content="IDA Event Partners — Event Planning Software" />
     <meta
@@ -31,7 +41,9 @@
     />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://idaeventpartners.com/" />
-    <meta property="og:image" content="https://idaeventpartners.com/iep-logo-welcome.svg" />
+    <meta property="og:image" content="https://idaeventpartners.com/iep-icon-512.png" />
+    <meta property="og:image:width" content="512" />
+    <meta property="og:image:height" content="512" />
     <meta property="og:locale" content="en_US" />
 
     <meta name="twitter:card" content="summary_large_image" />
@@ -40,7 +52,7 @@
       name="twitter:description"
       content="Plan, manage and scale exceptional events in one place. Free Starter Plan."
     />
-    <meta name="twitter:image" content="https://idaeventpartners.com/iep-logo-welcome.svg" />
+    <meta name="twitter:image" content="https://idaeventpartners.com/iep-icon-512.png" />
 
     <!-- Structured data: lets Google show the brand as an entity rather than a bare link. -->
     <script type="application/ld+json">
@@ -53,7 +65,7 @@
             "name": "IDA Event Partners",
             "alternateName": ["IEP", "IEP Event Planner", "Interactive Event Planner"],
             "url": "https://idaeventpartners.com/",
-            "logo": "https://idaeventpartners.com/iep-logo-welcome.svg"
+            "logo": "https://idaeventpartners.com/iep-icon-512.png"
           },
           {
             "@type": "WebSite",

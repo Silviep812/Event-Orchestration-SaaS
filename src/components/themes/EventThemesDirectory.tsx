@@ -9,8 +9,6 @@ import {
   dedupeEventTypeRowsByName,
   dedupeSportThemesForPicker,
   dedupeThemesByName,
-  fetchMeetupTopLevelBranch,
-  fetchThemedChildren,
   filterSportishTags,
   isHealthWellnessThemeName,
   isRetreatsThemeName,
@@ -201,20 +199,6 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
   const [loading, setLoading] = useState(true);
   const [selectedSubTypes, setSelectedSubTypes] = useState<Record<number, string>>({});
   const [selectedSubTypeIds, setSelectedSubTypeIds] = useState<Record<number, number>>({});
-  const [holidayEventTypes, setHolidayEventTypes] = useState<{ id: number; name: string }[]>([]);
-  const [personalEventTypes, setPersonalEventTypes] = useState<{ id: number; name: string }[]>([]);
-  const [culturalEventTypes, setCulturalEventTypes] = useState<{ id: number; name: string }[]>([]);
-  const [communityEventTypes, setCommunityEventTypes] = useState<{ id: number; name: string }[]>([]);
-  const [artisanEventTypes, setArtisanEventTypes] = useState<{ id: number; name: string }[]>([]);
-  const [foodEventTypes, setFoodEventTypes] = useState<{ id: number; name: string }[]>([]);
-  const [vendorEventTypes, setVendorEventTypes] = useState<{ id: number; name: string }[]>([]);
-  const [vintageEventTypes, setVintageEventTypes] = useState<{ id: number; name: string }[]>([]);
-  const [contemporaryEventTypes, setContemporaryEventTypes] = useState<{ id: number; name: string }[]>([]);
-  const [buffetEventTypes, setBuffetEventTypes] = useState<{ id: number; name: string }[]>([]);
-  const [fineDiningEventTypes, setFineDiningEventTypes] = useState<{ id: number; name: string }[]>([]);
-  const [heritageEventTypes, setHeritageEventTypes] = useState<{ id: number; name: string }[]>([]);
-  const [meetupCommunityEventTypes, setMeetupCommunityEventTypes] = useState<{ id: number; name: string }[]>([]);
-  const [meetupInclusiveEventTypes, setMeetupInclusiveEventTypes] = useState<{ id: number; name: string }[]>([]);
   const [retreatBranchTypes, setRetreatBranchTypes] = useState<Record<string, { id: number; name: string }[]>>({});
   const [browseHwHierarchy, setBrowseHwHierarchy] = useState<Awaited<
     ReturnType<typeof loadHealthWellnessEventTypeGroups>
@@ -309,79 +293,16 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
     fetchThemes();
   }, []);
 
-  // Fetch holiday, personal, cultural, and community event types
+  // Health & Wellness and Retreats keep dedicated loaders; both are strictly theme-scoped.
   useEffect(() => {
-    const fetchEventTypes = async () => {
-      const festivalMatchers = [
-        (n: string) => /festival/i.test(n),
-        (n: string) => /celebration|party|special/i.test(n),
-      ];
-      const marketplaceMatchers = [(n: string) => /market/i.test(n), (n: string) => /marketplace|vendor fair/i.test(n)];
-      const diningMatchers = [
-        (n: string) => /dining/i.test(n),
-        (n: string) => /culinary|banquet|gala|food service/i.test(n),
-      ];
-      const meetupMatchers = [
-        (n: string) => /meet\s*up|meetup/i.test(n),
-        (n: string) => /mixer|gathering|social/i.test(n),
-      ];
-
-      const [
-        holidaysRes,
-        personalRes,
-        culturalData,
-        communityData,
-        heritageData,
-        artisansData,
-        foodData,
-        vendorsData,
-        vintageData,
-        contemporaryData,
-        buffetData,
-        fineDiningData,
-        meetupCommunityData,
-        meetupInclusiveData,
-        hwGroups,
-        retreatGroups,
-      ] = await Promise.all([
-        supabase.from("event_types").select("id, name").eq("parent_id", 2).order("name"),
-        supabase.from("event_types").select("id, name").eq("parent_id", 3).order("name"),
-        fetchThemedChildren(festivalMatchers, 4, "Cultural"),
-        fetchThemedChildren(festivalMatchers, 4, "Community"),
-        fetchThemedChildren(festivalMatchers, 4, "Heritage"),
-        fetchThemedChildren(marketplaceMatchers, 11, "Artisans"),
-        fetchThemedChildren(marketplaceMatchers, 11, "Food"),
-        fetchThemedChildren(marketplaceMatchers, 11, "Vendors"),
-        fetchThemedChildren(marketplaceMatchers, 11, "Vintage"),
-        // legacyThemeId 7 is fallback only — resolveThemeId prefers Catalog name "Dining"
-        fetchThemedChildren(diningMatchers, 7, "Contemporary"),
-        fetchThemedChildren(diningMatchers, 7, "Buffet"),
-        fetchThemedChildren(diningMatchers, 7, "Fine Dining"),
-        fetchMeetupTopLevelBranch(meetupMatchers, 1, "Community"),
-        fetchMeetupTopLevelBranch(meetupMatchers, 1, "Inclusive"),
+    void (async () => {
+      const [hwGroups, retreatGroups] = await Promise.all([
         loadHealthWellnessEventTypeGroups(),
         loadRetreatsEventTypeGroups(),
       ]);
-
-      setHolidayEventTypes(holidaysRes.data || []);
-      setPersonalEventTypes(personalRes.data || []);
-      setCulturalEventTypes(culturalData);
-      setCommunityEventTypes(communityData);
-      setHeritageEventTypes(heritageData);
-      setArtisanEventTypes(artisansData);
-      setFoodEventTypes(foodData);
-      setVendorEventTypes(vendorsData);
-      setVintageEventTypes(vintageData);
-      setContemporaryEventTypes(contemporaryData);
-      setBuffetEventTypes(buffetData);
-      setFineDiningEventTypes(fineDiningData);
-      setMeetupCommunityEventTypes(meetupCommunityData);
-      setMeetupInclusiveEventTypes(meetupInclusiveData);
       setBrowseHwHierarchy(hwGroups);
       setRetreatBranchTypes(retreatGroups.typesByBranch);
-    };
-
-    fetchEventTypes();
+    })();
   }, []);
 
   /**
@@ -569,50 +490,31 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
 
   // Helper function to render dropdown for specific tags
   const renderTagDropdown = (theme: ThemeDetails, tag: string, index: number) => {
-    const dropdownConfig: Record<
-      string,
-      { types: { id: number; name: string }[]; themeName: string; tagName: string }
-    > = {
-      "Celebration-Holidays": { types: holidayEventTypes, themeName: "Celebration", tagName: "Holidays" },
-      "Celebration-Personal": { types: personalEventTypes, themeName: "Celebration", tagName: "Personal" },
-      "Festival-Cultural": { types: culturalEventTypes, themeName: "Festival", tagName: "Cultural" },
-      "Festival-Community": { types: communityEventTypes, themeName: "Festival", tagName: "Community" },
-      "Festival-Heritage": { types: heritageEventTypes, themeName: "Festival", tagName: "Heritage" },
-      "Marketplace-Artisans": { types: artisanEventTypes, themeName: "Marketplace", tagName: "Artisans" },
-      "Marketplace-Food": { types: foodEventTypes, themeName: "Marketplace", tagName: "Food" },
-      "Marketplace-Vendors": { types: vendorEventTypes, themeName: "Marketplace", tagName: "Vendors" },
-      "Marketplace-Vintage": { types: vintageEventTypes, themeName: "Marketplace", tagName: "Vintage" },
-      "Dining-Contemporary": { types: contemporaryEventTypes, themeName: "Dining", tagName: "Contemporary" },
-      "Dining-Buffet": { types: buffetEventTypes, themeName: "Dining", tagName: "Buffet" },
-      "Dining-Fine Dining": { types: fineDiningEventTypes, themeName: "Dining", tagName: "Fine Dining" },
-      "Meetup-Community": { types: meetupCommunityEventTypes, themeName: "Meetup", tagName: "Community" },
-      "Meetup-Inclusive": { types: meetupInclusiveEventTypes, themeName: "Meetup", tagName: "Inclusive" },
-    };
-
     /**
-     * Try each source in order and take the first that actually yields types. Previously a
-     * specialised loader that matched the theme but returned nothing won outright, leaving the
-     * badge with no dropdown even though `event_types` had the data.
+     * Every source below is scoped to THIS theme.
+     *
+     * The previous implementation kept a hard-coded `dropdownConfig` fed by `fetchThemedChildren`,
+     * which fell back to a fixed `legacyThemeId` when the resolved theme had no children under a
+     * given name — so a category with no types silently rendered ANOTHER theme's rows. That is what
+     * acceptance testing reported as "Buffet loads wrong sub-types" and "Spiritual has Meetup >
+     * Community sub-types mixed in". Cross-theme fallbacks are gone; a category with no types now
+     * shows an empty menu, which is honest and fixable in the data.
      */
     const candidateTypeSources: (() => { id: number; name: string }[])[] = [];
 
-    if (browseHwHierarchy && /health/i.test(theme.name) && /wellness/i.test(theme.name)) {
+    if (browseHwHierarchy && isHealthWellnessThemeName(theme.name)) {
       candidateTypeSources.push(() => {
         const slug = browseHwHierarchy.orderedCategoryKeys.find((k) => (browseHwHierarchy.keyLabel[k] ?? k) === tag);
         return slug ? (browseHwHierarchy.groups[slug] ?? []) : [];
       });
     }
 
-    if (/retreat/i.test(theme.name)) {
+    if (isRetreatsThemeName(theme.name)) {
       candidateTypeSources.push(() => retreatBranchTypes[tag] ?? []);
     }
 
     const dyn = dynamicHierarchyByThemeId[theme.id];
     candidateTypeSources.push(() => (dyn ? dynEntryTypes(dyn[tag]) : []));
-    candidateTypeSources.push(() => dropdownConfig[`${theme.name}-${tag}`]?.types ?? []);
-    if (/dining/i.test(theme.name)) {
-      candidateTypeSources.push(() => dropdownConfig[`Dining-${tag}`]?.types ?? []);
-    }
 
     let config: { types: { id: number; name: string }[]; themeName: string; tagName: string } | undefined;
     for (const source of candidateTypeSources) {

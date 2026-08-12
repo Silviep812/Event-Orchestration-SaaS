@@ -37,88 +37,16 @@ export async function resolveThemeId(
   return legacyFallback;
 }
 
-async function childrenUnderNamedParent(
-  themeId: number,
-  parentName: string,
-  rootHint?: RegExp
-): Promise<{ id: number; name: string }[]> {
-  const { data: allTypes } = await supabase
-    .from("event_types")
-    .select("id, name, parent_id")
-    .eq("theme_id", themeId);
-  const rows = (allTypes ?? []) as EventTypeRowLite[];
-  const root =
-    rootHint != null
-      ? rows.find((r) => r.parent_id == null && rootHint.test(r.name ?? ""))
-      : rows.find((r) => r.parent_id == null);
-  const lower = parentName.toLowerCase();
-  let parent =
-    root != null
-      ? rows.find((r) => (r.name ?? "").toLowerCase() === lower && r.parent_id === root.id)
-      : undefined;
-  if (!parent) {
-    parent = rows.find((r) => (r.name ?? "").toLowerCase() === lower);
-  }
-  if (!parent) return [];
-  return dedupeEventTypeRowsByName(rows.filter((r) => r.parent_id === parent.id))
-    .sort((a, b) => (a.name ?? "").localeCompare(b.name ?? ""))
-    .map((k) => ({ id: k.id, name: k.name ?? "" }));
-}
-
-async function fetchChildrenLegacy(themeId: number, parentName: string): Promise<{ id: number; name: string }[]> {
-  const { data: p } = await supabase
-    .from("event_types")
-    .select("id")
-    .eq("name", parentName)
-    .eq("theme_id", themeId)
-    .maybeSingle();
-  if (!p?.id) return [];
-  const { data: list } = await supabase
-    .from("event_types")
-    .select("id, name")
-    .eq("parent_id", p.id)
-    .order("name");
-  return (list ?? []).map((k) => ({ id: k.id, name: k.name ?? "" }));
-}
-
-export async function fetchThemedChildren(
-  matchers: ((name: string) => boolean)[],
-  legacyThemeId: number,
-  parentName: string,
-  rootHint?: RegExp
-): Promise<{ id: number; name: string }[]> {
-  const tid = await resolveThemeId(matchers, legacyThemeId);
-  let kids = await childrenUnderNamedParent(tid, parentName, rootHint);
-  if (kids.length === 0) kids = await childrenUnderNamedParent(legacyThemeId, parentName, rootHint);
-  if (kids.length === 0) kids = await fetchChildrenLegacy(legacyThemeId, parentName);
-  return kids;
-}
-
-export async function fetchMeetupTopLevelBranch(
-  matchers: ((name: string) => boolean)[],
-  legacyThemeId: number,
-  branchName: string
-): Promise<{ id: number; name: string }[]> {
-  const tid = await resolveThemeId(matchers, legacyThemeId);
-  for (const themeId of [tid, legacyThemeId]) {
-    const { data: parent } = await supabase
-      .from("event_types")
-      .select("id")
-      .eq("theme_id", themeId)
-      .eq("name", branchName)
-      .is("parent_id", null)
-      .maybeSingle();
-    if (parent?.id) {
-      const { data: kids } = await supabase
-        .from("event_types")
-        .select("id, name")
-        .eq("parent_id", parent.id)
-        .order("name");
-      return (kids ?? []).map((k) => ({ id: k.id, name: k.name ?? "" }));
-    }
-  }
-  return [];
-}
+/**
+ * Removed: `childrenUnderNamedParent`, `fetchChildrenLegacy`, `fetchThemedChildren` and
+ * `fetchMeetupTopLevelBranch`.
+ *
+ * They resolved a theme by name and then, when it had no children under the requested parent, fell
+ * back to a hard-coded `legacyThemeId` — returning a DIFFERENT theme's rows. Acceptance testing saw
+ * that as "Buffet loads wrong sub-types" and "Spiritual has Meetup > Community sub-types mixed in".
+ * Browse Event Themes now reads strictly theme-scoped data via `loadEventTypesByParentTag`,
+ * `loadThemeCategoryTypeSubTypes` and the Health & Wellness / Retreats loaders.
+ */
 
 /** Slug for Health & Wellness category keys (stable across Create Event / Manage Event). */
 export function healthWellnessCategorySlug(name: string): string {
@@ -321,7 +249,8 @@ export function dedupeSportThemesForPicker(themes: ThemePickerRow[]): ThemePicke
 }
 
 export function filterSportishTags(tags: string[]): string[] {
-  return tags.filter((x) => !/^(sport|sports|sporting)$/i.test(String(x).trim()));
+  // "Event formats" was a wrapper level the client asked to remove, so it is never a badge either.
+  return tags.filter((x) => !/^(sport|sports|sporting|event formats)$/i.test(String(x).trim()));
 }
 
 /**
@@ -335,7 +264,9 @@ export function sportThemeRootCategoryDisplayLabel(
   const raw = String(rootTypeName ?? "").trim();
   if (!raw) return "";
   if (!isSportThemeName(themeName)) return raw;
-  if (isSportThemeName(raw)) return "Event formats";
+  // "Sporting; remove Event formats" (08/12/2026): the wrapper level is gone from the data, so a
+  // row still echoing the theme name is not relabelled into one — it is simply not a category.
+  if (isSportThemeName(raw) || /^event formats$/i.test(raw)) return "";
   return raw;
 }
 
