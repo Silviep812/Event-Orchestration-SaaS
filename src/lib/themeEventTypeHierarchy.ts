@@ -341,6 +341,69 @@ export function sportThemeRootCategoryDisplayLabel(
 
 export { dedupeEventTypeRowsByName, dedupeThemesByName, eventTypeNameKey, mergeThemeCategoryTags };
 
+/** One selectable type, plus the sub-types recorded beneath it (4th level of the tree). */
+export type EventTypeWithSubTypes = {
+  id: number;
+  name: string;
+  subTypes: { id: number; name: string }[];
+};
+
+/**
+ * Directory → category → type → **sub-type** for one theme.
+ *
+ * `event_types` is a self-referencing tree, so the sub-type level already existed in the data but
+ * was never surfaced: the loaders stopped at the type. Acceptance testing 08/08/2026 asked to
+ * "Restore sub-types for each type selection", and reported "Buffet loads wrong sub-types" — the
+ * legacy name-only lookup could bind a category to a same-named row from another branch. Resolving
+ * strictly by `parent_id` from the theme root removes that ambiguity.
+ */
+export async function loadThemeCategoryTypeSubTypes(
+  themeId: number,
+): Promise<Record<string, EventTypeWithSubTypes[]>> {
+  const { data, error } = await supabase
+    .from("event_types")
+    .select("id, name, parent_id")
+    .eq("theme_id", themeId);
+
+  if (error) {
+    console.warn("loadThemeCategoryTypeSubTypes:", themeId, error.message);
+    return {};
+  }
+
+  const rows = (data ?? []) as EventTypeRowLite[];
+  const childrenOf = (parentId: number) =>
+    dedupeEventTypeRowsByName(rows.filter((r) => r.parent_id === parentId)).sort((a, b) =>
+      (a.name ?? "").localeCompare(b.name ?? ""),
+    );
+
+  const roots = rows.filter((r) => r.parent_id == null);
+  if (roots.length === 0) return {};
+
+  // A single root is a wrapper around the real categories; multiple roots are the categories.
+  const categories =
+    roots.length === 1 && childrenOf(roots[0].id).length > 0
+      ? childrenOf(roots[0].id)
+      : dedupeEventTypeRowsByName(roots).sort((a, b) => (a.name ?? "").localeCompare(b.name ?? ""));
+
+  const out: Record<string, EventTypeWithSubTypes[]> = {};
+  for (const category of categories) {
+    const label = (category.name ?? "").trim();
+    if (!label) continue;
+
+    const types = childrenOf(category.id);
+    out[label] =
+      types.length > 0
+        ? types.map((t) => ({
+            id: t.id,
+            name: t.name ?? "",
+            subTypes: childrenOf(t.id).map((s) => ({ id: s.id, name: s.name ?? "" })),
+          }))
+        : // A category with no types stays selectable in its own right.
+          [{ id: category.id, name: label, subTypes: [] }];
+  }
+  return out;
+}
+
 /** Reunion-specific loader. Passthrough to the shared loader so Family/School categories are shown. */
 export async function loadReunionEventTypesByParentTag(
   themeId: number

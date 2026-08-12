@@ -95,6 +95,9 @@ export default function CreateEvent() {
   const [venueTypes, setVenueTypes] = useState<{ id: number; name: string }[]>([]);
   const [selectedVenueType, setSelectedVenueType] = useState<number | null>(null);
   const [customSubTypeName, setCustomSubTypeName] = useState("");
+  /** Fourth level: sub-types recorded under the chosen type (`event_types` children of subType). */
+  const [subTypeOptions, setSubTypeOptions] = useState<{ id: number; name: string }[]>([]);
+  const [selectedSubTypeDetailId, setSelectedSubTypeDetailId] = useState<string>("");
 
   const selectedThemeId = watch("theme_id");
   const selectedEventType = watch("type");
@@ -674,6 +677,36 @@ export default function CreateEvent() {
     fetchSubEventTypes();
   }, [selectedEventType, searchParams, subEventTypes.length, selectedThemeId, eventThemes]);
 
+  // Load sub-types whenever the selected type changes.
+  useEffect(() => {
+    const parentId = parseInt(selectedSubType ?? "", 10);
+    setSelectedSubTypeDetailId("");
+    if (!Number.isFinite(parentId) || parentId < 1) {
+      setSubTypeOptions([]);
+      return;
+    }
+    let cancelled = false;
+    void supabase
+      .from("event_types")
+      .select("id, name")
+      .eq("parent_id", parentId)
+      .order("name")
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) {
+          console.warn("CreateEvent: sub-types", error.message);
+          setSubTypeOptions([]);
+          return;
+        }
+        setSubTypeOptions(
+          dedupeEventTypeRowsByName(data ?? []).map((r) => ({ id: r.id, name: r.name ?? "" })),
+        );
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedSubType]);
+
   const collectErrorMessages = (errs: FieldErrors<EventFormData>): string[] => {
     const msgs: string[] = [];
     const visit = (node: unknown): void => {
@@ -831,8 +864,12 @@ export default function CreateEvent() {
         resolvedSubType = String(customTypeId);
       }
 
-      // Prepare event data for the new events table — subType (leaf) when set, else type
-      const typeStr = (resolvedSubType || data.type?.trim() || "").trim();
+      // Prepare event data for the new events table. Most specific selection wins:
+      // sub-type (4th level) → type (leaf) → category.
+      const subTypeDetail = selectedSubTypeDetailId.trim();
+      const usableSubTypeDetail =
+        subTypeDetail && subTypeOptions.some((s) => String(s.id) === subTypeDetail) ? subTypeDetail : "";
+      const typeStr = (usableSubTypeDetail || resolvedSubType || data.type?.trim() || "").trim();
       const typeId = parseInt(typeStr, 10);
       if (!Number.isFinite(typeId) || typeId < 1) {
         toast({
@@ -1343,6 +1380,32 @@ export default function CreateEvent() {
                           maxLength={100}
                         />
                       )}
+                    </div>
+                  )}
+
+                  {/* Fourth level. Only rendered when the chosen type actually has sub-types, so
+                      themes that stop at type are unaffected. */}
+                  {subTypeOptions.length > 0 && (
+                    <div className="space-y-2">
+                      <Label htmlFor="subTypeDetail">Sub-type</Label>
+                      <Select
+                        value={selectedSubTypeDetailId || undefined}
+                        onValueChange={setSelectedSubTypeDetailId}
+                      >
+                        <SelectTrigger id="subTypeDetail">
+                          <SelectValue placeholder="Select sub-type (optional)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {subTypeOptions.map((sub) => (
+                            <SelectItem key={sub.id} value={sub.id.toString()}>
+                              {sub.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">
+                        Choosing a sub-type records it as the event type; leave blank to keep the type above.
+                      </p>
                     </div>
                   )}
 

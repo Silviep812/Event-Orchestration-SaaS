@@ -1689,7 +1689,6 @@ export function TaskManager({
       });
 
       setIsEditDialogOpen(false);
-      setSelectedTask(null);
       setSelectedDependencies([]);
       fetchTasks();
     } catch (error) {
@@ -1768,7 +1767,6 @@ export function TaskManager({
       }
 
       setIsEditDialogOpen(false);
-      setSelectedTask(null);
       setSelectedDependencies([]);
       fetchTasks();
     } catch (error) {
@@ -3264,7 +3262,6 @@ export function TaskManager({
                 variant="outline" 
                 onClick={() => {
                   setIsEditDialogOpen(false);
-                  setSelectedTask(null);
                   setSelectedDependencies([]);
                 }}
                 className="flex-1"
@@ -3279,7 +3276,6 @@ export function TaskManager({
                 onClick={async () => {
                   await handleUpdateTask();
                   setIsEditDialogOpen(false);
-                  setSelectedTask(null);
                   setSelectedDependencies([]);
                 }}
                 className="flex-1"

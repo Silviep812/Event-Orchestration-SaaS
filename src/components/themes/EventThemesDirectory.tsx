@@ -20,6 +20,8 @@ import {
   loadRetreatsEventTypeGroups,
   loadEventTypesByParentTag,
   loadSportingDirectoryCategoryTypes,
+  loadThemeCategoryTypeSubTypes,
+  type EventTypeWithSubTypes,
   type SportingCategoryGroup,
   SPORTING_THEME_V4_DESCRIPTION,
   sportingTypeUiLabel,
@@ -228,6 +230,18 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
     return Array.isArray(entry) ? entry : entry.types;
   };
 
+  /**
+   * Directory → category → type → sub-type, keyed by theme then category. Resolved strictly by
+   * `parent_id`, so a type only ever shows the sub-types recorded beneath it — the previous
+   * name-based lookup is what made Buffet load another category's sub-types.
+   */
+  const [subTypeTreeByThemeId, setSubTypeTreeByThemeId] = useState<
+    Record<number, Record<string, EventTypeWithSubTypes[]>>
+  >({});
+
+  const subTypesFor = (themeId: number, categoryName: string, typeId: number) =>
+    subTypeTreeByThemeId[themeId]?.[categoryName]?.find((t) => t.id === typeId)?.subTypes ?? [];
+
   useEffect(() => {
     if (selectedTheme == null) {
       setSelectedSubTypes({});
@@ -396,6 +410,22 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
         }
       }
       if (!cancelled) setDynamicHierarchyByThemeId(next);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [themes]);
+
+  // Sub-type level, loaded once per theme alongside the category/type map above.
+  useEffect(() => {
+    if (themes.length === 0) return;
+    let cancelled = false;
+    void (async () => {
+      const next: Record<number, Record<string, EventTypeWithSubTypes[]>> = {};
+      for (const t of themes) {
+        next[t.id] = await loadThemeCategoryTypeSubTypes(t.id);
+      }
+      if (!cancelled) setSubTypeTreeByThemeId(next);
     })();
     return () => {
       cancelled = true;
@@ -621,19 +651,42 @@ export const EventThemesDirectory = ({ onSelectTheme, selectedTheme, onClearSele
           >
             <div className="space-y-1">
               {types.length > 0 ? (
-                types.map((item) => (
-                  <button
-                    key={item.id}
-                    className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
-                    onClick={() => {
-                      setSelectedSubTypes((prev) => ({ ...prev, [theme.id]: item.name }));
-                      setSelectedSubTypeIds((prev) => ({ ...prev, [theme.id]: item.id }));
-                      onSelectTheme(theme.id, theme.name, item.name, item.id);
-                    }}
-                  >
-                    {isSportThemeName(theme.name) ? sportingTypeUiLabel(item.name) || item.name : item.name}
-                  </button>
-                ))
+                types.map((item) => {
+                  const label = isSportThemeName(theme.name)
+                    ? sportingTypeUiLabel(item.name) || item.name
+                    : item.name;
+                  const subTypes = subTypesFor(theme.id, tag, item.id);
+                  const choose = (pickId: number, pickName: string) => {
+                    setSelectedSubTypes((prev) => ({ ...prev, [theme.id]: pickName }));
+                    setSelectedSubTypeIds((prev) => ({ ...prev, [theme.id]: pickId }));
+                    onSelectTheme(theme.id, theme.name, pickName, pickId);
+                  };
+
+                  return (
+                    <div key={item.id}>
+                      <button
+                        className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors"
+                        onClick={() => choose(item.id, item.name)}
+                      >
+                        {label}
+                      </button>
+                      {/* Fourth level: sub-types recorded under this type. */}
+                      {subTypes.length > 0 ? (
+                        <div className="ml-3 border-l pl-2">
+                          {subTypes.map((sub) => (
+                            <button
+                              key={sub.id}
+                              className="w-full text-left px-3 py-1.5 text-xs text-muted-foreground rounded hover:bg-accent hover:text-accent-foreground transition-colors"
+                              onClick={() => choose(sub.id, sub.name)}
+                            >
+                              {sub.name}
+                            </button>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })
               ) : (
                 <div className="px-3 py-2 text-sm text-muted-foreground leading-snug">
                   {plannerToolsCopy.themeBrowseCategoryTypesEmpty}

@@ -3,18 +3,90 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>your-own-web-hero</title>
-    <meta name="description" content="Lovable Generated Project" />
-    <meta name="author" content="Lovable" />
 
-    <meta property="og:title" content="your-own-web-hero" />
-    <meta property="og:description" content="Lovable Generated Project" />
+    <!--
+      Acceptance testing 08/08/2026: "Google search does not find website".
+      The page was still serving the generator's starter metadata (title
+      "your-own-web-hero", description "Lovable Generated Project"), so there was
+      nothing for a search engine to match the brand or the product against.
+    -->
+    <title>IDA Event Partners — Event Planning Software for Hosts &amp; Planners</title>
+    <meta
+      name="description"
+      content="IDA Event Partners (IEP) is event planning software that brings themes, vendors, budgets, tasks and teams into one place. Plan, manage and scale events without the chaos. Free Starter Plan."
+    />
+    <meta name="author" content="IDA Event Partners" />
+    <meta
+      name="keywords"
+      content="event planning software, event planner app, event management platform, venue directory, vendor management, event budget tracker, IDA Event Partners, IEP Event Planner"
+    />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <link rel="canonical" href="https://idaeventpartners.com/" />
+
+    <meta property="og:site_name" content="IDA Event Partners" />
+    <meta property="og:title" content="IDA Event Partners — Event Planning Software" />
+    <meta
+      property="og:description"
+      content="Plan, manage and scale exceptional events in one place. Themes, vendors, budgets, tasks and team collaboration. Free Starter Plan."
+    />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    <meta property="og:url" content="https://idaeventpartners.com/" />
+    <meta property="og:image" content="https://idaeventpartners.com/iep-logo-welcome.svg" />
+    <meta property="og:locale" content="en_US" />
 
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@lovable_dev" />
-    <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    <meta name="twitter:title" content="IDA Event Partners — Event Planning Software" />
+    <meta
+      name="twitter:description"
+      content="Plan, manage and scale exceptional events in one place. Free Starter Plan."
+    />
+    <meta name="twitter:image" content="https://idaeventpartners.com/iep-logo-welcome.svg" />
+
+    <!-- Structured data: lets Google show the brand as an entity rather than a bare link. -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://idaeventpartners.com/#organization",
+            "name": "IDA Event Partners",
+            "alternateName": ["IEP", "IEP Event Planner", "Interactive Event Planner"],
+            "url": "https://idaeventpartners.com/",
+            "logo": "https://idaeventpartners.com/iep-logo-welcome.svg"
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://idaeventpartners.com/#website",
+            "url": "https://idaeventpartners.com/",
+            "name": "IDA Event Partners",
+            "publisher": { "@id": "https://idaeventpartners.com/#organization" }
+          },
+          {
+            "@type": "SoftwareApplication",
+            "name": "IEP Event Planner",
+            "applicationCategory": "BusinessApplication",
+            "operatingSystem": "Web",
+            "url": "https://idaeventpartners.com/",
+            "publisher": { "@id": "https://idaeventpartners.com/#organization" },
+            "offers": [
+              {
+                "@type": "Offer",
+                "name": "Starter Plan",
+                "price": "0",
+                "priceCurrency": "USD"
+              },
+              {
+                "@type": "Offer",
+                "name": "Pro Plan",
+                "price": "49",
+                "priceCurrency": "USD"
+              }
+            ]
+          }
+        ]
+      }
+    </script>
   </head>
 
   <body>
