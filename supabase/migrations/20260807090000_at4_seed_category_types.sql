@@ -33,105 +33,23 @@ RETURNS text LANGUAGE sql IMMUTABLE AS $fn$
 $fn$;
 
 INSERT INTO _iep_category_type_seed (theme_pattern, category_name, type_name) VALUES
-  -- Celebration ------------------------------------------------------------
-  ('celebration', 'Holidays', 'Christmas'),
-  ('celebration', 'Holidays', 'New Year'),
-  ('celebration', 'Holidays', 'Thanksgiving'),
-  ('celebration', 'Holidays', 'Easter'),
-  ('celebration', 'Holidays', 'Halloween'),
-  ('celebration', 'Holidays', 'Independence Day'),
-  ('celebration', 'Holidays', 'Valentine''s Day'),
-  ('celebration', 'Holidays', 'Mother''s Day'),
-  ('celebration', 'Holidays', 'Father''s Day'),
-  ('celebration', 'Holidays', 'Lunar New Year'),
-  ('celebration', 'Holidays', 'Diwali'),
-  ('celebration', 'Holidays', 'Hanukkah'),
+  -- Celebration > Holiday — Themes Directory Catalog.holiday_types
+  ('celebration', 'Holiday', 'New Years Day'),
+  ('celebration', 'Holiday', 'MLK Day'),
+  ('celebration', 'Holiday', 'Presidents Day'),
+  ('celebration', 'Holiday', 'Memorial Day'),
+  ('celebration', 'Holiday', 'Independence Day'),
+  ('celebration', 'Holiday', 'Labor Day'),
+  ('celebration', 'Holiday', 'Columbus Day'),
+  ('celebration', 'Holiday', 'Veterans Day'),
+  ('celebration', 'Holiday', 'Thanksgiving'),
+  ('celebration', 'Holiday', 'Christmas'),
 
-  ('celebration', 'Personal', 'Birthday'),
-  ('celebration', 'Personal', 'Anniversary'),
-  ('celebration', 'Personal', 'Graduation'),
-  ('celebration', 'Personal', 'Retirement'),
-  ('celebration', 'Personal', 'Engagement'),
+  -- Celebration > Personal — Themes Directory Catalog.personal_types
   ('celebration', 'Personal', 'Baby Shower'),
-  ('celebration', 'Personal', 'Bridal Shower'),
-  ('celebration', 'Personal', 'Housewarming'),
-  ('celebration', 'Personal', 'Promotion'),
-  ('celebration', 'Personal', 'Farewell'),
-
-  -- Health & Wellness ------------------------------------------------------
-  ('health', 'Spa and Nutrition', 'Spa day'),
-  ('health', 'Spa and Nutrition', 'Nutrition workshop'),
-  ('health', 'Spa and Nutrition', 'Healthy cooking class'),
-  ('health', 'Spa and Nutrition', 'Massage therapy session'),
-  ('health', 'Spa and Nutrition', 'Detox programme'),
-
-  ('health', 'Rejuvenation', 'Yoga retreat'),
-  ('health', 'Rejuvenation', 'Sound bath'),
-  ('health', 'Rejuvenation', 'Breathwork workshop'),
-  ('health', 'Rejuvenation', 'Restorative yoga'),
-  ('health', 'Rejuvenation', 'Thermal spa session'),
-
-  ('health', 'Rejuvenating', 'Yoga retreat'),
-  ('health', 'Rejuvenating', 'Sound bath'),
-  ('health', 'Rejuvenating', 'Breathwork workshop'),
-  ('health', 'Rejuvenating', 'Restorative yoga'),
-  ('health', 'Rejuvenating', 'Thermal spa session'),
-
-  ('health', 'Mindful', 'Mindfulness workshop'),
-  ('health', 'Mindful', 'Guided meditation'),
-  ('health', 'Mindful', 'Walking meditation'),
-  ('health', 'Mindful', 'Journaling circle'),
-  ('health', 'Mindful', 'Digital detox day'),
-
-  ('health', 'Tai Chi', 'Beginners class'),
-  ('health', 'Tai Chi', 'Group practice'),
-  ('health', 'Tai Chi', 'Qigong session'),
-  ('health', 'Tai Chi', 'Outdoor session'),
-  ('health', 'Tai Chi', 'Instructor workshop'),
-
-  ('health', 'Holistic Principles', 'Holistic health seminar'),
-  ('health', 'Holistic Principles', 'Ayurveda workshop'),
-  ('health', 'Holistic Principles', 'Reiki session'),
-  ('health', 'Holistic Principles', 'Aromatherapy workshop'),
-  ('health', 'Holistic Principles', 'Herbal medicine class'),
-
-  ('health', 'Holistic', 'Holistic health seminar'),
-  ('health', 'Holistic', 'Ayurveda workshop'),
-  ('health', 'Holistic', 'Reiki session'),
-  ('health', 'Holistic', 'Aromatherapy workshop'),
-  ('health', 'Holistic', 'Herbal medicine class'),
-
-  ('health', 'Peaceful', 'Silent retreat'),
-  ('health', 'Peaceful', 'Nature walk'),
-  ('health', 'Peaceful', 'Forest bathing'),
-  ('health', 'Peaceful', 'Restorative circle'),
-  ('health', 'Peaceful', 'Quiet garden session'),
-
-  ('health', 'Spiritual', 'Meditation retreat'),
-  ('health', 'Spiritual', 'Chanting circle'),
-  ('health', 'Spiritual', 'Gratitude ceremony'),
-  ('health', 'Spiritual', 'Labyrinth walk'),
-  ('health', 'Spiritual', 'Full moon gathering'),
-
-  -- Dining -----------------------------------------------------------------
-  ('dining', 'Contemporary', 'Chef''s tasting menu'),
-  ('dining', 'Contemporary', 'Small plates dinner'),
-  ('dining', 'Contemporary', 'Fusion dinner'),
-  ('dining', 'Contemporary', 'Pop-up dinner'),
-  ('dining', 'Contemporary', 'Seasonal menu'),
-
-  ('dining', 'Buffet', 'Breakfast buffet'),
-  ('dining', 'Buffet', 'Brunch buffet'),
-  ('dining', 'Buffet', 'Lunch buffet'),
-  ('dining', 'Buffet', 'Dinner buffet'),
-  ('dining', 'Buffet', 'Carving station'),
-  ('dining', 'Buffet', 'Dessert station'),
-
-  ('dining', 'Fine Dining', 'Plated multi-course dinner'),
-  ('dining', 'Fine Dining', 'Wine pairing dinner'),
-  ('dining', 'Fine Dining', 'Black tie dinner'),
-  ('dining', 'Fine Dining', 'Private chef dinner'),
-  ('dining', 'Fine Dining', 'Tasting menu with sommelier');
+  ('celebration', 'Personal', 'Birthday Party'),
+  ('celebration', 'Personal', 'Anniversary'),
+  ('celebration', 'Personal', 'Graduation');
 
 -- ---------------------------------------------------------------------------
 -- Apply: seed only categories that are empty or hold just the placeholder
