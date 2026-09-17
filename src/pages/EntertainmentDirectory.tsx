@@ -7,12 +7,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { Music, Mic, Users, MessageCircle, Presentation, Theater, HelpCircle, Mail } from "lucide-react";
 import { DirectoryPageHeader } from "@/components/resource-directory/DirectoryPageHeader";
 import { AddDirectoryEntryDialog } from "@/components/resource-directory/AddDirectoryEntryDialog";
+import { DirectoryProfileImage } from "@/components/resource-directory/DirectoryProfileImage";
 import { useToast } from "@/hooks/use-toast";
 import { commentsPlannerCopy } from "@/lib/nudges";
 import { formatDirectoryPrice } from "@/lib/formatDirectoryPrice";
 import { DirectoryProfileLink } from "@/components/resource-directory/DirectoryProfileLink";
 import { directoryProfileElementId } from "@/lib/directoryProfileLinks";
 import { useDirectoryProfileHighlight } from "@/hooks/useDirectoryProfileHighlight";
+import { useDirectoryServiceAreas } from "@/hooks/useDirectoryServiceAreas";
 import {
   LocationFilterInput,
   collectLocationOptions,
@@ -30,8 +32,9 @@ function EntertainmentDirectory() {
   const [entertainmentProfiles, setEntertainmentProfiles] = useState<any[]>([]);
   const [selectedEntertainmentTypes, setSelectedEntertainmentTypes] = useState<string[]>([]);
   const [locationFilter, setLocationFilter] = useState("");
-  /** Real locations recorded in this directory, offered as searchable filter choices. */
-  const locationOptions = useMemo(() => collectLocationOptions(entertainmentProfiles), [entertainmentProfiles]);
+  const coverageAreas = useDirectoryServiceAreas("entertainment");
+  /** Listed profile locations plus IEP's supported service areas. */
+  const locationOptions = useMemo(() => collectLocationOptions([...entertainmentProfiles, ...coverageAreas]), [entertainmentProfiles, coverageAreas]);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const { highlightClass } = useDirectoryProfileHighlight(loading);
@@ -138,6 +141,7 @@ function EntertainmentDirectory() {
                     value={locationFilter}
                     onChange={setLocationFilter}
                     options={locationOptions}
+                    description="Includes IEP service coverage. Results show listed providers only."
                   />
                 </div>
               </div>
@@ -251,6 +255,7 @@ function EntertainmentDirectory() {
                       </p>
                     </CardHeader>
                     <CardContent className="space-y-3">
+                      <DirectoryProfileImage profile={profile} name={profile.business_name || "Entertainment provider"} />
                       <div>
                         {profile.contact_name ? (
                           <p className="font-semibold">{profile.contact_name}</p>

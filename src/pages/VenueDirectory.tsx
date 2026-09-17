@@ -12,8 +12,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { formatDirectoryPrice } from "@/lib/formatDirectoryPrice";
 import { DirectoryProfileLink } from "@/components/resource-directory/DirectoryProfileLink";
 import { AddDirectoryEntryDialog } from "@/components/resource-directory/AddDirectoryEntryDialog";
+import { DirectoryProfileImage } from "@/components/resource-directory/DirectoryProfileImage";
 import { directoryProfileElementId } from "@/lib/directoryProfileLinks";
 import { useDirectoryProfileHighlight } from "@/hooks/useDirectoryProfileHighlight";
+import { useDirectoryServiceAreas } from "@/hooks/useDirectoryServiceAreas";
 import {
   LocationFilterInput,
   collectLocationOptions,
@@ -25,8 +27,9 @@ const VenueDirectory = () => {
   const [venueTypes, setVenueTypes] = useState<any[]>([]);
   const [selectedVenueType, setSelectedVenueType] = useState<string>("");
   const [locationFilter, setLocationFilter] = useState("");
-  /** Real locations recorded in this directory, offered as searchable filter choices. */
-  const locationOptions = useMemo(() => collectLocationOptions(venueProfiles), [venueProfiles]);
+  const coverageAreas = useDirectoryServiceAreas("venue");
+  /** Listed profile locations plus IEP's supported service areas. */
+  const locationOptions = useMemo(() => collectLocationOptions([...venueProfiles, ...coverageAreas]), [venueProfiles, coverageAreas]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -181,6 +184,7 @@ const VenueDirectory = () => {
                 value={locationFilter}
                 onChange={setLocationFilter}
                 options={locationOptions}
+                description="Includes IEP service coverage. Results show listed venues only."
               />
             </div>
           </div>
@@ -287,6 +291,7 @@ const VenueDirectory = () => {
                       </p>
                     </CardHeader>
                     <CardContent className="space-y-3">
+                      <DirectoryProfileImage profile={profile} name={profile.business_name || "Venue"} />
                       <div>
                         <p className="font-semibold">{profile.contact_name}</p>
                         {profile.email ? (

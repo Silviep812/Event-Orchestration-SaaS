@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Package, MapPin, Mail } from "lucide-react";
 import { DirectoryPageHeader } from "@/components/resource-directory/DirectoryPageHeader";
 import { AddSupplierEntryDialog } from "@/components/resource-directory/AddSupplierEntryDialog";
+import { DirectoryProfileImage } from "@/components/resource-directory/DirectoryProfileImage";
 import { SUPPLIER_OTHER_CATEGORY, supplierCategoryByName } from "@/lib/supplierBusinessCategories";
 import type { LucideIcon } from "lucide-react";
 import { formatDirectoryPrice } from "@/lib/formatDirectoryPrice";
@@ -20,6 +21,7 @@ import {
 } from "@/components/resource-directory/LocationFilterInput";
 import { directoryProfileElementId } from "@/lib/directoryProfileLinks";
 import { useDirectoryProfileHighlight } from "@/hooks/useDirectoryProfileHighlight";
+import { useDirectoryServiceAreas } from "@/hooks/useDirectoryServiceAreas";
 
 interface Supplier {
   id: string;
@@ -108,7 +110,8 @@ export default function SupplierDirectory() {
   const effectiveTypeName = (s: Supplier): string | null =>
     s.custom_type?.trim() || s.supplier_types?.name || null;
 
-  const locationOptions = useMemo(() => collectLocationOptions(suppliers), [suppliers]);
+  const coverageAreas = useDirectoryServiceAreas("external_vendor");
+  const locationOptions = useMemo(() => collectLocationOptions([...suppliers, ...coverageAreas]), [suppliers, coverageAreas]);
 
   /**
    * Types offered are exactly the types present on External Vendor profiles, narrowed to the
@@ -240,6 +243,7 @@ export default function SupplierDirectory() {
             value={locationFilter}
             onChange={setLocationFilter}
             options={locationOptions}
+            description="Includes IEP service coverage. Results show listed providers only."
           />
 
           {(selectedCategories.length > 0 || selectedTypes.length > 0 || locationFilter) && (
@@ -286,6 +290,7 @@ export default function SupplierDirectory() {
                 >
                   <CardContent className="p-4">
                       <div className="space-y-3">
+                        <DirectoryProfileImage profile={supplier} name={supplier.business_name || "External vendor"} />
                         <div className="space-y-1">
                           <h4 className="font-semibold text-sm">{supplier.business_name}</h4>
                           {(supplier.custom_category || supplier.supplier_categories?.name) && (

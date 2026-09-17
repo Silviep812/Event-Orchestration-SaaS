@@ -15,8 +15,8 @@ import { Link } from "react-router-dom";
 import { MarketingTopBar } from "@/components/MarketingTopBar";
 import { LandingDemoModal } from "@/components/marketing/LandingDemoModal";
 import { MarketingWaitlistForm } from "@/components/marketing/MarketingWaitlistForm";
+import { PublicFooter } from "@/components/marketing/PublicFooter";
 import { AUTH_SIGN_IN_PATH, AUTH_STARTER_PLAN_PATH } from "@/lib/authRoutes";
-import { IEP_LOGO_COLORED } from "@/lib/brandAssets";
 
 const scrollToId = (id: string) => {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
@@ -196,9 +196,9 @@ const Index = () => {
         <div className="relative max-w-7xl mx-auto text-center">
           <div className="flex justify-center mb-8">
             <img
-              src={IEP_LOGO_COLORED}
+              src="/favicon.png"
               alt="Ida Event Partners — We Got You"
-              className="block w-full max-w-[min(100vw,35rem)] h-auto mx-auto object-contain object-center drop-shadow-md"
+              className="block w-full max-w-[min(80vw,23rem)] sm:max-w-[26rem] lg:max-w-[28rem] h-auto mx-auto object-contain object-center drop-shadow-md"
               width={640}
               height={192}
               loading="eager"
@@ -582,6 +582,7 @@ const Index = () => {
           </Button>
         </div>
       </section>
+      <PublicFooter />
     </div>
   );
 };

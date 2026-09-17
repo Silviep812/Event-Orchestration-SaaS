@@ -11,6 +11,10 @@ node_modules
 dist
 dist-ssr
 *.local
+.env
+.env.*
+!.env.example
+
 
 # Editor directories and files
 .vscode/*
@@ -42,3 +46,5 @@ Thumbs.db
 
 # Database
 supabase/seed.sql
+supabase/.local-staging-schema.sql
+supabase/.local-staging-data.sql

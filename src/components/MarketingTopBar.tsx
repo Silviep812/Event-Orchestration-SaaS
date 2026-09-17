@@ -2,7 +2,6 @@ import { useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { IEP_LOGO_COLORED } from "@/lib/brandAssets";
 import { AUTH_SIGN_IN_PATH, AUTH_STARTER_PLAN_PATH } from "@/lib/authRoutes";
 
 type Page = "home" | "auth";
@@ -54,7 +53,7 @@ export function MarketingTopBar({ page = "home", onWatchDemo }: MarketingTopBarP
           <div className="flex items-center gap-3 min-w-0 shrink-0">
             <Link to="/" className="flex items-center gap-3 min-w-0" aria-label="Ida Event Partners — We Got You">
               <img
-                src={IEP_LOGO_COLORED}
+                src="/logo-bgremoved.png"
                 alt="Ida Event Partners — We Got You"
                 className="h-10 w-auto sm:h-11 object-contain brightness-110 contrast-105 drop-shadow-sm"
                 width={44}

@@ -63,6 +63,7 @@ type Props = {
   onChange: (value: string) => void;
   options: string[];
   label?: string;
+  description?: string;
   id?: string;
   placeholder?: string;
 };
@@ -76,6 +77,7 @@ export function LocationFilterInput({
   onChange,
   options,
   label = "Filter by Location",
+  description,
   id = "location-filter",
   placeholder = "All locations",
 }: Props) {
@@ -91,6 +93,7 @@ export function LocationFilterInput({
   return (
     <div className="space-y-2">
       <Label htmlFor={id}>{label}</Label>
+      {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button

@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Bus, Car, Truck, Crown, Package, ExternalLink, RefreshCw } from "lucide-react";
 import { DirectoryPageHeader } from "@/components/resource-directory/DirectoryPageHeader";
 import { AddDirectoryEntryDialog } from "@/components/resource-directory/AddDirectoryEntryDialog";
+import { DirectoryProfileImage } from "@/components/resource-directory/DirectoryProfileImage";
 import { toast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
@@ -24,6 +25,7 @@ import { formatDirectoryPrice } from "@/lib/formatDirectoryPrice";
 import { DirectoryProfileLink } from "@/components/resource-directory/DirectoryProfileLink";
 import { directoryProfileElementId } from "@/lib/directoryProfileLinks";
 import { useDirectoryProfileHighlight } from "@/hooks/useDirectoryProfileHighlight";
+import { useDirectoryServiceAreas } from "@/hooks/useDirectoryServiceAreas";
 import {
   LocationFilterInput,
   collectLocationOptions,
@@ -46,8 +48,9 @@ const TransportationDirectory = () => {
   /** Empty = all types; otherwise match any selected `transp_type_id` (OR). */
   const [selectedTransportationTypes, setSelectedTransportationTypes] = useState<string[]>([]);
   const [locationFilter, setLocationFilter] = useState("");
-  /** Real locations recorded in this directory, offered as searchable filter choices. */
-  const locationOptions = useMemo(() => collectLocationOptions(transportationProfiles), [transportationProfiles]);
+  const coverageAreas = useDirectoryServiceAreas("transportation");
+  /** Listed profile locations plus IEP's supported service areas. */
+  const locationOptions = useMemo(() => collectLocationOptions([...transportationProfiles, ...coverageAreas]), [transportationProfiles, coverageAreas]);
   const [loading, setLoading] = useState(false);
   const [profilesLoadError, setProfilesLoadError] = useState<string | null>(null);
   const [typesLoadError, setTypesLoadError] = useState<string | null>(null);
@@ -387,6 +390,7 @@ const TransportationDirectory = () => {
                     value={locationFilter}
                     onChange={setLocationFilter}
                     options={locationOptions}
+                    description="Includes IEP service coverage. Results show listed providers only."
                   />
                 </div>
               </div>
@@ -474,6 +478,7 @@ const TransportationDirectory = () => {
                       </p>
                     </CardHeader>
                     <CardContent className="space-y-3">
+                      <DirectoryProfileImage profile={profile} name={profile.business_name || "Transportation service"} />
                       <div>
                         {profile.contact_name ? (
                           <p className="font-semibold">{profile.contact_name}</p>

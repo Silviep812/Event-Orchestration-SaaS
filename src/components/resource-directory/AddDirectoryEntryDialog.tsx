@@ -74,6 +74,7 @@ export function AddDirectoryEntryDialog({
     city: "",
     state: "",
     zip: "",
+    imageUrl: "",
     capacity: "",
     type: "",
     custom: "",
@@ -88,6 +89,7 @@ export function AddDirectoryEntryDialog({
       city: "",
       state: "",
       zip: "",
+      imageUrl: "",
       capacity: "",
       type: "",
       custom: "",
@@ -121,6 +123,7 @@ export function AddDirectoryEntryDialog({
         city: form.city.trim() || null,
         state: form.state.trim() || null,
         zip: form.zip.trim() || null,
+        profile_image_url: form.imageUrl.trim() || null,
       };
 
       if (showCapacity && form.capacity && !Number.isNaN(Number(form.capacity))) {
@@ -256,6 +259,17 @@ export function AddDirectoryEntryDialog({
                 onChange={(e) => setForm({ ...form, zip: e.target.value })}
               />
             </div>
+          </div>
+          <div>
+            <Label>Profile Image URL</Label>
+            <Input
+              type="url"
+              placeholder="https://example.com/image.jpg"
+              value={form.imageUrl}
+              onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
+              maxLength={2048}
+            />
+            <p className="mt-1 text-xs text-muted-foreground">Optional public image shown on this directory profile.</p>
           </div>
           {showCapacity ? (
             <div>

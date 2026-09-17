@@ -323,11 +323,12 @@ export function CollaboratorPanel({
           title: taskTitle,
           description: form.description.trim(),
           event_id: eventId,
-          priority: taskPriority,
-          status: "not_started",
-          category: "Change Management",
-          created_by: user.id,
-        })
+        priority: taskPriority,
+        status: "not_started",
+        category: "Change Management",
+        created_by: user.id,
+        ...(form.locationId ? { location_id: form.locationId } : {}),
+      })
         .select("id")
         .single();
 

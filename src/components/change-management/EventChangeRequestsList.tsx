@@ -448,6 +448,13 @@ export function EventChangeRequestsList({ eventId, refreshToken = 0, compact }: 
                           event_id: r.event_id ?? eventId ?? null,
                         });
                       }
+                      void supabase.functions
+                        .invoke("send-change-request-notification", {
+                          body: { changeRequestId: r.id, status: "approved" },
+                        })
+                        .then(({ error }) => {
+                          if (error) console.warn("send-change-request-notification (approved):", error);
+                        });
                       window.dispatchEvent(
                         new CustomEvent("iep-change-requests-updated", {
                           detail: { eventId: r.event_id ?? eventId },
@@ -507,6 +514,13 @@ export function EventChangeRequestsList({ eventId, refreshToken = 0, compact }: 
                           event_id: r.event_id ?? eventId ?? null,
                         });
                       }
+                      void supabase.functions
+                        .invoke("send-change-request-notification", {
+                          body: { changeRequestId: r.id, status: "rejected" },
+                        })
+                        .then(({ error }) => {
+                          if (error) console.warn("send-change-request-notification (rejected):", error);
+                        });
                       window.dispatchEvent(
                         new CustomEvent("iep-change-requests-updated", {
                           detail: { eventId: r.event_id ?? eventId },

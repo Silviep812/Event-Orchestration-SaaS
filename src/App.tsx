@@ -43,6 +43,10 @@ const MarketingCreatives = lazy(() => import("./pages/MarketingCreatives"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const PreviewEventPlan = lazy(() => import("./pages/PreviewEventPlan"));
 const Invoices = lazy(() => import("./pages/Invoices"));
+const Privacy = lazy(() => import("./pages/Privacy"));
+const Terms = lazy(() => import("./pages/Terms"));
+const RefundPolicy = lazy(() => import("./pages/RefundPolicy"));
+const Contact = lazy(() => import("./pages/Contact"));
 
 function RouteFallback() {
   return <div className="flex min-h-[40vh] items-center justify-center text-sm text-muted-foreground">Loading…</div>;
@@ -63,7 +67,10 @@ const App = () => (
         <Suspense fallback={<RouteFallback />}>
           <Routes>
             <Route path="/" element={<Index />} />
-            <Route path="/contact" element={<Navigate to="/" replace />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/refund-policy" element={<RefundPolicy />} />
+            <Route path="/contact" element={<Contact />} />
             <Route path="/auth" element={<Auth />} />
             {/* Supabase recovery links land here (public — the user has no password yet). */}
             <Route path="/reset-password" element={<ResetPassword />} />

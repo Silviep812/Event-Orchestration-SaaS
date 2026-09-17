@@ -665,6 +665,36 @@ export type Database = {
         }
         Relationships: []
       }
+      directory_service_areas: {
+        Row: {
+          city: string
+          created_at: string
+          directory_key: string
+          id: string
+          is_active: boolean
+          region: string | null
+          state: string
+        }
+        Insert: {
+          city: string
+          created_at?: string
+          directory_key: string
+          id?: string
+          is_active?: boolean
+          region?: string | null
+          state: string
+        }
+        Update: {
+          city?: string
+          created_at?: string
+          directory_key?: string
+          id?: string
+          is_active?: boolean
+          region?: string | null
+          state?: string
+        }
+        Relationships: []
+      }
       cm_activity: {
         Row: {
           action: string
@@ -1568,6 +1598,7 @@ export type Database = {
           linkedin_url: string | null
           phone_number: string | null
           price: number | null
+          profile_image_url: string | null
           rating: number | null
           state: string | null
           updated_at: string
@@ -1591,6 +1622,7 @@ export type Database = {
           linkedin_url?: string | null
           phone_number?: string | null
           price?: number | null
+          profile_image_url?: string | null
           rating?: number | null
           state?: string | null
           updated_at?: string
@@ -1614,6 +1646,7 @@ export type Database = {
           linkedin_url?: string | null
           phone_number?: string | null
           price?: number | null
+          profile_image_url?: string | null
           rating?: number | null
           state?: string | null
           updated_at?: string
@@ -2508,6 +2541,7 @@ export type Database = {
           linkedin_url: string | null
           make_reservations: string | null
           phone_number: string | null
+          profile_image_url: string | null
           rating: number | null
           state: string | null
           updated_at: string
@@ -2530,6 +2564,7 @@ export type Database = {
           linkedin_url?: string | null
           make_reservations?: string | null
           phone_number?: string | null
+          profile_image_url?: string | null
           rating?: number | null
           state?: string | null
           updated_at?: string
@@ -2552,6 +2587,7 @@ export type Database = {
           linkedin_url?: string | null
           make_reservations?: string | null
           phone_number?: string | null
+          profile_image_url?: string | null
           rating?: number | null
           state?: string | null
           updated_at?: string
@@ -3953,6 +3989,7 @@ export type Database = {
           id: string
           phone_number: string | null
           price: number | null
+          profile_image_url: string | null
           state: string | null
           updated_at: string
           zip: string | null
@@ -3967,6 +4004,7 @@ export type Database = {
           id?: string
           phone_number?: string | null
           price?: number | null
+          profile_image_url?: string | null
           state?: string | null
           updated_at?: string
           zip?: string | null
@@ -3981,6 +4019,7 @@ export type Database = {
           id?: string
           phone_number?: string | null
           price?: number | null
+          profile_image_url?: string | null
           state?: string | null
           updated_at?: string
           zip?: string | null
@@ -4354,6 +4393,7 @@ export type Database = {
           linkedin_url: string | null
           phone_number: string | null
           price: number | null
+          profile_image_url: string | null
           rating: number | null
           state: string | null
           supplier_cost: number | null
@@ -4379,6 +4419,7 @@ export type Database = {
           linkedin_url?: string | null
           phone_number?: string | null
           price?: number | null
+          profile_image_url?: string | null
           rating?: number | null
           state?: string | null
           supplier_cost?: number | null
@@ -4404,6 +4445,7 @@ export type Database = {
           linkedin_url?: string | null
           phone_number?: string | null
           price?: number | null
+          profile_image_url?: string | null
           rating?: number | null
           state?: string | null
           supplier_cost?: number | null
@@ -5418,6 +5460,7 @@ export type Database = {
           phone_number: string | null
           price: number | null
           profile_url: string | null
+          profile_image_url: string | null
           seating_capacity: number | null
           special_accommodations: string[] | null
           state: string | null
@@ -5438,6 +5481,7 @@ export type Database = {
           phone_number?: string | null
           price?: number | null
           profile_url?: string | null
+          profile_image_url?: string | null
           seating_capacity?: number | null
           special_accommodations?: string[] | null
           state?: string | null
@@ -5458,6 +5502,7 @@ export type Database = {
           phone_number?: string | null
           price?: number | null
           profile_url?: string | null
+          profile_image_url?: string | null
           seating_capacity?: number | null
           special_accommodations?: string[] | null
           state?: string | null
@@ -5658,6 +5703,7 @@ export type Database = {
           linkedin_url: string | null
           phone_number: string | null
           price: number | null
+          profile_image_url: string | null
           rating: number | null
           state: string | null
           updated_at: string
@@ -5679,6 +5725,7 @@ export type Database = {
           linkedin_url?: string | null
           phone_number?: string | null
           price?: number | null
+          profile_image_url?: string | null
           rating?: number | null
           state?: string | null
           updated_at?: string
@@ -5700,6 +5747,7 @@ export type Database = {
           linkedin_url?: string | null
           phone_number?: string | null
           price?: number | null
+          profile_image_url?: string | null
           rating?: number | null
           state?: string | null
           updated_at?: string
@@ -6066,6 +6114,7 @@ export type Database = {
           linkedin_url: string | null
           phone_number: string | null
           price: number | null
+          profile_image_url: string | null
           rating: number | null
           state: string | null
           updated_at: string
@@ -6100,6 +6149,7 @@ export type Database = {
           linkedin_url?: string | null
           phone_number?: string | null
           price?: number | null
+          profile_image_url?: string | null
           rating?: number | null
           state?: string | null
           updated_at?: string
@@ -6134,6 +6184,7 @@ export type Database = {
           linkedin_url?: string | null
           phone_number?: string | null
           price?: number | null
+          profile_image_url?: string | null
           rating?: number | null
           state?: string | null
           updated_at?: string

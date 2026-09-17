@@ -7,12 +7,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { Truck, Camera, Lightbulb, Music, Gamepad2, Flower, Home, Table, Mail } from "lucide-react";
 import { DirectoryPageHeader } from "@/components/resource-directory/DirectoryPageHeader";
 import { AddDirectoryEntryDialog } from "@/components/resource-directory/AddDirectoryEntryDialog";
+import { DirectoryProfileImage } from "@/components/resource-directory/DirectoryProfileImage";
 import { useToast } from "@/hooks/use-toast";
 import { commentsPlannerCopy } from "@/lib/nudges";
 import { formatDirectoryPrice } from "@/lib/formatDirectoryPrice";
 import { DirectoryProfileLink } from "@/components/resource-directory/DirectoryProfileLink";
 import { directoryProfileElementId } from "@/lib/directoryProfileLinks";
 import { useDirectoryProfileHighlight } from "@/hooks/useDirectoryProfileHighlight";
+import { useDirectoryServiceAreas } from "@/hooks/useDirectoryServiceAreas";
 import {
   LocationFilterInput,
   collectLocationOptions,
@@ -32,8 +34,9 @@ const VendorServiceDirectory = () => {
   >([]);
   const [selectedRentalTypes, setSelectedRentalTypes] = useState<string[]>([]);
   const [locationFilter, setLocationFilter] = useState("");
-  /** Real locations recorded in this directory, offered as searchable filter choices. */
-  const locationOptions = useMemo(() => collectLocationOptions(rentals), [rentals]);
+  const coverageAreas = useDirectoryServiceAreas("service_rental");
+  /** Listed profile locations plus IEP's supported service areas. */
+  const locationOptions = useMemo(() => collectLocationOptions([...rentals, ...coverageAreas]), [rentals, coverageAreas]);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const { rentalHighlightClass } = useDirectoryProfileHighlight(loading);
@@ -166,6 +169,7 @@ const VendorServiceDirectory = () => {
                     value={locationFilter}
                     onChange={setLocationFilter}
                     options={locationOptions}
+                    description="Includes IEP service coverage. Results show listed providers only."
                   />
                 </div>
               </div>
@@ -272,6 +276,7 @@ const VendorServiceDirectory = () => {
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-3">
+                      <DirectoryProfileImage profile={profile} name={profile.business_name || "Rental partner"} />
                       <div className="space-y-1">
                         <p className="text-sm text-muted-foreground">Contact Person</p>
                         <p className="font-semibold">{profile.contact_name || "N/A"}</p>

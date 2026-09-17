@@ -49,6 +49,7 @@ export function AddSupplierEntryDialog({ onCreated }: Props) {
     city: "",
     state: "",
     zip: "",
+    imageUrl: "",
     category: "",
     customCategory: "",
     type: "",
@@ -64,6 +65,7 @@ export function AddSupplierEntryDialog({ onCreated }: Props) {
       city: "",
       state: "",
       zip: "",
+      imageUrl: "",
       category: "",
       customCategory: "",
       type: "",
@@ -139,6 +141,7 @@ export function AddSupplierEntryDialog({ onCreated }: Props) {
         city: form.city.trim() || null,
         state: form.state.trim() || null,
         zip: form.zip.trim() || null,
+        profile_image_url: form.imageUrl.trim() || null,
         category_id: null,
         type_id: null,
         custom_category: categoryName || null,
@@ -240,6 +243,17 @@ export function AddSupplierEntryDialog({ onCreated }: Props) {
                 onChange={(e) => setForm({ ...form, zip: e.target.value })}
               />
             </div>
+          </div>
+          <div>
+            <Label>Profile Image URL</Label>
+            <Input
+              type="url"
+              placeholder="https://example.com/image.jpg"
+              value={form.imageUrl}
+              onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
+              maxLength={2048}
+            />
+            <p className="mt-1 text-xs text-muted-foreground">Optional public image shown on this directory profile.</p>
           </div>
 
           <div className="space-y-2">

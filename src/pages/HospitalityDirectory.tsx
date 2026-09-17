@@ -11,8 +11,10 @@ import { useToast } from "@/hooks/use-toast";
 import { DirectoryPageHeader } from "@/components/resource-directory/DirectoryPageHeader";
 import { openReservationUrl } from "@/lib/openExternalOrMailto";
 import { DirectoryProfileLink } from "@/components/resource-directory/DirectoryProfileLink";
+import { DirectoryProfileImage } from "@/components/resource-directory/DirectoryProfileImage";
 import { directoryProfileElementId } from "@/lib/directoryProfileLinks";
 import { useDirectoryProfileHighlight } from "@/hooks/useDirectoryProfileHighlight";
+import { useDirectoryServiceAreas } from "@/hooks/useDirectoryServiceAreas";
 import {
   LocationFilterInput,
   collectLocationOptions,
@@ -23,14 +25,16 @@ const HospitalityDirectory = () => {
   const [hospitalityProfiles, setHospitalityProfiles] = useState<any[]>([]);
   const [selectedHospitalityTypes, setSelectedHospitalityTypes] = useState<string[]>([]);
   const [locationFilter, setLocationFilter] = useState("");
-  /** Real locations recorded in this directory, offered as searchable filter choices. */
-  const locationOptions = useMemo(() => collectLocationOptions(hospitalityProfiles), [hospitalityProfiles]);
+  const coverageAreas = useDirectoryServiceAreas("hospitality");
+  /** Listed profile locations plus IEP's supported service areas. */
+  const locationOptions = useMemo(() => collectLocationOptions([...hospitalityProfiles, ...coverageAreas]), [hospitalityProfiles, coverageAreas]);
   const [loading, setLoading] = useState(true);
   const [showOtherForm, setShowOtherForm] = useState(false);
   const [otherFormData, setOtherFormData] = useState({
     business_name: "",
     address: "",
     email: "",
+    imageUrl: "",
   });
   const { toast } = useToast();
   const { highlightClass } = useDirectoryProfileHighlight(loading);
@@ -163,6 +167,7 @@ const HospitalityDirectory = () => {
             contact_name: otherFormData.business_name,
             phone_number: null,
             email: otherFormData.email,
+            profile_image_url: otherFormData.imageUrl.trim() || null,
             hospitality_type: otherType.id
           }
         ]);
@@ -174,7 +179,7 @@ const HospitalityDirectory = () => {
         description: "Hospitality provider added successfully"
       });
 
-      setOtherFormData({ business_name: "", address: "", email: "" });
+      setOtherFormData({ business_name: "", address: "", email: "", imageUrl: "" });
       fetchHospitalityProfiles();
     } catch (error) {
       console.error('Error adding hospitality provider:', error);
@@ -258,6 +263,16 @@ const HospitalityDirectory = () => {
                     placeholder="Enter email"
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="hospitality-image-url">Profile Image URL</Label>
+                  <Input
+                    id="hospitality-image-url"
+                    type="url"
+                    value={otherFormData.imageUrl}
+                    onChange={(e) => setOtherFormData({...otherFormData, imageUrl: e.target.value})}
+                    placeholder="https://example.com/image.jpg"
+                  />
+                </div>
               </div>
               <Button type="submit" className="w-full md:w-auto">
                 Add Provider
@@ -272,6 +287,7 @@ const HospitalityDirectory = () => {
               value={locationFilter}
               onChange={setLocationFilter}
               options={locationOptions}
+              description="Includes IEP service coverage. Results show listed providers only."
             />
           </div>
 
@@ -337,6 +353,7 @@ const HospitalityDirectory = () => {
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-3">
+                      <DirectoryProfileImage profile={profile} name={profile.business_name || "Hospitality provider"} />
                       {profile.contact_name && (
                         <div className="flex items-center gap-2 text-sm">
                           <span className="font-medium">{profile.contact_name}</span>
