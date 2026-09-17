@@ -26,7 +26,8 @@ export function useDirectoryServiceAreas(directoryKey: DirectoryServiceAreaKey):
     let cancelled = false;
 
     void (async () => {
-      const { data, error } = await supabase
+      // Table is not present in the generated Supabase types yet; cast per project convention.
+      const { data, error } = await (supabase as any)
         .from("directory_service_areas")
         .select("city, state, region")
         .eq("directory_key", directoryKey)
@@ -36,7 +37,6 @@ export function useDirectoryServiceAreas(directoryKey: DirectoryServiceAreaKey):
 
       if (cancelled) return;
       if (error) {
-        console.warn("directory_service_areas:", error);
         setAreas([]);
         return;
       }

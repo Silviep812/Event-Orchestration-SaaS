@@ -139,7 +139,7 @@ const HospitalityDirectory = () => {
       const otherType = hospitalityTypes.find(type => type.name.toLowerCase() === "other");
       if (otherType && typeId === otherType.id.toString()) {
         setShowOtherForm(false);
-        setOtherFormData({ business_name: "", address: "", email: "" });
+        setOtherFormData({ business_name: "", address: "", email: "", imageUrl: "" });
       }
     }
   };
