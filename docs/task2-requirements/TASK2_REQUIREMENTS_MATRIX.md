@@ -23,7 +23,7 @@ Status legend: **DONE** · **PARTIAL** · **NOT STARTED** · **BLOCKED** · **NE
 | A5 | Sidebar Resources location search has only MD test data | UI/UX p2 | **CONFIRMED** | See *Two location systems* below. `resources.location` has 50 rows, 36 explicitly MD, 0 for DC/VA/NJ/PA/NY/IL/GA/FL. |
 | A6 | Communication/Team "error fetching Users" | UI/UX p2 | **DONE** (`1e8fb2a`) | Root cause: Collaborate renders RoleManager for every member, but `fetchUsers` always called the admin-only `get-users-for-roles`, which 403s for non-admins. Only **4 of 37 users** hold any role and only **2** resolve to admin, so **33 of 37** saw the toast on every load. The permission check itself was correct — this was an error-reporting bug. Fixed by gating the call on `isAdmin()`, waiting for `usePermissions` to resolve first, and surfacing the real error message on genuine failures. |
 | A7 | Remove date (year) restrictions on event creation | UI/UX p2 | **NOT REPRODUCED** | No year bound found in `CreateEvent.tsx`, `calendar.tsx`, or `src/lib/validation/`. Likely a browser date-picker default or already resolved. Needs a repro from the tester. |
-| A8 | Initiate Marketing Campaign Plan | Pro Marketing Campaign | **PARTIAL — schema DONE** | All tables exist and match the doc: `marketing_subscribers` (exact column match), `marketing_campaigns`, `marketing_emails`, `marketing_conversions`. Doc's `email_delivery` ships as `marketing_email_deliveries`. Data is near-empty: 1 subscriber, 1 campaign, 8 emails, **0 deliveries**, 9 conversions. Campaign *content* (4-week timeline, email series, creatives) not authored. |
+| A8 | Initiate Marketing Campaign Plan | Pro Marketing Campaign + Starter Email Campaign Plan | **PARTIAL — schema + Starter content DONE** | All tables exist and match the doc: `marketing_subscribers` (exact column match), `marketing_campaigns`, `marketing_emails`, `marketing_conversions`. Doc's `email_delivery` ships as `marketing_email_deliveries`. Data is near-empty: 1 subscriber, 1 campaign, 8 emails, **0 deliveries**, 9 conversions. **The Starter 8-email drip is already authored and matches `Starter Email Campaign Plan.pdf` exactly** — all 8 subject lines and send days (1, 4, 7, 12, 16, 21, 25, 30) line up, under campaign "IEP SaaS Launch Campaign" (`email_drip`). Outstanding: **0 deliveries** have been sent, and the Pro campaign content and creatives are not authored. |
 | A9 | Initiate Vendor Marketing Plan | Vendor Marketplace | **NOT STARTED** | Doc requires a Trust Building System (Verified Vendor / Background Verified / Licensed / Insurance Confirmed), Reviews, and 4 revenue tiers. **None exist**: no `vendor_reviews`, `vendor_verification`, `vendor_tiers`, `marketplace_vendors`. Only a bare `rating` column on 6 profile tables. Tier 2/3 pricing ($49–99, $199–499/mo) needs Stripe → blocked on B4. |
 | A10 | Validate Multi-location processing | CM Dashboard | **UNBLOCKED — ready to test** | Seed **applied**: `cm_locations` now holds **9 locations** across the 4 events that carry change requests (Test Milestone 5 Event ×3, the others ×2 each), and **5 tasks** are scoped to their event's Main Venue. The guard triggers can now actually execute. End-to-end acceptance run still pending. |
 | A11 | CM Manager Dashboard views | CM Dashboard p1 | **DONE — view live** | `unified_change_requests` was missing, so the doc's first sample query failed. Created in `20260925192000`, unioning cm_change_requests (5 rows) with legacy change_requests (67). Validated read-only against live data: the doc's verbatim query now returns `medium 66 / Unspecified 5 / high 1`. Migration **applied**; the doc's query now runs against the real view in production. Still outstanding: `unified_tasks.locked` is absent, so the Timeline Conflict query remains broken. |
@@ -84,8 +84,8 @@ Rule 4 deliberately spares two pairs, verified by inspecting their children:
 | `Community` | id 626 — Meetup, 16 children (Neighborhood BBQ, Public Forum…) | id 666 — Festival, 13 children (Carnival, County Fair…) |
 | `Personal` | id 16 — Health and Wellness, 8 children (Holistic, Tai Chi…) | id 948 — Celebration, 13 children (Birthday, Graduation…) |
 
-Merging either would destroy real taxonomy. Dry run confirmed **9 rows removed, both pairs
-preserved**, and no row referenced by `events.type_id` is touched.
+Merging either would destroy real taxonomy. **Applied and verified: 9 rows removed, both
+pairs intact with their distinct children, no row referenced by `events.type_id` touched.**
 
 ---
 
@@ -105,14 +105,16 @@ preserved**, and no row referenced by `events.type_id` is touched.
    but the file contains **8 pages** (verified: internal `/Count` is 8). Coverage stops partway
    through `Entertainment Profile`. Since A1 is the largest item in 2A and this document defines
    its target, **the full 60-page version is needed.**
-5. **`event_types` integrity — migration written, pending approval** (`20260925194000`).
+5. **`event_types` integrity — RESOLVED** (`20260925194000`, applied).
    Diagnosed: there is **no FK on `parent_id`**, which is why the table drifted. Three
    defects follow from it — a self-loop (id 345 "Spa Days", `parent_id = id`), **37 rows
    whose parent no longer exists**, and **11 exact twins**. Together these left **49 of 741
    rows unreachable** from any root, i.e. invisible in the UI.
-   The migration promotes the self-loop and the 37 orphans to theme roots (all 37 still
-   carry a valid `theme_id`, so nothing is guessed), removes 9 twins per the canonical-copy
-   rule below, and adds the missing FK plus a self-reference CHECK so it cannot recur.
+   Promoted the self-loop and the 37 orphans to theme roots (all 37 still carried a valid
+   `theme_id`, so nothing was guessed), removed 9 twins per the canonical-copy rule below,
+   and added the missing FK plus a self-reference CHECK so it cannot recur.
+   **Verified live: 0 self-loops, 0 dangling parents, and all 717 rows now reachable from a
+   root (was 49 unreachable). All 16 typed events intact, 0 broken type refs.**
 6. **Pre-existing lint breakage.** `npx eslint` crashes repo-wide on a
    `@typescript-eslint/no-unused-expressions` plugin version conflict. Not caused by Task 2 work
    (reproduced on untouched files).
