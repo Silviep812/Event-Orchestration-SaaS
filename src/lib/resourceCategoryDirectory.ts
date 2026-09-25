@@ -14,12 +14,36 @@ export const RESOURCE_CATEGORY_DIRECTORY_ROUTES: Record<
   Supplies: { path: "/dashboard/supplier", label: "External vendor directory" },
   Marketing: { path: "/dashboard/marketing-campaign", label: "Marketing campaign" },
   Entertainment: { path: "/dashboard/entertainment", label: "Entertainment directory" },
+  // Seeded categories that previously had no route, so ResourceManager warned on every load.
+  Rentals: { path: "/dashboard/vendor-service", label: "Vendor / service directory" },
+  Staff: { path: "/dashboard/service-vendor", label: "Service vendor directory" },
+  Booking: { path: "/dashboard/venue", label: "Venue directory" },
+  Supplier: { path: "/dashboard/supplier", label: "Supplier directory" },
+  Service: { path: "/dashboard/service-vendor", label: "Service vendor directory" },
+  Vendors: { path: "/dashboard/vendor-service", label: "Vendor / service directory" },
+  // SOW Task 2 resource directory terms, aliased onto the same routes.
+  "Service Rental": { path: "/dashboard/vendor-service", label: "Vendor / service directory" },
+  "Service Vendor": { path: "/dashboard/service-vendor", label: "Service vendor directory" },
+  Vendor: { path: "/dashboard/vendor-service", label: "Vendor / service directory" },
+  "External Vendor": { path: "/dashboard/supplier", label: "External vendor directory" },
 };
+
+/** Case-insensitive index so stored names that differ only by case/padding still resolve. */
+const ROUTES_BY_NORMALIZED_NAME = new Map(
+  Object.entries(RESOURCE_CATEGORY_DIRECTORY_ROUTES).map(([name, route]) => [
+    name.trim().toLowerCase(),
+    route,
+  ]),
+);
 
 export function directoryLinkForResourceCategoryName(name: string): { path: string; label: string } | null {
   const trimmed = name?.trim();
   if (!trimmed) return null;
-  return RESOURCE_CATEGORY_DIRECTORY_ROUTES[trimmed] ?? null;
+  return (
+    RESOURCE_CATEGORY_DIRECTORY_ROUTES[trimmed] ??
+    ROUTES_BY_NORMALIZED_NAME.get(trimmed.toLowerCase()) ??
+    null
+  );
 }
 
 /** Returns category names that have no directory mapping (should be empty in production). */
