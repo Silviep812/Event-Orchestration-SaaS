@@ -19,10 +19,13 @@ verify_jwt = false
 [functions.stripe-webhook]
 verify_jwt = false
 
-# These two authenticate the caller from their Authorization header inside the function,
-# so the platform JWT gate stays on.
-[functions.create-checkout-session]
-verify_jwt = true
+# Ported from the deployed v4 functions; they authenticate the caller from their
+# Authorization header inside the function, matching the existing deployments.
+[functions.stripe-checkout]
+verify_jwt = false
+
+[functions.send-invoice]
+verify_jwt = false
 
 [functions.create-billing-portal-session]
 verify_jwt = true
