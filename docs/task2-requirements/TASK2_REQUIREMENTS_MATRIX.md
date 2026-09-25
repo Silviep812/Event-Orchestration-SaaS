@@ -17,7 +17,7 @@ Status legend: **DONE** · **PARTIAL** · **NOT STARTED** · **BLOCKED** · **NE
 | # | Requirement | Source | Status | Evidence |
 |---|---|---|---|---|
 | A1 | Align Directory Tables with correct join profiles | SOW + UI/UX p1 | **INVESTIGATED — join integrity is clean** | The live app reads a **lowercase** table family (`venues`, `hospitality_profiles`, `entertainments`, `suppliers`, `vendor`). Every profile→type join was checked for orphans: **0 orphaned FKs** across all four pairs, and **0 cross-theme leaks**. No source file references the Title Case `"Venue Profile"` / `"Venue Directory"` tables at all — they appear to be a dormant parallel family. **The misalignment the doc describes is in the theme hierarchy (A2), not the directory→profile joins.** Remaining question for the client: are the Title Case tables meant to be retired? Needs the full 60-page schema PDF to answer. |
-| A2 | Sidebar Theme changes (6 sub-items) | UI/UX p1 | **PARTIAL — 1 of 6 fixed, 2 already clean** | **Buffet CONFIRMED and fixed** (`20260925193000`, not yet applied): Buffet carried 30 children — 14 real buffet styles plus 16 artisan crafts (Blacksmith, Potter, Glassblower…), each with a self-duplicating child (`Buffet > Blacksmith > Blacksmith`). Migration moves the 16 to the empty `Marketplace > Artisans` root and drops 15 duplicate leaves; dry run verified 15 delete / 16 move / Buffet left with its 14 correct types. **Health/Wellness×Sporting and Meetup×Marketplace queries both return empty** — already repaired by the earlier `at6_unmix_misparented_types` work. Celebration dropdowns, Marketplace sub-tasks and theme labels still outstanding. |
+| A2 | Sidebar Theme changes (6 sub-items) | UI/UX p1 | **PARTIAL — 1 of 6 fixed, 2 already clean** | **Buffet CONFIRMED and fixed** (`20260925193000`, **applied**): Buffet carried 30 children — 14 real buffet styles plus 16 artisan crafts (Blacksmith, Potter, Glassblower…), each with a self-duplicating child (`Buffet > Blacksmith > Blacksmith`). Moved the 16 to the empty `Marketplace > Artisans` root and dropped 15 duplicate leaves. Verified live: Buffet now has exactly its **14** real buffet styles, Artisans has **16** children. **Health/Wellness×Sporting and Meetup×Marketplace queries both return empty** — already repaired by the earlier `at6_unmix_misparented_types` work. Celebration dropdowns, Marketplace sub-tasks and theme labels still outstanding. |
 | A3 | Venue Directory > Vineyard/Winery is empty | UI/UX p1 | **CONFIRMED — broader than reported** | `Vineyard_Winery` is 0/28 rows. But `Hospitality` and `Restaurant` are **also** 0. Wider population gap, not one category. |
 | A4 | Save Task Assignment → "Something went wrong", no exit | UI/UX p1 | **PARTIAL** | The *"no exit from page"* half is already fixed — `ErrorBoundary.tsx:9` documents it from the 08/08/2026 acceptance test and now offers real navigation out. The underlying save failure is **not** diagnosed. |
 | A5 | Sidebar Resources location search has only MD test data | UI/UX p2 | **CONFIRMED** | See *Two location systems* below. `resources.location` has 50 rows, 36 explicitly MD, 0 for DC/VA/NJ/PA/NY/IL/GA/FL. |
@@ -66,6 +66,29 @@ design call, not a mechanical fix.
 
 ---
 
+## Canonical-copy rule (event_types dedupe)
+
+Applied in order, most specific first:
+
+1. **Prefer the copy with children** — a childless twin carries no taxonomy.
+2. **Then prefer the copy with a `theme_id`** — a themeless root cannot appear under any
+   theme in the UI, so it is dead weight.
+3. **Then prefer the lower id** — the older row.
+4. **Never merge two copies that both have children AND different themes** — those are
+   genuinely distinct categories that happen to share a name.
+
+Rule 4 deliberately spares two pairs, verified by inspecting their children:
+
+| Name | Kept | Kept |
+|---|---|---|
+| `Community` | id 626 — Meetup, 16 children (Neighborhood BBQ, Public Forum…) | id 666 — Festival, 13 children (Carnival, County Fair…) |
+| `Personal` | id 16 — Health and Wellness, 8 children (Holistic, Tai Chi…) | id 948 — Celebration, 13 children (Birthday, Graduation…) |
+
+Merging either would destroy real taxonomy. Dry run confirmed **9 rows removed, both pairs
+preserved**, and no row referenced by `events.type_id` is touched.
+
+---
+
 ## Blockers
 
 1. **Migrations.** The first three were approved and are **applied and recorded** in the ledger
@@ -82,11 +105,14 @@ design call, not a mechanical fix.
    but the file contains **8 pages** (verified: internal `/Count` is 8). Coverage stops partway
    through `Entertainment Profile`. Since A1 is the largest item in 2A and this document defines
    its target, **the full 60-page version is needed.**
-5. **`event_types` has deeper corruption than A2 covers.** 271 names appear more than once,
-   30 rows are parented to a same-named row, and id 345 ("Spa Days") is a **self-loop**
-   (`parent_id = id`) that can hang a recursive query. **9 of 16 typed events point at
-   duplicate-named rows**, so a blanket dedupe would silently retype real events. Needs its
-   own migration plus a decision on which copy is canonical. **NEEDS DECISION.**
+5. **`event_types` integrity — migration written, pending approval** (`20260925194000`).
+   Diagnosed: there is **no FK on `parent_id`**, which is why the table drifted. Three
+   defects follow from it — a self-loop (id 345 "Spa Days", `parent_id = id`), **37 rows
+   whose parent no longer exists**, and **11 exact twins**. Together these left **49 of 741
+   rows unreachable** from any root, i.e. invisible in the UI.
+   The migration promotes the self-loop and the 37 orphans to theme roots (all 37 still
+   carry a valid `theme_id`, so nothing is guessed), removes 9 twins per the canonical-copy
+   rule below, and adds the missing FK plus a self-reference CHECK so it cannot recur.
 6. **Pre-existing lint breakage.** `npx eslint` crashes repo-wide on a
    `@typescript-eslint/no-unused-expressions` plugin version conflict. Not caused by Task 2 work
    (reproduced on untouched files).
