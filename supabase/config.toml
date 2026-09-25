@@ -14,3 +14,15 @@ verify_jwt = false
 
 [functions.send-waitlist-confirmation]
 verify_jwt = false
+
+# Stripe calls this without a Supabase JWT; the signature check is the authentication.
+[functions.stripe-webhook]
+verify_jwt = false
+
+# These two authenticate the caller from their Authorization header inside the function,
+# so the platform JWT gate stays on.
+[functions.create-checkout-session]
+verify_jwt = true
+
+[functions.create-billing-portal-session]
+verify_jwt = true
