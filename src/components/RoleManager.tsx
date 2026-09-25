@@ -60,7 +60,7 @@ export function RoleManager({
   const [dataTimestamp, setDataTimestamp] = useState(Date.now());
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { isAdmin } = usePermissions();
+  const { isAdmin, loading: permissionsLoading } = usePermissions();
 
 
   const roles = [
@@ -107,16 +107,18 @@ export function RoleManager({
   useEffect(() => {
     let isMounted = true;
     console.log('[RoleManager] Component mounted, fetching data...');
-    
+
     const fetchData = async () => {
       if (!isMounted) return;
       await fetchPermissionMappings();
       if (!isMounted) return;
-      await fetchUsers();
+      // isAdmin() reads false until usePermissions resolves, so waiting here keeps an
+      // admin from being treated as a non-admin and shown an empty list on first paint.
+      if (!permissionsLoading) await fetchUsers();
       if (!isMounted) return;
       await fetchEvents();
     };
-    
+
     fetchData();
 
     // Set up real-time subscriptions for automatic updates
@@ -180,7 +182,8 @@ export function RoleManager({
       supabase.removeChannel(rolesChannel);
       supabase.removeChannel(profilesChannel);
     };
-  }, []);
+    // Re-runs once usePermissions resolves so the admin user list loads on first visit.
+  }, [permissionsLoading]);
 
   const fetchEvents = async () => {
     try {
@@ -261,9 +264,20 @@ export function RoleManager({
   };
 
   const fetchUsers = async () => {
+    // get-users-for-roles returns 403 for anyone without the admin permission group, and
+    // supabase.functions.invoke turns any non-2xx into an error. Collaborate renders this
+    // panel for every member, so calling it unconditionally showed all non-admins a generic
+    // "Error fetching users" toast on page load. Skip the admin-only call instead.
+    if (!isAdmin()) {
+      setUsers([]);
+      setUserRoles([]);
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
-      
+
       // Get all role assignments from user_roles table
       const { data: userRolesData, error: rolesError } = await supabase
         .from('user_roles')
@@ -273,12 +287,12 @@ export function RoleManager({
 
       // Call edge function to get users with emails (admin access required)
       const { data: usersResponse, error: usersError } = await supabase.functions.invoke('get-users-for-roles');
-      
+
       if (usersError) {
         console.error('Error fetching users from edge function:', usersError);
         throw usersError;
       }
-      
+
       const allUsers = usersResponse?.users?.map((user: any) => ({
         id: user.id,
         name: user.name,
@@ -321,9 +335,15 @@ export function RoleManager({
       }
     } catch (error) {
       console.error('Error fetching users:', error);
+      // Report what actually failed. The old message was the same string for a permission
+      // problem, a dropped connection and a server fault, which left testers with nothing
+      // to act on and nothing useful to report.
+      const message = error instanceof Error ? error.message : String(error ?? '');
       toast({
         title: "Error fetching users",
-        description: "Failed to load users. Please try again.",
+        description: message
+          ? `Failed to load users: ${message}`
+          : "Failed to load users. Please try again.",
         variant: "destructive",
       });
     } finally {
