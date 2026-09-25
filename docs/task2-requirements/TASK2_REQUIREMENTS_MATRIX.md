@@ -6,7 +6,7 @@ Supabase project (`mavbnybtyfewfsihmuri`) and the `main` branch of this repo.
 - **Verified date:** 2026-09-25
 - **Method:** read-only SQL against the live database, plus source inspection. Claims marked
   *verified* were checked directly; claims marked *unverified* need a running app or a person.
-- **Baseline:** 74/74 vitest tests pass, production build succeeds.
+- **Baseline:** 80/80 vitest tests pass; production build and `tsc --noEmit` both clean.
 
 Status legend: **DONE** · **PARTIAL** · **NOT STARTED** · **BLOCKED** · **NEEDS DECISION**
 
@@ -26,7 +26,7 @@ Status legend: **DONE** · **PARTIAL** · **NOT STARTED** · **BLOCKED** · **NE
 | A8 | Initiate Marketing Campaign Plan | Pro Marketing Campaign | **PARTIAL — schema DONE** | All tables exist and match the doc: `marketing_subscribers` (exact column match), `marketing_campaigns`, `marketing_emails`, `marketing_conversions`. Doc's `email_delivery` ships as `marketing_email_deliveries`. Data is near-empty: 1 subscriber, 1 campaign, 8 emails, **0 deliveries**, 9 conversions. Campaign *content* (4-week timeline, email series, creatives) not authored. |
 | A9 | Initiate Vendor Marketing Plan | Vendor Marketplace | **NOT STARTED** | Doc requires a Trust Building System (Verified Vendor / Background Verified / Licensed / Insurance Confirmed), Reviews, and 4 revenue tiers. **None exist**: no `vendor_reviews`, `vendor_verification`, `vendor_tiers`, `marketplace_vendors`. Only a bare `rating` column on 6 profile tables. Tier 2/3 pricing ($49–99, $199–499/mo) needs Stripe → blocked on B4. |
 | A10 | Validate Multi-location processing | CM Dashboard | **BLOCKED** | Schema and guard triggers are live (`validate_cm_change_request_location_scope`, `apply_multilocation_change_request`). `cm_locations` was **0 rows**, so the path could never execute. Seed written and validated but **not applied** (see Blockers). |
-| A11 | CM Manager Dashboard views | CM Dashboard p1 | **PARTIAL** | `unified_tasks`, `unified_resources`, `unified_audit_events`, `unified_locations` all exist. **`unified_change_requests` does not** — the doc's first sample query fails. Its conflict query also needs `unified_tasks.locked`, which is absent. 2 of 4 sample queries cannot run. |
+| A11 | CM Manager Dashboard views | CM Dashboard p1 | **PARTIAL — view written** | `unified_change_requests` was missing, so the doc's first sample query failed. Created in `20260925192000`, unioning cm_change_requests (5 rows) with legacy change_requests (67). Validated read-only against live data: the doc's verbatim query now returns `medium 66 / Unspecified 5 / high 1`. Migration **not yet applied**. Still outstanding: `unified_tasks.locked` is absent, so the Timeline Conflict query remains broken. |
 | A12 | Resource directory update | SOW acceptance criteria | **DONE** | 6 of 13 live categories were unmapped, firing a user-visible toast every load. Fixed in `35c959b`; verified against live data — unmapped went 6 → **0**. |
 | A13 | User roles directory update | SOW acceptance criteria | **DONE** | `app_role` enum has all six required roles: `host, organizer, event_planner, venue_owner, hospitality_provider, manager` (+`tester`). |
 | A14 | Complete Acceptance Test (Sylvia H.) | SOW | **NOT STARTED** | Requires A1–A11 plus a human tester. |
@@ -68,9 +68,10 @@ design call, not a mechanical fix.
 
 ## Blockers
 
-1. **Production DB writes are gated.** Two migrations are committed but **not applied**:
+1. **Production DB writes are gated.** Three migrations are committed but **not applied**:
    - `20260925190000_task2a_trim_resource_category_names.sql` — trims `"Supplier "` / `"Service "`, adds a CHECK
    - `20260925191000_task2a_seed_cm_locations.sql` — 9 locations across 4 events, scopes 5 tasks (unblocks A10)
+   - `20260925192000_task2a_unified_change_requests.sql` — creates the missing dashboard view (A11)
 2. **Migration ledger drift.** 402 migration files vs 389 ledger entries. The 13 missing
    ones **were** applied (their objects exist live) — the ledger is stale, not the schema.
    Several are destructive data-repair migrations, so **do not run `npm run db:push`** blindly.
