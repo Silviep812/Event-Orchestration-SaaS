@@ -17,7 +17,7 @@ Status legend: **DONE** · **PARTIAL** · **NOT STARTED** · **BLOCKED** · **NE
 | # | Requirement | Source | Status | Evidence |
 |---|---|---|---|---|
 | A1 | Align Directory Tables with correct join profiles | SOW + UI/UX p1 | **INVESTIGATED — join integrity is clean** | The live app reads a **lowercase** table family (`venues`, `hospitality_profiles`, `entertainments`, `suppliers`, `vendor`). Every profile→type join was checked for orphans: **0 orphaned FKs** across all four pairs, and **0 cross-theme leaks**. No source file references the Title Case `"Venue Profile"` / `"Venue Directory"` tables at all — they appear to be a dormant parallel family. **The misalignment the doc describes is in the theme hierarchy (A2), not the directory→profile joins.** Remaining question for the client: are the Title Case tables meant to be retired? Needs the full 60-page schema PDF to answer. |
-| A2 | Sidebar Theme changes (6 sub-items) | UI/UX p1 | **PARTIAL — 1 of 6 fixed, 2 already clean** | **Buffet CONFIRMED and fixed** (`20260925193000`, **applied**): Buffet carried 30 children — 14 real buffet styles plus 16 artisan crafts (Blacksmith, Potter, Glassblower…), each with a self-duplicating child (`Buffet > Blacksmith > Blacksmith`). Moved the 16 to the empty `Marketplace > Artisans` root and dropped 15 duplicate leaves. Verified live: Buffet now has exactly its **14** real buffet styles, Artisans has **16** children. **Health/Wellness×Sporting and Meetup×Marketplace queries both return empty** — already repaired by the earlier `at6_unmix_misparented_types` work. Celebration dropdowns, Marketplace sub-tasks and theme labels still outstanding. |
+| A2 | Sidebar Theme changes (6 sub-items) | UI/UX p1 | **PARTIAL — 3 of 6 done, 2 already clean, 1 NEEDS DECISION** | **Buffet fixed** (`20260925193000`, applied): 16 artisan crafts moved from `Dining > Buffet` to the empty `Marketplace > Artisans` root, 15 self-duplicating leaves dropped; Buffet left with its 14 real styles. **Theme labels done**: `Coming Soon` was never implemented — added `isComingSoonBrowseTheme` + `browseThemeBadge` (Retreat/Reunion/Special Event/Wedding), wired into both render sites in `EventThemesDirectory`. **Celebration already correct**: exactly `Holiday` (15 subtypes) and `Personal` (13), as specified. **Health/Wellness×Sporting and Meetup×Marketplace both return empty** — already repaired by earlier `at6_unmix_misparented_types`. **Outstanding (NEEDS DECISION):** 71 root categories have no subtypes — see *Empty categories* below. |
 | A3 | Venue Directory > Vineyard/Winery is empty | UI/UX p1 | **CONFIRMED — broader than reported** | `Vineyard_Winery` is 0/28 rows. But `Hospitality` and `Restaurant` are **also** 0. Wider population gap, not one category. |
 | A4 | Save Task Assignment → "Something went wrong", no exit | UI/UX p1 | **PARTIAL** | The *"no exit from page"* half is already fixed — `ErrorBoundary.tsx:9` documents it from the 08/08/2026 acceptance test and now offers real navigation out. The underlying save failure is **not** diagnosed. |
 | A5 | Sidebar Resources location search has only MD test data | UI/UX p2 | **CONFIRMED** | See *Two location systems* below. `resources.location` has 50 rows, 36 explicitly MD, 0 for DC/VA/NJ/PA/NY/IL/GA/FL. |
@@ -39,8 +39,8 @@ Status legend: **DONE** · **PARTIAL** · **NOT STARTED** · **BLOCKED** · **NE
 | B1 | Pro Plan Readiness Checklist | *(PDF not supplied)* | **BLOCKED** | The SOW cites a requirements PDF for this; it was not among the five provided. |
 | B2 | Validate Merge Plan clean end to end | *(PDF not supplied)* | **BLOCKED** | Same — no Merge Plan document supplied. |
 | B3 | Add marketing states | SOW + UI/UX p2 | **PARTIAL — see caveat** | `directory_service_areas` is complete: 272 rows, all 11 states incl. DC/MD/VA, with PA East/West, NYC Boroughs, MA Boston, IL Chicago, GA Atlanta Metro. **But** the UI/UX complaint (A5) is about `resources.location`, a different store that is still MD-only. |
-| B4 | Validate Stripe setup process | SOW | **NOT STARTED — build, not validation** | No `stripe` dependency in `package.json`. Only two code references, both comments saying *"no Stripe in Task 1"* / *"no Stripe wiring here"*. `invoices.stripe_invoice_id` column exists; table has **0 rows**. |
-| B5 | Validate User (subscribers) Invoicing system | SOW | **NOT STARTED** | `invoices` table is fully shaped (15 columns) but **0 rows**. No invoice generation code. Depends on B4. |
+| B4 | Validate Stripe setup process | SOW | **SCOPED — build, not validation** | Full assessment in [STRIPE_SCOPE_TASK2B.md](STRIPE_SCOPE_TASK2B.md). Confirmed absent: no `stripe` dependency, no Stripe code (only two *"no Stripe"* comments), **no `STRIPE_SECRET_KEY` in project secrets**, no checkout/portal/webhook, no `subscriptions`/`customers`/`prices` tables. Groundwork that **does** exist: `invoices` (15 cols, RLS correct), 5 `profiles` subscription columns, all 37 profiles `starter`/`active`, an Invoices page already reading the table, and Resend verified for invoice email. **Blocked on a client action** — Stripe account, product/price ids, and keys. |
+| B5 | Validate User (subscribers) Invoicing system | SOW | **SCOPED** | `invoices` is fully shaped with correct RLS (`select_own` + `insert_admin`) but has **0 rows** and nothing writes `invoice_number`. Invoice rows must be created by the `invoice.paid` / `invoice.payment_failed` webhooks, keyed on `stripe_invoice_id` for idempotency, with the receipt emailed via the already-verified Resend domain. Depends on B4. |
 | B6 | Complete Acceptance Test (Sylvia H.) | SOW | **NOT STARTED** | Depends on B1–B5. |
 | B7 | Launch Pro Plan | SOW | **BLOCKED** | Depends on B4/B5 and the missing B1 checklist. |
 
@@ -86,6 +86,36 @@ Rule 4 deliberately spares two pairs, verified by inspecting their children:
 
 Merging either would destroy real taxonomy. **Applied and verified: 9 rows removed, both
 pairs intact with their distinct children, no row referenced by `events.type_id` touched.**
+
+---
+
+## Empty categories (A2, outstanding)
+
+71 root rows in `event_types` have zero children. Two things matter before anyone "fixes" this:
+
+**37 of the 71 were created by migration `20260925194000`.** It promoted orphans whose parent
+rows had been deleted (ids 9, 805, 810, 815, 830) up to theme roots. That was the right call —
+they went from *unreachable and invisible* to *selectable* — but it leaves them as leaves sitting
+at category level. Their original parent names are **unrecoverable** from the table, so the
+intended grouping cannot be reconstructed from data.
+
+**Most are invisible to the UI anyway.** `CreateEvent` calls `setEventTypes([])` for Health and
+Wellness, Retreat and Sporting — those themes use bespoke hierarchies — so 36 of the 71 never
+render. Themes that genuinely use `event_types`:
+
+| Theme | Roots | Empty |
+|---|---|---|
+| Special Event | 23 | 23 |
+| Meetup | 8 | 6 |
+| Wedding | 4 | 4 |
+| Marketplace | 6 | 2 |
+
+An empty category **does not block event creation** — [`CreateEvent.tsx:176`](../../src/pages/CreateEvent.tsx#L176)
+falls back to `Boolean(watchedType)` when there are no subtypes.
+
+**NEEDS DECISION:** deciding what subtypes *should* sit under "Book Club" or "Holiday Market" is
+content design, not defect repair. The client must supply the intended grouping; inventing one
+would be guesswork.
 
 ---
 

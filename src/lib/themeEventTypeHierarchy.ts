@@ -481,3 +481,35 @@ export function isRecommendedBrowseTheme(name: string | null | undefined): boole
   const n = (name ?? "").trim().toLowerCase();
   return n === "celebration" || n === "dining" || n === "festival" || n.startsWith("festival ");
 }
+
+/**
+ * Themes the client labels as Coming Soon in Browse Event Themes (M5 Task 2 V1.3 UI/UX).
+ * Spec: "2) Coming Soon = Retreat, Reunion, Special Events and Wedding."
+ * Matches singular and plural, since the catalog stores "Retreat" and "Special Event"
+ * while the requirement text writes "Special Events".
+ */
+export function isComingSoonBrowseTheme(name: string | null | undefined): boolean {
+  const n = (name ?? "").trim().toLowerCase();
+  return (
+    n === "retreat" ||
+    n === "retreats" ||
+    n === "reunion" ||
+    n === "reunions" ||
+    n === "special event" ||
+    n === "special events" ||
+    n === "wedding" ||
+    n === "weddings"
+  );
+}
+
+/**
+ * The single badge a theme carries in Browse Event Themes, or null when it carries none.
+ * Per the spec, every other category stays unlabeled: "All other categories remain
+ * unlabeled (available in starter and pro versions > process as Recommend but not labeled)".
+ * A theme is never both, so this keeps the two lists from drifting apart in the UI.
+ */
+export function browseThemeBadge(name: string | null | undefined): "Recommend" | "Coming Soon" | null {
+  if (isRecommendedBrowseTheme(name)) return "Recommend";
+  if (isComingSoonBrowseTheme(name)) return "Coming Soon";
+  return null;
+}
