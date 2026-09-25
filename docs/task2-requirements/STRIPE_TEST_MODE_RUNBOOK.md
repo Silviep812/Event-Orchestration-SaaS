@@ -1,5 +1,26 @@
 # Stripe test-mode runbook
 
+> ## Update 2026-09-25 — a Stripe integration is already deployed
+>
+> Three functions are **ACTIVE** on the project but absent from this repo:
+> `stripe-webhook`, `stripe-checkout`, `send-invoice` (all v4). Their sources have been
+> recovered into [`supabase/functions/_recovered/`](../../supabase/functions/_recovered/).
+>
+> They are **inert**: `STRIPE_SECRET_KEY` is not set, so they return 500 before doing work.
+>
+> **Two defects found in the deployed webhook**, both detailed in the recovered README:
+> 1. **The signature check is conditional** — `if (webhookSecret && signature) … else` trusts
+>    unverified JSON. With `verify_jwt = false` and no webhook secret set, anyone who knows the
+>    URL could grant themselves a paid plan. **Setting `STRIPE_SECRET_KEY` without also setting
+>    `STRIPE_WEBHOOK_SECRET` would open this.**
+> 2. **No idempotency guard** — a bare insert, so a redelivered event duplicates the invoice
+>    and re-extends the subscription.
+>
+> **Do step 2 (secrets) in full or not at all** — never the Stripe key alone.
+>
+> Before deploying anything, decide: replace the deployed trio with the new functions, or port
+> the two fixes into them. Deploying the new ones overwrites live deployments.
+
 Everything below runs in **test mode**. No live keys, no real charges. The scaffolding is
 committed and inert until the secrets exist: each function returns HTTP 503
 `stripe_not_configured` rather than failing obscurely.
@@ -8,7 +29,7 @@ committed and inert until the secrets exist: each function returns HTTP 503
 
 | Piece | Path | State |
 |---|---|---|
-| Billing schema | [`20260925195000_task2b_stripe_billing_schema.sql`](../../supabase/migrations/20260925195000_task2b_stripe_billing_schema.sql) | **Written, not applied** |
+| Billing schema | [`20260925195000_task2b_stripe_billing_schema.sql`](../../supabase/migrations/20260925195000_task2b_stripe_billing_schema.sql) | **Applied** (ledger 395) |
 | Shared Stripe helpers | [`_shared/stripe.ts`](../../supabase/functions/_shared/stripe.ts) | Committed |
 | Checkout | [`create-checkout-session`](../../supabase/functions/create-checkout-session/index.ts) | Committed, not deployed |
 | Billing portal | [`create-billing-portal-session`](../../supabase/functions/create-billing-portal-session/index.ts) | Committed, not deployed |
@@ -42,20 +63,21 @@ APP_URL                https://idaeventpartners.com   # optional
 > across 20 commits. A key added there is published to GitHub on the next commit. Supabase
 > edge function secrets are the only correct home.
 
-## Step 3 — Apply the schema
+## Step 3 — Apply the schema — DONE
 
-The migration is written but **not applied**. It is additive — three new tables/sequence,
-three nullable columns on `profiles`, two indexes — and changes no existing behaviour.
+Applied 2026-09-25 and recorded in the ledger (now 395). Verified live:
+`stripe_customers` (RLS on, 1 policy), `stripe_webhook_events` (RLS on, **0 policies** =
+service-role only), the three new `profiles` columns, all four indexes, and
+`next_invoice_number()` returning `IEP-000001`.
 
-```bash
-# Review first, then apply via the SQL editor or:
-npx supabase db push --include-all
-```
-
-> Check the migration ledger before any `db push` — this project has a history of drift.
-> See the matrix's Blockers section.
+> The sequence was reset after that verification call, so the first real invoice still
+> gets `IEP-000001`.
 
 ## Step 4 — Deploy and wire the webhook
+
+> **This overwrites the deployed `stripe-webhook` (v4).** Confirm the replace-vs-port decision
+> above first. The recovered copy is in `supabase/functions/_recovered/` if you need to revert,
+> though it is an extracted entry module, not the original file.
 
 ```bash
 npx supabase functions deploy stripe-webhook \
