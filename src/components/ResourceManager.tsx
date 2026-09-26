@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { resourceCategoriesMissingDirectory } from "@/lib/resourceCategoryDirectory";
+import { buildResourceLocationOptions } from "@/lib/resourceLocationOptions";
 import { plannerToolsCopy } from "@/lib/nudges";
 import { recalculateProjectTimelineForEvent } from "@/lib/projectTimelineRecalc";
 import { supabase } from "@/integrations/supabase/client";
@@ -214,21 +215,27 @@ const ResourceManager = ({ eventId, eventLocation, refreshKey }: ResourceManager
       }));
       setResources(mappedResources);
 
-      // Offer every location recorded in `resources`, not just the ones on this event's rows —
-      // acceptance test 3: "Enable filter searches for all Locations in resources".
-      const { data: allLocationRows } = await supabase.from('resources').select('location');
-      const locationPool = [
-        ...(allLocationRows ?? []).map((r: { location: string | null }) => r.location),
-        ...mappedResources.map((r) => r.location),
-      ];
-      const byKey = new Map<string, string>();
-      for (const raw of locationPool) {
-        const value = (raw ?? '').trim();
-        if (!value) continue;
-        const key = value.toLowerCase();
-        if (!byKey.has(key)) byKey.set(key, value);
-      }
-      setLocations([...byKey.values()].sort((a, b) => a.localeCompare(b)));
+      // Location options come from `directory_service_areas` (all 11 supported states), not
+      // only from whatever `resources.location` happens to contain. Acceptance testing found
+      // that column holds Maryland test data plus unstructured values like "Convention Center",
+      // so on its own it offered no way to search DC, VA, NJ, PA, NY, MA, IL, GA or FL.
+      const [{ data: serviceAreaRows }, { data: allLocationRows }] = await Promise.all([
+        (supabase as any)
+          .from('directory_service_areas')
+          .select('city, state')
+          .eq('is_active', true),
+        supabase.from('resources').select('location'),
+      ]);
+
+      setLocations(
+        buildResourceLocationOptions(
+          (serviceAreaRows ?? []) as { city: string | null; state: string | null }[],
+          [
+            ...(allLocationRows ?? []).map((r: { location: string | null }) => r.location),
+            ...mappedResources.map((r) => r.location),
+          ],
+        ),
+      );
     } catch (error) {
       console.error('Error fetching resources:', error);
       toast({
